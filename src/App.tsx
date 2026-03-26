@@ -1,0 +1,479 @@
+import { useState, useCallback, useEffect, useSyncExternalStore } from 'react';
+import Sidebar from './components/Sidebar';
+import ChatPanel from './components/ChatPanel';
+import DetailPanel from './components/DetailPanel';
+import { Chat, Message, ActionChip, TicketCard } from './types';
+import { INITIAL_CHATS } from './data';
+
+const REPORT_CONTENT = `**Introduction**
+As alcohol delivery becomes a growing segment within last-mile logistics, platforms are facing increased scrutiny over age verification, driver compliance, and customer safety. While the convenience of contactless drop-offs has improved efficiency, it has also exposed new legal and operational vulnerabilities. This brief outlines key pain points in alcohol delivery workflows and highlights best practices for mitigating compliance risks.
+
+• **Age Verification Compliance**\nMany drivers fail to properly verify age, especially with contactless delivery.\nSome systems lack real-time ID scanning features.
+• **Legal Liability**\nIn several U.S. states, alcohol delivery requires the driver to hold a special permit.\nMisdelivery can result in fines or license suspension for the platform.
+• **Driver Safety**\nAlcohol deliveries at night increase risk of harassment or theft in certain regions.
+• **Operational Delays**\nVerification steps slow down delivery speed, impacting ETA accuracy.\nCustomer Complaints\nCases of incorrect age-based refusal or confusion on signature policies
+• **Customer Complaints**\nCases of incorrect age-based refusal or confusion on signature policies
+
+**Conclusion**
+Alcohol delivery introduces a higher regulatory and reputational risk for delivery platforms. Clearer ID protocols, training for drivers, and stronger app-level compliance safeguards are critical. Some platforms (e.g., Drizly, Uber Eats) mitigate this with age-check flows, facial ID, and license scanning.`;
+
+// Demo AI response flows
+const AI_FLOWS: Record<string, { delay: number; response: Omit<Message, 'id' | 'timestamp' | 'role'> }[]> = {
+  'summarize-design-sync': [
+    {
+      delay: 1500,
+      response: {
+        content: 'Would you like me to create **Jira tickets** for the team?',
+        card: {
+          type: 'meeting',
+          title: 'Meeting Minutes',
+          content: '**Objective**\nIdentify and resolve friction points in the alcohol delivery experience to ensure compliance, driver safety, and customer satisfaction.\n\n**Design Optimization Points**\n• Clarify ID verification steps for both customers and drivers\n• Standardize error messaging for failed ID scans or customer no-shows\n\n---\n\n**New request**\nAdd step-by-step illustrations to guide drivers through ID scanning.',
+        },
+        chips: [{ label: 'Create Tickets', action: 'create-tickets' }],
+      },
+    },
+  ],
+  'create-tickets': [
+    {
+      delay: 1200,
+      response: {
+        content: '',
+        card: {
+          type: 'ticket',
+          title: 'Creating a Ticket...',
+          description: '',
+          status: 'in-progress',
+        },
+      },
+    },
+  ],
+  'confirm-ticket': [],
+  'set-up-meeting': [
+    {
+      delay: 1200,
+      response: {
+        content: 'I\'ll set up a meeting for your team. Here are the details:',
+        card: {
+          type: 'schedule',
+          title: 'Pickup & Drop-off UX review',
+          date: 'Friday, April 4',
+          time: '10:00 AM-10:30 AM',
+          attendees: ['Beibei Zhang', 'Kai Garcia', 'Stephen Garcia'],
+          location: 'Google Meet',
+          timeOptions: [
+            { date: 'Friday, April 4,(Tomorrow)', time: '10:00 AM-10:30 AM', selected: true },
+            { date: 'Friday, April 4,(Tomorrow)', time: '10:30 AM-11:00 AM' },
+          ],
+        },
+      },
+    },
+  ],
+  'explore-solutions': [
+    {
+      delay: 1500,
+      response: {
+        content: 'Based on the report, here are the top solutions to address alcohol delivery compliance issues:\n\n**1. Enhanced ID Verification Flow**\nImplement a step-by-step guide with illustrations for drivers during the ID scanning process.\n\n**2. Automated Compliance Alerts**\nSet up real-time alerts when a delivery involves alcohol, reminding drivers of protocols.\n\n**3. Customer Communication Templates**\nStandardize messaging for failed ID scans, no-shows, and refusal scenarios.',
+        chips: [
+          { label: 'Create Tasks', action: 'create-tasks' },
+          { label: 'Set Up Meeting', action: 'set-up-meeting' },
+        ],
+      },
+    },
+  ],
+  'default': [
+    {
+      delay: 1200,
+      response: {
+        content: 'Got it! I\'ll help you with that. What would you like to do next?',
+        chips: [
+          { label: 'Learn More', action: 'learn-more' },
+          { label: 'Start Over', action: 'new-chat' },
+        ],
+      },
+    },
+  ],
+};
+
+// Smart response generation based on user message
+function generateResponse(message: string): Omit<Message, 'id' | 'timestamp' | 'role'>[] {
+  const lower = message.toLowerCase();
+
+  if (lower.includes('meeting') && (lower.includes('summar') || lower.includes('minute') || lower.includes('yesterday'))) {
+    return [
+      {
+        content: 'Looks like there were two meetings yesterday about Pickup and Drop-off: **Design Sync** and **Pain Point Review**. Which one should I summarize for you?',
+        chips: [
+          { label: 'Design Sync', action: 'summarize-design-sync' },
+          { label: 'Pain Point Review', action: 'summarize-pain-point' },
+        ],
+      },
+    ];
+  }
+
+  if (lower.includes('report') || lower.includes('research') || lower.includes('find')) {
+    return [
+      {
+        content: 'All done! Let me know if you\'d like some **recommendations** based on the report findings — or, if it makes sense, we can also **explore solutions** or even **set up a meeting** to discuss things further. 😊',
+        card: {
+          type: 'research',
+          title: 'Summary Report: Spark Driver Alcohol Delivery C',
+          summary: 'Alcohol delivery introduces a higher regulatory and reputational risk for delivery platforms.',
+        },
+        chips: [
+          { label: 'Set Up Meeting', action: 'set-up-meeting' },
+          { label: 'Explore Solutions', action: 'explore-solutions' },
+          { label: 'View Recommendations', action: 'view-recommendations' },
+        ],
+      },
+    ];
+  }
+
+  if (lower.includes('ticket') || lower.includes('jira') || lower.includes('task')) {
+    return [
+      {
+        content: '',
+        card: {
+          type: 'ticket',
+          title: 'Tickets',
+          description: '',
+          items: [
+            { text: 'provided the engineers\' ETA', assignee: 'Stephen', due: 'Tomorrow' },
+            { text: 'design five illustrations according to the \'Deliver\' category', assignee: 'Kai', due: 'Thursday, April 10' },
+          ],
+        },
+      },
+    ];
+  }
+
+  if (lower.includes('schedule') || lower.includes('meeting') || lower.includes('set up')) {
+    return [
+      {
+        content: 'I\'ll schedule that for you. Here are the details:',
+        card: {
+          type: 'schedule',
+          title: 'Pickup & Drop-off UX review',
+          date: 'Friday, April 4',
+          time: '10:00 AM-10:30 AM',
+          attendees: ['Beibei Zhang', 'Kai Garcia', 'Stephen Garcia'],
+          location: 'Google Meet',
+          timeOptions: [
+            { date: 'Friday, April 4,(Tomorrow)', time: '10:00 AM-10:30 AM', selected: true },
+            { date: 'Friday, April 4,(Tomorrow)', time: '10:30 AM-11:00 AM' },
+          ],
+        },
+      },
+    ];
+  }
+
+  if (lower.includes('goal') || lower.includes('performance')) {
+    return [
+      {
+        content: 'I can help you create performance goals. Here\'s a suggested framework:\n\n**Q2 Design Goals**\n• Improve design system adoption by 40%\n• Reduce time-to-handoff by 20%\n• Conduct 5 user testing sessions\n\nWould you like me to add these to a project tracker?',
+        chips: [
+          { label: 'Add to Asana', action: 'add-to-asana' },
+          { label: 'Customize Goals', action: 'customize-goals' },
+        ],
+      },
+    ];
+  }
+
+  if (lower.includes('analyze') || lower.includes('doc')) {
+    return [
+      {
+        content: 'I can analyze documents for you. Please share the document you\'d like me to review, or I can search for relevant documents in your connected apps.',
+        chips: [
+          { label: 'Search Docs', action: 'search-docs' },
+          { label: 'Upload File', action: 'upload-file' },
+        ],
+      },
+    ];
+  }
+
+  // Generic response
+  return [
+    {
+      content: 'I\'m on it! Give me a moment to process that for you.',
+      chips: [
+        { label: 'Ask Follow-up', action: 'follow-up' },
+        { label: 'Start Over', action: 'new-chat' },
+      ],
+    },
+  ];
+}
+
+function findLastIndex<T>(arr: T[], predicate: (item: T) => boolean): number {
+  for (let i = arr.length - 1; i >= 0; i--) {
+    if (predicate(arr[i])) return i;
+  }
+  return -1;
+}
+
+let msgIdCounter = 100;
+const nextId = () => String(++msgIdCounter);
+
+const MOBILE_BREAKPOINT = 768;
+const subscribe = (cb: () => void) => { window.addEventListener('resize', cb); return () => window.removeEventListener('resize', cb); };
+const getIsMobile = () => window.innerWidth < MOBILE_BREAKPOINT;
+
+export default function App() {
+  const [chats, setChats] = useState<Chat[]>(INITIAL_CHATS);
+  const [activeChatId, setActiveChatId] = useState<string>('my-workpal');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isDark, setIsDark] = useState(false);
+  const [selectedAvatarId, setSelectedAvatarId] = useState('black-woman');
+  const [detailOpen, setDetailOpen] = useState(false);
+  const isMobile = useSyncExternalStore(subscribe, getIsMobile);
+
+  // Toggle dark class on root element
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDark);
+  }, [isDark]);
+
+  const activeChat = chats.find(c => c.id === activeChatId) || null;
+
+  const updateChat = useCallback((chatId: string, updater: (chat: Chat) => Chat) => {
+    setChats(prev => prev.map(c => c.id === chatId ? updater(c) : c));
+  }, []);
+
+  const addMessage = useCallback((chatId: string, message: Message) => {
+    updateChat(chatId, chat => ({
+      ...chat,
+      messages: [...chat.messages, message],
+      lastMessage: message.content || 'New message',
+      timestamp: message.timestamp,
+    }));
+  }, [updateChat]);
+
+  const showTypingThenRespond = useCallback((
+    chatId: string,
+    responses: Omit<Message, 'id' | 'timestamp' | 'role'>[],
+    delay = 1200,
+  ) => {
+    // Show typing indicator
+    const loadingId = nextId();
+    addMessage(chatId, {
+      id: loadingId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      isLoading: true,
+    });
+
+    setTimeout(() => {
+      // Remove loading, add real response(s)
+      setChats(prev => prev.map(c => {
+        if (c.id !== chatId) return c;
+        const withoutLoader = c.messages.filter(m => m.id !== loadingId);
+        const newMessages: Message[] = responses.map(r => ({
+          ...r,
+          id: nextId(),
+          role: 'assistant' as const,
+          timestamp: new Date(),
+        }));
+        return {
+          ...c,
+          messages: [...withoutLoader, ...newMessages],
+          lastMessage: responses[0]?.content || 'New message',
+          timestamp: new Date(),
+        };
+      }));
+    }, delay);
+  }, [addMessage]);
+
+  // Auto-respond when opening ux-meeting chat with only the user message
+  useEffect(() => {
+    if (!activeChat) return;
+    const msgs = activeChat.messages;
+    // Only auto-respond if last message is from user and no assistant reply yet
+    if (msgs.length >= 1 && msgs[msgs.length - 1].role === 'user' && activeChat.id === 'ux-meeting') {
+      const responses = generateResponse(msgs[msgs.length - 1].content);
+      showTypingThenRespond(activeChat.id, responses, 1200);
+    }
+  }, [activeChatId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSend = useCallback((text: string) => {
+    // Find or create active chat
+    let chatId = activeChatId;
+
+    // If on welcome screen, create a new chat
+    if (!activeChat || activeChat.messages.length === 0) {
+      chatId = `chat-${Date.now()}`;
+      const newChat: Chat = {
+        id: chatId,
+        title: text.slice(0, 40) + (text.length > 40 ? '...' : ''),
+        lastMessage: text,
+        timestamp: new Date(),
+        messages: [],
+      };
+      setChats(prev => [newChat, ...prev.filter(c => c.id !== 'my-workpal'), prev.find(c => c.id === 'my-workpal')!]);
+      setActiveChatId(chatId);
+    }
+
+    // Add user message
+    const userMessage: Message = {
+      id: nextId(),
+      role: 'user',
+      content: text,
+      timestamp: new Date(),
+    };
+
+    // Need to use the possibly-new chatId
+    setChats(prev => prev.map(c => {
+      if (c.id !== chatId) return c;
+      return {
+        ...c,
+        messages: [...c.messages, userMessage],
+        lastMessage: text,
+        timestamp: new Date(),
+      };
+    }));
+
+    // Generate response
+    const responses = generateResponse(text);
+    showTypingThenRespond(chatId, responses, 1200);
+  }, [activeChatId, activeChat, showTypingThenRespond]);
+
+  const handleChipClick = useCallback((chip: ActionChip) => {
+    // Treat chip click as a user message
+    const userMessage: Message = {
+      id: nextId(),
+      role: 'user',
+      content: chip.label,
+      timestamp: new Date(),
+    };
+
+    setChats(prev => prev.map(c => {
+      if (c.id !== activeChatId) return c;
+      return { ...c, messages: [...c.messages, userMessage] };
+    }));
+
+    // Look up flow
+    const flow = AI_FLOWS[chip.action] || AI_FLOWS['default'];
+    const responses = flow.map(f => f.response);
+    showTypingThenRespond(activeChatId, responses, flow[0]?.delay || 1200);
+
+    // Multi-step: after "Creating a Ticket..." in-progress, swap to real ticket card
+    if (chip.action === 'create-tickets') {
+      setTimeout(() => {
+        setChats(prev => prev.map(c => {
+          if (c.id !== activeChatId) return c;
+          // Find the last message with in-progress ticket card and replace it
+          const messages = [...c.messages];
+          const idx = findLastIndex(messages, (m: Message) =>
+            m.card?.type === 'ticket' && (m.card as TicketCard).status === 'in-progress'
+          );
+          if (idx !== -1) {
+            messages[idx] = {
+              ...messages[idx],
+              card: {
+                type: 'ticket',
+                title: 'Illustration Request Ticket',
+                description: 'Create illustration to explain how to scan an ID.',
+                items: [
+                  { text: 'Create illustration to explain how to scan an ID.', assignee: 'Kai', due: 'Thursday, April 10' },
+                ],
+                status: 'created',
+              },
+            };
+          }
+          return { ...c, messages };
+        }));
+      }, 3500); // 1200 typing + 2300 progress bar display
+    }
+  }, [activeChatId, showTypingThenRespond]);
+
+  const handleCardAction = useCallback((action: string) => {
+    // confirm-ticket: transition ticket card in-place to "sent"
+    if (action === 'confirm-ticket') {
+      setChats(prev => prev.map(c => {
+        if (c.id !== activeChatId) return c;
+        const messages = [...c.messages];
+        const idx = findLastIndex(messages, (m: Message) =>
+          m.card?.type === 'ticket' && (m.card as TicketCard).status === 'created'
+        );
+        if (idx !== -1) {
+          const existingCard = messages[idx].card as TicketCard;
+          messages[idx] = {
+            ...messages[idx],
+            card: {
+              ...existingCard,
+              status: 'sent',
+              statusLabel: 'Sent',
+            },
+          };
+        }
+        return { ...c, messages };
+      }));
+      return;
+    }
+
+    const flow = AI_FLOWS[action] || AI_FLOWS['default'];
+    const responses = flow.map(f => f.response);
+    showTypingThenRespond(activeChatId, responses, flow[0]?.delay || 800);
+  }, [activeChatId, showTypingThenRespond]);
+
+  const handleNewChat = useCallback(() => {
+    setActiveChatId('my-workpal');
+  }, []);
+
+  const handleChatSelect = useCallback((id: string) => {
+    setActiveChatId(id);
+  }, []);
+
+  return (
+    <div className="flex h-full w-full overflow-hidden" style={{ background: 'var(--color-outer-bg)' }}>
+      {/* Outer rounded container */}
+      <div className="flex-1 flex overflow-hidden m-2 rounded-[40px] shadow-2xl relative" style={{ border: `1px solid var(--color-outer-border)` }}>
+        {/* Sidebar */}
+        {sidebarOpen && (
+          <>
+            {/* Backdrop overlay on mobile */}
+            {isMobile && (
+              <div
+                className="absolute inset-0 z-20 bg-black/30"
+                onClick={() => setSidebarOpen(false)}
+              />
+            )}
+            <div className={isMobile ? 'absolute inset-y-0 left-0 z-30' : 'contents'}>
+              <Sidebar
+                chats={chats}
+                activeChatId={activeChatId}
+                onChatSelect={(id) => { handleChatSelect(id); if (isMobile) setSidebarOpen(false); }}
+                onNewChat={() => { handleNewChat(); if (isMobile) setSidebarOpen(false); }}
+                isDark={isDark}
+                onToggleDark={() => setIsDark(d => !d)}
+                onToggleSidebar={() => setSidebarOpen(o => !o)}
+              />
+            </div>
+          </>
+        )}
+
+        {/* Detail Panel */}
+        {detailOpen && (
+          <DetailPanel
+            title="Summary Report: Spark Driver Alcohol"
+            content={REPORT_CONTENT}
+            onClose={() => setDetailOpen(false)}
+          />
+        )}
+
+        {/* Chat Panel */}
+        <ChatPanel
+          chat={activeChat?.id === 'my-workpal' ? null : activeChat ?? null}
+          onSend={handleSend}
+          onChipClick={handleChipClick}
+          onCardAction={(action) => {
+            handleCardAction(action);
+            // Open detail panel when viewing research card
+            if (action === 'view-report') setDetailOpen(true);
+          }}
+          sidebarOpen={sidebarOpen}
+          onToggleSidebar={() => setSidebarOpen(o => !o)}
+          isDark={isDark}
+          selectedAvatarId={selectedAvatarId}
+          onAvatarChange={setSelectedAvatarId}
+        />
+      </div>
+    </div>
+  );
+}
