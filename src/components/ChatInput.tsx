@@ -1,5 +1,6 @@
 import { useState, useRef, KeyboardEvent } from 'react';
 import { iconGoals, iconDoc16, iconBarChart, iconPhoto, iconCamera, iconUpload, iconMicrophone, iconVoice, iconSend, iconSendActive } from '../assets';
+import { ActionChip } from '../types';
 
 const CHIP_ICONS: Record<string, string> = {
   'Create performance goals': iconGoals,
@@ -11,6 +12,8 @@ interface ChatInputProps {
   onSend: (message: string) => void;
   placeholder?: string;
   quickChips?: string[];
+  actionChips?: ActionChip[];
+  onChipClick?: (chip: ActionChip) => void;
 }
 
 function ToolBtn({ children, onClick, gradient }: {
@@ -69,7 +72,7 @@ function IconImg({ src, alt, noTheme }: { src: string; alt: string; noTheme?: bo
   );
 }
 
-export default function ChatInput({ onSend, placeholder = 'Message WorkPal', quickChips }: ChatInputProps) {
+export default function ChatInput({ onSend, placeholder = 'Message WorkPal', quickChips, actionChips, onChipClick }: ChatInputProps) {
   const [value, setValue] = useState('');
   const [focused, setFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -98,6 +101,8 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
   };
 
   const canSend = value.trim().length > 0;
+  const isMultiline = textareaRef.current ? textareaRef.current.scrollHeight > 44 : false;
+  const isActive = focused || canSend;
 
   return (
     <div className="w-full flex flex-col gap-4">
@@ -121,8 +126,37 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
         </div>
       )}
 
-      {/* Text field — standalone pill */}
-      <div className="bg-bg-message rounded-full h-14 px-4 py-3 flex items-center">
+      {/* Action chips from last AI message */}
+      {actionChips && actionChips.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {actionChips.map(chip => (
+            <button
+              key={chip.action}
+              onClick={() => onChipClick?.(chip)}
+              className="chip-gradient-hover px-3 py-1 rounded-full border border-stroke-outline text-base leading-[22px] text-text-primary transition-colors cursor-pointer"
+            >
+              {chip.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Text field — follows Figma component library states */}
+      <div
+        className={`px-4 py-4 flex items-center transition-all ${
+          isActive
+            ? (isMultiline ? 'rounded-lg' : 'rounded-full')
+            : 'rounded-full input-gradient-hover'
+        }`}
+        style={
+          isActive
+            ? {
+                border: '2px solid transparent',
+                background: 'linear-gradient(var(--color-bg-page), var(--color-bg-page)) padding-box, linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box',
+              }
+            : { border: '2px solid transparent', background: 'var(--color-bg-message)' }
+        }
+      >
         <textarea
           ref={textareaRef}
           value={value}
@@ -132,7 +166,13 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
           onBlur={() => setFocused(false)}
           placeholder={placeholder}
           rows={1}
-          className="w-full bg-transparent resize-none outline-none text-sm text-text-primary placeholder-text-tertiary leading-tight"
+          className="w-full bg-transparent resize-none outline-none text-text-primary placeholder-text-tertiary"
+          style={{
+            fontFamily: 'Inter, system-ui, sans-serif',
+            fontSize: 16,
+            lineHeight: '22px',
+            letterSpacing: '0px',
+          }}
         />
       </div>
 

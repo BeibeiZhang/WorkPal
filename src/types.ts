@@ -53,7 +53,16 @@ export interface ScheduleCard {
   type: 'schedule';
 }
 
-export type CardData = MeetingCard | ResearchCard | TicketCard | ScheduleCard;
+export interface AgentCard {
+  type: 'agent';
+  title: string;
+  status: 'creating' | 'ready' | 'saved';
+  agentName?: string;
+  agentIntro?: string;
+  avatarUrl?: string;
+}
+
+export type CardData = MeetingCard | ResearchCard | TicketCard | ScheduleCard | AgentCard;
 
 export interface Message {
   id: string;

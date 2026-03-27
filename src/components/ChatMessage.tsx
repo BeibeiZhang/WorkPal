@@ -4,6 +4,7 @@ import { iconCopy, iconShare, iconThumbsUp, iconRefresh } from '../assets';
 
 interface ChatMessageProps {
   message: Message;
+  isLastAssistant?: boolean;
   onChipClick?: (chip: ActionChip) => void;
   onCardAction?: (action: string) => void;
 }
@@ -60,19 +61,19 @@ function TypingIndicator() {
   );
 }
 
-export default function ChatMessage({ message, onChipClick, onCardAction }: ChatMessageProps) {
+export default function ChatMessage({ message, isLastAssistant, onChipClick, onCardAction }: ChatMessageProps) {
   if (message.role === 'user') {
     return (
       <div className="flex justify-end mb-4 message-appear">
-        <div className="max-w-[72%] bg-bg-message rounded-3xl rounded-br-lg px-4 py-3">
-          <p className="text-sm text-text-primary leading-relaxed">{message.content}</p>
+        <div className="max-w-[320px] bg-bg-message rounded-lg px-4 py-3">
+          <p className="text-base text-text-primary leading-[24px]">{message.content}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="mb-4 message-appear">
+    <div className={`mb-4 message-appear ${!isLastAssistant ? 'group/msg' : ''}`}>
       {message.isLoading ? (
         <TypingIndicator />
       ) : (
@@ -82,30 +83,24 @@ export default function ChatMessage({ message, onChipClick, onCardAction }: Chat
             <MessageCard card={message.card} onAction={onCardAction} />
           )}
 
+          {/* Divider between meeting card content and follow-up text */}
+          {message.card?.type === 'meeting' && message.content && (
+            <div className="border-t border-dashed border-stroke-outline my-4" />
+          )}
+
           {/* Text content */}
           {message.content && (
-            <p className="text-sm text-text-primary leading-relaxed">
+            <p className="text-base text-text-primary leading-[22px]">
               {renderText(message.content)}
             </p>
           )}
 
-          {/* Feedback bar */}
-          <FeedbackBar />
+          {/* Feedback bar: always visible on last assistant msg, hover-only on others */}
+          <div className={isLastAssistant ? '' : 'opacity-0 group-hover/msg:opacity-100 transition-opacity'}>
+            <FeedbackBar />
+          </div>
 
-          {/* Action chips */}
-          {message.chips && message.chips.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-3">
-              {message.chips.map(chip => (
-                <button
-                  key={chip.action}
-                  onClick={() => onChipClick?.(chip)}
-                  className="chip-gradient-hover px-3 py-1 rounded-full border border-stroke-outline text-base leading-[22px] text-text-primary transition-colors cursor-pointer"
-                >
-                  {chip.label}
-                </button>
-              ))}
-            </div>
-          )}
+          {/* Action chips moved to input area */}
         </>
       )}
     </div>

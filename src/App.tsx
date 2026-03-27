@@ -2,7 +2,10 @@ import { useState, useCallback, useEffect, useSyncExternalStore } from 'react';
 import Sidebar from './components/Sidebar';
 import ChatPanel from './components/ChatPanel';
 import DetailPanel from './components/DetailPanel';
-import { Chat, Message, ActionChip, TicketCard } from './types';
+import Onboarding from './components/Onboarding';
+import TaskScreen from './components/TaskScreen';
+import { Chat, Message, ActionChip, TicketCard, AgentCard } from './types';
+import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
 import { INITIAL_CHATS } from './data';
 
 const REPORT_CONTENT = `**Introduction**
@@ -27,7 +30,7 @@ const AI_FLOWS: Record<string, { delay: number; response: Omit<Message, 'id' | '
         card: {
           type: 'meeting',
           title: 'Meeting Minutes',
-          content: '**Objective**\nIdentify and resolve friction points in the alcohol delivery experience to ensure compliance, driver safety, and customer satisfaction.\n\n**Design Optimization Points**\n• Clarify ID verification steps for both customers and drivers\n• Standardize error messaging for failed ID scans or customer no-shows\n\n---\n\n**New request**\nAdd step-by-step illustrations to guide drivers through ID scanning.',
+          content: '**Objective**\nIdentify and resolve friction points in the alcohol delivery experience to ensure compliance, driver safety, and customer satisfaction.\n\n**Design Optimization Points**\n• Clarify ID verification steps for both customers and drivers\n• Standardize error messaging for failed ID scans or customer no-shows\n\n**New request**\nAdd step-by-step illustrations to guide drivers through ID scanning.',
         },
         chips: [{ label: 'Create Tickets', action: 'create-tickets' }],
       },
@@ -222,6 +225,8 @@ export default function App() {
   const [isDark, setIsDark] = useState(false);
   const [selectedAvatarId, setSelectedAvatarId] = useState('black-woman');
   const [detailOpen, setDetailOpen] = useState(false);
+  const [onboardingDone, setOnboardingDone] = useState(() => localStorage.getItem('workpal-onboarding-done') === 'true');
+  const [activeView, setActiveView] = useState<'chat' | 'tasks'>('chat');
   const isMobile = useSyncExternalStore(subscribe, getIsMobile);
 
   // Toggle dark class on root element
@@ -383,6 +388,26 @@ export default function App() {
   }, [activeChatId, showTypingThenRespond]);
 
   const handleCardAction = useCallback((action: string) => {
+    // set-agent: transition agent card from 'ready' to 'saved'
+    if (action === 'set-agent') {
+      setChats(prev => prev.map(c => {
+        if (c.id !== activeChatId) return c;
+        const messages = [...c.messages];
+        const idx = findLastIndex(messages, (m: Message) =>
+          m.card?.type === 'agent' && (m.card as AgentCard).status === 'ready'
+        );
+        if (idx !== -1) {
+          const existingCard = messages[idx].card as AgentCard;
+          messages[idx] = {
+            ...messages[idx],
+            card: { ...existingCard, status: 'saved' },
+          };
+        }
+        return { ...c, messages };
+      }));
+      return;
+    }
+
     // confirm-ticket: transition ticket card in-place to "sent"
     if (action === 'confirm-ticket') {
       setChats(prev => prev.map(c => {
@@ -412,12 +437,115 @@ export default function App() {
     showTypingThenRespond(activeChatId, responses, flow[0]?.delay || 800);
   }, [activeChatId, showTypingThenRespond]);
 
+  const AVATAR_MAP: Record<string, string> = {
+    'black-woman': avatarBlackWoman,
+    'asian-woman': avatarAsianWoman,
+    'white-man': avatarWhiteMan,
+  };
+
+  const handleOnboardingComplete = useCallback((description: string, traits: string[]) => {
+    setOnboardingDone(true);
+    localStorage.setItem('workpal-onboarding-done', 'true');
+
+    // Build user message content: description + trait bullets
+    const traitBullets = traits.map(t => `  • ${t}`).join('\n');
+    const userContent = description
+      ? `${description}\n${traitBullets}`
+      : traitBullets || 'Set up my WorkPal agent';
+
+    // Create "My WorkPal" chat with the user message
+    const chatId = 'my-workpal';
+    const userMsg: Message = {
+      id: nextId(),
+      role: 'user',
+      content: userContent,
+      timestamp: new Date(),
+    };
+
+    setChats(prev => prev.map(c => {
+      if (c.id !== chatId) return c;
+      return {
+        ...c,
+        messages: [userMsg],
+        lastMessage: userContent.slice(0, 40),
+        timestamp: new Date(),
+      };
+    }));
+    setActiveChatId(chatId);
+
+    // Step 3: Show "Creating your agent..." card
+    const loadingId = nextId();
+    setTimeout(() => {
+      setChats(prev => prev.map(c => {
+        if (c.id !== chatId) return c;
+        return {
+          ...c,
+          messages: [...c.messages, {
+            id: loadingId,
+            role: 'assistant',
+            content: '',
+            timestamp: new Date(),
+            card: {
+              type: 'agent',
+              title: 'Creating your agent\u2026',
+              status: 'creating',
+            },
+          }],
+        };
+      }));
+    }, 500);
+
+    // Step 4: After 3s, swap to "My WorkPal Agent" card with "Set as my agent"
+    setTimeout(() => {
+      setChats(prev => prev.map(c => {
+        if (c.id !== chatId) return c;
+        const messages = [...c.messages];
+        const idx = findLastIndex(messages, (m: Message) =>
+          m.card?.type === 'agent' && (m.card as AgentCard).status === 'creating'
+        );
+        if (idx !== -1) {
+          messages[idx] = {
+            ...messages[idx],
+            card: {
+              type: 'agent',
+              title: 'My WorkPal Agent',
+              status: 'ready',
+              agentName: 'Maya',
+              agentIntro: "Hi, I'm Maya. I've got your back! Let's make your workday a little brighter \u2600\uFE0F\uFE0F",
+              avatarUrl: AVATAR_MAP[selectedAvatarId] || avatarBlackWoman,
+            },
+          };
+        }
+        return { ...c, messages };
+      }));
+    }, 3500);
+  }, [selectedAvatarId]);
+
   const handleNewChat = useCallback(() => {
-    setActiveChatId('my-workpal');
+    const newId = `chat-${Date.now()}`;
+    setChats(prev => [{
+      id: newId,
+      title: 'WorkPal',
+      lastMessage: '',
+      timestamp: new Date(),
+      messages: [],
+    }, ...prev]);
+    setActiveChatId(newId);
+    setActiveView('chat');
   }, []);
 
   const handleChatSelect = useCallback((id: string) => {
+    // Reset onboarding every time "My WorkPal" is clicked (demo mode)
+    if (id === 'my-workpal') {
+      setOnboardingDone(false);
+      localStorage.removeItem('workpal-onboarding-done');
+      // Clear any previous messages in the my-workpal chat
+      setChats(prev => prev.map(c =>
+        c.id === 'my-workpal' ? { ...c, messages: [] } : c
+      ));
+    }
     setActiveChatId(id);
+    setActiveView('chat');
   }, []);
 
   return (
@@ -438,8 +566,10 @@ export default function App() {
               <Sidebar
                 chats={chats}
                 activeChatId={activeChatId}
+                activeView={activeView}
                 onChatSelect={(id) => { handleChatSelect(id); if (isMobile) setSidebarOpen(false); }}
                 onNewChat={() => { handleNewChat(); if (isMobile) setSidebarOpen(false); }}
+                onViewChange={(view) => { setActiveView(view); if (isMobile) setSidebarOpen(false); }}
                 isDark={isDark}
                 onToggleDark={() => setIsDark(d => !d)}
                 onToggleSidebar={() => setSidebarOpen(o => !o)}
@@ -457,22 +587,35 @@ export default function App() {
           />
         )}
 
-        {/* Chat Panel */}
-        <ChatPanel
-          chat={activeChat?.id === 'my-workpal' ? null : activeChat ?? null}
-          onSend={handleSend}
-          onChipClick={handleChipClick}
-          onCardAction={(action) => {
-            handleCardAction(action);
-            // Open detail panel when viewing research card
-            if (action === 'view-report') setDetailOpen(true);
-          }}
-          sidebarOpen={sidebarOpen}
-          onToggleSidebar={() => setSidebarOpen(o => !o)}
-          isDark={isDark}
-          selectedAvatarId={selectedAvatarId}
-          onAvatarChange={setSelectedAvatarId}
-        />
+        {/* Main Content */}
+        {activeView === 'tasks' ? (
+          <TaskScreen
+            sidebarOpen={sidebarOpen}
+            onToggleSidebar={() => setSidebarOpen(o => !o)}
+          />
+        ) : !onboardingDone && activeChatId === 'my-workpal' ? (
+          <Onboarding
+            onComplete={handleOnboardingComplete}
+            sidebarOpen={sidebarOpen}
+            onToggleSidebar={() => setSidebarOpen(o => !o)}
+          />
+        ) : (
+          <ChatPanel
+            chat={activeChat?.id === 'my-workpal' && (!onboardingDone || (activeChat?.messages.length ?? 0) === 0) ? null : activeChat ?? null}
+            onSend={handleSend}
+            onChipClick={handleChipClick}
+            onCardAction={(action) => {
+              handleCardAction(action);
+              // Open detail panel when viewing research card
+              if (action === 'view-report') setDetailOpen(true);
+            }}
+            sidebarOpen={sidebarOpen}
+            onToggleSidebar={() => setSidebarOpen(o => !o)}
+            isDark={isDark}
+            selectedAvatarId={selectedAvatarId}
+            onAvatarChange={setSelectedAvatarId}
+          />
+        )}
       </div>
     </div>
   );

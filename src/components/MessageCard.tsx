@@ -1,4 +1,4 @@
-import { CardData, MeetingCard, ResearchCard, TicketCard, ScheduleCard } from '../types';
+import { CardData, MeetingCard, ResearchCard, TicketCard, ScheduleCard, AgentCard } from '../types';
 import { iconAsana, iconDoc20, iconGmail, iconUsers, iconPin, iconClock } from '../assets';
 
 interface MessageCardProps {
@@ -25,7 +25,7 @@ function CardHeader({ icon, title, rightElement, borderBottom = false }: {
   return (
     <div className={`flex items-center gap-2 px-4 h-[61px] ${borderBottom ? 'border-b border-stroke-outline' : ''}`}>
       <div className="w-6 h-6 shrink-0 flex items-center justify-center">
-        <img src={icon} alt="" className="w-[18px] h-[18px] object-contain icon-theme" />
+        <img src={icon} alt="" className="w-[18px] h-[18px] object-contain" />
       </div>
       <p className="font-bold text-base leading-[22px] text-text-primary flex-1 truncate">{title}</p>
       {rightElement}
@@ -38,25 +38,9 @@ function GradientButton({ label, onClick }: { label: string; onClick?: () => voi
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-2 h-12 px-4 rounded text-white font-bold text-base leading-[22px] transition-opacity hover:opacity-90 cursor-pointer"
-      style={{
-        backgroundImage: 'linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%)',
-        boxShadow: '0 5px 15px rgba(1, 44, 197, 0.2)',
-      }}
+      className="gradient-btn w-full flex items-center justify-center h-12 px-4 rounded text-white font-bold text-base leading-[22px] cursor-pointer"
     >
-      {/* Calendar icon */}
-      <div className="w-6 h-6 shrink-0 flex items-center justify-center">
-        <svg width="12" height="6" viewBox="0 0 12 6" fill="none">
-          <path d="M1 1L6 5L11 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </div>
-      <span className="flex-1 text-left">{label}</span>
-      {/* Chevron down */}
-      <div className="w-11 h-11 flex items-center justify-center rounded-full shrink-0">
-        <svg width="12" height="7" viewBox="0 0 12 7" fill="none">
-          <path d="M1 1L6 6L11 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </div>
+      {label}
     </button>
   );
 }
@@ -75,7 +59,7 @@ function InfoRow({ icon, children, textClass = 'text-text-primary' }: {
   return (
     <div className="flex items-center gap-2 w-full">
       <div className="w-6 h-6 shrink-0 flex items-center justify-center">
-        <img src={icon} alt="" className="w-[18px] h-[18px] object-contain icon-theme" />
+        <img src={icon} alt="" className="w-[18px] h-[18px] object-contain" />
       </div>
       <p className={`flex-1 text-base leading-[22px] ${textClass}`}>{children}</p>
     </div>
@@ -98,38 +82,77 @@ function RichText({ text, assignee, due }: { text: string; assignee?: string; du
    Card type views
    ═══════════════════════════════════════════════════ */
 
-/* ── Meeting card (content with markdown) ── */
+/* ── Meeting card (plain formatted text, no card shell) ── */
 function MeetingCardView({ card }: { card: MeetingCard }) {
+  // Parse content into sections: group heading + body lines together
   const lines = card.content.split('\n');
-  return (
-    <CardShell>
-      <CardHeader icon={iconAsana} title={card.title} borderBottom />
-      <div className="p-4 space-y-3">
-        {lines.map((line, i) => {
-          if (line.trim() === '---') {
-            return <div key={i} className="border-t border-stroke-outline my-1" />;
-          }
-          if (line.startsWith('**') && line.endsWith('**')) {
-            return (
-              <p key={i} className="font-bold text-base leading-[22px] text-text-primary">
-                {line.replace(/\*\*/g, '')}
-              </p>
-            );
-          }
-          if (line.startsWith('•')) {
-            return (
-              <div key={i} className="flex gap-2">
-                <span className="text-text-primary text-base mt-0.5">•</span>
-                <p className="text-base leading-[22px] text-text-primary">{line.slice(2)}</p>
-              </div>
-            );
-          }
-          if (line.trim() === '') return null;
-          return <p key={i} className="text-base leading-[22px] text-text-primary">{line}</p>;
-        })}
-      </div>
-    </CardShell>
+  const elements: React.ReactNode[] = [];
+
+  // Title
+  elements.push(
+    <p key="title" className="font-bold text-base leading-[22px] text-text-primary mb-4">
+      {card.title}
+    </p>
   );
+
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+
+    if (line.trim() === '') {
+      i++;
+      continue;
+    }
+
+    // Bold heading followed by body text
+    if (line.startsWith('**') && line.endsWith('**')) {
+      const heading = line.replace(/\*\*/g, '');
+      const bodyLines: string[] = [];
+      i++;
+      // Collect body lines until next heading or empty line pair
+      while (i < lines.length && lines[i].trim() !== '' && !(lines[i].startsWith('**') && lines[i].endsWith('**'))) {
+        bodyLines.push(lines[i]);
+        i++;
+      }
+
+      // Check if body lines are bullet points
+      const isBulletList = bodyLines.every(l => l.startsWith('•'));
+
+      elements.push(
+        <div key={`section-${elements.length}`} className="mb-4">
+          <p className="font-bold text-base leading-[22px] text-text-primary">
+            {heading}
+          </p>
+          {isBulletList ? (
+            <ul className="list-disc pl-5 mt-0">
+              {bodyLines.map((bl, j) => (
+                <li key={j} className="text-base leading-[22px] text-text-primary mt-1">
+                  {bl.slice(2)}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            bodyLines.map((bl, j) => (
+              <p key={j} className="text-base leading-[22px] text-text-primary">
+                {bl}
+              </p>
+            ))
+          )}
+        </div>
+      );
+      continue;
+    }
+
+    // Regular line
+    elements.push(
+      <p key={`line-${i}`} className="text-base leading-[22px] text-text-primary mb-4">
+        {line}
+      </p>
+    );
+    i++;
+  }
+
+  return <div className="w-full">{elements}</div>;
 }
 
 /* ── Loading dots component ── */
@@ -148,7 +171,7 @@ function StatusTag({ label }: { label: string }) {
   return (
     <span
       className="text-sm font-semibold leading-[22px] tracking-[-0.3px] whitespace-nowrap px-[10px] py-1 rounded shrink-0"
-      style={{ background: 'rgba(2, 137, 1, 0.1)', color: '#028901' }}
+      style={{ background: 'rgba(2, 137, 1, 0.1)', color: '#00c7be' }}
     >
       {label}
     </span>
@@ -214,26 +237,24 @@ function GradientProgressBar() {
 function TicketCardView({ card, onAction }: { card: TicketCard; onAction?: (a: string) => void }) {
   const status = card.status || 'created';
 
-  // In-progress state: compact card with progress bar
+  // In-progress state: compact card with progress bar (full-width, no padding)
   if (status === 'in-progress') {
     return (
       <CardShell>
         <div className="flex items-center gap-2 px-4 h-[61px]">
           <div className="w-6 h-6 shrink-0 flex items-center justify-center">
-            <img src={iconAsana} alt="" className="w-[18px] h-[18px] object-contain icon-theme" />
+            <img src={iconAsana} alt="" className="w-[18px] h-[18px] object-contain" />
           </div>
           <p className="font-bold text-base leading-[22px] text-text-primary flex-1 truncate">
             {card.title}
           </p>
         </div>
-        <div className="px-4 pb-4">
-          <GradientProgressBar />
-        </div>
+        <GradientProgressBar />
       </CardShell>
     );
   }
 
-  // Sent state: card with Sent tag, no button
+  // Sent state: card with Sent tag, no button, muted body
   if (status === 'sent') {
     const items = card.items ?? [{ text: card.description, assignee: card.assignee, due: card.due }];
     return (
@@ -248,8 +269,7 @@ function TicketCardView({ card, onAction }: { card: TicketCard; onAction?: (a: s
           {items.map((item, i) => (
             <div key={i}>
               {i > 0 && <div className="border-t border-stroke-outline mb-4" />}
-              <div className="flex items-start gap-3">
-                <div className="w-4 h-4 mt-[3px] shrink-0 border border-[#757575] rounded" style={{ background: 'var(--color-bg-page)' }} />
+              <div className="flex items-start">
                 <p className="flex-1 text-base leading-[22px] text-text-primary">
                   <RichText text={item.text} assignee={item.assignee} due={item.due} />
                 </p>
@@ -270,9 +290,7 @@ function TicketCardView({ card, onAction }: { card: TicketCard; onAction?: (a: s
         {items.map((item, i) => (
           <div key={i}>
             {i > 0 && <div className="border-t border-stroke-outline mb-4" />}
-            <div className="flex items-start gap-3">
-              {/* Checkbox */}
-              <div className="w-4 h-4 mt-[3px] shrink-0 border border-[#757575] rounded" style={{ background: 'var(--color-bg-page)' }} />
+            <div className="flex items-start">
               <p className="flex-1 text-base leading-[22px] text-text-primary">
                 <RichText text={item.text} assignee={item.assignee} due={item.due} />
               </p>
@@ -356,6 +374,105 @@ function ScheduleCardView({ card, onAction }: { card: ScheduleCard; onAction?: (
   );
 }
 
+/* ── Agent card (creating / ready / saved) ── */
+function AgentCardView({ card, onAction }: { card: AgentCard; onAction?: (a: string) => void }) {
+  const status = card.status || 'creating';
+
+  // Gradient icon for card header
+  const gradientIcon = (
+    <div
+      className="w-6 h-6 shrink-0 rounded-full overflow-hidden flex items-center justify-center"
+      style={{
+        backgroundImage: 'linear-gradient(64deg, #7652B9 3%, #B46470 36%, #CA9D8C 80%)',
+      }}
+    >
+      {/* WorkPal "W" icon — simplified as white shape */}
+      <svg width="18" height="10" viewBox="0 0 18 10" fill="none">
+        <path d="M1 1L4.5 9L9 3L13.5 9L17 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </div>
+  );
+
+  // Creating state: header + progress bar
+  if (status === 'creating') {
+    return (
+      <CardShell>
+        <div className="flex items-center gap-2 px-4 h-[61px]">
+          {gradientIcon}
+          <p className="font-bold text-base leading-[22px] text-text-primary flex-1 truncate">
+            {card.title}
+          </p>
+        </div>
+        <GradientProgressBar />
+      </CardShell>
+    );
+  }
+
+  // Ready / Saved states
+  return (
+    <CardShell>
+      {/* Header */}
+      <div className="flex items-center gap-2 px-4 h-[61px] border-b border-stroke-outline">
+        {gradientIcon}
+        <p className="font-bold text-base leading-[22px] text-text-primary flex-1 truncate">
+          {card.title}
+        </p>
+        {status === 'saved' && <StatusTag label="Saved" />}
+      </div>
+      {/* Body: Profile + intro */}
+      <div className="p-4 flex flex-col gap-4">
+        {/* Profile row */}
+        <div
+          className="flex items-center gap-4 rounded overflow-hidden"
+          style={{ background: '#E5E9F1' }}
+        >
+          {/* Avatar */}
+          {card.avatarUrl && (
+            <div className="w-[120px] h-[120px] shrink-0">
+              {card.avatarUrl.endsWith('.mp4') ? (
+                <video
+                  src={card.avatarUrl}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <img src={card.avatarUrl} alt={card.agentName || 'Agent'} className="w-full h-full object-cover" />
+              )}
+            </div>
+          )}
+          {/* Intro text */}
+          <div className="flex-1 pr-2">
+            <p
+              className="text-text-primary"
+              style={{
+                fontFamily: 'Inter, system-ui, sans-serif',
+                fontSize: 14,
+                lineHeight: '22px',
+                letterSpacing: '0px',
+              }}
+            >
+              {card.agentIntro}
+            </p>
+          </div>
+        </div>
+
+        {/* Set as my agent button — only in 'ready' state */}
+        {status === 'ready' && (
+          <button
+            onClick={() => onAction?.('set-agent')}
+            className="gradient-btn w-full flex items-center justify-center h-12 px-4 rounded text-white font-bold text-base leading-[22px] cursor-pointer"
+          >
+            Set as my agent
+          </button>
+        )}
+      </div>
+    </CardShell>
+  );
+}
+
 /* ═══════════════════════════════════════════════════
    Main export
    ═══════════════════════════════════════════════════ */
@@ -364,5 +481,6 @@ export default function MessageCard({ card, onAction }: MessageCardProps) {
   if (card.type === 'research') return <ResearchCardView card={card as ResearchCard} />;
   if (card.type === 'ticket') return <TicketCardView card={card as TicketCard} onAction={onAction} />;
   if (card.type === 'schedule') return <ScheduleCardView card={card as ScheduleCard} onAction={onAction} />;
+  if (card.type === 'agent') return <AgentCardView card={card as AgentCard} onAction={onAction} />;
   return null;
 }

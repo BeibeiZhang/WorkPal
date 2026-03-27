@@ -10,8 +10,10 @@ const USER_PROFILE_IMG = '/icons/user-profile.png';
 interface SidebarProps {
   chats: Chat[];
   activeChatId: string;
+  activeView?: 'chat' | 'tasks';
   onChatSelect: (id: string) => void;
   onNewChat: () => void;
+  onViewChange?: (view: 'chat' | 'tasks') => void;
   isDark: boolean;
   onToggleDark: () => void;
   onToggleSidebar?: () => void;
@@ -78,7 +80,7 @@ function DarkToggle({ isDark, onToggle }: { isDark: boolean; onToggle: () => voi
   );
 }
 
-export default function Sidebar({ chats, activeChatId, onChatSelect, onNewChat, isDark, onToggleDark, onToggleSidebar }: SidebarProps) {
+export default function Sidebar({ chats, activeChatId, activeView = 'chat', onChatSelect, onNewChat, onViewChange, isDark, onToggleDark, onToggleSidebar }: SidebarProps) {
   const [search, setSearch] = useState('');
 
   const filteredChats = chats.filter(c =>
@@ -171,6 +173,38 @@ export default function Sidebar({ chats, activeChatId, onChatSelect, onNewChat, 
           </button>
         </div>
 
+        {/* Tasks */}
+        <div className="px-4 py-[10px] flex flex-col gap-1">
+          <div className="px-4 flex items-center" style={{ height: 32 }}>
+            <p className="text-base font-bold text-text-primary tracking-[-0.43px]">Views</p>
+          </div>
+          <button
+            onClick={() => onViewChange?.('tasks')}
+            className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${
+              activeView === 'tasks' ? '' : 'hover:bg-[#e6e8ea] dark:hover:bg-bg-hover'
+            }`}
+            style={activeView === 'tasks' ? {
+              border: '1px solid transparent',
+              background: `linear-gradient(var(--color-sidebar-bg), var(--color-sidebar-bg)) padding-box, linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box`,
+            } : { border: '1px solid transparent' }}
+          >
+            <div className="overflow-hidden relative shrink-0" style={{ width: 22, height: 22 }}>
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none" className="icon-theme">
+                <rect x="3" y="3" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5"/>
+                <rect x="3" y="13" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5"/>
+                <rect x="13" y="3" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5"/>
+                <rect x="13" y="13" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5"/>
+              </svg>
+            </div>
+            <span
+              className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]"
+              style={{ fontFamily: 'Inter, system-ui, sans-serif', fontWeight: 400 }}
+            >
+              Tasks
+            </span>
+          </button>
+        </div>
+
         {/* Chats */}
         <div className="px-4 py-[10px] flex flex-col gap-1">
           {/* Section title */}
@@ -185,7 +219,7 @@ export default function Sidebar({ chats, activeChatId, onChatSelect, onNewChat, 
                 key={chat.id}
                 onClick={() => onChatSelect(chat.id)}
                 className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${
-                  isActive ? '' : 'hover:bg-bg-hover'
+                  isActive ? '' : 'hover:bg-[#e6e8ea] dark:hover:bg-bg-hover'
                 }`}
                 style={isActive ? {
                   border: '1px solid transparent',

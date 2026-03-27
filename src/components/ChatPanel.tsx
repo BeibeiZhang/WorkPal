@@ -138,6 +138,10 @@ export default function ChatPanel({
   const isNewChat = !chat || chat.messages.length === 0;
   const chatTitle = chat?.title || 'WorkPal';
 
+  // Get chips from the last assistant message (for bottom input area)
+  const lastMessage = chat?.messages?.[chat.messages.length - 1];
+  const activeChips = lastMessage?.role === 'assistant' && lastMessage.chips?.length ? lastMessage.chips : undefined;
+
   return (
     <div className="flex flex-col h-full flex-1 min-w-0 app-bg">
       {/* Header */}
@@ -177,14 +181,20 @@ export default function ChatPanel({
             <WelcomeState isDark={isDark} selectedAvatarId={selectedAvatarId} onAvatarChange={onAvatarChange} />
           ) : (
             <>
-              {chat.messages.map((msg: Message) => (
-                <ChatMessage
-                  key={msg.id}
-                  message={msg}
-                  onChipClick={onChipClick}
-                  onCardAction={onCardAction}
-                />
-              ))}
+              {chat.messages.map((msg: Message, idx: number) => {
+                // Find the last assistant message index
+                const isLastAssistant = msg.role === 'assistant' &&
+                  !chat.messages.slice(idx + 1).some(m => m.role === 'assistant');
+                return (
+                  <ChatMessage
+                    key={msg.id}
+                    message={msg}
+                    isLastAssistant={isLastAssistant}
+                    onChipClick={onChipClick}
+                    onCardAction={onCardAction}
+                  />
+                );
+              })}
               <div ref={messagesEndRef} />
             </>
           )}
@@ -197,6 +207,8 @@ export default function ChatPanel({
           <ChatInput
             onSend={onSend}
             quickChips={isNewChat ? WELCOME_CHIPS : undefined}
+            actionChips={!isNewChat ? activeChips : undefined}
+            onChipClick={onChipClick}
           />
         </div>
       </div>

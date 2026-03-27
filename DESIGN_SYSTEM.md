@@ -1,7 +1,9 @@
 # WorkPal Design System Rules
 
-> Figma file: `vpMqEZURIWcE8F40GBQJju` | Design System page: `6:166`
+> Figma file: `vpMqEZURIWcE8F40GBQJju` | Design System page: `6:166` (node: `291:11305`)
 > This document maps Figma design tokens and components to code implementations.
+
+---
 
 ## 1. Design Tokens
 
@@ -20,6 +22,7 @@ Defined in `src/index.css` `:root` / `.dark` selectors.
 | `color/stroke/outline` | `--color-stroke-outline` | `#E8E8E8` | `rgba(115,178,255,0.2)` |
 | `color/stroke/toggle` | `--color-stroke-toggle` | `#e6e8ea` | `rgba(115,178,255,0.2)` |
 | `color/icon/primary` | `--color-icon-primary` | `#001424` | `#FFFFFF` |
+| `color/state/web-menu/hover` | (inline) | `#e6e8ea` | `rgba(226,243,255,0.1)` |
 
 **Tailwind shortcuts:** `text-text-primary`, `text-text-secondary`, `bg-bg-hover`, `border-stroke-outline` (configured in `tailwind.config.js`).
 
@@ -33,34 +36,47 @@ Defined in `src/index.css` `:root` / `.dark` selectors.
   -webkit-text-fill-color: transparent;
 }
 
-/* Button gradient */
+/* Button/fill gradient */
 .gradient-btn {
   background: linear-gradient(183.5deg, #7652B9 16.2%, #B46470 49%, #CA9D8C 109.3%);
 }
 
-/* Border gradient (chips hover) */
-.chip-gradient-hover:hover {
-  background:
-    linear-gradient(var(--color-bg-page), var(--color-bg-page)) padding-box,
-    linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box;
-  border-color: transparent;
-}
+/* Card button gradient (horizontal) */
+background: linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%)
 
-/* Loading dots: #7652B9, #B46470, #CA9D8C */
+/* Border gradient (chips, nav items) — padding-box/border-box technique */
+background:
+  linear-gradient(var(--color-bg-page), var(--color-bg-page)) padding-box,
+  linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box;
+border: 1px solid transparent;
+
+/* Loading dots colors: #7652B9, #B46470, #CA9D8C */
 ```
 
-### 1.3 Typography
+### 1.3 Special Colors
+
+| Usage | Value |
+|---|---|
+| StatusTag bg | `rgba(2,137,1,0.1)` |
+| StatusTag text | `#028901` |
+| Callout / RichText @mention / link | `#3171ff` |
+| Selected chip bg | `rgba(49,113,255,0.1)` |
+| Selected chip text | `#3171ff` |
+| Agent profile bg | `#E5E9F1` |
+| Shadow (gradient button) | `0 5px 15px rgba(1,44,197,0.2)` |
+
+### 1.4 Typography
 
 | Figma Style | Font | Size | Weight | Line Height | Letter Spacing |
 |---|---|---|---|---|---|
 | `Body/Regular` | SF Pro | 17px | 400 | 22px | -0.43px |
-| `Body/Emphasized` | SF Pro | 16px | 700 (Bold) | 32px | -0.43px |
+| `Body/Emphasized` | SF Pro | 16px | 700 | 32px | -0.43px |
 | `Detail/Regular` | Inter | 16px | 400 | 22px | 0px |
-| `Headline/Regular` | SF Pro | 17px | 590 (Semibold) | 22px | -0.43px |
+| `Headline/Regular` | SF Pro | 17px | 590 | 22px | -0.43px |
 
 **CSS font stack:** `font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', 'Inter', sans-serif`
 
-### 1.4 Spacing
+### 1.5 Spacing & Border Radius
 
 | Figma Token | Value | Tailwind |
 |---|---|---|
@@ -69,83 +85,165 @@ Defined in `src/index.css` `:root` / `.dark` selectors.
 | `spacing/4` | 16px | `p-4`, `gap-4` |
 | `spacing/5` | 24px | `p-6`, `gap-6` |
 | `spacing/6` | 32px | `p-8`, `gap-8` |
-
-### 1.5 Border Radius
-
-| Figma Token | Value | Tailwind |
-|---|---|---|
 | `radius/xl` | 100px | `rounded-full` |
 | `radius/full` | 1000px | `rounded-full` |
 | Outer shell | 40px | `rounded-[40px]` |
 
-### 1.6 Special Colors
+---
 
-| Usage | Color |
-|---|---|
-| Active nav border | Brand gradient via `background-clip: padding-box, border-box` |
-| StatusTag bg | `rgba(2,137,1,0.1)` |
-| StatusTag text | `#028901` |
-| Callout/RichText link | `#3171ff` |
-| App background gradients | See `.app-bg` in `src/index.css` |
+## 2. Icons
+
+### 2.1 Icons 24px (`src/assets/icons/`)
+
+| Figma Node | Name | File |
+|---|---|---|
+| `10:345` | Microphone | `microphone.svg` |
+| `15:223` | Voice | `voice.svg` |
+| `15:228` | Camera | `camera.svg` |
+| `15:255` | Photo | `photo.svg` |
+| `15:240` | Upload | `upload.svg` |
+| `257:23375` | Send | `send.svg` |
+| `410:29953` | Sun | `sun.svg` |
+| `410:29958` | Moon | `moon.svg` |
+| `72:3378` | Clock | `clock.svg` |
+| `1005:30258` | Users | `users.svg` |
+| `1005:29312` | Pin | `pin.svg` |
+| `675:12029` | Spinner/Progress | `spinner.svg` |
+
+### 2.2 Icons 20px
+
+| Figma Node | Name | File |
+|---|---|---|
+| `111:2984` | Apps | `apps.svg` |
+| `483:23558` | Zoom | `zoom.svg` |
+| `1111:30131` | Doc | `doc20.svg` |
+| `1111:30139` | Sheet | `sheet.svg` |
+| `1111:30193` | Asana | `asana.svg` |
+| `1111:30183` | Gmail | `gmail.svg` |
+
+### 2.3 Icons 16px
+
+| Figma Node | Name | File |
+|---|---|---|
+| `675:11975` | Thumbs up | `thumbs-up.svg` |
+| `675:11976` | Thumbs down | `thumbs-down.svg` |
+| `675:11974` | Copy | `copy.svg` |
+| `876:35440` | Share | `share.svg` |
+| `675:11977` | Refresh | `refresh.svg` |
+| `965:30509` | Goals | `goals.svg` |
+| `965:30452` | Bar chart | `bar-chart.svg` |
+| `965:30499` | Doc 16 | `doc16.svg` |
 
 ---
 
-## 2. Component Mapping
+## 3. Component Mapping
 
-### 2.1 Sidebar (`src/components/Sidebar.tsx`)
+### 3.1 Sidebar (`src/components/Sidebar.tsx`)
 
 | Figma Component | Node ID | Code Element | Key Styles |
 |---|---|---|---|
-| Nav Item (default) | `269:7666` | `<button>` in chat list | `px-4 py-2 rounded-full gap-4 hover:bg-bg-hover` |
-| Nav Item (active) | `269:7682` | `<button>` with `isActive` | Gradient border (brand gradient via `background-clip`) + spinner |
+| Nav Item / Default | `269:7666` | `<button>` (inactive) | `px-4 py-2 rounded-full gap-4` + `hover:bg-[#e6e8ea]` |
+| Nav Item / Active | `269:7682` | `<button>` (active) | Gradient border `padding-box/border-box` + spinner |
+| Nav Item / Hover | `269:7944` | CSS hover | `bg-[#e6e8ea]` (= `--color-stroke-toggle`) |
 | Account | `113:2933` | Footer section | Profile 35px + bold name + toggle |
-| Toggle (Sun/Moon) | `410:30026` | `DarkToggle` component | Pill bg `stroke-toggle`, active icon gets `bg-page` |
+| Toggle Light | `410:30025` | `DarkToggle` | Pill bg `stroke-toggle`, Sun active gets `bg-page` |
+| Toggle Dark | `410:30024` | `DarkToggle` | Moon active gets `bg-page` |
 | Search Field | `109:3216` | `<input>` | `rounded-full border-stroke-toggle bg-bg-hover` |
 
-### 2.2 Chat Input (`src/components/ChatInput.tsx`)
+### 3.2 Chat Input (`src/components/ChatInput.tsx`)
 
 | Figma Component | Node ID | Code Element | Key Styles |
 |---|---|---|---|
-| Chip | `142:16526` | Quick chip buttons | `rounded-full border border-stroke-outline px-3 py-1 text-base leading-[22px]` + `.chip-gradient-hover` |
-| Text Field | `15:2448` | `<textarea>` | `rounded-full bg-bg-hover p-4 text-base` |
-| Icon button/L | `246:8880` | Tool buttons | `44x44 rounded-full p-2` |
+| Chip / Default | `142:16550` | Quick chip / action chip | `rounded-full border border-stroke-outline px-3 py-1 text-base leading-[22px]` |
+| Chip / Hover | `518:36675` | `.chip-gradient-hover:hover` | Gradient border via `padding-box/border-box` |
+| Chip / Select | `142:16548` | `.onboarding-chip-selected` | `bg: rgba(49,113,255,0.1)`, `color: #3171ff`, no border, gradient border via `::before` on hover |
+| Text Field / Default | `156:47510` | `<textarea>` wrapper | `rounded-full bg-bg-message border: 2px solid transparent` |
+| Text Field / Hover | `1202:12169` | `.input-gradient-hover:hover` | Gradient border via `padding-box/border-box` |
+| Text Field / Filled | `15:2805` | Focused state | Same gradient border |
+| Text Field / Multiline | `72:12105` | Multiline | `rounded-lg` instead of `rounded-full` |
+| Icon button / L | `246:8885` | Tool buttons | `44×44 rounded-full` |
 
-### 2.3 Message Cards (`src/components/MessageCard.tsx`)
+### 3.3 Message Cards (`src/components/MessageCard.tsx`)
 
 | Figma Component | Node ID | Code Element | Key Styles |
 |---|---|---|---|
-| Card shell | — | `CardShell` | `rounded-[20px] border border-stroke-outline p-5` |
-| Card/Checklist | `49:3550` | `TicketCardView` | Checklist items with assignee/due |
-| Card/Text only | `86:7812` | `ResearchCardView` | Rich text content |
-| Card/Radio list | `67:2363` | `ScheduleCardView` | Radio options |
-| Button/Gradient | `67:2980` | Gradient button | `.gradient-btn rounded-full text-white px-4 py-2` |
+| Card / Checklist | `49:3550` | `TicketCardView` | Checklist items with @assignee / due |
+| Card / Text only | `86:7812` | `ResearchCardView` | Rich text content |
+| Card / Radio list | `67:2363` | `ScheduleCardView` | Radio options for scheduling |
+| Button / Large | `67:2970` | `GradientButton` | `h-12 rounded justify-center gradient 74deg`, `box-shadow: 0 5px 15px rgba(1,44,197,0.2)`, **no left icon** |
 | Progress bar | `167:54150` | `GradientProgressBar` | 3px gradient bar, `animate-progress-bar` |
 | Tag | `1631:31413` | `StatusTag` | `bg: rgba(2,137,1,0.1)`, `color: #028901` |
-| Loading dots | `339:8731` | `.loading-dot` CSS | 3 dots with brand colors |
+| Loading dots | `339:8731` | `.loading-dot` | 3 dots: `#7652B9`, `#B46470`, `#CA9D8C` |
+| Agent Card (creating) | `1541:43057` | `AgentCardView` status=creating | Gradient icon + progress bar |
+| Agent Card (ready) | `1541:43882` | `AgentCardView` status=ready | 120px avatar on `#E5E9F1` + intro + button |
+| Agent Card (saved) | `1627:45498` | `AgentCardView` status=saved | Same + `StatusTag "Saved"` |
 
-### 2.4 Chat Message (`src/components/ChatMessage.tsx`)
+### 3.4 Chat Message (`src/components/ChatMessage.tsx`)
 
 | Figma Component | Node ID | Code Element | Key Styles |
 |---|---|---|---|
-| Action Chip | `142:16526` | Chip buttons after AI message | Same as quick chips + `.chip-gradient-hover` |
-| Feedback | `676:35551` | `FeedbackBar` | Thumbs up/down + copy icons |
+| Action Chip | `142:16526` | Post-AI chip buttons | Same as quick chips |
+| Feedback bar | `676:35551` | `FeedbackBar` | Copy, Share, Thumbs up/down, Refresh — 16px icons |
 
-### 2.5 Chat Panel (`src/components/ChatPanel.tsx`)
+### 3.5 Chat Panel (`src/components/ChatPanel.tsx`)
 
 | Figma Component | Node ID | Code Element | Key Styles |
 |---|---|---|---|
 | Avatar Selector | `431:25286` | Avatar circle | `150px rounded-full bg-bg-hover` |
 | Welcome title | — | "Hi, Beibei" | `.gradient-text text-[24px] font-semibold` |
 
+### 3.6 Onboarding (`src/components/Onboarding.tsx`)
+
+| Figma Component | Node ID | Code Element | Key Styles |
+|---|---|---|---|
+| Onboarding Default | `1541:41805` | Full onboarding screen | Steps 1-2 in `Onboarding.tsx` |
+| Welcome title | `1541:42444` | `<h1>` | SF Pro 40px/700, `text-text-primary`, left-aligned (NOT gradient) |
+| Trait Chip unselected | `1541:42446` | `<button>` | `rounded-full border border-stroke-outline px-[11px] py-[3px]` + `.chip-gradient-hover` |
+| Trait Chip selected | `1541:42446` | `<button>` | `bg: rgba(49,113,255,0.1)` + `.onboarding-chip-selected` |
+| Onboarding In-progress | `5794:50162` | Steps 3-5 in ChatPanel | Agent creating card |
+| Onboarding Complete | `5794:50621` | AgentCardView status=saved | Saved state |
+
 ---
 
-## 3. Dark Mode
+## 4. Conversation Flow States (node IDs for reference)
 
-Dark mode is toggled via `.dark` class on `<html>`. All components use CSS variables that automatically switch. Icons use `.icon-theme` class which applies `filter: brightness(0) invert(1)` in dark mode.
+| State | Node ID |
+|---|---|
+| Onboarding Default | `1541:41805` |
+| Onboarding In-progress | `5794:50162` |
+| Onboarding Requires Action | `5794:50475` |
+| Onboarding Complete | `5794:50621` |
+| Research In-progress | `156:43027` |
+| Research Complete | `156:43068` |
+| Schedule In-progress | `156:42891` |
+| Schedule Requires Action | `156:42936` |
+| Schedule Complete | `156:42971` |
+| Meeting Confirm | `2848:40157` |
+| Meeting Complete | `52:4724` |
+| Ticket In-progress | `156:42736` |
+| Ticket Requires Action | `156:42780` |
+| Ticket Complete | `5748:53975` |
+| Text Only | `2848:40571` |
 
-## 4. Icon System
+---
 
-- **App icons:** SVG files in `src/assets/icons/`, imported via `src/assets/index.ts`
-- **Tool icons:** lucide-react library
-- **SF Symbols:** Used for search icon (Unicode `\u{1F50D}` / `????`)
-- **Icon sizing:** Always use exact Figma pixel dimensions centered in container
+## 5. Dark Mode
+
+Dark mode is toggled via `.dark` class on `<html>`. All components use CSS variables that automatically switch. Icons use `.icon-theme` class (`filter: brightness(0) invert(1)` in dark mode). Gradient avatars/spinner do NOT use `.icon-theme`.
+
+---
+
+## 6. CSS Utility Classes (`src/index.css`)
+
+| Class | Usage |
+|---|---|
+| `.gradient-text` | Brand gradient text (Welcome title, etc.) |
+| `.gradient-btn` | Vertical gradient fill for buttons |
+| `.app-bg` | Page background with radial gradient blobs |
+| `.chip-gradient-hover` | Unselected chip: gradient border on hover |
+| `.onboarding-chip-selected` | Selected chip: `::before` pseudo-element gradient border ring on hover |
+| `.input-gradient-hover` | Input field: gradient border on hover (inactive state only) |
+| `.animate-progress-bar` | Progress bar fill animation |
+| `.loading-dot` | Individual animated dot (use 3 in sequence) |
+| `.message-appear` | Fade-in-up for new messages |
+| `.icon-theme` | Auto-invert icons in dark mode |
