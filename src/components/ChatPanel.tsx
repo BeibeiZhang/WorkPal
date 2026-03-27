@@ -190,7 +190,6 @@ export default function ChatPanel({
                     key={msg.id}
                     message={msg}
                     isLastAssistant={isLastAssistant}
-                    onChipClick={onChipClick}
                     onCardAction={onCardAction}
                   />
                 );

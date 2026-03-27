@@ -1,11 +1,10 @@
-import { Message, ActionChip } from '../types';
+import { Message } from '../types';
 import MessageCard from './MessageCard';
 import { iconCopy, iconShare, iconThumbsUp, iconRefresh } from '../assets';
 
 interface ChatMessageProps {
   message: Message;
   isLastAssistant?: boolean;
-  onChipClick?: (chip: ActionChip) => void;
   onCardAction?: (action: string) => void;
 }
 
@@ -61,7 +60,7 @@ function TypingIndicator() {
   );
 }
 
-export default function ChatMessage({ message, isLastAssistant, onChipClick, onCardAction }: ChatMessageProps) {
+export default function ChatMessage({ message, isLastAssistant, onCardAction }: ChatMessageProps) {
   if (message.role === 'user') {
     return (
       <div className="flex justify-end mb-4 message-appear">
