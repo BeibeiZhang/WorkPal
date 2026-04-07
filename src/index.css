@@ -164,6 +164,14 @@ html, body, #root {
     linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box !important;
 }
 
+/* Toolbar buttons — gradient border on hover in dark mode only */
+.dark .toolbar-gradient-hover:hover {
+  border-color: transparent !important;
+  background:
+    linear-gradient(var(--color-bg-page), var(--color-bg-page)) padding-box,
+    linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box !important;
+}
+
 /* Input field — gradient border on hover when inactive */
 .input-gradient-hover:hover {
   border-color: transparent !important;
