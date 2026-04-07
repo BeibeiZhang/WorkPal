@@ -333,7 +333,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
             <Tooltip label="Attach">
               <button
                 onClick={() => { setShowAttachMenu(v => !v); setShowFolderMenu(false); setShowBranchMenu(false); }}
-                className="flex items-center justify-center rounded-full border border-stroke-outline hover:bg-bg-hover transition-all shrink-0 cursor-pointer text-text-primary"
+                className="flex items-center justify-center rounded-full border border-stroke-outline hover:bg-bg-hover toolbar-gradient-hover transition-all shrink-0 cursor-pointer text-text-primary"
                 style={{ width: 26, height: 26 }}
               >
                 <IconImg src={iconAdd} alt="Add" size={16} />
@@ -367,7 +367,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
           </div>
 
           {/* Mode selector — segmented pill, selected segment is blue */}
-          <div className="flex items-center rounded-full border border-stroke-outline">
+          <div className="flex items-center rounded-full border border-stroke-outline toolbar-gradient-hover">
             {(['Chat', 'Tasks', 'Code'] as InputMode[]).map((m, i, arr) => {
               const Icon = MODE_ICONS[m];
               const isSelected = mode === m;
@@ -377,7 +377,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
                 <button
                   key={m}
                   onClick={() => { setMode(m); closeAllMenus(); }}
-                  className={`flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                  className={`flex items-center justify-center gap-1 transition-all cursor-pointer text-text-primary ${
                     isSelected
                       ? 'px-3'
                       : 'hover:bg-bg-hover'
@@ -403,7 +403,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
             <div ref={folderRef} className="relative">
               <button
                 onClick={() => { setShowFolderMenu(v => !v); setShowBranchMenu(false); setShowAttachMenu(false); }}
-                className="flex items-center gap-1.5 px-3 rounded-full border border-stroke-outline text-xs text-text-primary hover:bg-bg-hover transition-colors cursor-pointer max-w-[180px]"
+                className="flex items-center gap-1.5 px-3 rounded-full border border-stroke-outline text-xs text-text-primary hover:bg-bg-hover toolbar-gradient-hover transition-colors cursor-pointer max-w-[180px]"
                 style={{ height: 26 }}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
@@ -437,7 +437,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
               <div ref={branchRef} className="relative">
                 <button
                   onClick={() => { setShowBranchMenu(v => !v); setShowFolderMenu(false); setShowAttachMenu(false); }}
-                  className="flex items-center gap-1.5 px-3 rounded-full border border-stroke-outline text-xs text-text-primary hover:bg-bg-hover transition-colors cursor-pointer max-w-[160px]"
+                  className="flex items-center gap-1.5 px-3 rounded-full border border-stroke-outline text-xs text-text-primary hover:bg-bg-hover toolbar-gradient-hover transition-colors cursor-pointer max-w-[160px]"
                   style={{ height: 26 }}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
@@ -468,7 +468,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
               </div>
 
               {/* Worktree checkbox */}
-              <label className="flex items-center gap-1.5 px-3 rounded-full border border-stroke-outline text-xs text-text-primary cursor-pointer select-none hover:bg-bg-hover transition-colors" style={{ height: 26 }}>
+              <label className="flex items-center gap-1.5 px-3 rounded-full border border-stroke-outline text-xs text-text-primary cursor-pointer select-none hover:bg-bg-hover toolbar-gradient-hover transition-colors" style={{ height: 26 }}>
                 <input
                   type="checkbox"
                   checked={useWorktree}
