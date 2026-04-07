@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, KeyboardEvent } from 'react';
-import { iconGoals, iconDoc16, iconBarChart, iconAdd, iconPhoto, iconCamera, iconUpload, iconMicrophone, iconVoice, iconSend, iconSendActive, iconChevronDown } from '../assets';
+import { iconGoals, iconDoc16, iconBarChart, iconAdd, iconPhoto, iconCamera, iconUpload, iconSend, iconSendActive, iconChevronDown } from '../assets';
 import { ActionChip } from '../types';
 
 type InputMode = 'Chat' | 'Tasks' | 'Code';
@@ -28,28 +28,6 @@ interface ChatInputProps {
   quickChips?: string[];
   actionChips?: ActionChip[];
   onChipClick?: (chip: ActionChip) => void;
-}
-
-function ToolBtn({ children, onClick, gradient }: {
-  children: React.ReactNode;
-  onClick?: () => void;
-  gradient?: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`w-11 h-11 flex items-center justify-center rounded-full transition-all shrink-0 cursor-pointer ${
-        gradient
-          ? 'hover:shadow-[0_2px_15px_rgba(1,44,197,0.3)]'
-          : 'hover:bg-bg-hover'
-      }`}
-      style={gradient ? {
-        backgroundImage: 'linear-gradient(183.55deg, #7652B9 16.2%, #B46470 49%, #CA9D8C 109.3%)',
-      } : undefined}
-    >
-      {children}
-    </button>
-  );
 }
 
 /** Exact pixel dimensions from Figma for each toolbar icon within its 24×24 container */
