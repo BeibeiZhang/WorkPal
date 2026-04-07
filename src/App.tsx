@@ -1,9 +1,11 @@
 import { useState, useCallback, useEffect, useSyncExternalStore } from 'react';
 import Sidebar from './components/Sidebar';
+import type { Project } from './components/Sidebar';
 import ChatPanel from './components/ChatPanel';
 import DetailPanel from './components/DetailPanel';
 import Onboarding from './components/Onboarding';
 import TaskScreen from './components/TaskScreen';
+import NewProjectDialog from './components/NewProjectDialog';
 import { Chat, Message, ActionChip, TicketCard, AgentCard } from './types';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
 import { INITIAL_CHATS } from './data';
@@ -227,6 +229,11 @@ export default function App() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [onboardingDone, setOnboardingDone] = useState(() => localStorage.getItem('workpal-onboarding-done') === 'true');
   const [activeView, setActiveView] = useState<'chat' | 'tasks'>('chat');
+  const [projects, setProjects] = useState<Project[]>([
+    { id: 'proj-1', name: 'Project name 1' },
+    { id: 'proj-2', name: 'Project name 2' },
+  ]);
+  const [newProjectOpen, setNewProjectOpen] = useState(false);
   const isMobile = useSyncExternalStore(subscribe, getIsMobile);
 
   // Toggle dark class on root element
@@ -548,6 +555,16 @@ export default function App() {
     setActiveView('chat');
   }, []);
 
+  const handleCreateProject = useCallback((name: string, description: string) => {
+    const newProject: Project = {
+      id: `proj-${Date.now()}`,
+      name,
+      description: description || undefined,
+    };
+    setProjects(prev => [...prev, newProject]);
+    setNewProjectOpen(false);
+  }, []);
+
   return (
     <div className="flex h-full w-full overflow-hidden" style={{ background: 'var(--color-outer-bg)' }}>
       {/* Outer rounded container */}
@@ -567,8 +584,10 @@ export default function App() {
                 chats={chats}
                 activeChatId={activeChatId}
                 activeView={activeView}
+                projects={projects}
                 onChatSelect={(id) => { handleChatSelect(id); if (isMobile) setSidebarOpen(false); }}
                 onNewChat={() => { handleNewChat(); if (isMobile) setSidebarOpen(false); }}
+                onNewProject={() => setNewProjectOpen(true)}
                 onViewChange={(view) => { setActiveView(view); if (isMobile) setSidebarOpen(false); }}
                 isDark={isDark}
                 onToggleDark={() => setIsDark(d => !d)}
@@ -617,6 +636,13 @@ export default function App() {
           />
         )}
       </div>
+
+      {/* New Project Dialog */}
+      <NewProjectDialog
+        open={newProjectOpen}
+        onClose={() => setNewProjectOpen(false)}
+        onCreate={handleCreateProject}
+      />
     </div>
   );
 }
