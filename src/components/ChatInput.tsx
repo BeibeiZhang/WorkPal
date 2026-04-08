@@ -270,9 +270,9 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
           }}
         />
         {/* Mic / Voice / Send — inside input, right-aligned, 24×24 buttons */}
-        <div className="flex items-center gap-2 shrink-0 ml-2">
+        <div className="flex items-center gap-4 md:gap-2 shrink-0 ml-2">
           <Tooltip label="Microphone">
-            <button className="flex items-center justify-center shrink-0 cursor-pointer rounded-full hover:bg-bg-hover transition-all text-text-primary" style={{ width: 24, height: 24 }}>
+            <button className="flex items-center justify-center shrink-0 cursor-pointer rounded-full hover:bg-bg-hover transition-all text-text-primary" style={{ width: 'var(--input-btn-size)', height: 'var(--input-btn-size)' } as React.CSSProperties}>
               <MicIcon16 />
             </button>
           </Tooltip>
@@ -282,9 +282,9 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
                 onClick={canSend ? handleSend : undefined}
                 className={`flex items-center justify-center shrink-0 cursor-pointer rounded-full transition-all ${canSend ? 'hover:shadow-[0_2px_15px_rgba(1,44,197,0.3)]' : 'hover:bg-bg-hover'}`}
                 style={{
-                  width: 24, height: 24,
+                  width: 'var(--input-btn-size)', height: 'var(--input-btn-size)',
                   ...(canSend ? { backgroundImage: 'linear-gradient(183.55deg, #7652B9 16.2%, #B46470 49%, #CA9D8C 109.3%)' } : {}),
-                }}
+                } as React.CSSProperties}
               >
                 {canSend ? (
                   <IconImg src={iconSendActive} alt="Send" noTheme size={16} />
@@ -295,7 +295,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
             </Tooltip>
           ) : (
             <Tooltip label="Voice">
-              <button className="flex items-center justify-center shrink-0 cursor-pointer rounded-full hover:bg-bg-hover transition-all text-text-primary" style={{ width: 24, height: 24 }}>
+              <button className="flex items-center justify-center shrink-0 cursor-pointer rounded-full hover:bg-bg-hover transition-all text-text-primary" style={{ width: 'var(--input-btn-size)', height: 'var(--input-btn-size)' } as React.CSSProperties}>
                 <VoiceIcon16 />
               </button>
             </Tooltip>
@@ -306,16 +306,16 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
       {/* Toolbar — separate row */}
       <div className="flex items-center relative">
         {/* Left tools — + button, Mode selector, mode-specific options */}
-        <div className="flex items-center gap-2 flex-wrap min-w-0">
+        <div className="flex items-center gap-3 md:gap-2 flex-wrap min-w-0">
           {/* + Attach button with border and popup */}
           <div ref={attachRef} className="relative">
             <Tooltip label="Attach">
               <button
                 onClick={() => { setShowAttachMenu(v => !v); setShowFolderMenu(false); setShowBranchMenu(false); }}
                 className="flex items-center justify-center rounded-full border border-stroke-outline hover:bg-bg-hover toolbar-gradient-hover transition-all shrink-0 cursor-pointer text-text-primary"
-                style={{ width: 26, height: 26 }}
+                style={{ width: 'var(--toolbar-btn-h)', height: 'var(--toolbar-btn-h)' } as React.CSSProperties}
               >
-                <IconImg src={iconAdd} alt="Add" size={16} />
+                <span className="toolbar-icon-scale"><IconImg src={iconAdd} alt="Add" size={16} /></span>
               </button>
             </Tooltip>
             {showAttachMenu && (
@@ -362,8 +362,8 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
                       : 'hover:bg-bg-hover'
                   }`}
                   style={{
-                    height: 26,
-                    ...(!isSelected ? { width: 26 } : {}),
+                    height: 'var(--toolbar-btn-h)',
+                    ...(!isSelected ? { width: 'var(--mode-btn-unselected-w)' } : {}),
                     backgroundColor: isSelected ? 'rgba(49, 113, 255, 0.1)' : undefined,
                     color: isSelected ? '#3171FF' : undefined,
                     borderRadius: isFirst ? '9999px 0 0 9999px' : isLast ? '0 9999px 9999px 0' : '0',
@@ -382,14 +382,14 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
             <div ref={folderRef} className="relative">
               <button
                 onClick={() => { setShowFolderMenu(v => !v); setShowBranchMenu(false); setShowAttachMenu(false); }}
-                className="flex items-center gap-1.5 px-3 rounded-full border border-stroke-outline text-xs text-text-primary hover:bg-bg-hover toolbar-gradient-hover transition-colors cursor-pointer max-w-[180px]"
-                style={{ height: 26 }}
+                className="flex items-center gap-[9px] md:gap-1.5 px-[18px] md:px-3 rounded-full border border-stroke-outline text-xs text-text-primary hover:bg-bg-hover toolbar-gradient-hover transition-colors cursor-pointer max-w-[270px] md:max-w-[180px]"
+                style={{ height: 'var(--toolbar-btn-h)' } as React.CSSProperties}
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 w-[21px] h-[21px] md:w-[14px] md:h-[14px]">
                   <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                 </svg>
                 <span className="truncate">{folder}</span>
-                <img src={iconChevronDown} alt="" className="w-3 h-3 icon-theme shrink-0" />
+                <img src={iconChevronDown} alt="" className="w-[18px] h-[18px] md:w-3 md:h-3 icon-theme shrink-0" />
               </button>
               {showFolderMenu && (
                 <div className="absolute bottom-full left-0 mb-2 w-56 bg-bg-page border border-stroke-outline rounded-xl shadow-lg py-2 z-50">
@@ -416,17 +416,17 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
               <div ref={branchRef} className="relative">
                 <button
                   onClick={() => { setShowBranchMenu(v => !v); setShowFolderMenu(false); setShowAttachMenu(false); }}
-                  className="flex items-center gap-1.5 px-3 rounded-full border border-stroke-outline text-xs text-text-primary hover:bg-bg-hover toolbar-gradient-hover transition-colors cursor-pointer max-w-[160px]"
-                  style={{ height: 26 }}
+                  className="flex items-center gap-[9px] md:gap-1.5 px-[18px] md:px-3 rounded-full border border-stroke-outline text-xs text-text-primary hover:bg-bg-hover toolbar-gradient-hover transition-colors cursor-pointer max-w-[240px] md:max-w-[160px]"
+                  style={{ height: 'var(--toolbar-btn-h)' } as React.CSSProperties}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 w-[21px] h-[21px] md:w-[14px] md:h-[14px]">
                     <line x1="6" y1="3" x2="6" y2="15" />
                     <circle cx="18" cy="6" r="3" />
                     <circle cx="6" cy="18" r="3" />
                     <path d="M18 9a9 9 0 0 1-9 9" />
                   </svg>
                   <span className="truncate">{branch}</span>
-                  <img src={iconChevronDown} alt="" className="w-3 h-3 icon-theme shrink-0" />
+                  <img src={iconChevronDown} alt="" className="w-[18px] h-[18px] md:w-3 md:h-3 icon-theme shrink-0" />
                 </button>
                 {showBranchMenu && (
                   <div className="absolute bottom-full left-0 mb-2 w-52 bg-bg-page border border-stroke-outline rounded-xl shadow-lg py-2 z-50">
@@ -447,12 +447,12 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
               </div>
 
               {/* Worktree checkbox */}
-              <label className="flex items-center gap-1.5 px-3 rounded-full border border-stroke-outline text-xs text-text-primary cursor-pointer select-none hover:bg-bg-hover toolbar-gradient-hover transition-colors" style={{ height: 26 }}>
+              <label className="flex items-center gap-[9px] md:gap-1.5 px-[18px] md:px-3 rounded-full border border-stroke-outline text-xs text-text-primary cursor-pointer select-none hover:bg-bg-hover toolbar-gradient-hover transition-colors" style={{ height: 'var(--toolbar-btn-h)' } as React.CSSProperties}>
                 <input
                   type="checkbox"
                   checked={useWorktree}
                   onChange={e => setUseWorktree(e.target.checked)}
-                  className="w-3.5 h-3.5 rounded accent-[#3171FF] cursor-pointer"
+                  className="w-[21px] h-[21px] md:w-3.5 md:h-3.5 rounded accent-[#3171FF] cursor-pointer"
                 />
                 Worktree
               </label>
