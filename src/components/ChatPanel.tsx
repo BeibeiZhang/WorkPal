@@ -220,7 +220,7 @@ export default function ChatPanel({
       </div>
 
       {/* Input area */}
-      <div className="px-8 pb-6 shrink-0">
+      <div className="px-8 pb-[40px] shrink-0">
         <div className="max-w-2xl mx-auto">
           <ChatInput
             onSend={onSend}

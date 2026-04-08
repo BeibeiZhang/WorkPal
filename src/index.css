@@ -43,7 +43,18 @@ html, body, #root {
   width: 100%;
   overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', 'Inter', sans-serif;
+  font-size: 16px;
   background: var(--color-outer-bg);
+}
+@media (min-width: 768px) {
+  html, body, #root {
+    font-size: 14px;
+  }
+}
+
+/* Force body text elements to use the responsive root font-size (16px mobile / 14px desktop) */
+p, span, a, button, input, textarea, select, label, li, td, th, div {
+  font-size: inherit !important;
 }
 
 ::-webkit-scrollbar {

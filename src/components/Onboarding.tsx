@@ -130,7 +130,7 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
       </div>
 
       {/* Bottom: ChatInput */}
-      <div className="px-4 pb-2 shrink-0">
+      <div className="px-4 pb-[40px] shrink-0">
         <div className="max-w-[960px] mx-auto">
           <ChatInput onSend={handleSend} />
         </div>
