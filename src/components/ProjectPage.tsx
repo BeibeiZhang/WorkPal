@@ -210,7 +210,7 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
                     key={o.id}
                     className="flex flex-col items-center gap-3 min-w-[140px] w-[140px] p-4 rounded-2xl border border-stroke-outline bg-white dark:bg-[#1a1f2e] hover:bg-bg-hover transition-colors"
                   >
-                    <FileCode2 size={32} className="text-text-secondary/40" strokeWidth={1.2} />
+                    <FileCode2 size={32} className="text-text-secondary/40 dark:text-white" strokeWidth={1.2} />
                     <span className="text-[13px] text-text-primary text-center leading-tight line-clamp-2">
                       {o.name}
                     </span>
