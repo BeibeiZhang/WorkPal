@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { PanelRight } from 'lucide-react';
 import { Chat, Message, ActionChip } from '../types';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
@@ -14,6 +15,9 @@ interface ChatPanelProps {
   isDark?: boolean;
   selectedAvatarId?: string;
   onAvatarChange?: (id: string) => void;
+  onModeChange?: (mode: 'Chat' | 'Tasks' | 'Code') => void;
+  showContextToggle?: boolean;
+  onToggleContextPanel?: () => void;
 }
 
 const WELCOME_CHIPS = ['Create performance goals', 'Analyze doc(s)', 'Visualize data'];
@@ -128,6 +132,9 @@ export default function ChatPanel({
   isDark,
   selectedAvatarId,
   onAvatarChange,
+  onModeChange,
+  showContextToggle,
+  onToggleContextPanel,
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -172,6 +179,18 @@ export default function ChatPanel({
             </div>
           )}
         </div>
+
+        {/* Right: context panel toggle */}
+        {showContextToggle ? (
+          <button
+            onClick={onToggleContextPanel}
+            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-primary"
+          >
+            <PanelRight size={20} />
+          </button>
+        ) : (
+          <div className="w-10" />
+        )}
       </div>
 
       {/* Messages area */}
@@ -208,6 +227,7 @@ export default function ChatPanel({
             quickChips={isNewChat ? WELCOME_CHIPS : undefined}
             actionChips={!isNewChat ? activeChips : undefined}
             onChipClick={onChipClick}
+            onModeChange={onModeChange}
           />
         </div>
       </div>

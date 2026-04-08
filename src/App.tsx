@@ -5,6 +5,7 @@ import ChatPanel from './components/ChatPanel';
 import DetailPanel from './components/DetailPanel';
 import Onboarding from './components/Onboarding';
 import TaskScreen from './components/TaskScreen';
+import TaskContextPanel from './components/TaskContextPanel';
 import ProjectPage from './components/ProjectPage';
 import NewProjectDialog from './components/NewProjectDialog';
 import { Chat, Message, ActionChip, TicketCard, AgentCard } from './types';
@@ -218,8 +219,18 @@ let msgIdCounter = 100;
 const nextId = () => String(++msgIdCounter);
 
 const MOBILE_BREAKPOINT = 768;
+const SIDEBAR_WIDTH = 336;
+const CONTEXT_PANEL_MIN = 260;
+const MAIN_CONTENT_MIN = 360;
 const subscribe = (cb: () => void) => { window.addEventListener('resize', cb); return () => window.removeEventListener('resize', cb); };
 const getIsMobile = () => window.innerWidth < MOBILE_BREAKPOINT;
+/** Can the context panel fit beside the main content? */
+const getCanFitPanel = () => {
+  const available = window.innerWidth - 16; // m-2 = 8px each side
+  const sidebarW = window.innerWidth >= MOBILE_BREAKPOINT ? SIDEBAR_WIDTH : 0;
+  return available - sidebarW - MAIN_CONTENT_MIN >= CONTEXT_PANEL_MIN;
+};
+
 
 export default function App() {
   const [chats, setChats] = useState<Chat[]>(INITIAL_CHATS);
@@ -230,6 +241,9 @@ export default function App() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [onboardingDone, setOnboardingDone] = useState(() => localStorage.getItem('workpal-onboarding-done') === 'true');
   const [activeView, setActiveView] = useState<'chat' | 'tasks'>('chat');
+  const [inputMode, setInputMode] = useState<'Chat' | 'Tasks' | 'Code'>('Chat');
+  const [taskModeMsgSent, setTaskModeMsgSent] = useState(false);
+  const [taskModeUserMsg, setTaskModeUserMsg] = useState('');
   const [projects, setProjects] = useState<Project[]>([
     { id: 'proj-1', name: 'Project name 1' },
     { id: 'proj-2', name: 'Project name 2' },
@@ -237,6 +251,8 @@ export default function App() {
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const isMobile = useSyncExternalStore(subscribe, getIsMobile);
+  const canFitPanel = useSyncExternalStore(subscribe, getCanFitPanel);
+  const [contextPanelOpen, setContextPanelOpen] = useState(true);
 
   // Toggle dark class on root element
   useEffect(() => {
@@ -306,6 +322,7 @@ export default function App() {
   }, [activeChatId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSend = useCallback((text: string) => {
+    if (inputMode === 'Tasks') { setTaskModeMsgSent(true); setTaskModeUserMsg(text); }
     // Find or create active chat
     let chatId = activeChatId;
 
@@ -345,7 +362,7 @@ export default function App() {
     // Generate response
     const responses = generateResponse(text);
     showTypingThenRespond(chatId, responses, 1200);
-  }, [activeChatId, activeChat, showTypingThenRespond]);
+  }, [activeChatId, activeChat, showTypingThenRespond, inputMode]);
 
   const handleChipClick = useCallback((chip: ActionChip) => {
     // Treat chip click as a user message
@@ -635,21 +652,38 @@ export default function App() {
             onToggleSidebar={() => setSidebarOpen(o => !o)}
           />
         ) : (
-          <ChatPanel
-            chat={activeChat?.id === 'my-workpal' && (!onboardingDone || (activeChat?.messages.length ?? 0) === 0) ? null : activeChat ?? null}
-            onSend={handleSend}
-            onChipClick={handleChipClick}
-            onCardAction={(action) => {
-              handleCardAction(action);
-              // Open detail panel when viewing research card
-              if (action === 'view-report') setDetailOpen(true);
-            }}
-            sidebarOpen={sidebarOpen}
-            onToggleSidebar={() => setSidebarOpen(o => !o)}
-            isDark={isDark}
-            selectedAvatarId={selectedAvatarId}
-            onAvatarChange={setSelectedAvatarId}
-          />
+          <>
+            <ChatPanel
+              chat={activeChat?.id === 'my-workpal' && (!onboardingDone || (activeChat?.messages.length ?? 0) === 0) ? null : activeChat ?? null}
+              onSend={handleSend}
+              onChipClick={handleChipClick}
+              onCardAction={(action) => {
+                handleCardAction(action);
+                if (action === 'view-report') setDetailOpen(true);
+              }}
+              sidebarOpen={sidebarOpen}
+              onToggleSidebar={() => setSidebarOpen(o => !o)}
+              isDark={isDark}
+              selectedAvatarId={selectedAvatarId}
+              onAvatarChange={setSelectedAvatarId}
+              onModeChange={(m) => { setInputMode(m); if (m !== 'Tasks') { setTaskModeMsgSent(false); setTaskModeUserMsg(''); } }}
+              showContextToggle={inputMode === 'Tasks' && taskModeMsgSent && (!canFitPanel || !contextPanelOpen)}
+              onToggleContextPanel={() => setContextPanelOpen(o => !o)}
+            />
+            {/* Inline context panel (desktop with enough space) */}
+            {inputMode === 'Tasks' && taskModeMsgSent && canFitPanel && contextPanelOpen && (
+              <TaskContextPanel userMessage={taskModeUserMsg} onClose={() => setContextPanelOpen(false)} />
+            )}
+            {/* Fullscreen overlay context panel (mobile or narrow viewport) */}
+            {inputMode === 'Tasks' && taskModeMsgSent && !canFitPanel && contextPanelOpen && (
+              <>
+                <div className="absolute inset-0 z-20 bg-black/30" onClick={() => setContextPanelOpen(false)} />
+                <div className="absolute inset-0 z-30 flex">
+                  <TaskContextPanel userMessage={taskModeUserMsg} onClose={() => setContextPanelOpen(false)} fullscreen />
+                </div>
+              </>
+            )}
+          </>
         )}
       </div>
 

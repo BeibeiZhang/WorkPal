@@ -28,6 +28,7 @@ interface ChatInputProps {
   quickChips?: string[];
   actionChips?: ActionChip[];
   onChipClick?: (chip: ActionChip) => void;
+  onModeChange?: (mode: 'Chat' | 'Tasks' | 'Code') => void;
 }
 
 /** Exact pixel dimensions from Figma for each toolbar icon within its 24×24 container */
@@ -133,7 +134,7 @@ const FOLDER_OPTIONS = [
 /** Simulated branch options */
 const BRANCH_OPTIONS = ['main', 'develop', 'feature/chat-input', 'fix/ui-polish'];
 
-export default function ChatInput({ onSend, placeholder = 'Message WorkPal', quickChips, actionChips, onChipClick }: ChatInputProps) {
+export default function ChatInput({ onSend, placeholder = 'Message WorkPal', quickChips, actionChips, onChipClick, onModeChange }: ChatInputProps) {
   const [value, setValue] = useState('');
   const [focused, setFocused] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
@@ -354,7 +355,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
               const btn = (
                 <button
                   key={m}
-                  onClick={() => { setMode(m); closeAllMenus(); }}
+                  onClick={() => { setMode(m); onModeChange?.(m); closeAllMenus(); }}
                   className={`flex items-center justify-center gap-1 transition-all cursor-pointer text-text-primary ${
                     isSelected
                       ? 'px-3'
