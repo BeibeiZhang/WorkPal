@@ -710,6 +710,194 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
         <p className="text-text-secondary text-[14px] leading-[20px]">
           Dark mode is toggled via the <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>.dark</code> class on <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>&lt;html&gt;</code>. All components use CSS variables that automatically switch. Monochrome icons use the <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>.icon-theme</code> class for auto-inversion. Gradient elements (avatars, spinner, buttons) do NOT use <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>.icon-theme</code>.
         </p>
+
+        {/* Figma vs Code Diff */}
+        <SectionTitle>Figma vs Code Diff</SectionTitle>
+        <p className="text-text-secondary text-[14px] leading-[20px] mb-4">
+          Comparison between Figma design system variables (WorkPal library, <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>L&DMode</code> collection) and the current code implementation.
+        </p>
+
+        {/* Figma tokens missing from code */}
+        <h3 className="text-[15px] font-semibold text-text-primary mb-3">Figma Tokens Not Implemented as CSS Variables</h3>
+        <p className="text-text-secondary text-[13px] leading-[18px] mb-3">These Figma variables exist in the WorkPal library but are either hardcoded inline or missing in code.</p>
+        <div className="overflow-x-auto mb-6">
+          <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--color-stroke-outline)' }}>
+                {['Figma Variable', 'Status in Code', 'Notes'].map(h => (
+                  <th key={h} className="text-text-secondary font-medium text-[13px] py-2 pr-4">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { figma: 'Color/Background/Card', status: 'Missing', note: 'No CSS variable; cards use bg-bg-page or inline styles' },
+                { figma: 'Color/Background/Detail', status: 'Missing', note: 'No CSS variable; not referenced in components' },
+                { figma: 'Color/Text/Callout', status: 'Hardcoded', note: 'Used inline as #3171ff (links, @mentions, selected chips)' },
+                { figma: 'Color/Text/Button', status: 'Hardcoded', note: 'Gradient buttons use text-white directly' },
+                { figma: 'Color/Stroke/Dot', status: 'Missing', note: 'No CSS variable; not referenced in components' },
+                { figma: 'Font/Detail/Letter spacing', status: 'Hardcoded', note: 'Used inline as letterSpacing: 0px in Detail style' },
+              ].map(row => (
+                <tr key={row.figma} style={{ borderBottom: '1px solid var(--color-stroke-outline)' }}>
+                  <td className="text-text-primary font-medium text-[13px] py-3 pr-4 font-mono">{row.figma}</td>
+                  <td className="py-3 pr-4">
+                    <span className="text-[12px] font-semibold px-2 py-0.5 rounded" style={{
+                      background: row.status === 'Missing' ? 'rgba(220,38,38,0.1)' : 'rgba(234,179,8,0.15)',
+                      color: row.status === 'Missing' ? '#dc2626' : '#a16207',
+                    }}>{row.status}</span>
+                  </td>
+                  <td className="text-text-secondary text-[13px] py-3 pr-4">{row.note}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Code tokens not in Figma */}
+        <h3 className="text-[15px] font-semibold text-text-primary mb-3">Code Tokens Not in Figma Variables</h3>
+        <p className="text-text-secondary text-[13px] leading-[18px] mb-3">These CSS variables exist in code but have no corresponding Figma variable in the WorkPal library.</p>
+        <div className="overflow-x-auto mb-6">
+          <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--color-stroke-outline)' }}>
+                {['CSS Variable', 'Light Value', 'Dark Value', 'Notes'].map(h => (
+                  <th key={h} className="text-text-secondary font-medium text-[13px] py-2 pr-4">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { css: '--color-text-tertiary', light: 'rgba(20,39,64,0.4)', dark: 'rgba(226,243,255,0.4)', note: 'No Figma variable; used for placeholder text & subtle labels' },
+                { css: '--color-icon-primary', light: '#001424', dark: '#FFFFFF', note: 'No Figma variable; icon fill color derived from text/primary' },
+                { css: '--color-outer-bg', light: '#f5f5f7', dark: '#001424', note: 'No Figma variable; outer shell background behind the app frame' },
+                { css: '--color-outer-border', light: '#f5f5f7', dark: '#001424', note: 'No Figma variable; outer shell border color' },
+              ].map(row => (
+                <tr key={row.css} style={{ borderBottom: '1px solid var(--color-stroke-outline)' }}>
+                  <td className="text-text-primary font-medium text-[13px] py-3 pr-4 font-mono">{row.css}</td>
+                  <td className="text-text-secondary text-[13px] py-3 pr-4 font-mono">{row.light}</td>
+                  <td className="text-text-secondary text-[13px] py-3 pr-4 font-mono">{row.dark}</td>
+                  <td className="text-text-secondary text-[13px] py-3 pr-4">{row.note}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Value discrepancies */}
+        <h3 className="text-[15px] font-semibold text-text-primary mb-3">Value Discrepancies</h3>
+        <p className="text-text-secondary text-[13px] leading-[18px] mb-3">Tokens that exist in both Figma and code but may differ in value or naming.</p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--color-stroke-outline)' }}>
+                {['Token', 'Discrepancy'].map(h => (
+                  <th key={h} className="text-text-secondary font-medium text-[13px] py-2 pr-4">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { token: 'Sidebar BG (dark)', desc: 'Code uses #0d2136; Figma "Color/Background/Web Menu" dark mode may use rgba(226,243,255,0.1) — same as bg-hover' },
+                { token: 'StatusTag color', desc: 'DesignSystemPage MiniStatusTag uses #00c7be (teal) while the main app & DESIGN_SYSTEM.md use #028901 (green)' },
+                { token: 'Body/Emphasized line-height', desc: 'DESIGN_SYSTEM.md says 32px; typical Figma body emphasized is 22px — verify in Figma source' },
+              ].map(row => (
+                <tr key={row.token} style={{ borderBottom: '1px solid var(--color-stroke-outline)' }}>
+                  <td className="text-text-primary font-medium text-[13px] py-3 pr-4 whitespace-nowrap">{row.token}</td>
+                  <td className="text-text-secondary text-[13px] py-3 pr-4">{row.desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Responsive Rules */}
+        <SectionTitle>Responsive Rules (Mobile vs Desktop)</SectionTitle>
+        <p className="text-text-secondary text-[14px] leading-[20px] mb-4">
+          The app uses a <strong className="text-text-primary">mobile-first</strong> approach. Base styles target mobile ({'<'}768px), and desktop overrides kick in at the <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>md:</code> breakpoint (768px+) via Tailwind and <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>@media (min-width: 768px)</code>.
+        </p>
+
+        {/* Global overrides */}
+        <h3 className="text-[15px] font-semibold text-text-primary mb-3">Global CSS Overrides (index.css)</h3>
+        <div className="overflow-x-auto mb-6">
+          <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--color-stroke-outline)' }}>
+                {['Property', 'Mobile (< 768px)', 'Desktop (≥ 768px)'].map(h => (
+                  <th key={h} className="text-text-secondary font-medium text-[13px] py-2 pr-4">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { prop: 'Root font-size', mobile: '16px', desktop: '14px' },
+                { prop: '--toolbar-btn-h', mobile: '39px', desktop: '26px' },
+                { prop: '--mode-btn-unselected-w', mobile: '54px', desktop: '26px' },
+                { prop: '--toolbar-icon-size', mobile: '24px', desktop: '16px' },
+                { prop: '--input-btn-size', mobile: '36px', desktop: '24px' },
+                { prop: '.toolbar-icon-scale', mobile: 'scale(1.5)', desktop: 'scale(1)' },
+              ].map(row => (
+                <tr key={row.prop} style={{ borderBottom: '1px solid var(--color-stroke-outline)' }}>
+                  <td className="text-text-primary font-medium text-[13px] py-3 pr-4 font-mono">{row.prop}</td>
+                  <td className="text-text-secondary text-[13px] py-3 pr-4 font-mono">{row.mobile}</td>
+                  <td className="text-text-secondary text-[13px] py-3 pr-4 font-mono">{row.desktop}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Component-level patterns */}
+        <h3 className="text-[15px] font-semibold text-text-primary mb-3">Component-Level Tailwind Patterns</h3>
+        <p className="text-text-secondary text-[13px] leading-[18px] mb-3">Common <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>md:</code> responsive patterns used across components.</p>
+        <div className="overflow-x-auto mb-6">
+          <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--color-stroke-outline)' }}>
+                {['Category', 'Mobile', 'Desktop (md:)', 'Example Component'].map(h => (
+                  <th key={h} className="text-text-secondary font-medium text-[13px] py-2 pr-4">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { cat: 'Icon sizes', mobile: '24px', desktop: '16px', comp: 'ChatInput toolbar icons' },
+                { cat: 'Gaps', mobile: 'gap-4 (16px)', desktop: 'gap-2 (8px)', comp: 'ChatInput icon row' },
+                { cat: 'Padding', mobile: 'px-6 py-3', desktop: 'px-4 py-2', comp: 'ChatInput wrapper' },
+                { cat: 'Text size', mobile: 'text-[18px]', desktop: 'text-xs (12px)', comp: 'Mode selector labels' },
+                { cat: 'Width', mobile: 'w-72 (288px)', desktop: 'w-48 (192px)', comp: 'Dropdown menus' },
+                { cat: 'Max-width', mobile: 'max-w-[270px]', desktop: 'max-w-[180px]', comp: 'Chip containers' },
+                { cat: 'Border radius', mobile: 'rounded-2xl', desktop: 'rounded-xl', comp: 'Quick chip row' },
+                { cat: 'Margin', mobile: 'mb-3', desktop: 'mb-2', comp: 'Chip section spacing' },
+                { cat: 'Layout direction', mobile: 'flex-col', desktop: 'flex-row', comp: 'ConnectorsPage filter bar' },
+                { cat: 'Grid columns', mobile: 'grid-cols-1', desktop: 'grid-cols-2', comp: 'ConnectorsPage cards' },
+              ].map(row => (
+                <tr key={row.cat} style={{ borderBottom: '1px solid var(--color-stroke-outline)' }}>
+                  <td className="text-text-primary font-medium text-[13px] py-3 pr-4">{row.cat}</td>
+                  <td className="text-text-secondary text-[13px] py-3 pr-4 font-mono">{row.mobile}</td>
+                  <td className="text-text-secondary text-[13px] py-3 pr-4 font-mono">{row.desktop}</td>
+                  <td className="text-text-secondary text-[13px] py-3 pr-4">{row.comp}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Design principles */}
+        <h3 className="text-[15px] font-semibold text-text-primary mb-3">Design Principles</h3>
+        <div className="flex flex-col gap-2">
+          {[
+            { label: 'Touch targets', desc: 'Mobile uses larger tap targets (39px buttons, 24px icons) for finger interaction; desktop shrinks to mouse-friendly sizes (26px buttons, 16px icons).' },
+            { label: 'Font scaling', desc: 'Root font-size is 16px on mobile for readability, 14px on desktop where screens are larger. All text inherits via font-size: inherit.' },
+            { label: 'Layout stacking', desc: 'Multi-column layouts (flex-row, grid-cols-2) on desktop collapse to single-column (flex-col, grid-cols-1) on mobile.' },
+            { label: 'Spacing compression', desc: 'Padding and gaps are 1.5× larger on mobile (e.g., gap-4 → gap-2, px-6 → px-4) for comfortable touch spacing.' },
+            { label: 'Width constraints', desc: 'Dropdowns and chip containers are wider on mobile (w-72) for full-width usability, narrower on desktop (w-48).' },
+          ].map(item => (
+            <div key={item.label} className="flex items-start gap-3 py-2" style={{ borderBottom: '1px solid var(--color-stroke-outline)' }}>
+              <span className="text-text-primary font-medium text-[13px] shrink-0 w-40">{item.label}</span>
+              <span className="text-text-secondary text-[13px]">{item.desc}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
