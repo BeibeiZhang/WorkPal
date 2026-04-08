@@ -7,6 +7,7 @@ import Onboarding from './components/Onboarding';
 import TaskScreen from './components/TaskScreen';
 import TaskContextPanel from './components/TaskContextPanel';
 import ProjectPage from './components/ProjectPage';
+import ConnectorsPage from './components/ConnectorsPage';
 import NewProjectDialog from './components/NewProjectDialog';
 import { Chat, Message, ActionChip, TicketCard, AgentCard } from './types';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
@@ -240,7 +241,7 @@ export default function App() {
   const [selectedAvatarId, setSelectedAvatarId] = useState('black-woman');
   const [detailOpen, setDetailOpen] = useState(false);
   const [onboardingDone, setOnboardingDone] = useState(() => localStorage.getItem('workpal-onboarding-done') === 'true');
-  const [activeView, setActiveView] = useState<'chat' | 'tasks'>('chat');
+  const [activeView, setActiveView] = useState<'chat' | 'tasks' | 'connectors'>('chat');
   const [inputMode, setInputMode] = useState<'Chat' | 'Tasks' | 'Code'>('Chat');
   const [taskModeMsgSent, setTaskModeMsgSent] = useState(false);
   const [taskModeUserMsg, setTaskModeUserMsg] = useState('');
@@ -647,6 +648,11 @@ export default function App() {
         {activeProjectId && projects.find(p => p.id === activeProjectId) ? (
           <ProjectPage
             project={projects.find(p => p.id === activeProjectId)!}
+            sidebarOpen={sidebarOpen}
+            onToggleSidebar={() => setSidebarOpen(o => !o)}
+          />
+        ) : activeView === 'connectors' ? (
+          <ConnectorsPage
             sidebarOpen={sidebarOpen}
             onToggleSidebar={() => setSidebarOpen(o => !o)}
           />

@@ -16,14 +16,14 @@ export interface Project {
 interface SidebarProps {
   chats: Chat[];
   activeChatId: string;
-  activeView?: 'chat' | 'tasks';
+  activeView?: 'chat' | 'tasks' | 'connectors';
   activeProjectId?: string | null;
   projects: Project[];
   onChatSelect: (id: string) => void;
   onNewChat: () => void;
   onNewProject: () => void;
   onProjectSelect: (id: string) => void;
-  onViewChange?: (view: 'chat' | 'tasks') => void;
+  onViewChange?: (view: 'chat' | 'tasks' | 'connectors') => void;
   isDark: boolean;
   onToggleDark: () => void;
   onToggleSidebar?: () => void;
@@ -61,7 +61,7 @@ function DarkToggle({ isDark, onToggle }: { isDark: boolean; onToggle: () => voi
   );
 }
 
-export default function Sidebar({ chats, activeChatId, activeProjectId, projects, onChatSelect, onNewChat, onNewProject, onProjectSelect, isDark, onToggleDark, onToggleSidebar }: SidebarProps) {
+export default function Sidebar({ chats, activeChatId, activeView, activeProjectId, projects, onChatSelect, onNewChat, onNewProject, onProjectSelect, onViewChange, isDark, onToggleDark, onToggleSidebar }: SidebarProps) {
   const [search, setSearch] = useState('');
   const [projectsOpen, setProjectsOpen] = useState(true);
   const [onboardingOpen, setOnboardingOpen] = useState(true);
@@ -126,11 +126,15 @@ export default function Sidebar({ chats, activeChatId, activeProjectId, projects
             </span>
           </button>
 
-          {/* Connect Apps */}
-          <button className="flex items-center gap-4 w-full px-4 py-2 rounded-full hover:bg-bg-hover transition-colors text-left">
+          {/* Connectors */}
+          <button
+            onClick={() => onViewChange?.('connectors')}
+            className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${activeView === 'connectors' ? 'bg-[#e6e8ea] dark:bg-bg-hover' : 'hover:bg-bg-hover'}`}
+            style={{ border: activeView === 'connectors' ? '1px solid var(--color-stroke-outline)' : '1px solid transparent' }}
+          >
             <Link size={20} className="shrink-0 text-text-primary" />
-            <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'Inter, system-ui, sans-serif', fontWeight: 400 }}>
-              Connect Apps
+            <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'Inter, system-ui, sans-serif', fontWeight: activeView === 'connectors' ? 500 : 400 }}>
+              Connectors
             </span>
           </button>
 
