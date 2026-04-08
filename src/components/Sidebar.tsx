@@ -17,10 +17,12 @@ interface SidebarProps {
   chats: Chat[];
   activeChatId: string;
   activeView?: 'chat' | 'tasks';
+  activeProjectId?: string | null;
   projects: Project[];
   onChatSelect: (id: string) => void;
   onNewChat: () => void;
   onNewProject: () => void;
+  onProjectSelect: (id: string) => void;
   onViewChange?: (view: 'chat' | 'tasks') => void;
   isDark: boolean;
   onToggleDark: () => void;
@@ -59,7 +61,7 @@ function DarkToggle({ isDark, onToggle }: { isDark: boolean; onToggle: () => voi
   );
 }
 
-export default function Sidebar({ chats, activeChatId, projects, onChatSelect, onNewChat, onNewProject, isDark, onToggleDark, onToggleSidebar }: SidebarProps) {
+export default function Sidebar({ chats, activeChatId, activeProjectId, projects, onChatSelect, onNewChat, onNewProject, onProjectSelect, isDark, onToggleDark, onToggleSidebar }: SidebarProps) {
   const [search, setSearch] = useState('');
   const [projectsOpen, setProjectsOpen] = useState(true);
   const [recentsOpen, setRecentsOpen] = useState(true);
@@ -170,8 +172,13 @@ export default function Sidebar({ chats, activeChatId, projects, onChatSelect, o
               {projects.map(proj => (
                 <button
                   key={proj.id}
-                  className="flex items-center gap-4 w-full px-4 py-2 rounded-full hover:bg-[#e6e8ea] dark:hover:bg-bg-hover transition-colors text-left"
-                  style={{ border: '1px solid transparent' }}
+                  onClick={() => onProjectSelect(proj.id)}
+                  className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${
+                    activeProjectId === proj.id
+                      ? 'bg-[#e6e8ea] dark:bg-bg-hover font-medium'
+                      : 'hover:bg-[#e6e8ea] dark:hover:bg-bg-hover'
+                  }`}
+                  style={{ border: activeProjectId === proj.id ? '1px solid var(--color-stroke-outline)' : '1px solid transparent' }}
                 >
                   <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px] truncate" style={{ fontFamily: 'Inter, system-ui, sans-serif', fontWeight: 400 }}>
                     {proj.name}

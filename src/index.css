@@ -60,6 +60,42 @@ html, body, #root {
   background: rgba(255, 255, 255, 0.15);
 }
 
+/* Auto-hide scrollbar: only visible while scrolling */
+.scrollbar-autohide {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.scrollbar-autohide::-webkit-scrollbar-thumb {
+  background: transparent;
+  transition: background 0.3s;
+}
+.scrollbar-autohide:hover::-webkit-scrollbar-thumb,
+.scrollbar-autohide:active::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+}
+.dark .scrollbar-autohide:hover::-webkit-scrollbar-thumb,
+.dark .scrollbar-autohide:active::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+.scrollbar-autohide:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+.dark .scrollbar-autohide:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+/* Scrollbar with padding offset from content */
+.scrollbar-offset {
+  scrollbar-gutter: stable;
+}
+.scrollbar-offset::-webkit-scrollbar {
+  width: 24px;
+}
+.scrollbar-offset::-webkit-scrollbar-thumb {
+  border-right: 20px solid transparent;
+  background-clip: padding-box;
+}
+
 /* Monochrome icons: invert dark→white in dark mode */
 .dark .icon-theme {
   filter: brightness(0) invert(1);
