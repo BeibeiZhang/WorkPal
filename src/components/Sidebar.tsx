@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Chat } from '../types';
-import { LayoutDashboard, Plus, Link, BookOpen, FolderPlus, ChevronDown, Search } from 'lucide-react';
+import { LayoutDashboard, Plus, Link, BookOpen, FolderPlus, ChevronDown, Search, Palette } from 'lucide-react';
 import {
   iconSun, iconMoon, iconSpinner,
 } from '../assets';
@@ -16,14 +16,14 @@ export interface Project {
 interface SidebarProps {
   chats: Chat[];
   activeChatId: string;
-  activeView?: 'chat' | 'tasks' | 'connectors';
+  activeView?: 'chat' | 'tasks' | 'connectors' | 'design-system';
   activeProjectId?: string | null;
   projects: Project[];
   onChatSelect: (id: string) => void;
   onNewChat: () => void;
   onNewProject: () => void;
   onProjectSelect: (id: string) => void;
-  onViewChange?: (view: 'chat' | 'tasks' | 'connectors') => void;
+  onViewChange?: (view: 'chat' | 'tasks' | 'connectors' | 'design-system') => void;
   isDark: boolean;
   onToggleDark: () => void;
   onToggleSidebar?: () => void;
@@ -194,63 +194,83 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
           )}
         </div>
 
-        {/* Onboarding Experience section */}
+        {/* Admin section */}
         <div className="px-4 pt-4 flex flex-col gap-1">
           <button
             onClick={() => setOnboardingOpen(!onboardingOpen)}
             className="px-4 flex items-center justify-between hover:bg-bg-hover rounded-full transition-colors"
             style={{ height: 32 }}
           >
-            <p className="text-base font-bold text-text-primary tracking-[-0.43px]">Onboarding Experience</p>
+            <p className="text-base font-bold text-text-primary tracking-[-0.43px]">Admin</p>
             <ChevronDown
               size={16}
               className={`text-text-secondary transition-transform ${onboardingOpen ? '' : '-rotate-90'}`}
             />
           </button>
 
-          {onboardingOpen && (() => {
-            const isActive = activeChatId === 'my-workpal';
-            return (
+          {onboardingOpen && (
+            <>
+              {/* Onboarding Experience */}
+              {(() => {
+                const isActive = activeChatId === 'my-workpal';
+                return (
+                  <button
+                    onClick={() => onChatSelect('my-workpal')}
+                    className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${
+                      isActive ? '' : 'hover:bg-[#e6e8ea] dark:hover:bg-bg-hover'
+                    }`}
+                    style={isActive ? {
+                      border: '1px solid transparent',
+                      background: `linear-gradient(var(--color-sidebar-bg), var(--color-sidebar-bg)) padding-box, linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box`,
+                    } : { border: '1px solid transparent' }}
+                  >
+                    <span
+                      className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px] truncate"
+                      style={{ fontFamily: 'Inter, system-ui, sans-serif', fontWeight: 400 }}
+                    >
+                      Onboarding Experience
+                    </span>
+                    {isActive && (
+                      <div className="flex items-center justify-center shrink-0" style={{ width: 25, height: 25 }}>
+                        <div
+                          className="animate-spin"
+                          style={{
+                            width: 23,
+                            height: 23,
+                            background: 'linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%)',
+                            WebkitMaskImage: `url(${iconSpinner})`,
+                            WebkitMaskSize: 'contain',
+                            WebkitMaskRepeat: 'no-repeat',
+                            WebkitMaskPosition: 'center',
+                            maskImage: `url(${iconSpinner})`,
+                            maskSize: 'contain',
+                            maskRepeat: 'no-repeat',
+                            maskPosition: 'center',
+                            animationDuration: '1.5s',
+                          }}
+                        />
+                      </div>
+                    )}
+                  </button>
+                );
+              })()}
+
+              {/* Design System */}
               <button
-                onClick={() => onChatSelect('my-workpal')}
-                className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${
-                  isActive ? '' : 'hover:bg-[#e6e8ea] dark:hover:bg-bg-hover'
-                }`}
-                style={isActive ? {
-                  border: '1px solid transparent',
-                  background: `linear-gradient(var(--color-sidebar-bg), var(--color-sidebar-bg)) padding-box, linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box`,
-                } : { border: '1px solid transparent' }}
+                onClick={() => onViewChange?.('design-system')}
+                className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${activeView === 'design-system' ? 'bg-[#e6e8ea] dark:bg-bg-hover' : 'hover:bg-[#e6e8ea] dark:hover:bg-bg-hover'}`}
+                style={{ border: activeView === 'design-system' ? '1px solid var(--color-stroke-outline)' : '1px solid transparent' }}
               >
+                <Palette size={18} className="shrink-0 text-text-primary" />
                 <span
                   className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px] truncate"
-                  style={{ fontFamily: 'Inter, system-ui, sans-serif', fontWeight: 400 }}
+                  style={{ fontFamily: 'Inter, system-ui, sans-serif', fontWeight: activeView === 'design-system' ? 500 : 400 }}
                 >
-                  Tour 1
+                  Design System
                 </span>
-                {isActive && (
-                  <div className="flex items-center justify-center shrink-0" style={{ width: 25, height: 25 }}>
-                    <div
-                      className="animate-spin"
-                      style={{
-                        width: 23,
-                        height: 23,
-                        background: 'linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%)',
-                        WebkitMaskImage: `url(${iconSpinner})`,
-                        WebkitMaskSize: 'contain',
-                        WebkitMaskRepeat: 'no-repeat',
-                        WebkitMaskPosition: 'center',
-                        maskImage: `url(${iconSpinner})`,
-                        maskSize: 'contain',
-                        maskRepeat: 'no-repeat',
-                        maskPosition: 'center',
-                        animationDuration: '1.5s',
-                      }}
-                    />
-                  </div>
-                )}
               </button>
-            );
-          })()}
+            </>
+          )}
         </div>
 
         {/* Recents section */}

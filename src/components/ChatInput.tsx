@@ -461,7 +461,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
                   type="checkbox"
                   checked={useWorktree}
                   onChange={e => setUseWorktree(e.target.checked)}
-                  className="w-[21px] h-[21px] md:w-3.5 md:h-3.5 rounded accent-[#3171FF] cursor-pointer"
+                  className="worktree-checkbox w-[21px] h-[21px] md:w-3.5 md:h-3.5 rounded cursor-pointer"
                 />
                 Worktree
               </label>
