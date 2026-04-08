@@ -247,6 +247,39 @@ p, span, a, button, input, textarea, select, label, li, td, th, div {
     linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box !important;
 }
 
+/* Custom checkbox using design-system blue */
+.worktree-checkbox {
+  -webkit-appearance: none;
+  appearance: none;
+  border: 1.5px solid var(--color-icon-primary);
+  border-radius: 4px;
+  background: transparent;
+  position: relative;
+  transition: border-color 0.15s, background 0.15s;
+}
+.worktree-checkbox:checked {
+  background: #3171FF;
+  border-color: #3171FF;
+}
+.worktree-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+@media (min-width: 768px) {
+  .worktree-checkbox:checked::after {
+    width: 3.5px;
+    height: 7px;
+    border-width: 0 1.5px 1.5px 0;
+  }
+}
+
 /* Selected onboarding chip — gradient border ring on hover via pseudo-element */
 .onboarding-chip-selected {
   position: relative;
