@@ -64,10 +64,11 @@ function DarkToggle({ isDark, onToggle }: { isDark: boolean; onToggle: () => voi
 export default function Sidebar({ chats, activeChatId, activeProjectId, projects, onChatSelect, onNewChat, onNewProject, onProjectSelect, isDark, onToggleDark, onToggleSidebar }: SidebarProps) {
   const [search, setSearch] = useState('');
   const [projectsOpen, setProjectsOpen] = useState(true);
+  const [onboardingOpen, setOnboardingOpen] = useState(true);
   const [recentsOpen, setRecentsOpen] = useState(true);
 
   const filteredChats = chats.filter(c =>
-    c.title.toLowerCase().includes(search.toLowerCase())
+    c.id !== 'my-workpal' && c.title.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -187,6 +188,65 @@ export default function Sidebar({ chats, activeChatId, activeProjectId, projects
               ))}
             </>
           )}
+        </div>
+
+        {/* Onboarding Experience section */}
+        <div className="px-4 pt-4 flex flex-col gap-1">
+          <button
+            onClick={() => setOnboardingOpen(!onboardingOpen)}
+            className="px-4 flex items-center justify-between hover:bg-bg-hover rounded-full transition-colors"
+            style={{ height: 32 }}
+          >
+            <p className="text-base font-bold text-text-primary tracking-[-0.43px]">Onboarding Experience</p>
+            <ChevronDown
+              size={16}
+              className={`text-text-secondary transition-transform ${onboardingOpen ? '' : '-rotate-90'}`}
+            />
+          </button>
+
+          {onboardingOpen && (() => {
+            const isActive = activeChatId === 'my-workpal';
+            return (
+              <button
+                onClick={() => onChatSelect('my-workpal')}
+                className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${
+                  isActive ? '' : 'hover:bg-[#e6e8ea] dark:hover:bg-bg-hover'
+                }`}
+                style={isActive ? {
+                  border: '1px solid transparent',
+                  background: `linear-gradient(var(--color-sidebar-bg), var(--color-sidebar-bg)) padding-box, linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box`,
+                } : { border: '1px solid transparent' }}
+              >
+                <span
+                  className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px] truncate"
+                  style={{ fontFamily: 'Inter, system-ui, sans-serif', fontWeight: 400 }}
+                >
+                  Tour 1
+                </span>
+                {isActive && (
+                  <div className="flex items-center justify-center shrink-0" style={{ width: 25, height: 25 }}>
+                    <div
+                      className="animate-spin"
+                      style={{
+                        width: 23,
+                        height: 23,
+                        background: 'linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%)',
+                        WebkitMaskImage: `url(${iconSpinner})`,
+                        WebkitMaskSize: 'contain',
+                        WebkitMaskRepeat: 'no-repeat',
+                        WebkitMaskPosition: 'center',
+                        maskImage: `url(${iconSpinner})`,
+                        maskSize: 'contain',
+                        maskRepeat: 'no-repeat',
+                        maskPosition: 'center',
+                        animationDuration: '1.5s',
+                      }}
+                    />
+                  </div>
+                )}
+              </button>
+            );
+          })()}
         </div>
 
         {/* Recents section */}

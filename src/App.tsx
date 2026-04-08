@@ -326,18 +326,28 @@ export default function App() {
     // Find or create active chat
     let chatId = activeChatId;
 
-    // If on welcome screen, create a new chat
+    // If on welcome screen or empty session, update the existing chat's title
     if (!activeChat || activeChat.messages.length === 0) {
-      chatId = `chat-${Date.now()}`;
-      const newChat: Chat = {
-        id: chatId,
-        title: text.slice(0, 40) + (text.length > 40 ? '...' : ''),
-        lastMessage: text,
-        timestamp: new Date(),
-        messages: [],
-      };
-      setChats(prev => [newChat, ...prev.filter(c => c.id !== 'my-workpal'), prev.find(c => c.id === 'my-workpal')!]);
-      setActiveChatId(chatId);
+      if (activeChat && activeChat.messages.length === 0) {
+        // Reuse existing empty chat (e.g. "New Session") and update its title
+        chatId = activeChat.id;
+        const newTitle = text.slice(0, 40) + (text.length > 40 ? '...' : '');
+        setChats(prev => prev.map(c =>
+          c.id === chatId ? { ...c, title: newTitle, lastMessage: text, timestamp: new Date() } : c
+        ));
+      } else {
+        // No active chat at all — create a new one
+        chatId = `chat-${Date.now()}`;
+        const newChat: Chat = {
+          id: chatId,
+          title: text.slice(0, 40) + (text.length > 40 ? '...' : ''),
+          lastMessage: text,
+          timestamp: new Date(),
+          messages: [],
+        };
+        setChats(prev => [newChat, ...prev.filter(c => c.id !== 'my-workpal'), prev.find(c => c.id === 'my-workpal')!]);
+        setActiveChatId(chatId);
+      }
     }
 
     // Add user message
@@ -551,7 +561,7 @@ export default function App() {
     const newId = `chat-${Date.now()}`;
     setChats(prev => [{
       id: newId,
-      title: 'WorkPal',
+      title: 'New Session',
       lastMessage: '',
       timestamp: new Date(),
       messages: [],

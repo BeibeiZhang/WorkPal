@@ -29,6 +29,7 @@ interface ChatInputProps {
   actionChips?: ActionChip[];
   onChipClick?: (chip: ActionChip) => void;
   onModeChange?: (mode: 'Chat' | 'Tasks' | 'Code') => void;
+  chatOnly?: boolean;
 }
 
 /** Exact pixel dimensions from Figma for each toolbar icon within its 24×24 container */
@@ -134,7 +135,7 @@ const FOLDER_OPTIONS = [
 /** Simulated branch options */
 const BRANCH_OPTIONS = ['main', 'develop', 'feature/chat-input', 'fix/ui-polish'];
 
-export default function ChatInput({ onSend, placeholder = 'Message WorkPal', quickChips, actionChips, onChipClick, onModeChange }: ChatInputProps) {
+export default function ChatInput({ onSend, placeholder = 'Message WorkPal', quickChips, actionChips, onChipClick, onModeChange, chatOnly }: ChatInputProps) {
   const [value, setValue] = useState('');
   const [focused, setFocused] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
@@ -319,7 +320,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
               </button>
             </Tooltip>
             {showAttachMenu && (
-              <div className="absolute bottom-full left-0 mb-2 w-48 bg-bg-page border border-stroke-outline rounded-xl shadow-lg py-2 z-50">
+              <div className="absolute bottom-full left-0 mb-3 md:mb-2 w-72 md:w-48 bg-bg-page border border-stroke-outline rounded-2xl md:rounded-xl shadow-lg py-3 md:py-2 z-50">
                 {[
                   { icon: null, label: 'Mention', isMention: true },
                   { icon: iconPhoto, label: 'Photo', isMention: false },
@@ -329,14 +330,19 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
                   <button
                     key={item.label}
                     onClick={() => setShowAttachMenu(false)}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-bg-hover transition-colors text-text-primary text-sm cursor-pointer"
+                    className="w-full flex items-center gap-[18px] md:gap-3 px-6 md:px-4 py-[15px] md:py-2.5 hover:bg-bg-hover transition-colors text-text-primary text-[21px] md:text-sm cursor-pointer"
                   >
                     {item.isMention ? (
-                      <div className="flex items-center justify-center shrink-0" style={{ width: 16, height: 16 }}>
-                        <span className="text-sm font-medium text-text-primary" style={{ fontFamily: 'SF Pro, system-ui, sans-serif' }}>@</span>
+                      <div className="flex items-center justify-center shrink-0 w-6 h-6 md:w-4 md:h-4">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full text-text-primary">
+                          <circle cx="12" cy="12" r="4" />
+                          <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94" />
+                        </svg>
                       </div>
                     ) : (
-                      <IconImg src={item.icon!} alt={item.label} size={16} />
+                      <div className="w-6 h-6 md:w-4 md:h-4 flex items-center justify-center shrink-0">
+                        <img src={item.icon!} alt={item.label} className="w-full h-full icon-theme" />
+                      </div>
                     )}
                     {item.label}
                   </button>
@@ -352,14 +358,17 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
               const isSelected = mode === m;
               const isFirst = i === 0;
               const isLast = i === arr.length - 1;
+              const isDisabled = chatOnly && m !== 'Chat';
               const btn = (
                 <button
                   key={m}
-                  onClick={() => { setMode(m); onModeChange?.(m); closeAllMenus(); }}
-                  className={`flex items-center justify-center gap-1 transition-all cursor-pointer text-text-primary ${
-                    isSelected
-                      ? 'px-3'
-                      : 'hover:bg-bg-hover'
+                  onClick={() => { if (isDisabled) return; setMode(m); onModeChange?.(m); closeAllMenus(); }}
+                  className={`flex items-center justify-center gap-1 transition-all text-text-primary ${
+                    isDisabled
+                      ? 'opacity-30 cursor-not-allowed'
+                      : isSelected
+                        ? 'px-3 cursor-pointer'
+                        : 'hover:bg-bg-hover cursor-pointer'
                   }`}
                   style={{
                     height: 'var(--toolbar-btn-h)',
@@ -373,7 +382,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
                   {isSelected && <span className="text-xs font-medium">{m}</span>}
                 </button>
               );
-              return isSelected ? btn : <Tooltip key={m} label={m}>{btn}</Tooltip>;
+              return isSelected ? btn : <Tooltip key={m} label={isDisabled ? `${m} (not available)` : m}>{btn}</Tooltip>;
             })}
           </div>
 
@@ -392,17 +401,17 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
                 <img src={iconChevronDown} alt="" className="w-[18px] h-[18px] md:w-3 md:h-3 icon-theme shrink-0" />
               </button>
               {showFolderMenu && (
-                <div className="absolute bottom-full left-0 mb-2 w-56 bg-bg-page border border-stroke-outline rounded-xl shadow-lg py-2 z-50">
+                <div className="absolute bottom-full left-0 mb-3 md:mb-2 w-[336px] md:w-56 bg-bg-page border border-stroke-outline rounded-2xl md:rounded-xl shadow-lg py-3 md:py-2 z-50">
                   {FOLDER_OPTIONS.map(f => (
                     <button
                       key={f}
                       onClick={() => { setFolder(f); setShowFolderMenu(false); }}
-                      className={`w-full flex items-center justify-between px-4 py-2 text-xs transition-colors cursor-pointer ${
+                      className={`w-full flex items-center justify-between px-6 md:px-4 py-3 md:py-2 text-[18px] md:text-xs transition-colors cursor-pointer ${
                         folder === f ? 'text-text-primary font-medium' : 'text-text-secondary hover:bg-bg-hover'
                       }`}
                     >
                       <span className="truncate">{f}</span>
-                      {folder === f && <span className="gradient-text font-semibold">✓</span>}
+                      {folder === f && <span className="gradient-text font-semibold text-[18px] md:text-xs">✓</span>}
                     </button>
                   ))}
                 </div>
@@ -429,17 +438,17 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
                   <img src={iconChevronDown} alt="" className="w-[18px] h-[18px] md:w-3 md:h-3 icon-theme shrink-0" />
                 </button>
                 {showBranchMenu && (
-                  <div className="absolute bottom-full left-0 mb-2 w-52 bg-bg-page border border-stroke-outline rounded-xl shadow-lg py-2 z-50">
+                  <div className="absolute bottom-full left-0 mb-3 md:mb-2 w-[312px] md:w-52 bg-bg-page border border-stroke-outline rounded-2xl md:rounded-xl shadow-lg py-3 md:py-2 z-50">
                     {BRANCH_OPTIONS.map(b => (
                       <button
                         key={b}
                         onClick={() => { setBranch(b); setShowBranchMenu(false); }}
-                        className={`w-full flex items-center justify-between px-4 py-2 text-xs transition-colors cursor-pointer ${
+                        className={`w-full flex items-center justify-between px-6 md:px-4 py-3 md:py-2 text-[18px] md:text-xs transition-colors cursor-pointer ${
                           branch === b ? 'text-text-primary font-medium' : 'text-text-secondary hover:bg-bg-hover'
                         }`}
                       >
                         <span className="truncate">{b}</span>
-                        {branch === b && <span className="gradient-text font-semibold">✓</span>}
+                        {branch === b && <span className="gradient-text font-semibold text-[18px] md:text-xs">✓</span>}
                       </button>
                     ))}
                   </div>
