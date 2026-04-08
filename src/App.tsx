@@ -6,6 +6,7 @@ import DetailPanel from './components/DetailPanel';
 import Onboarding from './components/Onboarding';
 import TaskScreen from './components/TaskScreen';
 import TaskContextPanel from './components/TaskContextPanel';
+import ProjectPage from './components/ProjectPage';
 import NewProjectDialog from './components/NewProjectDialog';
 import { Chat, Message, ActionChip, TicketCard, AgentCard } from './types';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
@@ -247,6 +248,7 @@ export default function App() {
     { id: 'proj-1', name: 'Project name 1' },
     { id: 'proj-2', name: 'Project name 2' },
   ]);
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const isMobile = useSyncExternalStore(subscribe, getIsMobile);
   const canFitPanel = useSyncExternalStore(subscribe, getCanFitPanel);
@@ -569,7 +571,13 @@ export default function App() {
       ));
     }
     setActiveChatId(id);
+    setActiveProjectId(null);
     setActiveView('chat');
+  }, []);
+
+  const handleProjectSelect = useCallback((id: string) => {
+    setActiveProjectId(id);
+    setActiveView('chat'); // reset view
   }, []);
 
   const handleCreateProject = useCallback((name: string, description: string) => {
@@ -601,11 +609,13 @@ export default function App() {
                 chats={chats}
                 activeChatId={activeChatId}
                 activeView={activeView}
+                activeProjectId={activeProjectId}
                 projects={projects}
                 onChatSelect={(id) => { handleChatSelect(id); if (isMobile) setSidebarOpen(false); }}
                 onNewChat={() => { handleNewChat(); if (isMobile) setSidebarOpen(false); }}
                 onNewProject={() => setNewProjectOpen(true)}
-                onViewChange={(view) => { setActiveView(view); if (isMobile) setSidebarOpen(false); }}
+                onProjectSelect={(id) => { handleProjectSelect(id); if (isMobile) setSidebarOpen(false); }}
+                onViewChange={(view) => { setActiveView(view); setActiveProjectId(null); if (isMobile) setSidebarOpen(false); }}
                 isDark={isDark}
                 onToggleDark={() => setIsDark(d => !d)}
                 onToggleSidebar={() => setSidebarOpen(o => !o)}
@@ -624,7 +634,13 @@ export default function App() {
         )}
 
         {/* Main Content */}
-        {activeView === 'tasks' ? (
+        {activeProjectId && projects.find(p => p.id === activeProjectId) ? (
+          <ProjectPage
+            project={projects.find(p => p.id === activeProjectId)!}
+            sidebarOpen={sidebarOpen}
+            onToggleSidebar={() => setSidebarOpen(o => !o)}
+          />
+        ) : activeView === 'tasks' ? (
           <TaskScreen
             sidebarOpen={sidebarOpen}
             onToggleSidebar={() => setSidebarOpen(o => !o)}
