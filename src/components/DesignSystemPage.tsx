@@ -29,14 +29,14 @@ const SPECIAL_COLORS = [
   { name: 'Status Tag BG', value: 'rgba(2,137,1,0.1)', preview: 'rgba(2,137,1,0.1)' },
   { name: 'Status Tag Text', value: '#028901', preview: '#028901' },
   { name: 'Link / @Mention', value: '#3171ff', preview: '#3171ff' },
-  { name: 'Selected Chip BG', value: 'rgba(49,113,255,0.1)', preview: 'rgba(49,113,255,0.1)' },
+  { name: 'Selected Chip BG', value: 'var(--color-selected-bg)', preview: 'var(--color-selected-bg)' },
   { name: 'Agent Profile BG', value: '#E5E9F1', preview: '#E5E9F1' },
 ];
 
 const TYPOGRAPHY = [
   { style: 'Body / Regular', font: 'SF Pro', size: '17px', weight: 400, lineHeight: '22px', spacing: '-0.43px' },
   { style: 'Body / Emphasized', font: 'SF Pro', size: '16px', weight: 700, lineHeight: '32px', spacing: '-0.43px' },
-  { style: 'Detail / Regular', font: 'Inter', size: '16px', weight: 400, lineHeight: '22px', spacing: '0px' },
+  { style: 'Detail / Regular', font: 'SF Pro', size: '16px', weight: 400, lineHeight: '22px', spacing: '0px' },
   { style: 'Headline / Regular', font: 'SF Pro', size: '17px', weight: 590, lineHeight: '22px', spacing: '-0.43px' },
 ];
 
@@ -154,7 +154,7 @@ function ComponentSection({ title, children }: { title: string; children: React.
    Live Component Showcase
    ═══════════════════════════════════════════════════ */
 function ComponentShowcase() {
-  const [selectedChip, setSelectedChip] = useState<string | null>('Organized');
+  const [selectedChip, setSelectedChip] = useState<string | null>('\u{1F9E0} Organized');
   return (
     <div className="flex flex-col">
 
@@ -444,7 +444,11 @@ function ComponentShowcase() {
         <div className="flex flex-col items-center gap-3 w-full max-w-[360px] mx-auto">
           {/* Avatar */}
           <div className="w-20 h-20 rounded-full bg-bg-hover flex items-center justify-center overflow-hidden">
-            <img src="/icons/user-profile.png" alt="Avatar" className="w-full h-full object-cover" />
+            {avatarBlackWoman.endsWith('.mp4') ? (
+              <video src={avatarBlackWoman} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+            ) : (
+              <img src={avatarBlackWoman} alt="Agent Avatar" className="w-full h-full object-cover" />
+            )}
           </div>
           <h2 className="gradient-text text-[20px] font-semibold">Hi, Beibei</h2>
           <p className="text-text-secondary text-[13px] text-center">How can I help you today?</p>
@@ -463,17 +467,24 @@ function ComponentShowcase() {
           <h2 className="text-[18px] font-bold text-text-primary">Welcome to WorkPal</h2>
           <p className="text-[13px] text-text-secondary leading-[18px]">Select the traits that matter to you, and we'll build your ideal partner.</p>
           <div className="flex flex-wrap gap-2">
-            {['Stable', 'Organized', 'Kind', 'Calm', 'Open-minded'].map(trait => {
+            {['\u{1F6DF} Stable', '\u{1F9E0} Organized', '\u{1F917} Kind', '\u{1F9D8} Calm', '\u{1F331} Open-minded'].map(trait => {
               const isSelected = selectedChip === trait;
               return (
                 <button
                   key={trait}
                   onClick={() => setSelectedChip(isSelected ? null : trait)}
-                  className={`rounded-full border px-3 py-1 text-[12px] cursor-pointer transition-colors ${isSelected ? 'onboarding-chip-selected' : 'chip-gradient-hover'}`}
-                  style={isSelected
-                    ? { background: 'rgba(49,113,255,0.1)', color: '#3171ff', borderColor: 'transparent' }
-                    : { borderColor: 'var(--color-stroke-outline)' }
-                  }
+                  className={`flex items-center gap-1 rounded-full transition-all cursor-pointer ${isSelected ? '' : 'chip-gradient-hover'}`}
+                  style={{
+                    padding: '4px 12px',
+                    border: isSelected ? '1px solid transparent' : '1px solid var(--color-stroke-outline)',
+                    background: isSelected ? 'var(--color-selected-bg)' : 'transparent',
+                    color: isSelected ? 'var(--color-selected-text)' : 'var(--color-text-primary)',
+                    fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
+                    fontSize: 16,
+                    fontWeight: 400,
+                    lineHeight: '22px',
+                    letterSpacing: '0px',
+                  }}
                 >
                   {trait}
                 </button>
@@ -664,7 +675,7 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
               <span className="chip-gradient-hover rounded-full border px-3 py-1 text-text-primary cursor-pointer" style={{ borderColor: 'var(--color-stroke-outline)' }}>
                 Default Chip
               </span>
-              <span className="rounded-full px-3 py-1 cursor-pointer onboarding-chip-selected" style={{ background: 'rgba(49,113,255,0.1)', color: '#3171ff' }}>
+              <span className="rounded-full px-3 py-1 cursor-pointer" style={{ background: 'var(--color-selected-bg)', color: 'var(--color-selected-text)' }}>
                 Selected Chip
               </span>
             </div>

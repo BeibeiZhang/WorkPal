@@ -92,7 +92,7 @@ function WelcomeState({ isDark, selectedAvatarId, onAvatarChange }: { isDark?: b
       <h1
         className="text-[24px] text-center w-full"
         style={{
-          fontFamily: 'SF Pro, system-ui, sans-serif',
+          fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
           fontWeight: 590,
           lineHeight: '22px',
           letterSpacing: '-0.43px',
@@ -109,7 +109,7 @@ function WelcomeState({ isDark, selectedAvatarId, onAvatarChange }: { isDark?: b
         <p
           className="flex-1 text-center text-text-primary"
           style={{
-            fontFamily: 'SF Pro, system-ui, sans-serif',
+            fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
             fontSize: 17,
             lineHeight: '22px',
             letterSpacing: '-0.43px',

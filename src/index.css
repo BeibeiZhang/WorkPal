@@ -21,6 +21,8 @@
   --color-sidebar-bg: #f2f3f4;
   --color-outer-bg: #f5f5f7;
   --color-outer-border: #f5f5f7;
+  --color-selected-bg: rgba(49,113,255,0.1);
+  --color-selected-text: #3171ff;
   --toolbar-btn-h: 39px;
   --mode-btn-unselected-w: 54px;
   --toolbar-icon-size: 24px;
@@ -40,13 +42,15 @@
   --color-sidebar-bg: #0d2136;
   --color-outer-bg: #001424;
   --color-outer-border: #001424;
+  --color-selected-bg: #3171ff;
+  --color-selected-text: #ffffff;
 }
 
 html, body, #root {
   height: 100%;
   width: 100%;
   overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', 'Inter', sans-serif;
+  font-family: 'SF Pro', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   font-size: 16px;
   background: var(--color-outer-bg);
 }
@@ -280,20 +284,9 @@ p, span, a, button, input, textarea, select, label, li, td, th, div {
   }
 }
 
-/* Selected onboarding chip — gradient border ring on hover via pseudo-element */
-.onboarding-chip-selected {
-  position: relative;
-}
-.onboarding-chip-selected:hover::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: 9999px;
-  padding: 1px;
-  background: linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
+/* Selected chip — uses mode-aware tokens, Figma node 142:16529 / 142:16548 */
+.chip-selected {
+  background: var(--color-selected-bg);
+  color: var(--color-selected-text);
+  border: 1px solid transparent;
 }

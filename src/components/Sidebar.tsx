@@ -110,7 +110,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
           {/* Overview */}
           <button className="flex items-center gap-4 w-full px-4 py-2 rounded-full hover:bg-bg-hover transition-colors text-left">
             <LayoutDashboard size={20} className="shrink-0 text-text-primary" />
-            <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'Inter, system-ui, sans-serif', fontWeight: 400 }}>
+            <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
               Overview
             </span>
           </button>
@@ -121,7 +121,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
             className="flex items-center gap-4 w-full px-4 py-2 rounded-full hover:bg-bg-hover transition-colors text-left"
           >
             <Plus size={20} className="shrink-0 text-text-primary" />
-            <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'Inter, system-ui, sans-serif', fontWeight: 400 }}>
+            <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
               New Session
             </span>
           </button>
@@ -133,7 +133,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
             style={{ border: activeView === 'connectors' ? '1px solid var(--color-stroke-outline)' : '1px solid transparent' }}
           >
             <Link size={20} className="shrink-0 text-text-primary" />
-            <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'Inter, system-ui, sans-serif', fontWeight: activeView === 'connectors' ? 500 : 400 }}>
+            <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: activeView === 'connectors' ? 500 : 400 }}>
               Connectors
             </span>
           </button>
@@ -141,7 +141,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
           {/* Library */}
           <button className="flex items-center gap-4 w-full px-4 py-2 rounded-full hover:bg-bg-hover transition-colors text-left">
             <BookOpen size={20} className="shrink-0 text-text-primary" />
-            <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'Inter, system-ui, sans-serif', fontWeight: 400 }}>
+            <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
               Library
             </span>
           </button>
@@ -169,7 +169,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
                 className="flex items-center gap-4 w-full px-4 py-2 rounded-full hover:bg-bg-hover transition-colors text-left"
               >
                 <FolderPlus size={18} className="shrink-0 text-text-secondary" />
-                <span className="flex-1 text-[16px] leading-[22px] text-text-secondary tracking-[0px]" style={{ fontFamily: 'Inter, system-ui, sans-serif', fontWeight: 400 }}>
+                <span className="flex-1 text-[16px] leading-[22px] text-text-secondary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
                   New Project
                 </span>
               </button>
@@ -185,7 +185,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
                   }`}
                   style={{ border: activeProjectId === proj.id ? '1px solid var(--color-stroke-outline)' : '1px solid transparent' }}
                 >
-                  <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px] truncate" style={{ fontFamily: 'Inter, system-ui, sans-serif', fontWeight: 400 }}>
+                  <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px] truncate" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
                     {proj.name}
                   </span>
                 </button>
@@ -226,7 +226,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
                   >
                     <span
                       className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px] truncate"
-                      style={{ fontFamily: 'Inter, system-ui, sans-serif', fontWeight: 400 }}
+                      style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}
                     >
                       Onboarding Experience
                     </span>
@@ -264,7 +264,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
                 <Palette size={18} className="shrink-0 text-text-primary" />
                 <span
                   className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px] truncate"
-                  style={{ fontFamily: 'Inter, system-ui, sans-serif', fontWeight: activeView === 'design-system' ? 500 : 400 }}
+                  style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: activeView === 'design-system' ? 500 : 400 }}
                 >
                   Design System
                 </span>
@@ -303,7 +303,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
               >
                 <span
                   className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px] truncate"
-                  style={{ fontFamily: 'Inter, system-ui, sans-serif', fontWeight: 400 }}
+                  style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}
                 >
                   {chat.title}
                 </span>
@@ -346,7 +346,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
           </div>
           <p
             className="text-[16px] font-bold text-text-primary tracking-[-0.43px] truncate"
-            style={{ lineHeight: '32px', fontFamily: 'SF Pro, system-ui, sans-serif' }}
+            style={{ lineHeight: '32px', fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
           >
             Beibei Zhang
           </p>

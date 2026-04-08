@@ -264,7 +264,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
           rows={1}
           className="w-full bg-transparent resize-none outline-none text-text-primary placeholder-text-tertiary"
           style={{
-            fontFamily: 'Inter, system-ui, sans-serif',
+            fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
             fontSize: 16,
             lineHeight: '22px',
             letterSpacing: '0px',
@@ -373,8 +373,8 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
                   style={{
                     height: 'var(--toolbar-btn-h)',
                     ...(!isSelected ? { width: 'var(--mode-btn-unselected-w)' } : {}),
-                    backgroundColor: isSelected ? 'rgba(49, 113, 255, 0.1)' : undefined,
-                    color: isSelected ? '#3171FF' : undefined,
+                    backgroundColor: isSelected ? 'var(--color-selected-bg)' : undefined,
+                    color: isSelected ? 'var(--color-selected-text)' : undefined,
                     borderRadius: isFirst ? '9999px 0 0 9999px' : isLast ? '0 9999px 9999px 0' : '0',
                   }}
                 >

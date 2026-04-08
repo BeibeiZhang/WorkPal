@@ -93,7 +93,7 @@ export default function TaskContextPanel({ userMessage, onClose, fullscreen }: T
         <div className="flex items-center justify-between px-5 pt-4 pb-0 shrink-0">
           <h3
             className="text-text-primary font-bold text-[17px] leading-[22px] tracking-[-0.43px]"
-            style={{ fontFamily: 'SF Pro, system-ui, sans-serif' }}
+            style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
           >
             Task Context
           </h3>
@@ -114,7 +114,7 @@ export default function TaskContextPanel({ userMessage, onClose, fullscreen }: T
         >
           <h3
             className="text-text-primary font-bold text-[15px] leading-[20px] tracking-[-0.3px]"
-            style={{ fontFamily: 'SF Pro, system-ui, sans-serif' }}
+            style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
           >
             Progress
           </h3>
@@ -177,7 +177,7 @@ export default function TaskContextPanel({ userMessage, onClose, fullscreen }: T
           </div>
           <h3
             className="text-text-primary font-bold text-[15px] leading-[20px] tracking-[-0.3px]"
-            style={{ fontFamily: 'SF Pro, system-ui, sans-serif' }}
+            style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
           >
             WorkPal
           </h3>
@@ -225,7 +225,7 @@ export default function TaskContextPanel({ userMessage, onClose, fullscreen }: T
       <div className="px-5 py-4">
         <h3
           className="text-text-primary font-bold text-[15px] leading-[20px] tracking-[-0.3px] mb-3"
-          style={{ fontFamily: 'SF Pro, system-ui, sans-serif' }}
+          style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
         >
           Context
         </h3>

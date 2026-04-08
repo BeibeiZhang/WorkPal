@@ -211,10 +211,10 @@ function ConnectorCard({ connector }: { connector: Connector | APIConnector }) {
     >
       {connector.logo}
       <div className="flex-1 min-w-0">
-        <p className="text-[15px] font-semibold text-text-primary truncate" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+        <p className="text-[15px] font-semibold text-text-primary truncate" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
           {connector.name}
         </p>
-        <p className="text-[13px] text-text-secondary mt-0.5 line-clamp-2" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+        <p className="text-[13px] text-text-secondary mt-0.5 line-clamp-2" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
           {connector.description}
         </p>
       </div>
@@ -261,7 +261,7 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: Connect
         )}
         <div className="flex items-center gap-2">
           <Link size={20} className="text-text-primary" />
-          <h1 className="text-[20px] font-bold text-text-primary tracking-[-0.43px]" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+          <h1 className="text-[20px] font-bold text-text-primary tracking-[-0.43px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
             Connectors
           </h1>
         </div>
@@ -276,7 +276,7 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: Connect
               onClick={() => setActiveTab(tab.id)}
               className="relative pb-2 text-[15px] font-medium transition-colors"
               style={{
-                fontFamily: 'Inter, system-ui, sans-serif',
+                fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
                 color: activeTab === tab.id ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
               }}
             >
@@ -315,7 +315,7 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: Connect
         {activeTab === 'apps' && (
           <>
             {/* Recommended */}
-            <p className="text-[13px] font-medium text-text-secondary mb-3 tracking-wide uppercase" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+            <p className="text-[13px] font-medium text-text-secondary mb-3 tracking-wide uppercase" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
               Recommended
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
@@ -323,7 +323,7 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: Connect
             </div>
 
             {/* All Apps */}
-            <p className="text-[13px] font-medium text-text-secondary mb-3 tracking-wide uppercase" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+            <p className="text-[13px] font-medium text-text-secondary mb-3 tracking-wide uppercase" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
               Apps
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -344,7 +344,7 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: Connect
                 <path d="M15 7h3a5 5 0 0 1 0 10h-3M9 17H6a5 5 0 0 1 0-10h3"/>
                 <line x1="8" y1="12" x2="16" y2="12"/>
               </svg>
-              <p className="text-[14px] text-text-secondary" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+              <p className="text-[14px] text-text-secondary" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
                 Connect WorkPal to any third-party service using your own API keys.
               </p>
             </div>
@@ -361,7 +361,7 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: Connect
                 >
                   <Plus size={20} className="text-text-secondary" />
                 </div>
-                <p className="text-[15px] font-semibold text-text-primary" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                <p className="text-[15px] font-semibold text-text-primary" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
                   Add custom API
                 </p>
               </button>
@@ -381,7 +381,7 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: Connect
                 <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41"/>
               </svg>
             </div>
-            <p className="text-[15px] text-text-secondary" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+            <p className="text-[15px] text-text-secondary" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
               No custom MCP added yet.
             </p>
             <button

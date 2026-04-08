@@ -60,7 +60,7 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
           <h1
             className="text-text-primary"
             style={{
-              fontFamily: 'SF Pro, system-ui, sans-serif',
+              fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
               fontSize: 40,
               fontWeight: 700,
               lineHeight: '48px',
@@ -75,7 +75,7 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
             <p
               className="text-text-primary"
               style={{
-                fontFamily: 'Inter, system-ui, sans-serif',
+                fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
                 fontSize: 16,
                 fontWeight: 400,
                 lineHeight: '22px',
@@ -87,7 +87,7 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
             <p
               className="text-text-primary"
               style={{
-                fontFamily: 'Inter, system-ui, sans-serif',
+                fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
                 fontSize: 16,
                 fontWeight: 400,
                 lineHeight: '22px',
@@ -107,14 +107,14 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
                   key={chip}
                   onClick={() => toggleTrait(chip)}
                   className={`flex items-center gap-1 rounded-full transition-all cursor-pointer ${
-                    isSelected ? 'onboarding-chip-selected' : 'chip-gradient-hover'
+                    isSelected ? '' : 'chip-gradient-hover'
                   }`}
                   style={{
-                    padding: isSelected ? '3px 11px' : '3px 11px',
+                    padding: '4px 12px',
                     border: isSelected ? '1px solid transparent' : '1px solid var(--color-stroke-outline)',
-                    background: isSelected ? 'rgba(49,113,255,0.1)' : 'transparent',
-                    color: isSelected ? '#3171ff' : 'var(--color-text-primary)',
-                    fontFamily: 'Inter, system-ui, sans-serif',
+                    background: isSelected ? 'var(--color-selected-bg)' : 'transparent',
+                    color: isSelected ? 'var(--color-selected-text)' : 'var(--color-text-primary)',
+                    fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
                     fontSize: 16,
                     fontWeight: 400,
                     lineHeight: '22px',

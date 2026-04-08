@@ -448,7 +448,7 @@ function AgentCardView({ card, onAction }: { card: AgentCard; onAction?: (a: str
             <p
               className="text-text-primary"
               style={{
-                fontFamily: 'Inter, system-ui, sans-serif',
+                fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
                 fontSize: 14,
                 lineHeight: '22px',
                 letterSpacing: '0px',

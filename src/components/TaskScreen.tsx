@@ -140,7 +140,7 @@ export default function TaskScreen({ sidebarOpen, onToggleSidebar }: TaskScreenP
         <div className="flex-1 flex items-center justify-center">
           <h2
             className="text-text-primary font-bold text-[17px] leading-[22px] tracking-[-0.43px]"
-            style={{ fontFamily: 'SF Pro, system-ui, sans-serif' }}
+            style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
           >
             Tasks
           </h2>
@@ -155,13 +155,13 @@ export default function TaskScreen({ sidebarOpen, onToggleSidebar }: TaskScreenP
           {/* Summary row */}
           <div className="flex items-center gap-6 mb-6">
             <div className="flex items-center gap-2">
-              <span className="text-[28px] font-bold text-text-primary" style={{ fontFamily: 'SF Pro, system-ui, sans-serif' }}>
+              <span className="text-[28px] font-bold text-text-primary" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
                 {tasks.filter(t => !t.completed).length}
               </span>
               <span className="text-text-secondary text-base">open</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[28px] font-bold text-text-primary" style={{ fontFamily: 'SF Pro, system-ui, sans-serif' }}>
+              <span className="text-[28px] font-bold text-text-primary" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
                 {tasks.filter(t => t.completed).length}
               </span>
               <span className="text-text-secondary text-base">completed</span>
@@ -182,9 +182,9 @@ export default function TaskScreen({ sidebarOpen, onToggleSidebar }: TaskScreenP
                   style={{
                     padding: '3px 11px',
                     border: isActive ? '1px solid transparent' : '1px solid var(--color-stroke-outline)',
-                    background: isActive ? 'rgba(49,113,255,0.1)' : 'transparent',
-                    color: isActive ? '#3171ff' : 'var(--color-text-primary)',
-                    fontFamily: 'Inter, system-ui, sans-serif',
+                    background: isActive ? 'var(--color-selected-bg)' : 'transparent',
+                    color: isActive ? 'var(--color-selected-text)' : 'var(--color-text-primary)',
+                    fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
                     fontSize: 16,
                     fontWeight: 400,
                     lineHeight: '22px',
@@ -241,7 +241,7 @@ export default function TaskScreen({ sidebarOpen, onToggleSidebar }: TaskScreenP
                       <div className="flex-1 min-w-0">
                         <p
                           className={`text-base leading-[22px] ${task.completed ? 'line-through text-text-tertiary' : 'text-text-primary'}`}
-                          style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
+                          style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
                         >
                           <span className="text-[#3171ff]">@{task.assignee}</span>
                           {' '}{task.text}

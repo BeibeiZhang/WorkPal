@@ -45,6 +45,7 @@ export const iconRefresh = '/icons/refresh.svg';
 export const iconGoals = '/icons/goals.svg';
 export const iconDoc16 = '/icons/doc16.svg';
 export const iconBarChart = '/icons/bar-chart.svg';
+export const iconDocList = '/icons/doc-list.svg';
 
 // Detail panel icons
 export const iconBackArrow = '/icons/back-arrow.svg';

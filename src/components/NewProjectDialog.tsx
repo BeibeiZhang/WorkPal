@@ -61,7 +61,7 @@ export default function NewProjectDialog({ open, onClose, onCreate }: NewProject
         {/* Header */}
         <h2
           className="text-[22px] font-bold text-text-primary tracking-[-0.43px] mb-6"
-          style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
+          style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
         >
           New Project
         </h2>
@@ -70,7 +70,7 @@ export default function NewProjectDialog({ open, onClose, onCreate }: NewProject
         <div className="mb-5">
           <label
             className="block text-[14px] font-medium text-text-secondary mb-2 tracking-[-0.2px]"
-            style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
+            style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
           >
             Project name
           </label>
@@ -85,7 +85,7 @@ export default function NewProjectDialog({ open, onClose, onCreate }: NewProject
             style={{
               background: 'var(--color-bg-hover)',
               border: '1px solid var(--color-stroke-outline)',
-              fontFamily: 'Inter, system-ui, sans-serif',
+              fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
             }}
           />
         </div>
@@ -94,7 +94,7 @@ export default function NewProjectDialog({ open, onClose, onCreate }: NewProject
         <div className="mb-8">
           <label
             className="block text-[14px] font-medium text-text-secondary mb-2 tracking-[-0.2px]"
-            style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
+            style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
           >
             Description
             <span className="text-text-tertiary font-normal ml-1">(optional)</span>
@@ -109,7 +109,7 @@ export default function NewProjectDialog({ open, onClose, onCreate }: NewProject
             style={{
               background: 'var(--color-bg-hover)',
               border: '1px solid var(--color-stroke-outline)',
-              fontFamily: 'Inter, system-ui, sans-serif',
+              fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
             }}
           />
         </div>
@@ -119,7 +119,7 @@ export default function NewProjectDialog({ open, onClose, onCreate }: NewProject
           <button
             onClick={onClose}
             className="px-6 py-2.5 rounded-full text-[15px] font-medium text-text-secondary hover:bg-bg-hover transition-colors"
-            style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
+            style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
           >
             Cancel
           </button>
@@ -127,7 +127,7 @@ export default function NewProjectDialog({ open, onClose, onCreate }: NewProject
             onClick={handleCreate}
             disabled={!canCreate}
             className="gradient-btn px-6 py-2.5 rounded-full text-[15px] font-medium text-white transition-opacity disabled:opacity-40"
-            style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
+            style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
           >
             Create Project
           </button>
