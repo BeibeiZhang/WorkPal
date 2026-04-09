@@ -242,10 +242,10 @@ export default function App() {
   const [selectedAvatarId, setSelectedAvatarId] = useState('black-woman');
   const [detailOpen, setDetailOpen] = useState(false);
   const [onboardingDone, setOnboardingDone] = useState(() => localStorage.getItem('workpal-onboarding-done') === 'true');
-  const [activeView, setActiveView] = useState<'chat' | 'tasks' | 'connectors' | 'design-system'>('chat');
+  const [activeView, setActiveView] = useState<'chat' | 'tasks' | 'connectors' | 'design-system' | 'overview' | 'library'>('chat');
   const [inputMode, setInputMode] = useState<'Chat' | 'Tasks' | 'Code'>('Chat');
   const [taskModeMsgSent, setTaskModeMsgSent] = useState(false);
-  const [taskModeUserMsg, setTaskModeUserMsg] = useState('');
+  const [_taskModeUserMsg, setTaskModeUserMsg] = useState('');
   const [projects, setProjects] = useState<Project[]>([
     { id: 'proj-1', name: 'Project name 1' },
     { id: 'proj-2', name: 'Project name 2' },
@@ -694,14 +694,14 @@ export default function App() {
             />
             {/* Inline context panel (desktop with enough space) */}
             {inputMode === 'Tasks' && taskModeMsgSent && canFitPanel && contextPanelOpen && (
-              <TaskContextPanel userMessage={taskModeUserMsg} onClose={() => setContextPanelOpen(false)} />
+              <TaskContextPanel onClose={() => setContextPanelOpen(false)} />
             )}
             {/* Fullscreen overlay context panel (mobile or narrow viewport) */}
             {inputMode === 'Tasks' && taskModeMsgSent && !canFitPanel && contextPanelOpen && (
               <>
                 <div className="absolute inset-0 z-20 bg-black/30" onClick={() => setContextPanelOpen(false)} />
                 <div className="absolute inset-0 z-30 flex">
-                  <TaskContextPanel userMessage={taskModeUserMsg} onClose={() => setContextPanelOpen(false)} fullscreen />
+                  <TaskContextPanel onClose={() => setContextPanelOpen(false)} />
                 </div>
               </>
             )}
