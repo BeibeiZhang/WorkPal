@@ -6,12 +6,6 @@
       "runtimeExecutable": "/usr/local/bin/node",
       "runtimeArgs": ["/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/node_modules/vite/bin/vite.js"],
       "port": 5173
-    },
-    {
-      "name": "WorkPal Worktree",
-      "runtimeExecutable": "/usr/local/bin/node",
-      "runtimeArgs": ["/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/node_modules/vite/bin/vite.js", "--port", "5174"],
-      "port": 5174
     }
   ]
 }
