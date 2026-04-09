@@ -166,11 +166,7 @@ p, span, a, button, input, textarea, select, label, li, td, th, div {
 }
 
 .app-bg {
-  background:
-    radial-gradient(ellipse 464px 493px at right bottom, rgba(118,82,185,0.12) 0%, transparent 100%),
-    radial-gradient(ellipse 944px 571px at 40% top, rgba(202,157,140,0.10) 0%, transparent 100%),
-    radial-gradient(ellipse 469px 657px at left bottom, rgba(100,150,220,0.08) 0%, transparent 100%),
-    white;
+  background: white;
 }
 
 .dark .app-bg {

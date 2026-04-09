@@ -1,10 +1,20 @@
 import { useState } from 'react';
-import { Menu, LayoutDashboard, Plus, Link, BookOpen, Search, ChevronDown } from 'lucide-react';
+import {
+  Menu, LayoutDashboard, Plus, Link, BookOpen, Search, ChevronDown,
+  ChevronRight, Code2, FileCode2, FileText, FolderOpen, FolderPlus,
+  MessageCircle, MoreVertical, PanelRight, Palette, Pen, Star, X,
+  MessageSquare, CheckSquare, AtSign, Folder, GitBranch, Mic, Activity,
+} from 'lucide-react';
 import {
   iconSun, iconMoon, iconSpinner, iconMicrophone, iconVoice, iconSend,
   iconCopy, iconShare, iconThumbsUp, iconRefresh,
   iconAsana, iconDoc20, iconGmail, iconUsers, iconPin, iconClock,
-  avatarBlackWoman,
+  iconSheet, iconZoom, iconApps, iconChevronDown, iconEditNew,
+  iconAdd, iconPhoto, iconCamera, iconUpload, iconSendActive,
+  iconGoals, iconDoc16, iconBarChart, iconDocList,
+  iconBackArrow, iconShorter, iconExtend, iconFormal, iconTranslate,
+  iconCalendar,
+  avatarBlackWoman, avatarWhiteManSayhi,
 } from '../assets';
 
 interface DesignSystemPageProps {
@@ -247,12 +257,35 @@ function ComponentShowcase() {
             <span className="chip-gradient-hover rounded-full border px-3 py-1 text-text-primary text-[13px] cursor-pointer" style={{ borderColor: 'var(--color-stroke-outline)' }}>Explore Solutions</span>
             <span className="chip-gradient-hover rounded-full border px-3 py-1 text-text-primary text-[13px] cursor-pointer" style={{ borderColor: 'var(--color-stroke-outline)' }}>View Report</span>
           </div>
-          {/* Mode selector */}
-          <div className="flex items-center gap-1">
-            <div className="flex items-center gap-0.5 px-2 py-1 rounded-full" style={{ border: '1px solid var(--color-stroke-outline)' }}>
-              <span className="text-[12px] px-2 py-0.5 rounded-full font-medium" style={{ background: 'var(--color-bg-page)', color: 'var(--color-text-primary)' }}>Chat</span>
-              <span className="text-[12px] px-2 py-0.5 rounded-full text-text-secondary">Tasks</span>
-              <span className="text-[12px] px-2 py-0.5 rounded-full text-text-secondary">Code</span>
+          {/* Toolbar: + button + Mode selector */}
+          <div className="flex items-center gap-2">
+            {/* Attach + button */}
+            <button className="flex items-center justify-center rounded-full border border-stroke-outline hover:bg-bg-hover transition-all shrink-0 cursor-pointer text-text-primary" style={{ width: 32, height: 32 }}>
+              <img src={iconAdd} alt="Add" className="w-4 h-4 icon-theme" />
+            </button>
+            {/* Mode selector — segmented pill */}
+            <div className="flex items-center rounded-full border border-stroke-outline overflow-hidden toolbar-gradient-hover">
+              {/* Chat (selected) */}
+              <div className="flex items-center gap-1 px-3 cursor-pointer" style={{ height: 32, backgroundColor: 'var(--color-selected-bg)', color: 'var(--color-selected-text)', borderRadius: '9999px 0 0 9999px' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+                <span className="text-xs font-medium">Chat</span>
+              </div>
+              {/* Tasks (unselected) */}
+              <div className="flex items-center justify-center cursor-pointer text-text-primary hover:bg-bg-hover" style={{ width: 32, height: 32 }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                  <path d="M9 11l3 3L22 4" />
+                  <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                </svg>
+              </div>
+              {/* Code (unselected) */}
+              <div className="flex items-center justify-center cursor-pointer text-text-primary hover:bg-bg-hover" style={{ width: 32, height: 32, borderRadius: '0 9999px 9999px 0' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                  <polyline points="16 18 22 12 16 6" />
+                  <polyline points="8 6 2 12 8 18" />
+                </svg>
+              </div>
             </div>
           </div>
         </div>
@@ -444,11 +477,7 @@ function ComponentShowcase() {
         <div className="flex flex-col items-center gap-3 w-full max-w-[360px] mx-auto">
           {/* Avatar */}
           <div className="w-20 h-20 rounded-full bg-bg-hover flex items-center justify-center overflow-hidden">
-            {avatarBlackWoman.endsWith('.mp4') ? (
-              <video src={avatarBlackWoman} autoPlay loop muted playsInline className="w-full h-full object-cover" />
-            ) : (
-              <img src={avatarBlackWoman} alt="Agent Avatar" className="w-full h-full object-cover" />
-            )}
+            <video src={avatarWhiteManSayhi} autoPlay loop muted playsInline className="w-full h-full object-cover" />
           </div>
           <h2 className="gradient-text text-[20px] font-semibold">Hi, Beibei</h2>
           <p className="text-text-secondary text-[13px] text-center">How can I help you today?</p>
@@ -646,6 +675,149 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
               ))}
             </div>
           </div>
+        </div>
+
+        {/* Icon Library */}
+        <SectionTitle>Icon Library</SectionTitle>
+        <p className="text-text-secondary text-[14px] leading-[20px] mb-4">
+          All icons used across the app, organized by category. Custom SVG assets are from Figma; Lucide icons are from <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>lucide-react</code>.
+        </p>
+
+        {/* Custom SVG Icons */}
+        <h3 className="text-[15px] font-semibold text-text-primary mb-3">Custom SVG Assets</h3>
+        {([
+          { label: 'App Icons', desc: 'Third-party app logos used in sidebar & cards', items: [
+            { name: 'Asana', src: iconAsana, file: 'asana.svg' },
+            { name: 'Google Docs', src: iconDoc20, file: 'doc20.svg' },
+            { name: 'Google Sheets', src: iconSheet, file: 'sheet.svg' },
+            { name: 'Gmail', src: iconGmail, file: 'gmail.svg' },
+            { name: 'Zoom', src: iconZoom, file: 'zoom.svg' },
+            { name: 'Apps', src: iconApps, file: 'apps.svg' },
+          ]},
+          { label: 'UI Chrome', desc: 'Theme toggle, navigation, editing', items: [
+            { name: 'Sun', src: iconSun, file: 'sun.svg' },
+            { name: 'Moon', src: iconMoon, file: 'moon.svg' },
+            { name: 'Chevron Down', src: iconChevronDown, file: 'chevron-down.svg' },
+            { name: 'Edit New', src: iconEditNew, file: 'edit-new.svg' },
+            { name: 'Spinner', src: iconSpinner, file: 'spinner.svg' },
+            { name: 'Back Arrow', src: iconBackArrow, file: 'back-arrow.svg' },
+          ]},
+          { label: 'Input Toolbar', desc: 'Chat input action buttons', items: [
+            { name: 'Add (@)', src: iconAdd, file: 'add.svg' },
+            { name: 'Photo', src: iconPhoto, file: 'photo.svg' },
+            { name: 'Camera', src: iconCamera, file: 'camera.svg' },
+            { name: 'Upload', src: iconUpload, file: 'upload.svg' },
+            { name: 'Microphone', src: iconMicrophone, file: 'microphone.svg' },
+            { name: 'Voice', src: iconVoice, file: 'voice.svg' },
+            { name: 'Send', src: iconSend, file: 'send.svg' },
+            { name: 'Send Active', src: iconSendActive, file: 'send-active.svg' },
+          ]},
+          { label: 'Feedback Bar', desc: 'Message action icons (16px)', items: [
+            { name: 'Copy', src: iconCopy, file: 'copy.svg' },
+            { name: 'Share', src: iconShare, file: 'share.svg' },
+            { name: 'Thumbs Up', src: iconThumbsUp, file: 'thumbs-up.svg' },
+            { name: 'Refresh', src: iconRefresh, file: 'refresh.svg' },
+          ]},
+          { label: 'Quick Chip Icons', desc: 'Chip / quick-action icons (16px)', items: [
+            { name: 'Goals', src: iconGoals, file: 'goals.svg' },
+            { name: 'Doc 16', src: iconDoc16, file: 'doc16.svg' },
+            { name: 'Bar Chart', src: iconBarChart, file: 'bar-chart.svg' },
+            { name: 'Doc List', src: iconDocList, file: 'doc-list.svg' },
+          ]},
+          { label: 'Detail Panel', desc: 'Text editing action icons', items: [
+            { name: 'Shorter', src: iconShorter, file: 'shorter.svg' },
+            { name: 'Extend', src: iconExtend, file: 'extend.svg' },
+            { name: 'Formal', src: iconFormal, file: 'formal.svg' },
+            { name: 'Translate', src: iconTranslate, file: 'translate.svg' },
+          ]},
+          { label: 'Card / Schedule', desc: 'Calendar & meeting card icons', items: [
+            { name: 'Calendar', src: iconCalendar, file: 'calendar.svg' },
+            { name: 'Users', src: iconUsers, file: 'users.svg' },
+            { name: 'Pin', src: iconPin, file: 'pin.svg' },
+            { name: 'Clock', src: iconClock, file: 'clock.svg' },
+          ]},
+        ] as { label: string; desc: string; items: { name: string; src: string; file: string }[] }[]).map(group => (
+          <div key={group.label} className="mb-5">
+            <div className="flex items-baseline gap-2 mb-2">
+              <span className="text-text-primary font-medium text-[13px]">{group.label}</span>
+              <span className="text-text-tertiary text-[12px]">{group.desc}</span>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              {group.items.map(icon => (
+                <div key={icon.file} className="flex flex-col items-center gap-1.5 p-3 rounded-xl w-[90px]" style={{ border: '1px solid var(--color-stroke-outline)' }}>
+                  <div className="w-8 h-8 flex items-center justify-center">
+                    <img src={icon.src} alt={icon.name} className="max-w-[24px] max-h-[24px] object-contain icon-theme" />
+                  </div>
+                  <span className="text-text-primary text-[11px] text-center leading-tight">{icon.name}</span>
+                  <span className="text-text-tertiary text-[10px] text-center leading-tight truncate w-full">{icon.file}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {/* Inline SVG Icons (ChatInput) */}
+        <h3 className="text-[15px] font-semibold text-text-primary mt-6 mb-3">Inline SVG Icons (ChatInput)</h3>
+        <p className="text-text-secondary text-[13px] leading-[18px] mb-3">
+          Mode selector, input field, and toolbar inline SVGs rendered directly in <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>ChatInput.tsx</code>.
+        </p>
+        <div className="flex flex-wrap gap-3">
+          {([
+            { name: 'Chat', Icon: MessageSquare, usage: 'Mode — Chat' },
+            { name: 'Tasks', Icon: CheckSquare, usage: 'Mode — Tasks' },
+            { name: 'Code', Icon: Code2, usage: 'Mode — Code' },
+            { name: 'Mic (stroke)', Icon: Mic, usage: 'Input — Microphone' },
+            { name: 'Voice (stroke)', Icon: Activity, usage: 'Input — Voice' },
+            { name: 'Mention (@)', Icon: AtSign, usage: 'Attach — Mention' },
+            { name: 'Folder', Icon: Folder, usage: 'Toolbar — Folder' },
+            { name: 'Git Branch', Icon: GitBranch, usage: 'Toolbar — Branch' },
+          ] as { name: string; Icon: React.FC<{ size?: number; className?: string }>; usage: string }[]).map(({ name, Icon, usage }) => (
+            <div key={name} className="flex flex-col items-center gap-1.5 p-3 rounded-xl w-[90px]" style={{ border: '1px solid var(--color-stroke-outline)' }}>
+              <div className="w-8 h-8 flex items-center justify-center">
+                <Icon size={20} className="text-text-primary" />
+              </div>
+              <span className="text-text-primary text-[11px] text-center leading-tight">{name}</span>
+              <span className="text-text-tertiary text-[10px] text-center leading-tight truncate w-full" title={usage}>{usage}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Lucide React Icons */}
+        <h3 className="text-[15px] font-semibold text-text-primary mt-6 mb-3">Lucide React Icons</h3>
+        <p className="text-text-secondary text-[13px] leading-[18px] mb-3">
+          From <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>lucide-react</code> package. Rendered as inline SVG at 20px.
+        </p>
+        <div className="flex flex-wrap gap-3">
+          {([
+            { name: 'BookOpen', Icon: BookOpen, usage: 'Sidebar — Library' },
+            { name: 'ChevronDown', Icon: ChevronDown, usage: 'Accordions, dropdowns' },
+            { name: 'ChevronRight', Icon: ChevronRight, usage: 'Tree expand' },
+            { name: 'Code2', Icon: Code2, usage: 'Code view tab' },
+            { name: 'FileCode2', Icon: FileCode2, usage: 'File type icon' },
+            { name: 'FileText', Icon: FileText, usage: 'Document reference' },
+            { name: 'FolderOpen', Icon: FolderOpen, usage: 'Open folder' },
+            { name: 'FolderPlus', Icon: FolderPlus, usage: 'New folder' },
+            { name: 'LayoutDashboard', Icon: LayoutDashboard, usage: 'Sidebar — Overview' },
+            { name: 'Link', Icon: Link, usage: 'Sidebar — Connectors' },
+            { name: 'Menu', Icon: Menu, usage: 'Sidebar toggle' },
+            { name: 'MessageCircle', Icon: MessageCircle, usage: 'Comments' },
+            { name: 'MoreVertical', Icon: MoreVertical, usage: 'Overflow menu' },
+            { name: 'Palette', Icon: Palette, usage: 'Design System nav' },
+            { name: 'PanelRight', Icon: PanelRight, usage: 'Side panel toggle' },
+            { name: 'Pen', Icon: Pen, usage: 'Edit action' },
+            { name: 'Plus', Icon: Plus, usage: 'New session / add' },
+            { name: 'Search', Icon: Search, usage: 'Search bar' },
+            { name: 'Star', Icon: Star, usage: 'Favorites' },
+            { name: 'X', Icon: X, usage: 'Close / dismiss' },
+          ] as { name: string; Icon: React.FC<{ size?: number; className?: string }>; usage: string }[]).map(({ name, Icon, usage }) => (
+            <div key={name} className="flex flex-col items-center gap-1.5 p-3 rounded-xl w-[90px]" style={{ border: '1px solid var(--color-stroke-outline)' }}>
+              <div className="w-8 h-8 flex items-center justify-center">
+                <Icon size={20} className="text-text-primary" />
+              </div>
+              <span className="text-text-primary text-[11px] text-center leading-tight">{name}</span>
+              <span className="text-text-tertiary text-[10px] text-center leading-tight truncate w-full" title={usage}>{usage}</span>
+            </div>
+          ))}
         </div>
 
         {/* Components */}

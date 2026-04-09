@@ -3,6 +3,7 @@
 export const avatarBlackWoman = '/icons/avatar-black-woman.mp4';
 export const avatarAsianWoman = '/icons/avatar-asian-woman.png';
 export const avatarWhiteMan = '/icons/avatar-white-man.png';
+export const avatarWhiteManSayhi = '/icons/avatar-white-man-sayhi.mp4';
 
 // App icons (22px container) — sidebar list
 export const iconAsana = '/icons/asana.svg';
