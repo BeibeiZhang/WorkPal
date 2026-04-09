@@ -1,260 +1,430 @@
-import { useState, useEffect } from 'react';
-import { ChevronDown, FileText, Code, StickyNote, Link2, Check, X } from 'lucide-react';
-import { iconAsana } from '../assets';
+import { X, ChevronDown, FileText, Link } from 'lucide-react';
 
-interface TaskStep {
+/* ── Types ───────────────────────────────────────────── */
+
+interface Step {
   label: string;
-  done: boolean;
+  status: 'completed' | 'pending';
 }
 
-/** Map user message keywords to simulated progress steps */
-function generateSteps(userMessage: string): TaskStep[] {
-  const msg = userMessage.toLowerCase();
+interface FileEntry {
+  name: string;
+  icon?: 'file' | 'design' | 'notes';
+}
 
-  if (msg.includes('compliance') || msg.includes('checklist')) {
-    return [
-      { label: 'Retrieve compliance checklist from Asana', done: false },
-      { label: 'Cross-reference regulatory requirements', done: false },
-      { label: 'Compile review summary', done: false },
-    ];
-  }
-  if (msg.includes('report') || msg.includes('metric')) {
-    return [
-      { label: 'Gather data from connected sources', done: false },
-      { label: 'Analyze key metrics and trends', done: false },
-      { label: 'Generate report draft', done: false },
-      { label: 'Format and finalize output', done: false },
-    ];
-  }
-  if (msg.includes('meeting') || msg.includes('schedule')) {
-    return [
-      { label: 'Check calendar availability', done: false },
-      { label: 'Draft meeting agenda', done: false },
-      { label: 'Send invites to attendees', done: false },
-    ];
-  }
-  if (msg.includes('design') || msg.includes('figma') || msg.includes('review')) {
-    return [
-      { label: 'Fetch Figma design files', done: false },
-      { label: 'Identify key screens and components', done: false },
-      { label: 'Compile review notes', done: false },
-    ];
-  }
-  // Default generic steps
-  return [
-    { label: 'Analyzing your request', done: false },
-    { label: 'Gathering relevant context', done: false },
-    { label: 'Processing and generating response', done: false },
-  ];
+interface Connector {
+  name: string;
+  icon?: React.ReactNode;
 }
 
 interface TaskContextPanelProps {
-  userMessage: string;
-  onClose?: () => void;
-  fullscreen?: boolean;
+  onClose: () => void;
+  progress?: Step[];
+  files?: FileEntry[];
+  connectors?: Connector[];
 }
 
-export default function TaskContextPanel({ userMessage, onClose, fullscreen }: TaskContextPanelProps) {
-  const [steps, setSteps] = useState<TaskStep[]>(() => generateSteps(userMessage));
-  const [progressOpen, setProgressOpen] = useState(true);
-  const [scratchpadOpen, setScratchpadOpen] = useState(false);
+/* ── Defaults ────────────────────────────────────────── */
 
-  // Re-generate steps when userMessage changes
-  useEffect(() => {
-    setSteps(generateSteps(userMessage));
-  }, [userMessage]);
+const DEFAULT_PROGRESS: Step[] = [
+  { label: 'Fetch Figma design files', status: 'completed' },
+  { label: 'Identify key screens and components', status: 'completed' },
+  { label: 'Compile review notes', status: 'pending' },
+];
 
-  // Auto-complete steps one by one
-  useEffect(() => {
-    const firstIncomplete = steps.findIndex(s => !s.done);
-    if (firstIncomplete === -1) return;
+const DEFAULT_FILES: FileEntry[] = [
+  { name: 'Instructions \u00b7 CLAUDE.md', icon: 'file' },
+  { name: 'WorkPal.html', icon: 'design' },
+  { name: 'Scratchpad', icon: 'notes' },
+];
 
-    const delay = 1500 + Math.random() * 1000;
-    const timer = setTimeout(() => {
-      setSteps(prev => prev.map((s, i) => i === firstIncomplete ? { ...s, done: true } : s));
-    }, delay);
+const DEFAULT_CONNECTORS: Connector[] = [
+  { name: 'Figma' },
+  { name: 'Asana' },
+];
 
-    return () => clearTimeout(timer);
-  }, [steps]);
+/* ── Font ────────────────────────────────────────────── */
 
-  const completedCount = steps.filter(s => s.done).length;
+const FONT = 'Inter, -apple-system, BlinkMacSystemFont, system-ui, sans-serif';
+
+/* ── Inline SVG icons ────────────────────────────────── */
+
+/** Green checkmark in a circle for completed steps */
+function CheckedIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="shrink-0">
+      <path
+        d="M17.5 9.31V10a7.5 7.5 0 1 1-4.45-6.86"
+        stroke="var(--color-text-secondary)"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M17.5 4 10 11.5l-2.25-2.25"
+        stroke="var(--color-text-secondary)"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/** Small file icon (16px) */
+function FileIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0">
+      <path
+        d="M9.333 1.333H4a1.333 1.333 0 0 0-1.333 1.334v10.666A1.333 1.333 0 0 0 4 14.667h8a1.333 1.333 0 0 0 1.333-1.334V5.333l-4-4Z"
+        stroke="var(--color-text-secondary)"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9.333 1.333v4h4"
+        stroke="var(--color-text-secondary)"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/** Small design/layout icon (16px) */
+function DesignIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0">
+      <rect x="1.833" y="1.833" width="12.333" height="12.333" rx="1.5" stroke="var(--color-text-secondary)" strokeWidth="1.2" />
+      <path d="M1.833 6H14.167" stroke="var(--color-text-secondary)" strokeWidth="1.2" />
+      <path d="M6 6v8.167" stroke="var(--color-text-secondary)" strokeWidth="1.2" />
+    </svg>
+  );
+}
+
+/** Small notes icon (16px) */
+function NotesIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0">
+      <path
+        d="M9.333 1.333H4a1.333 1.333 0 0 0-1.333 1.334v10.666A1.333 1.333 0 0 0 4 14.667h8a1.333 1.333 0 0 0 1.333-1.334V5.333l-4-4Z"
+        stroke="var(--color-text-secondary)"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M5.333 5.333h1.334" stroke="var(--color-text-secondary)" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M5.333 8h5.334" stroke="var(--color-text-secondary)" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M5.333 10.667h5.334" stroke="var(--color-text-secondary)" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** Figma logo (16px) */
+function FigmaLogo() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0">
+      <g clipPath="url(#figma-clip)">
+        <path d="M5.333 15.333a2.333 2.333 0 0 0 2.334-2.333v-2.333H5.333a2.333 2.333 0 0 0 0 4.666Z" fill="#0ACF83" />
+        <path d="M3 8a2.333 2.333 0 0 1 2.333-2.333h2.334V10.333H5.333A2.333 2.333 0 0 1 3 8Z" fill="#A259FF" />
+        <path d="M3 3.333A2.333 2.333 0 0 1 5.333 1h2.334v4.667H5.333A2.333 2.333 0 0 1 3 3.333Z" fill="#F24E1E" />
+        <path d="M7.667 1H10a2.333 2.333 0 0 1 0 4.667H7.667V1Z" fill="#FF7262" />
+        <path d="M12.333 8A2.333 2.333 0 1 1 10 5.667 2.333 2.333 0 0 1 12.333 8Z" fill="#1ABCFE" />
+      </g>
+      <defs>
+        <clipPath id="figma-clip">
+          <rect width="16" height="16" fill="white" />
+        </clipPath>
+      </defs>
+    </svg>
+  );
+}
+
+/** Asana logo (16px) */
+function AsanaLogo() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0">
+      <g clipPath="url(#asana-clip)">
+        <path
+          d="M11.5 6.8a3 3 0 1 0 0 6 3 3 0 0 0 0-6ZM4.5 6.8a3 3 0 1 0 0 6 3 3 0 0 0 0-6ZM8 1a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"
+          fill="#F06A6A"
+        />
+      </g>
+      <defs>
+        <clipPath id="asana-clip">
+          <rect width="16" height="16" fill="white" />
+        </clipPath>
+      </defs>
+    </svg>
+  );
+}
+
+/* ── Helper: file icon picker ────────────────────────── */
+
+function FileItemIcon({ icon }: { icon?: string }) {
+  if (icon === 'design') return <DesignIcon />;
+  if (icon === 'notes') return <NotesIcon />;
+  return <FileIcon />;
+}
+
+/* ── Helper: connector icon picker ───────────────────── */
+
+function ConnectorIcon({ name }: { name: string }) {
+  if (name === 'Figma') return <FigmaLogo />;
+  if (name === 'Asana') return <AsanaLogo />;
+  return <FileText size={16} style={{ color: 'var(--color-text-secondary)' }} />;
+}
+
+/* ── Main component ──────────────────────────────────── */
+
+export default function TaskContextPanel({
+  onClose,
+  progress = DEFAULT_PROGRESS,
+  files = DEFAULT_FILES,
+  connectors = DEFAULT_CONNECTORS,
+}: TaskContextPanelProps) {
+  const completedCount = progress.filter((s) => s.status === 'completed').length;
 
   return (
     <div
-      className={`flex flex-col h-full overflow-y-auto ${
-        fullscreen
-          ? 'w-full'
-          : 'shrink-0 min-w-[260px] w-[280px] border-l border-stroke-outline'
-      }`}
-      style={{ background: 'var(--color-bg-page)' }}
+      className="flex flex-col h-full shrink-0"
+      style={{
+        width: 280,
+        borderLeft: '1px solid var(--color-stroke-outline)',
+        background: 'var(--color-bg-page)',
+        fontFamily: FONT,
+      }}
     >
-      {/* Close header */}
-      {onClose && (
-        <div className="flex items-center justify-between px-5 pt-4 pb-0 shrink-0">
-          <h3
-            className="text-text-primary font-bold text-[17px] leading-[22px] tracking-[-0.43px]"
-            style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
-          >
-            Task Context
-          </h3>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-bg-hover transition-colors text-text-secondary"
-          >
-            <X size={18} />
-          </button>
-        </div>
-      )}
-
-      {/* Progress Section */}
-      <div className="px-5 pt-5 pb-4">
-        <button
-          onClick={() => setProgressOpen(!progressOpen)}
-          className="flex items-center justify-between w-full"
+      {/* Header */}
+      <div
+        className="flex items-center justify-between shrink-0"
+        style={{ padding: '16px 20px 0 20px' }}
+      >
+        <span
+          style={{
+            fontSize: 17,
+            fontWeight: 700,
+            color: 'var(--color-text-primary)',
+            letterSpacing: '-0.43px',
+          }}
         >
-          <h3
-            className="text-text-primary font-bold text-[15px] leading-[20px] tracking-[-0.3px]"
-            style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
-          >
-            Progress
-          </h3>
-          <ChevronDown
-            className={`w-4 h-4 text-text-secondary transition-transform ${progressOpen ? '' : '-rotate-90'}`}
-          />
+          Task Context
+        </span>
+        <button
+          onClick={onClose}
+          className="flex items-center justify-center"
+          style={{ width: 20, height: 20, color: 'var(--color-text-secondary)' }}
+          aria-label="Close panel"
+        >
+          <X size={14} strokeWidth={2} />
         </button>
+      </div>
 
-        {progressOpen && (
-          <div className="mt-4 flex flex-col gap-3">
-            {steps.map((step, i) => (
-              <div key={i} className="flex items-start gap-3">
-                {/* Step indicator */}
-                {step.done ? (
-                  <div
-                    className="w-[22px] h-[22px] rounded-full flex items-center justify-center shrink-0"
-                    style={{ background: '#3171FF' }}
-                  >
-                    <Check className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
-                  </div>
+      {/* Scrollable body */}
+      <div className="flex flex-col overflow-y-auto flex-1 min-h-0">
+        {/* Progress Section */}
+        <div style={{ padding: '20px 20px 16px 20px' }}>
+          {/* Progress header */}
+          <div className="flex items-center justify-between" style={{ marginBottom: 0 }}>
+            <span
+              style={{
+                fontSize: 15,
+                fontWeight: 600,
+                color: 'var(--color-text-primary)',
+              }}
+            >
+              Progress
+            </span>
+            <ChevronDown
+              size={16}
+              style={{ color: 'var(--color-text-secondary)' }}
+            />
+          </div>
+
+          {/* Steps */}
+          <div className="flex flex-col" style={{ gap: 12, paddingTop: 16 }}>
+            {progress.map((step, i) => (
+              <div key={i} className="flex items-center" style={{ gap: 10 }}>
+                {step.status === 'completed' ? (
+                  <CheckedIcon />
                 ) : (
                   <div
-                    className="w-[22px] h-[22px] rounded-full flex items-center justify-center shrink-0 border-2"
-                    style={{ borderColor: 'var(--color-stroke-outline)' }}
+                    className="flex items-center justify-center shrink-0"
+                    style={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: 10,
+                      border: '1.5px solid var(--color-stroke-outline)',
+                    }}
                   >
-                    <span className="text-xs font-medium text-text-secondary">{i + 1}</span>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 500,
+                        color: 'var(--color-text-secondary)',
+                      }}
+                    >
+                      {i + 1}
+                    </span>
                   </div>
                 )}
-                {/* Step label */}
                 <span
-                  className={`text-sm leading-[22px] ${
-                    step.done
-                      ? 'line-through text-text-tertiary'
-                      : 'text-text-primary'
-                  }`}
+                  className="flex-1 min-w-0"
+                  style={{
+                    fontSize: 13,
+                    lineHeight: '20px',
+                    fontWeight: 400,
+                    color: step.status === 'completed'
+                      ? 'var(--color-text-secondary)'
+                      : 'var(--color-text-primary)',
+                    textDecoration: step.status === 'completed' ? 'line-through' : 'none',
+                  }}
                 >
                   {step.label}
                 </span>
               </div>
             ))}
 
-            {/* Summary */}
-            <p className="text-xs text-text-secondary mt-1">
-              {completedCount} of {steps.length} completed
-            </p>
-          </div>
-        )}
-      </div>
-
-      <div className="border-t border-stroke-outline" />
-
-      {/* WorkPal Section */}
-      <div className="px-5 py-4">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-5 h-5 rounded flex items-center justify-center" style={{ background: 'var(--color-bg-hover)' }}>
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <rect x="1" y="1" width="10" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2" className="text-text-secondary" />
-              <path d="M3.5 6L5.5 8L8.5 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="text-text-secondary" />
-            </svg>
-          </div>
-          <h3
-            className="text-text-primary font-bold text-[15px] leading-[20px] tracking-[-0.3px]"
-            style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
-          >
-            WorkPal
-          </h3>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-bg-hover transition-colors cursor-pointer">
-            <FileText className="w-4 h-4 text-text-secondary shrink-0" />
-            <span className="text-sm text-text-primary truncate">Instructions · CLAUDE.md</span>
-          </div>
-
-          <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-bg-hover transition-colors cursor-pointer">
-            <Code className="w-4 h-4 text-text-secondary shrink-0" />
-            <span className="text-sm text-text-primary truncate">WorkPal.html</span>
-          </div>
-
-          <button
-            onClick={() => setScratchpadOpen(!scratchpadOpen)}
-            className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-bg-hover transition-colors w-full text-left"
-          >
-            {scratchpadOpen ? (
-              <ChevronDown className="w-4 h-4 text-text-secondary shrink-0" />
-            ) : (
-              <ChevronDown className="w-4 h-4 text-text-secondary shrink-0 -rotate-90" />
-            )}
-            <StickyNote className="w-4 h-4 text-text-secondary shrink-0" />
-            <span className="text-sm text-text-primary">Scratchpad</span>
-          </button>
-
-          {scratchpadOpen && (
-            <div className="ml-9 px-2 py-2">
-              <textarea
-                className="w-full h-20 text-sm text-text-primary rounded-md border border-stroke-outline p-2 resize-none focus:outline-none focus:border-[#7652B9]"
-                style={{ background: 'var(--color-bg-hover)' }}
-                placeholder="Quick notes..."
-              />
+            {/* Count */}
+            <div style={{ paddingTop: 6 }}>
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 400,
+                  color: 'var(--color-text-secondary)',
+                }}
+              >
+                {completedCount} of {progress.length} completed
+              </span>
             </div>
-          )}
+          </div>
         </div>
-      </div>
 
-      <div className="border-t border-stroke-outline" />
+        {/* Divider */}
+        <div style={{ height: 1, background: 'var(--color-stroke-outline)' }} />
 
-      {/* Context Section */}
-      <div className="px-5 py-4">
-        <h3
-          className="text-text-primary font-bold text-[15px] leading-[20px] tracking-[-0.3px] mb-3"
-          style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
-        >
-          Context
-        </h3>
-
-        <p className="text-xs text-text-secondary uppercase tracking-wider mb-2 px-2">
-          Connectors
-        </p>
-
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-bg-hover transition-colors cursor-pointer">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0">
-              <path d="M5.333 16A2.667 2.667 0 0 0 8 13.333v-2.666H5.333a2.667 2.667 0 0 0 0 5.333Z" fill="#0ACF83" />
-              <path d="M2.667 8A2.667 2.667 0 0 1 5.333 5.333H8v5.334H5.333A2.667 2.667 0 0 1 2.667 8Z" fill="#A259FF" />
-              <path d="M2.667 2.667A2.667 2.667 0 0 1 5.333 0H8v5.333H5.333a2.667 2.667 0 0 1-2.666-2.666Z" fill="#F24E1E" />
-              <path d="M8 0h2.667a2.667 2.667 0 0 1 0 5.333H8V0Z" fill="#FF7262" />
-              <path d="M13.333 8A2.667 2.667 0 0 1 8 8a2.667 2.667 0 0 1 5.333 0Z" fill="#1ABCFE" />
-            </svg>
-            <span className="text-sm text-text-primary">Figma</span>
+        {/* WorkPal Section */}
+        <div style={{ padding: '16px 20px' }}>
+          {/* WorkPal header */}
+          <div className="flex items-center" style={{ gap: 8, paddingBottom: 12 }}>
+            <div
+              className="flex items-center justify-center shrink-0"
+              style={{
+                width: 20,
+                height: 20,
+                borderRadius: 4,
+                background: 'var(--color-bg-hover)',
+                fontSize: 10,
+                fontWeight: 700,
+                color: 'var(--color-text-secondary)',
+              }}
+            >
+              &#10003;
+            </div>
+            <span
+              style={{
+                fontSize: 15,
+                fontWeight: 600,
+                color: 'var(--color-text-primary)',
+              }}
+            >
+              WorkPal
+            </span>
           </div>
 
-          <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-bg-hover transition-colors cursor-pointer">
-            <img src={iconAsana} alt="" className="w-4 h-4 object-contain icon-theme shrink-0" />
-            <span className="text-sm text-text-primary">Asana</span>
+          {/* Files */}
+          <div className="flex flex-col" style={{ gap: 2 }}>
+            {files.map((file) => (
+              <div
+                key={file.name}
+                className="flex items-center"
+                style={{ gap: 10, padding: '6px 8px', borderRadius: 6 }}
+              >
+                <FileItemIcon icon={file.icon} />
+                <span
+                  className="flex-1 min-w-0 truncate"
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 400,
+                    color: 'var(--color-text-primary)',
+                  }}
+                >
+                  {file.name}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div style={{ height: 1, background: 'var(--color-stroke-outline)' }} />
+
+        {/* Context Section */}
+        <div style={{ padding: '16px 20px' }}>
+          <span
+            style={{
+              fontSize: 15,
+              fontWeight: 600,
+              color: 'var(--color-text-primary)',
+            }}
+          >
+            Context
+          </span>
+
+          {/* CONNECTORS label */}
+          <div style={{ paddingTop: 12, paddingBottom: 8, paddingLeft: 8 }}>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 500,
+                color: 'var(--color-text-secondary)',
+                letterSpacing: '1.2px',
+                textTransform: 'uppercase',
+              }}
+            >
+              CONNECTORS
+            </span>
           </div>
 
-          <button className="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-bg-hover transition-colors w-full text-left">
-            <Link2 className="w-4 h-4 text-text-secondary shrink-0" />
-            <span className="text-sm text-text-secondary">Add connector...</span>
-          </button>
+          {/* Connector items */}
+          <div className="flex flex-col" style={{ gap: 2 }}>
+            {connectors.map((c) => (
+              <div
+                key={c.name}
+                className="flex items-center"
+                style={{ gap: 10, padding: '6px 8px', borderRadius: 6 }}
+              >
+                <ConnectorIcon name={c.name} />
+                <span
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 400,
+                    color: 'var(--color-text-primary)',
+                  }}
+                >
+                  {c.name}
+                </span>
+              </div>
+            ))}
+
+            {/* Add connector */}
+            <div
+              className="flex items-center"
+              style={{
+                gap: 10,
+                padding: '6px 8px',
+                borderRadius: 6,
+                color: 'var(--color-text-secondary)',
+              }}
+            >
+              <Link size={12} />
+              <span style={{ fontSize: 13, fontWeight: 400 }}>
+                Add connector...
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
