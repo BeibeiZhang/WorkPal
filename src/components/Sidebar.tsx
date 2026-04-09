@@ -185,8 +185,8 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
                 onClick={onNewProject}
                 className="flex items-center gap-4 w-full px-4 py-2 rounded-full hover:bg-bg-hover transition-colors text-left"
               >
-                <FolderPlus size={18} className="shrink-0 text-text-secondary" />
-                <span className="flex-1 text-[16px] leading-[22px] text-text-secondary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
+                <FolderPlus size={18} className="shrink-0 text-text-primary" />
+                <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
                   New Project
                 </span>
               </button>

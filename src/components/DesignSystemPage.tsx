@@ -153,7 +153,7 @@ function ComponentSection({ title, children }: { title: string; children: React.
   return (
     <div className="mb-8">
       <h3 className="text-[15px] font-bold text-text-primary mb-4">{title}</h3>
-      <div className="p-5 rounded-xl flex flex-wrap gap-4 items-start" style={{ border: '1px solid var(--color-stroke-outline)', background: 'var(--color-bg-hover)' }}>
+      <div className="p-5 rounded-xl flex flex-wrap gap-4 items-start" style={{ border: '1px solid var(--color-stroke-outline)', background: 'var(--color-bg-page)' }}>
         {children}
       </div>
     </div>
@@ -231,63 +231,235 @@ function ComponentShowcase() {
 
       {/* ── Chat Input ── */}
       <ComponentSection title="Chat Input">
-        <div className="flex flex-col gap-3 w-full max-w-[420px]">
-          {/* Text field default */}
-          <div className="input-gradient-hover flex items-center gap-2 px-4 py-2 rounded-full" style={{ background: 'var(--color-bg-message)', border: '2px solid transparent' }}>
-            <span className="text-text-tertiary text-[13px] flex-1">Message WorkPal</span>
-            <div className="flex items-center gap-1">
-              <div className="w-8 h-8 flex items-center justify-center rounded-full">
-                <img src={iconMicrophone} alt="Mic" className="w-4 h-4 icon-theme" />
+        <div className="flex flex-col gap-6 w-full">
+
+          {/* ── Text Field States ── */}
+          <div>
+            <p className="text-xs font-semibold text-text-secondary mb-3 uppercase tracking-wider">Text Field States</p>
+            <div className="flex flex-col gap-3 max-w-[480px]">
+              {/* Default / Empty */}
+              <p className="text-[11px] text-text-tertiary mt-1">Default (empty)</p>
+              <div className="input-gradient-hover flex items-center gap-2 px-4 py-3 rounded-full" style={{ background: 'var(--color-bg-message)', border: '2px solid transparent' }}>
+                <span className="text-text-tertiary text-[14px] flex-1">Message WorkPal</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 flex items-center justify-center rounded-full">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-text-primary"><rect x="9" y="1" width="6" height="11" rx="3" /><path d="M19 10v1a7 7 0 0 1-14 0v-1" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>
+                  </div>
+                  <div className="w-7 h-7 flex items-center justify-center rounded-full">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-text-primary"><line x1="4" y1="8" x2="4" y2="16" /><line x1="8" y1="5" x2="8" y2="19" /><line x1="12" y1="2" x2="12" y2="22" /><line x1="16" y1="5" x2="16" y2="19" /><line x1="20" y1="8" x2="20" y2="16" /></svg>
+                  </div>
+                </div>
               </div>
-              <div className="w-8 h-8 flex items-center justify-center rounded-full">
-                <img src={iconVoice} alt="Voice" className="w-4 h-4 icon-theme" />
+
+              {/* Focused / No text — gradient border, send icon (inactive) */}
+              <p className="text-[11px] text-text-tertiary mt-1">Focused (no text)</p>
+              <div className="flex items-center gap-2 px-4 py-3 rounded-full" style={{ background: 'linear-gradient(var(--color-bg-page), var(--color-bg-page)) padding-box, linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box', border: '2px solid transparent' }}>
+                <span className="text-text-tertiary text-[14px] flex-1">Message WorkPal</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 flex items-center justify-center rounded-full">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-text-primary"><rect x="9" y="1" width="6" height="11" rx="3" /><path d="M19 10v1a7 7 0 0 1-14 0v-1" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>
+                  </div>
+                  <div className="w-7 h-7 flex items-center justify-center rounded-full">
+                    <img src={iconSend} alt="Send" className="w-4 h-4 icon-theme" />
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-          {/* Text field with gradient border (filled) */}
-          <div className="flex items-center gap-2 px-4 py-2 rounded-full" style={{ background: 'linear-gradient(var(--color-bg-page), var(--color-bg-page)) padding-box, linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box', border: '2px solid transparent' }}>
-            <span className="text-text-primary text-[13px] flex-1">Summarize yesterday's meeting</span>
-            <div className="w-8 h-8 flex items-center justify-center rounded-full" style={{ background: 'linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%)' }}>
-              <img src={iconSend} alt="Send" className="w-4 h-4 brightness-0 invert" />
-            </div>
-          </div>
-          {/* Chips row */}
-          <div className="flex flex-wrap gap-2">
-            <span className="chip-gradient-hover rounded-full border px-3 py-1 text-text-primary text-[13px] cursor-pointer" style={{ borderColor: 'var(--color-stroke-outline)' }}>Set Up Meeting</span>
-            <span className="chip-gradient-hover rounded-full border px-3 py-1 text-text-primary text-[13px] cursor-pointer" style={{ borderColor: 'var(--color-stroke-outline)' }}>Explore Solutions</span>
-            <span className="chip-gradient-hover rounded-full border px-3 py-1 text-text-primary text-[13px] cursor-pointer" style={{ borderColor: 'var(--color-stroke-outline)' }}>View Report</span>
-          </div>
-          {/* Toolbar: + button + Mode selector */}
-          <div className="flex items-center gap-2">
-            {/* Attach + button */}
-            <button className="flex items-center justify-center rounded-full border border-stroke-outline hover:bg-bg-hover transition-all shrink-0 cursor-pointer text-text-primary" style={{ width: 32, height: 32 }}>
-              <img src={iconAdd} alt="Add" className="w-4 h-4 icon-theme" />
-            </button>
-            {/* Mode selector — segmented pill */}
-            <div className="flex items-center rounded-full border border-stroke-outline overflow-hidden toolbar-gradient-hover">
-              {/* Chat (selected) */}
-              <div className="flex items-center gap-1 px-3 cursor-pointer" style={{ height: 32, backgroundColor: 'var(--color-selected-bg)', color: 'var(--color-selected-text)', borderRadius: '9999px 0 0 9999px' }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-                <span className="text-xs font-medium">Chat</span>
-              </div>
-              {/* Tasks (unselected) */}
-              <div className="flex items-center justify-center cursor-pointer text-text-primary hover:bg-bg-hover" style={{ width: 32, height: 32 }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                  <path d="M9 11l3 3L22 4" />
-                  <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-                </svg>
-              </div>
-              {/* Code (unselected) */}
-              <div className="flex items-center justify-center cursor-pointer text-text-primary hover:bg-bg-hover" style={{ width: 32, height: 32, borderRadius: '0 9999px 9999px 0' }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                  <polyline points="16 18 22 12 16 6" />
-                  <polyline points="8 6 2 12 8 18" />
-                </svg>
+
+              {/* With text — gradient border, gradient send button */}
+              <p className="text-[11px] text-text-tertiary mt-1">With text (active)</p>
+              <div className="flex items-center gap-2 px-4 py-3 rounded-full" style={{ background: 'linear-gradient(var(--color-bg-page), var(--color-bg-page)) padding-box, linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box', border: '2px solid transparent' }}>
+                <span className="text-text-primary text-[14px] flex-1">Summarize yesterday's meeting</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 flex items-center justify-center rounded-full">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-text-primary"><rect x="9" y="1" width="6" height="11" rx="3" /><path d="M19 10v1a7 7 0 0 1-14 0v-1" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>
+                  </div>
+                  <div className="w-7 h-7 flex items-center justify-center rounded-full" style={{ background: 'linear-gradient(183.55deg, #7652B9 16.2%, #B46470 49%, #CA9D8C 109.3%)' }}>
+                    <img src={iconSendActive} alt="Send" className="w-3.5 h-3.5 brightness-0 invert" />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
+
+          {/* ── Action Chips ── */}
+          <div>
+            <p className="text-xs font-semibold text-text-secondary mb-3 uppercase tracking-wider">Action Chips</p>
+            <div className="flex flex-wrap gap-2">
+              <span className="chip-gradient-hover rounded-full border px-3 py-1 text-text-primary text-[13px] cursor-pointer" style={{ borderColor: 'var(--color-stroke-outline)' }}>Set Up Meeting</span>
+              <span className="chip-gradient-hover rounded-full border px-3 py-1 text-text-primary text-[13px] cursor-pointer" style={{ borderColor: 'var(--color-stroke-outline)' }}>Explore Solutions</span>
+              <span className="chip-gradient-hover rounded-full border px-3 py-1 text-text-primary text-[13px] cursor-pointer" style={{ borderColor: 'var(--color-stroke-outline)' }}>View Report</span>
+            </div>
+          </div>
+
+          {/* ── Quick Chips (with icons) ── */}
+          <div>
+            <p className="text-xs font-semibold text-text-secondary mb-3 uppercase tracking-wider">Quick Chips (with icons)</p>
+            <div className="flex flex-wrap gap-2">
+              <span className="chip-gradient-hover flex items-center gap-1 rounded-full border px-3 py-1 text-text-primary text-[13px] cursor-pointer" style={{ borderColor: 'var(--color-stroke-outline)' }}>
+                <div className="relative overflow-hidden w-4 h-4 shrink-0 flex items-center justify-center"><img src={iconGoals} alt="" className="max-w-full max-h-full object-contain opacity-70 icon-theme" /></div>
+                Create performance goals
+              </span>
+              <span className="chip-gradient-hover flex items-center gap-1 rounded-full border px-3 py-1 text-text-primary text-[13px] cursor-pointer" style={{ borderColor: 'var(--color-stroke-outline)' }}>
+                <div className="relative overflow-hidden w-4 h-4 shrink-0 flex items-center justify-center"><img src={iconDoc16} alt="" className="max-w-full max-h-full object-contain opacity-70 icon-theme" /></div>
+                Analyze doc(s)
+              </span>
+              <span className="chip-gradient-hover flex items-center gap-1 rounded-full border px-3 py-1 text-text-primary text-[13px] cursor-pointer" style={{ borderColor: 'var(--color-stroke-outline)' }}>
+                <div className="relative overflow-hidden w-4 h-4 shrink-0 flex items-center justify-center"><img src={iconBarChart} alt="" className="max-w-full max-h-full object-contain opacity-70 icon-theme" /></div>
+                Visualize data
+              </span>
+            </div>
+          </div>
+
+          {/* ── Toolbar: Chat Mode ── */}
+          <div>
+            <p className="text-xs font-semibold text-text-secondary mb-3 uppercase tracking-wider">Toolbar — Chat Mode</p>
+            <div className="flex items-center gap-2">
+              <button className="flex items-center justify-center rounded-full border border-stroke-outline hover:bg-bg-hover toolbar-gradient-hover transition-all shrink-0 cursor-pointer text-text-primary" style={{ width: 32, height: 32 }}>
+                <img src={iconAdd} alt="Add" className="w-4 h-4 icon-theme" />
+              </button>
+              <div className="flex items-center rounded-full border border-stroke-outline overflow-hidden toolbar-gradient-hover">
+                <div className="flex items-center gap-1 px-3 cursor-pointer" style={{ height: 32, backgroundColor: 'var(--color-selected-bg)', color: 'var(--color-selected-text)', borderRadius: '9999px 0 0 9999px' }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                  <span className="text-xs font-medium">Chat</span>
+                </div>
+                <div className="flex items-center justify-center cursor-pointer text-text-primary hover:bg-bg-hover" style={{ width: 32, height: 32 }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
+                </div>
+                <div className="flex items-center justify-center cursor-pointer text-text-primary hover:bg-bg-hover" style={{ width: 32, height: 32, borderRadius: '0 9999px 9999px 0' }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Toolbar: Tasks Mode ── */}
+          <div>
+            <p className="text-xs font-semibold text-text-secondary mb-3 uppercase tracking-wider">Toolbar — Tasks Mode</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button className="flex items-center justify-center rounded-full border border-stroke-outline hover:bg-bg-hover toolbar-gradient-hover transition-all shrink-0 cursor-pointer text-text-primary" style={{ width: 32, height: 32 }}>
+                <img src={iconAdd} alt="Add" className="w-4 h-4 icon-theme" />
+              </button>
+              <div className="flex items-center rounded-full border border-stroke-outline overflow-hidden toolbar-gradient-hover">
+                <div className="flex items-center justify-center cursor-pointer text-text-primary hover:bg-bg-hover" style={{ width: 32, height: 32, borderRadius: '9999px 0 0 9999px' }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                </div>
+                <div className="flex items-center gap-1 px-3 cursor-pointer" style={{ height: 32, backgroundColor: 'var(--color-selected-bg)', color: 'var(--color-selected-text)' }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
+                  <span className="text-xs font-medium">Tasks</span>
+                </div>
+                <div className="flex items-center justify-center cursor-pointer text-text-primary hover:bg-bg-hover" style={{ width: 32, height: 32, borderRadius: '0 9999px 9999px 0' }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>
+                </div>
+              </div>
+              {/* Folder picker */}
+              <button className="flex items-center gap-1.5 px-3 rounded-full border border-stroke-outline text-xs text-text-primary hover:bg-bg-hover toolbar-gradient-hover transition-colors cursor-pointer" style={{ height: 32 }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 w-3.5 h-3.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>
+                <span className="truncate">~/Projects/Work...</span>
+                <img src={iconChevronDown} alt="" className="w-3 h-3 icon-theme shrink-0" />
+              </button>
+            </div>
+          </div>
+
+          {/* ── Toolbar: Code Mode ── */}
+          <div>
+            <p className="text-xs font-semibold text-text-secondary mb-3 uppercase tracking-wider">Toolbar — Code Mode</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button className="flex items-center justify-center rounded-full border border-stroke-outline hover:bg-bg-hover toolbar-gradient-hover transition-all shrink-0 cursor-pointer text-text-primary" style={{ width: 32, height: 32 }}>
+                <img src={iconAdd} alt="Add" className="w-4 h-4 icon-theme" />
+              </button>
+              <div className="flex items-center rounded-full border border-stroke-outline overflow-hidden toolbar-gradient-hover">
+                <div className="flex items-center justify-center cursor-pointer text-text-primary hover:bg-bg-hover" style={{ width: 32, height: 32, borderRadius: '9999px 0 0 9999px' }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                </div>
+                <div className="flex items-center justify-center cursor-pointer text-text-primary hover:bg-bg-hover" style={{ width: 32, height: 32 }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
+                </div>
+                <div className="flex items-center gap-1 px-3 cursor-pointer" style={{ height: 32, backgroundColor: 'var(--color-selected-bg)', color: 'var(--color-selected-text)', borderRadius: '0 9999px 9999px 0' }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>
+                  <span className="text-xs font-medium">Code</span>
+                </div>
+              </div>
+              {/* Folder picker */}
+              <button className="flex items-center gap-1.5 px-3 rounded-full border border-stroke-outline text-xs text-text-primary hover:bg-bg-hover toolbar-gradient-hover transition-colors cursor-pointer" style={{ height: 32 }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 w-3.5 h-3.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>
+                <span className="truncate">~/Projects/Work...</span>
+                <img src={iconChevronDown} alt="" className="w-3 h-3 icon-theme shrink-0" />
+              </button>
+              {/* Branch selector */}
+              <button className="flex items-center gap-1.5 px-3 rounded-full border border-stroke-outline text-xs text-text-primary hover:bg-bg-hover toolbar-gradient-hover transition-colors cursor-pointer" style={{ height: 32 }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 w-3.5 h-3.5"><line x1="6" y1="3" x2="6" y2="15" /><circle cx="18" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><path d="M18 9a9 9 0 0 1-9 9" /></svg>
+                <span className="truncate">main</span>
+                <img src={iconChevronDown} alt="" className="w-3 h-3 icon-theme shrink-0" />
+              </button>
+              {/* Worktree toggle */}
+              <label className="flex items-center gap-1.5 px-3 rounded-full border border-stroke-outline text-xs text-text-primary cursor-pointer select-none hover:bg-bg-hover toolbar-gradient-hover transition-colors" style={{ height: 32 }}>
+                <input type="checkbox" className="worktree-checkbox w-3.5 h-3.5 rounded cursor-pointer" readOnly />
+                Worktree
+              </label>
+            </div>
+          </div>
+
+          {/* ── Send Button States ── */}
+          <div>
+            <p className="text-xs font-semibold text-text-secondary mb-3 uppercase tracking-wider">Send Button States</p>
+            <div className="flex items-center gap-4">
+              {/* Voice (default) */}
+              <div className="flex flex-col items-center gap-1.5">
+                <div className="w-8 h-8 flex items-center justify-center rounded-full">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-text-primary"><line x1="4" y1="8" x2="4" y2="16" /><line x1="8" y1="5" x2="8" y2="19" /><line x1="12" y1="2" x2="12" y2="22" /><line x1="16" y1="5" x2="16" y2="19" /><line x1="20" y1="8" x2="20" y2="16" /></svg>
+                </div>
+                <span className="text-[10px] text-text-tertiary">Voice</span>
+              </div>
+              {/* Send (inactive) */}
+              <div className="flex flex-col items-center gap-1.5">
+                <div className="w-8 h-8 flex items-center justify-center rounded-full">
+                  <img src={iconSend} alt="Send" className="w-4 h-4 icon-theme" />
+                </div>
+                <span className="text-[10px] text-text-tertiary">Inactive</span>
+              </div>
+              {/* Send (active/gradient) */}
+              <div className="flex flex-col items-center gap-1.5">
+                <div className="w-8 h-8 flex items-center justify-center rounded-full" style={{ background: 'linear-gradient(183.55deg, #7652B9 16.2%, #B46470 49%, #CA9D8C 109.3%)' }}>
+                  <img src={iconSendActive} alt="Send" className="w-3.5 h-3.5 brightness-0 invert" />
+                </div>
+                <span className="text-[10px] text-text-tertiary">Active</span>
+              </div>
+              {/* Mic */}
+              <div className="flex flex-col items-center gap-1.5">
+                <div className="w-8 h-8 flex items-center justify-center rounded-full">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-text-primary"><rect x="9" y="1" width="6" height="11" rx="3" /><path d="M19 10v1a7 7 0 0 1-14 0v-1" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>
+                </div>
+                <span className="text-[10px] text-text-tertiary">Mic</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Attach Menu (static preview) ── */}
+          <div>
+            <p className="text-xs font-semibold text-text-secondary mb-3 uppercase tracking-wider">Attach Menu</p>
+            <div className="w-48 bg-bg-page border border-stroke-outline rounded-xl shadow-lg py-2">
+              {[
+                { label: 'Mention', isSvg: true },
+                { icon: iconPhoto, label: 'Photo' },
+                { icon: iconCamera, label: 'Camera' },
+                { icon: iconUpload, label: 'Upload File' },
+              ].map(item => (
+                <div key={item.label} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-bg-hover transition-colors text-text-primary text-sm cursor-pointer">
+                  {'isSvg' in item ? (
+                    <div className="flex items-center justify-center shrink-0 w-4 h-4">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full text-text-primary"><circle cx="12" cy="12" r="4" /><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94" /></svg>
+                    </div>
+                  ) : (
+                    <div className="w-4 h-4 flex items-center justify-center shrink-0">
+                      <img src={item.icon} alt={item.label} className="w-full h-full icon-theme" />
+                    </div>
+                  )}
+                  {item.label}
+                </div>
+              ))}
+            </div>
+          </div>
+
         </div>
       </ComponentSection>
 
