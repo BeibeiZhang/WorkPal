@@ -939,15 +939,15 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
         </p>
         <div className="flex flex-wrap gap-3">
           {([
-            { name: 'Chat', Icon: MessageSquare, usage: 'Mode — Chat' },
-            { name: 'Tasks', Icon: CheckSquare, usage: 'Mode — Tasks' },
-            { name: 'Code', Icon: Code2, usage: 'Mode — Code' },
-            { name: 'Mic (stroke)', Icon: Mic, usage: 'Input — Microphone' },
-            { name: 'Voice (stroke)', Icon: Activity, usage: 'Input — Voice' },
-            { name: 'Mention (@)', Icon: AtSign, usage: 'Attach — Mention' },
-            { name: 'Folder', Icon: Folder, usage: 'Toolbar — Folder' },
-            { name: 'Git Branch', Icon: GitBranch, usage: 'Toolbar — Branch' },
-          ] as { name: string; Icon: React.FC<{ size?: number; className?: string }>; usage: string }[]).map(({ name, Icon, usage }) => (
+            { name: 'Chat', Icon: MessageSquare },
+            { name: 'Tasks', Icon: CheckSquare },
+            { name: 'Code', Icon: Code2 },
+            { name: 'Mic (stroke)', Icon: Mic },
+            { name: 'Voice (stroke)', Icon: Activity },
+            { name: 'Mention (@)', Icon: AtSign },
+            { name: 'Folder', Icon: Folder },
+            { name: 'Git Branch', Icon: GitBranch },
+          ] as { name: string; Icon: React.FC<{ size?: number; className?: string }> }[]).map(({ name, Icon }) => (
             <div key={name} className="flex flex-col items-center gap-1.5 p-3 rounded-xl w-[90px]" style={{ border: '1px solid var(--color-stroke-outline)' }}>
               <div className="w-8 h-8 flex items-center justify-center">
                 <Icon size={20} className="text-text-primary" />
@@ -964,27 +964,27 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
         </p>
         <div className="flex flex-wrap gap-3">
           {([
-            { name: 'BookOpen', Icon: BookOpen, usage: 'Sidebar — Library' },
-            { name: 'ChevronDown', Icon: ChevronDown, usage: 'Accordions, dropdowns' },
-            { name: 'ChevronRight', Icon: ChevronRight, usage: 'Tree expand' },
-            { name: 'Code2', Icon: Code2, usage: 'Code view tab' },
-            { name: 'FileCode2', Icon: FileCode2, usage: 'File type icon' },
-            { name: 'FileText', Icon: FileText, usage: 'Document reference' },
-            { name: 'FolderOpen', Icon: FolderOpen, usage: 'Open folder' },
-            { name: 'FolderPlus', Icon: FolderPlus, usage: 'New folder' },
-            { name: 'LayoutDashboard', Icon: LayoutDashboard, usage: 'Sidebar — Overview' },
-            { name: 'Link', Icon: Link, usage: 'Sidebar — Connectors' },
-            { name: 'Menu', Icon: Menu, usage: 'Sidebar toggle' },
-            { name: 'MessageCircle', Icon: MessageCircle, usage: 'Comments' },
-            { name: 'MoreVertical', Icon: MoreVertical, usage: 'Overflow menu' },
-            { name: 'Palette', Icon: Palette, usage: 'Design System nav' },
-            { name: 'PanelRight', Icon: PanelRight, usage: 'Side panel toggle' },
-            { name: 'Pen', Icon: Pen, usage: 'Edit action' },
-            { name: 'Plus', Icon: Plus, usage: 'New session / add' },
-            { name: 'Search', Icon: Search, usage: 'Search bar' },
-            { name: 'Star', Icon: Star, usage: 'Favorites' },
-            { name: 'X', Icon: X, usage: 'Close / dismiss' },
-          ] as { name: string; Icon: React.FC<{ size?: number; className?: string }>; usage: string }[]).map(({ name, Icon, usage }) => (
+            { name: 'BookOpen', Icon: BookOpen },
+            { name: 'ChevronDown', Icon: ChevronDown },
+            { name: 'ChevronRight', Icon: ChevronRight },
+            { name: 'Code2', Icon: Code2 },
+            { name: 'FileCode2', Icon: FileCode2 },
+            { name: 'FileText', Icon: FileText },
+            { name: 'FolderOpen', Icon: FolderOpen },
+            { name: 'FolderPlus', Icon: FolderPlus },
+            { name: 'LayoutDashboard', Icon: LayoutDashboard },
+            { name: 'Link', Icon: Link },
+            { name: 'Menu', Icon: Menu },
+            { name: 'MessageCircle', Icon: MessageCircle },
+            { name: 'MoreVertical', Icon: MoreVertical },
+            { name: 'Palette', Icon: Palette },
+            { name: 'PanelRight', Icon: PanelRight },
+            { name: 'Pen', Icon: Pen },
+            { name: 'Plus', Icon: Plus },
+            { name: 'Search', Icon: Search },
+            { name: 'Star', Icon: Star },
+            { name: 'X', Icon: X },
+          ] as { name: string; Icon: React.FC<{ size?: number; className?: string }> }[]).map(({ name, Icon }) => (
             <div key={name} className="flex flex-col items-center gap-1.5 p-3 rounded-xl w-[90px]" style={{ border: '1px solid var(--color-stroke-outline)' }}>
               <div className="w-8 h-8 flex items-center justify-center">
                 <Icon size={20} className="text-text-primary" />
