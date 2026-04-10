@@ -17,6 +17,103 @@ export const INITIAL_CHATS: Chat[] = [
     messages: [],
   },
   {
+    id: 'workpal-design-research',
+    title: 'WorkPal Design Research',
+    lastMessage: 'Three discovery tickets are now in the UX backlog.',
+    timestamp: new Date(Date.now() - 1800000),
+    messages: [
+      {
+        id: '1',
+        role: 'user',
+        content:
+          'I\'m kicking off design research for WorkPal v2. Help me draft a discovery research plan — we want to understand how knowledge workers use AI assistants in their daily workflow, where the friction lives, and whether the project + library model resonates.',
+        timestamp: new Date(Date.now() - 1800000),
+      },
+      {
+        id: '2',
+        role: 'assistant',
+        content:
+          'Here\'s the discovery plan ready to go. Want me to **set up a kickoff with the team**, **draft the interview script**, or **start recruiting participants**?',
+        timestamp: new Date(Date.now() - 1790000),
+        card: {
+          type: 'research',
+          title: 'WorkPal v2 — Discovery Research Plan',
+          summary:
+            'A **4-week mixed-methods study** covering **12 contextual interviews**, a **2-week diary study (n=8)**, and a **benchmark survey (n=120)**. Goals: map daily AI workflows, surface frustrations with current tools, and validate the **project + library** model with power users.',
+          status: 'done',
+          statusLabel: 'Plan ready',
+        },
+        chips: [
+          { label: 'Set up kickoff', action: 'set-up-kickoff' },
+          { label: 'Draft interview script', action: 'draft-interview-script' },
+          { label: 'Recruit participants', action: 'recruit-participants' },
+        ],
+      },
+      {
+        id: '3',
+        role: 'user',
+        content: 'Looks great. Can you set up a kickoff with the design and research team?',
+        timestamp: new Date(Date.now() - 1700000),
+      },
+      {
+        id: '4',
+        role: 'assistant',
+        content:
+          'Done — the kickoff is on the team\'s calendar. Want me to **send the invite**, **draft the agenda**, or **prep a discussion guide** before the meeting?',
+        timestamp: new Date(Date.now() - 1690000),
+        card: {
+          type: 'schedule',
+          title: 'WorkPal v2 Research Kickoff',
+          date: 'Monday, April 14',
+          time: '10:00 AM-11:00 AM',
+          attendees: ['Beibei Zhang', 'Kai Garcia', 'Stephen Garcia', 'Maya Patel'],
+          location: 'Google Meet',
+          timeOptions: [
+            { date: 'Monday, April 14', time: '10:00 AM-11:00 AM', selected: true },
+            { date: 'Monday, April 14', time: '2:00 PM-3:00 PM' },
+          ],
+        },
+        chips: [
+          { label: 'Send invite', action: 'send-invite' },
+          { label: 'Draft agenda', action: 'draft-agenda' },
+          { label: 'Prep discussion guide', action: 'prep-discussion-guide' },
+        ],
+      },
+      {
+        id: '5',
+        role: 'user',
+        content:
+          'Perfect. Once interviews wrap, summarize the top themes and create tickets for the design team to act on.',
+        timestamp: new Date(Date.now() - 1500000),
+      },
+      {
+        id: '6',
+        role: 'assistant',
+        content:
+          'All set — three discovery tickets are now in the UX backlog. Want me to **draft the interview script**, **create a screener**, or **prep the diary study brief** next? 😊',
+        timestamp: new Date(Date.now() - 1490000),
+        card: {
+          type: 'ticket',
+          title: 'WorkPal v2 — Research Synthesis',
+          description:
+            'Auto-generated from the **n=12 interview themes**. Routed to the UX backlog under the WorkPal v2 epic.',
+          items: [
+            { text: 'Reduce friction when switching between projects', assignee: 'Beibei', due: 'Apr 22' },
+            { text: 'Make Library more discoverable on first run', assignee: 'Kai', due: 'Apr 24' },
+            { text: 'Surface saved artifacts in chat context', assignee: 'Stephen', due: 'Apr 26' },
+          ],
+          status: 'created',
+          statusLabel: 'Created',
+        },
+        chips: [
+          { label: 'Draft interview script', action: 'draft-interview-script' },
+          { label: 'Create screener', action: 'create-screener' },
+          { label: 'Prep diary brief', action: 'prep-diary-brief' },
+        ],
+      },
+    ],
+  },
+  {
     id: 'alcohol-delivery',
     title: 'Alcohol Delivery Issues',
     lastMessage: 'Find any reports about Spark drivers...',

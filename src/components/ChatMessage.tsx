@@ -22,7 +22,7 @@ function renderText(text: string) {
 
 function SpeakerIcon({ playing }: { playing: boolean }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`w-4 h-4 ${playing ? 'text-[#7652B9]' : 'opacity-40 hover:opacity-70'}`}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`w-[26px] h-[26px] md:w-5 md:h-5 ${playing ? 'text-[#7652B9]' : 'opacity-40 hover:opacity-70'}`}>
       <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
       {playing ? (
         <>
@@ -64,12 +64,12 @@ function FeedbackBar({ text }: { text: string }) {
     { src: iconRefresh, label: 'Retry' },
   ];
   return (
-    <div className="flex items-center gap-1 mt-2">
+    <div className="flex items-center gap-1.5 md:gap-1 mt-2">
       {/* TTS play/stop button */}
       <button
         title={isSpeaking ? 'Stop reading' : 'Read aloud'}
         onClick={toggleSpeak}
-        className={`w-7 h-7 flex items-center justify-center rounded-lg hover:bg-bg-hover transition-colors ${isSpeaking ? 'bg-bg-hover' : ''}`}
+        className={`w-10 h-10 md:w-7 md:h-7 flex items-center justify-center rounded-lg hover:bg-bg-hover transition-colors ${isSpeaking ? 'bg-bg-hover' : ''}`}
       >
         <SpeakerIcon playing={isSpeaking} />
       </button>
@@ -77,12 +77,12 @@ function FeedbackBar({ text }: { text: string }) {
         <button
           key={label}
           title={label}
-          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-bg-hover transition-colors"
+          className="w-10 h-10 md:w-7 md:h-7 flex items-center justify-center rounded-lg hover:bg-bg-hover transition-colors"
         >
           <img
             src={src}
             alt={label}
-            className={`w-4 h-4 object-contain opacity-40 hover:opacity-70 icon-theme ${flip ? 'scale-y-[-1]' : ''}`}
+            className={`w-6 h-6 md:w-4 md:h-4 object-contain opacity-40 hover:opacity-70 icon-theme ${flip ? 'scale-y-[-1]' : ''}`}
           />
         </button>
       ))}

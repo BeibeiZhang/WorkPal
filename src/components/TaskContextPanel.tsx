@@ -127,7 +127,7 @@ export default function TaskContextPanel({
       <div className="flex items-center justify-end px-3 h-16 shrink-0">
         <button
           onClick={onClose}
-          className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-secondary"
+          className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-primary"
         >
           <PanelRight size={20} />
         </button>
@@ -187,7 +187,7 @@ export default function TaskContextPanel({
                 key={f.name}
                 className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-bg-hover transition-colors text-left"
               >
-                <File size={16} className="text-text-secondary shrink-0" />
+                <File size={16} className="text-text-primary shrink-0" />
                 <span className="text-[13px] text-text-primary truncate">{f.name}</span>
               </button>
             ))}
@@ -202,7 +202,7 @@ export default function TaskContextPanel({
                 key={f.name}
                 className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-bg-hover transition-colors text-left"
               >
-                <File size={16} className="text-text-secondary shrink-0" />
+                <File size={16} className="text-text-primary shrink-0" />
                 <span className="text-[13px] text-text-primary truncate">{f.name}</span>
               </button>
             ))}
@@ -217,7 +217,7 @@ export default function TaskContextPanel({
                 key={f.name}
                 className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-bg-hover transition-colors text-left"
               >
-                <File size={16} className="text-text-secondary shrink-0" />
+                <File size={16} className="text-text-primary shrink-0" />
                 <span className="text-[13px] text-text-primary truncate">{f.name}</span>
               </button>
             ))}

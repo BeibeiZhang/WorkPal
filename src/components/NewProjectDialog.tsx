@@ -55,7 +55,7 @@ export default function NewProjectDialog({ open, onClose, onCreate }: NewProject
           onClick={onClose}
           className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center rounded-full hover:bg-bg-hover transition-colors"
         >
-          <X size={18} className="text-text-secondary" />
+          <X size={18} className="text-text-primary" />
         </button>
 
         {/* Header */}
