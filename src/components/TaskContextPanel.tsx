@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, File, Loader } from 'lucide-react';
+import { ChevronDown, File, Loader, PanelRight } from 'lucide-react';
 
 /* ── Types ───────────────────────────────────────────── */
 
@@ -56,7 +56,7 @@ function Section({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border border-stroke-outline rounded-2xl overflow-hidden bg-white dark:bg-[#1a1f2e]">
+    <div className="border border-stroke-outline rounded-2xl overflow-hidden bg-white dark:bg-[#1a1f2e] shrink-0">
       <button
         onClick={() => setOpen(o => !o)}
         className="flex items-center w-full px-5 py-4 text-left hover:bg-bg-hover transition-colors"
@@ -123,8 +123,17 @@ export default function TaskContextPanel({
         background: 'var(--color-bg-page)',
       }}
     >
+      {/* Header with close button */}
+      <div className="flex items-center justify-end px-3 h-16 shrink-0">
+        <button
+          onClick={onClose}
+          className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-secondary"
+        >
+          <PanelRight size={20} />
+        </button>
+      </div>
       {/* Scrollable body */}
-      <div className="flex-1 overflow-y-auto min-h-0 px-3 pt-4 pb-6 flex flex-col gap-4 scrollbar-autohide">
+      <div className="flex-1 overflow-y-auto min-h-0 px-3 pb-6 flex flex-col gap-4 scrollbar-autohide">
 
         {/* Progress */}
         <Section title="Progress" defaultOpen>
