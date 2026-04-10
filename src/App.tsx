@@ -690,6 +690,7 @@ export default function App() {
               onAvatarChange={setSelectedAvatarId}
               onModeChange={(m) => { setInputMode(m); if (m !== 'Tasks') { setTaskModeMsgSent(false); setTaskModeUserMsg(''); } }}
               showContextToggle={inputMode === 'Tasks' && taskModeMsgSent}
+              contextPanelOpen={contextPanelOpen}
               onToggleContextPanel={() => setContextPanelOpen(o => !o)}
             />
             {/* Inline context panel (desktop with enough space) */}

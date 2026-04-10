@@ -17,6 +17,7 @@ interface ChatPanelProps {
   onAvatarChange?: (id: string) => void;
   onModeChange?: (mode: 'Chat' | 'Tasks' | 'Code') => void;
   showContextToggle?: boolean;
+  contextPanelOpen?: boolean;
   onToggleContextPanel?: () => void;
 }
 
@@ -134,6 +135,7 @@ export default function ChatPanel({
   onAvatarChange,
   onModeChange,
   showContextToggle,
+  contextPanelOpen,
   onToggleContextPanel,
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -153,18 +155,16 @@ export default function ChatPanel({
     <div className="flex flex-col h-full flex-1 min-w-0 app-bg">
       {/* Header */}
       <div className="flex items-center justify-between px-4 h-16 shrink-0">
-        {/* Left: menu toggle (when sidebar closed) */}
-        {!sidebarOpen && (
-          <button
-            onClick={onToggleSidebar}
-            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-primary"
-          >
-            <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
-              <rect width="22" height="2" rx="1" fill="currentColor"/>
-              <rect width="15" height="2" rx="1" y="7" fill="currentColor"/>
-            </svg>
-          </button>
-        )}
+        {/* Left: menu toggle — always rendered to prevent layout shift */}
+        <button
+          onClick={onToggleSidebar}
+          className={`w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-primary ${sidebarOpen ? 'invisible' : ''}`}
+        >
+          <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
+            <rect width="22" height="2" rx="1" fill="currentColor"/>
+            <rect width="15" height="2" rx="1" y="7" fill="currentColor"/>
+          </svg>
+        </button>
 
         {/* Center: title */}
         <div className="flex-1 flex items-center justify-center gap-1.5">
@@ -180,17 +180,13 @@ export default function ChatPanel({
           )}
         </div>
 
-        {/* Right: context panel toggle */}
-        {showContextToggle ? (
-          <button
-            onClick={onToggleContextPanel}
-            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-primary"
-          >
-            <PanelRight size={20} />
-          </button>
-        ) : (
-          <div className="w-10" />
-        )}
+        {/* Right: context panel toggle — invisible when panel is open (panel has its own close button) */}
+        <button
+          onClick={onToggleContextPanel}
+          className={`w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-primary ${!(showContextToggle && !contextPanelOpen) ? 'invisible' : ''}`}
+        >
+          <PanelRight size={20} />
+        </button>
       </div>
 
       {/* Messages area */}
