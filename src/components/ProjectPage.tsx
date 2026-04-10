@@ -41,18 +41,18 @@ function SideCard({
       >
         <span className="flex-1 text-[15px] font-semibold text-text-primary">{title}</span>
         {icon && (
-          <span className="text-text-secondary hover:text-text-primary" onClick={e => e.stopPropagation()}>
+          <span className="text-text-primary" onClick={e => e.stopPropagation()}>
             {icon}
           </span>
         )}
         {hasAdd && (
-          <span className="text-text-secondary hover:text-text-primary" onClick={e => e.stopPropagation()}>
+          <span className="text-text-primary" onClick={e => e.stopPropagation()}>
             <Plus size={18} />
           </span>
         )}
         <ChevronDown
           size={16}
-          className={`text-text-secondary transition-transform ${open ? '' : '-rotate-90'}`}
+          className={`text-text-primary transition-transform ${open ? '' : '-rotate-90'}`}
         />
       </button>
       {open && (
@@ -194,7 +194,7 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
         <div className="flex items-center gap-2">
           <button
             onClick={() => setInfoPanelOpen(o => !o)}
-            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-secondary"
+            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-primary"
           >
             <PanelRight size={20} />
           </button>
@@ -216,10 +216,10 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
                   {project.name}
                 </h1>
                 <div className="flex items-center gap-6 shrink-0">
-                  <button className="flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors">
+                  <button className="flex items-center justify-center text-text-primary transition-colors">
                     <Star size={16} />
                   </button>
-                  <button className="flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors">
+                  <button className="flex items-center justify-center text-text-primary transition-colors">
                     <MoreVertical size={18} />
                   </button>
                 </div>
@@ -341,20 +341,20 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
                         return (
                           <button
                             key={r.id}
-                            className="flex items-start gap-4 w-full px-5 py-4 rounded-2xl border border-stroke-outline bg-white dark:bg-[#1a1f2e] hover:bg-bg-hover transition-colors text-left"
+                            className="flex items-start gap-3 w-full px-5 py-4 rounded-2xl border border-stroke-outline bg-white dark:bg-[#1a1f2e] hover:bg-bg-hover transition-colors text-left"
                           >
-                            <div className="w-10 h-10 rounded-full bg-bg-hover flex items-center justify-center shrink-0 mt-0.5">
-                              <Icon size={18} className="text-text-secondary" />
+                            <div className="flex items-center justify-center shrink-0 mt-px">
+                              <Icon size={18} />
                             </div>
                             <div className="flex-1 min-w-0 flex flex-col gap-1.5">
                               <div className="flex items-center justify-between gap-3">
                                 <span className="text-[15px] font-semibold text-text-primary truncate">{r.title}</span>
-                                <span className="text-[13px] text-text-secondary whitespace-nowrap shrink-0">{r.time}</span>
+                                <span className="text-[13px] text-text-primary whitespace-nowrap shrink-0">{r.time}</span>
                               </div>
-                              <p className="text-[13px] text-text-secondary leading-relaxed line-clamp-1">{r.description}</p>
+                              <p className="text-[13px] text-text-primary leading-relaxed line-clamp-1">{r.description}</p>
                               {r.outputTag && (
                                 <div className="flex items-center gap-1.5 mt-0.5">
-                                  <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-stroke-outline text-[12px] text-text-secondary">
+                                  <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-stroke-outline text-[12px] text-text-primary">
                                     <FileCode2 size={12} />
                                     {r.outputTag}
                                   </span>
@@ -401,7 +401,7 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
               <div className="flex justify-end mb-2">
                 <button
                   onClick={() => setInfoPanelOpen(false)}
-                  className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-secondary"
+                  className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-primary"
                 >
                   <X size={18} />
                 </button>
@@ -430,7 +430,7 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
               <SideCard title="Files" defaultOpen>
                 <div className="flex flex-col gap-1">
                   <button className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-bg-hover transition-colors">
-                    <File size={16} className="text-text-secondary shrink-0" />
+                    <File size={16} className="text-text-primary shrink-0" />
                     <span className="text-[14px] text-text-primary">Instructions.md</span>
                   </button>
                 </div>
@@ -440,11 +440,11 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
               <SideCard title="Context" defaultOpen>
                 <div className="flex flex-col gap-1">
                   <button className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-bg-hover transition-colors group">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-secondary shrink-0">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-primary shrink-0">
                       <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                     </svg>
                     <span className="text-[14px] text-text-primary flex-1 text-left">{project.name}</span>
-                    <ChevronRight size={14} className="text-text-secondary shrink-0" />
+                    <ChevronRight size={14} className="text-text-primary shrink-0" />
                   </button>
                 </div>
               </SideCard>

@@ -54,8 +54,8 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4">
-        <div className="max-w-2xl">
+      <div className="flex-1 overflow-y-auto min-h-0 px-4 py-4">
+        <div className="max-w-[960px] mx-auto">
           {/* Title — 40px bold, left-aligned, NOT gradient */}
           <h1
             className="text-text-primary"

@@ -296,7 +296,7 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: Connect
           className="flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[14px] w-full md:w-[200px]"
           style={{ borderColor: 'var(--color-stroke-outline)', background: 'var(--color-bg-hover)' }}
         >
-          <Search size={16} className="shrink-0 text-text-secondary" />
+          <Search size={16} className="shrink-0 text-text-primary" />
           <input
             type="text"
             placeholder="Search"
@@ -359,7 +359,7 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: Connect
                   className="flex items-center justify-center rounded-xl shrink-0"
                   style={{ width: 36, height: 36 }}
                 >
-                  <Plus size={20} className="text-text-secondary" />
+                  <Plus size={20} className="text-text-primary" />
                 </div>
                 <p className="text-[15px] font-semibold text-text-primary" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
                   Add custom API

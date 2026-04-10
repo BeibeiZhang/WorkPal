@@ -9,6 +9,8 @@ import TaskContextPanel from './components/TaskContextPanel';
 import ProjectPage from './components/ProjectPage';
 import ConnectorsPage from './components/ConnectorsPage';
 import DesignSystemPage from './components/DesignSystemPage';
+import ComingSoonPage from './components/ComingSoonPage';
+import LibraryPage from './components/LibraryPage';
 import NewProjectDialog from './components/NewProjectDialog';
 import { Chat, Message, ActionChip, TicketCard, AgentCard } from './types';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
@@ -691,6 +693,17 @@ export default function App() {
           />
         ) : activeView === 'connectors' ? (
           <ConnectorsPage
+            sidebarOpen={sidebarOpen}
+            onToggleSidebar={() => setSidebarOpen(o => !o)}
+          />
+        ) : activeView === 'overview' ? (
+          <ComingSoonPage
+            view="overview"
+            sidebarOpen={sidebarOpen}
+            onToggleSidebar={() => setSidebarOpen(o => !o)}
+          />
+        ) : activeView === 'library' ? (
+          <LibraryPage
             sidebarOpen={sidebarOpen}
             onToggleSidebar={() => setSidebarOpen(o => !o)}
           />

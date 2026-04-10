@@ -174,7 +174,7 @@ function ComponentShowcase() {
           {/* Search */}
           <div className="flex items-center gap-3 px-3 py-1.5 rounded-full border text-[13px]"
             style={{ background: 'var(--color-bg-hover)', borderColor: 'var(--color-stroke-toggle)', color: 'var(--color-text-secondary)' }}>
-            <Search size={14} className="shrink-0 text-text-secondary" />
+            <Search size={14} className="shrink-0 text-text-primary" />
             <span className="text-text-secondary text-[13px]">Search</span>
           </div>
 
@@ -206,7 +206,7 @@ function ComponentShowcase() {
           <div className="mt-2">
             <button className="px-3 flex items-center justify-between w-full rounded-full" style={{ height: 28 }}>
               <p className="text-[13px] font-bold text-text-primary">Projects</p>
-              <ChevronDown size={12} className="text-text-secondary" />
+              <ChevronDown size={12} className="text-text-primary" />
             </button>
           </div>
 

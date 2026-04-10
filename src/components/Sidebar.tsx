@@ -91,7 +91,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
           className="flex items-center gap-4 px-4 py-[7px] rounded-full border text-[17px] leading-[22px]"
           style={{ background: 'var(--color-bg-hover)', borderColor: 'var(--color-stroke-toggle)', color: 'var(--color-text-secondary)' }}
         >
-          <Search size={18} className="shrink-0 text-text-secondary" />
+          <Search size={18} className="shrink-0 text-text-primary" />
           <input
             type="text"
             placeholder="Search"
