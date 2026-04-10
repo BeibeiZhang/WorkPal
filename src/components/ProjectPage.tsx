@@ -157,11 +157,11 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
   const [outputOpen, setOutputOpen] = useState(true);
   const [recentsOpen, setRecentsOpen] = useState(true);
   const isNarrow = useSyncExternalStore(subscribeResize, getIsNarrow);
-  const [infoPanelOpen, setInfoPanelOpen] = useState(false);
+  const [infoPanelOpen, setInfoPanelOpen] = useState(true);
 
-  // Close panel overlay when switching to wide layout
+  // Switch to overlay mode when going narrow, keep panel state when going wide
   useEffect(() => {
-    if (!isNarrow) setInfoPanelOpen(false);
+    if (isNarrow) setInfoPanelOpen(false);
   }, [isNarrow]);
 
   const filteredRecents = recentsFilter === 'All'
@@ -172,7 +172,7 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
     ? DEMO_OUTPUTS
     : DEMO_OUTPUTS.filter(o => o.type === outputFilter);
 
-  const showPanel = isNarrow ? infoPanelOpen : true;
+  const showPanel = infoPanelOpen;
 
   return (
     <div className="flex flex-col h-full flex-1 min-w-0 app-bg relative">
@@ -192,15 +192,12 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
           )}
         </div>
         <div className="flex items-center gap-2">
-          {/* Toggle info panel button — only in narrow mode */}
-          {isNarrow && (
-            <button
-              onClick={() => setInfoPanelOpen(o => !o)}
-              className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-secondary"
-            >
-              <PanelRight size={20} />
-            </button>
-          )}
+          <button
+            onClick={() => setInfoPanelOpen(o => !o)}
+            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-secondary"
+          >
+            <PanelRight size={20} />
+          </button>
         </div>
       </div>
 
@@ -211,7 +208,7 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
         <div className="flex-1 flex flex-col min-w-0">
           {/* Scrollable content area */}
           <div className="flex-1 overflow-y-auto px-8 pb-4 scrollbar-autohide scrollbar-offset" style={{ minWidth: 0 }}>
-            <div className="flex flex-col gap-6 max-w-[863px]">
+            <div className="flex flex-col gap-6 max-w-[863px] mx-auto">
 
               {/* Project title row */}
               <div className="flex items-center justify-between">
@@ -375,7 +372,7 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
           </div>
 
           {/* Bottom input area — pinned to bottom */}
-          <div className="px-8 pb-6 pt-2 max-w-[863px]">
+          <div className="px-8 pb-6 pt-2 max-w-[863px] mx-auto w-full">
             <ChatInput
               onSend={() => {}}
               placeholder="What would you like to work on in this project?"

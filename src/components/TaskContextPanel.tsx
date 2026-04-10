@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, ChevronDown, File, Loader } from 'lucide-react';
+import { ChevronDown, File, Loader } from 'lucide-react';
 
 /* ── Types ───────────────────────────────────────────── */
 
@@ -123,20 +123,8 @@ export default function TaskContextPanel({
         background: 'var(--color-bg-page)',
       }}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between shrink-0 px-5 pt-4 pb-2">
-        <span className="text-[15px] font-semibold text-text-primary">Task Context</span>
-        <button
-          onClick={onClose}
-          className="flex items-center justify-center w-5 h-5 text-text-secondary hover:text-text-primary transition-colors"
-          aria-label="Close panel"
-        >
-          <X size={14} strokeWidth={2} />
-        </button>
-      </div>
-
       {/* Scrollable body */}
-      <div className="flex-1 overflow-y-auto min-h-0 px-3 pb-6 flex flex-col gap-4 scrollbar-autohide">
+      <div className="flex-1 overflow-y-auto min-h-0 px-3 pt-4 pb-6 flex flex-col gap-4 scrollbar-autohide">
 
         {/* Progress */}
         <Section title="Progress" defaultOpen>
