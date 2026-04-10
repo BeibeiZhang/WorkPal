@@ -247,7 +247,7 @@ export default function App() {
   const [taskModeMsgSent, setTaskModeMsgSent] = useState(false);
   const [_taskModeUserMsg, setTaskModeUserMsg] = useState('');
   const [projects, setProjects] = useState<Project[]>([
-    { id: 'proj-1', name: 'Project name 1' },
+    { id: 'proj-1', name: 'Agent Design' },
     { id: 'proj-2', name: 'Project name 2' },
   ]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
@@ -689,7 +689,7 @@ export default function App() {
               selectedAvatarId={selectedAvatarId}
               onAvatarChange={setSelectedAvatarId}
               onModeChange={(m) => { setInputMode(m); if (m !== 'Tasks') { setTaskModeMsgSent(false); setTaskModeUserMsg(''); } }}
-              showContextToggle={inputMode === 'Tasks' && taskModeMsgSent && (!canFitPanel || !contextPanelOpen)}
+              showContextToggle={inputMode === 'Tasks' && taskModeMsgSent}
               onToggleContextPanel={() => setContextPanelOpen(o => !o)}
             />
             {/* Inline context panel (desktop with enough space) */}
