@@ -55,7 +55,7 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto min-h-0 px-4 py-4">
-        <div className="max-w-[960px] mx-auto">
+        <div className="max-w-[863px] mx-auto">
           {/* Title — 40px bold, left-aligned, NOT gradient */}
           <h1
             className="text-text-primary"
@@ -131,7 +131,7 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
 
       {/* Bottom: ChatInput */}
       <div className="px-4 pb-[40px] shrink-0">
-        <div className="max-w-[960px] mx-auto">
+        <div className="max-w-[863px] mx-auto">
           <ChatInput onSend={handleSend} chatOnly />
         </div>
       </div>

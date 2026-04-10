@@ -298,7 +298,7 @@ export default function App() {
   const [_taskModeUserMsg, setTaskModeUserMsg] = useState('');
   const [projects, setProjects] = useState<Project[]>([
     { id: 'proj-1', name: 'Agent Design' },
-    { id: 'proj-2', name: 'Project name 2' },
+    { id: 'proj-2', name: 'Driver Onboarding Redesign' },
   ]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
