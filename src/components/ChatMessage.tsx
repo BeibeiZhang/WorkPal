@@ -1,3 +1,4 @@
+import { useState, useCallback } from 'react';
 import { Message } from '../types';
 import MessageCard from './MessageCard';
 import { iconCopy, iconShare, iconThumbsUp, iconRefresh } from '../assets';
@@ -19,7 +20,42 @@ function renderText(text: string) {
   });
 }
 
-function FeedbackBar() {
+function SpeakerIcon({ playing }: { playing: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`w-4 h-4 ${playing ? 'text-[#7652B9]' : 'opacity-40 hover:opacity-70'}`}>
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+      {playing ? (
+        <>
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+        </>
+      ) : (
+        <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+      )}
+    </svg>
+  );
+}
+
+function FeedbackBar({ text }: { text: string }) {
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  const toggleSpeak = useCallback(() => {
+    if (isSpeaking) {
+      speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+    // Strip markdown bold markers for cleaner TTS
+    const clean = text.replace(/\*\*/g, '');
+    if (!clean.trim()) return;
+    const utterance = new SpeechSynthesisUtterance(clean);
+    utterance.lang = navigator.language || 'en-US';
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    speechSynthesis.speak(utterance);
+    setIsSpeaking(true);
+  }, [text, isSpeaking]);
+
   const actions = [
     { src: iconCopy, label: 'Copy' },
     { src: iconShare, label: 'Share' },
@@ -29,6 +65,14 @@ function FeedbackBar() {
   ];
   return (
     <div className="flex items-center gap-1 mt-2">
+      {/* TTS play/stop button */}
+      <button
+        title={isSpeaking ? 'Stop reading' : 'Read aloud'}
+        onClick={toggleSpeak}
+        className={`w-7 h-7 flex items-center justify-center rounded-lg hover:bg-bg-hover transition-colors ${isSpeaking ? 'bg-bg-hover' : ''}`}
+      >
+        <SpeakerIcon playing={isSpeaking} />
+      </button>
       {actions.map(({ src, label, flip }) => (
         <button
           key={label}
@@ -96,7 +140,7 @@ export default function ChatMessage({ message, isLastAssistant, onCardAction }: 
 
           {/* Feedback bar: always visible on last assistant msg, hover-only on others */}
           <div className={isLastAssistant ? '' : 'opacity-0 group-hover/msg:opacity-100 transition-opacity'}>
-            <FeedbackBar />
+            <FeedbackBar text={message.content || ''} />
           </div>
 
           {/* Action chips moved to input area */}

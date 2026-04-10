@@ -14,6 +14,30 @@ import { Chat, Message, ActionChip, TicketCard, AgentCard } from './types';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
 import { INITIAL_CHATS } from './data';
 
+const STORAGE_KEY = 'workpal-chats';
+
+function loadChats(): Chat[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // Rehydrate Date objects
+      return parsed.map((c: any) => ({
+        ...c,
+        timestamp: new Date(c.timestamp),
+        messages: c.messages.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) })),
+      }));
+    }
+  } catch { /* ignore corrupted data */ }
+  return INITIAL_CHATS;
+}
+
+function saveChats(chats: Chat[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
+  } catch { /* quota exceeded — ignore */ }
+}
+
 const REPORT_CONTENT = `**Introduction**
 As alcohol delivery becomes a growing segment within last-mile logistics, platforms are facing increased scrutiny over age verification, driver compliance, and customer safety. While the convenience of contactless drop-offs has improved efficiency, it has also exposed new legal and operational vulnerabilities. This brief outlines key pain points in alcohol delivery workflows and highlights best practices for mitigating compliance risks.
 
@@ -235,7 +259,7 @@ const getCanFitPanel = () => {
 
 
 export default function App() {
-  const [chats, setChats] = useState<Chat[]>(INITIAL_CHATS);
+  const [chats, setChats] = useState<Chat[]>(loadChats);
   const [activeChatId, setActiveChatId] = useState<string>('my-workpal');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isDark, setIsDark] = useState(false);
@@ -261,7 +285,15 @@ export default function App() {
     document.documentElement.classList.toggle('dark', isDark);
   }, [isDark]);
 
+  // Persist chats to localStorage on every change
+  useEffect(() => {
+    saveChats(chats);
+  }, [chats]);
+
   const activeChat = chats.find(c => c.id === activeChatId) || null;
+
+  // Detect if AI is currently responding (last message is a loading indicator)
+  const isAiResponding = !!activeChat?.messages.some(m => m.isLoading);
 
   const updateChat = useCallback((chatId: string, updater: (chat: Chat) => Chat) => {
     setChats(prev => prev.map(c => c.id === chatId ? updater(c) : c));
@@ -692,6 +724,7 @@ export default function App() {
               showContextToggle={inputMode === 'Tasks' && taskModeMsgSent}
               contextPanelOpen={contextPanelOpen}
               onToggleContextPanel={() => setContextPanelOpen(o => !o)}
+              isAiResponding={isAiResponding}
             />
             {/* Inline context panel (desktop with enough space) */}
             {inputMode === 'Tasks' && taskModeMsgSent && canFitPanel && contextPanelOpen && (

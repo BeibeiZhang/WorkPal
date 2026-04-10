@@ -19,6 +19,7 @@ interface ChatPanelProps {
   showContextToggle?: boolean;
   contextPanelOpen?: boolean;
   onToggleContextPanel?: () => void;
+  isAiResponding?: boolean;
 }
 
 const WELCOME_CHIPS = ['Create performance goals', 'Analyze doc(s)', 'Visualize data'];
@@ -137,6 +138,7 @@ export default function ChatPanel({
   showContextToggle,
   contextPanelOpen,
   onToggleContextPanel,
+  isAiResponding,
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -224,6 +226,7 @@ export default function ChatPanel({
             actionChips={!isNewChat ? activeChips : undefined}
             onChipClick={onChipClick}
             onModeChange={onModeChange}
+            isAiResponding={isAiResponding}
           />
         </div>
       </div>
