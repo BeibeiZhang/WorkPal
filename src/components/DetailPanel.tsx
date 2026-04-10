@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { iconBackArrow, iconShorter, iconExtend, iconFormal, iconTranslate } from '../assets';
+import { X } from 'lucide-react';
+import { iconShorter, iconExtend, iconFormal, iconTranslate } from '../assets';
 
 interface DetailPanelProps {
   title: string;
   content: string;
   onClose: () => void;
+  fullScreen?: boolean;
 }
 
 const AI_OPTIONS = [
@@ -14,32 +16,33 @@ const AI_OPTIONS = [
   { icon: iconTranslate, label: 'Translate' },
 ];
 
-export default function DetailPanel({ title, content, onClose }: DetailPanelProps) {
+export default function DetailPanel({ title, content, onClose, fullScreen = false }: DetailPanelProps) {
   const [optionsOpen, setOptionsOpen] = useState(true);
 
   return (
     <div
-      className="flex flex-col h-full shrink-0 w-[504px] relative"
+      className={`flex flex-col h-full shrink-0 relative ${fullScreen ? 'w-full' : 'w-[504px]'}`}
       style={{
         background: 'var(--color-bg-page)',
         boxShadow: '0px 4px 50px 0px var(--color-stroke-outline)',
       }}
     >
       {/* Header */}
-      <div className="flex items-center gap-8 h-16 px-10 shrink-0">
-        <button
-          onClick={onClose}
-          className="w-11 h-11 flex items-center justify-center shrink-0 hover:bg-bg-hover rounded-full transition-colors"
-        >
-          <img src={iconBackArrow} alt="Back" className="w-[22px] h-[13px] icon-theme" />
-        </button>
-        <p className="font-bold text-base leading-[22px] text-text-primary truncate">
+      <div className="flex items-center gap-4 h-16 pl-10 pr-[32px] shrink-0">
+        <p className="flex-1 font-bold text-base leading-[22px] text-text-primary truncate">
           {title}
         </p>
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="w-11 h-11 flex items-center justify-center shrink-0 hover:bg-bg-hover rounded-full transition-colors text-text-primary"
+        >
+          <X size={20} />
+        </button>
       </div>
 
       {/* Document content */}
-      <div className="flex-1 overflow-y-auto px-10 relative">
+      <div className="flex-1 overflow-y-auto pl-10 pr-[32px] relative">
         {/* Highlighted text indicator */}
         <div
           className="absolute left-8 right-8 top-3 h-[248px] rounded"
@@ -89,7 +92,7 @@ export default function DetailPanel({ title, content, onClose }: DetailPanelProp
         {/* Options popover */}
         {optionsOpen && (
           <div
-            className="absolute left-1/2 -translate-x-1/2 top-[220px] w-[440px] flex flex-col gap-1 p-4 rounded-[20px] border border-stroke-outline z-10"
+            className="absolute left-1/2 -translate-x-1/2 top-[220px] w-[440px] max-w-[calc(100%-32px)] flex flex-col gap-1 p-4 rounded-[20px] border border-stroke-outline z-10"
             style={{
               background: 'var(--color-bg-page)',
               boxShadow: '0px 5px 15px 0px rgba(1, 44, 197, 0.2)',

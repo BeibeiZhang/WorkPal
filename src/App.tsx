@@ -12,7 +12,7 @@ import DesignSystemPage from './components/DesignSystemPage';
 import ComingSoonPage from './components/ComingSoonPage';
 import LibraryPage from './components/LibraryPage';
 import NewProjectDialog from './components/NewProjectDialog';
-import { Chat, Message, ActionChip, TicketCard, AgentCard } from './types';
+import { Chat, Message, ActionChip, TicketCard, AgentCard, ScheduleCard } from './types';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
 import { INITIAL_CHATS } from './data';
 
@@ -236,6 +236,22 @@ function generateResponse(message: string): Omit<Message, 'id' | 'timestamp' | '
   ];
 }
 
+const ALCOHOL_PROGRESS_LABELS = [
+  'Find driver incident reports',
+  'Identify top pain points',
+  'Draft summary report',
+  'Suggest recommendations',
+];
+
+type ProgressStep = { label: string; status: 'completed' | 'active' | 'pending' };
+
+function buildAlcoholProgress(activeIdx: number): ProgressStep[] {
+  return ALCOHOL_PROGRESS_LABELS.map((label, i) => ({
+    label,
+    status: i < activeIdx ? 'completed' : i === activeIdx ? 'active' : 'pending',
+  }));
+}
+
 function findLastIndex<T>(arr: T[], predicate: (item: T) => boolean): number {
   for (let i = arr.length - 1; i >= 0; i--) {
     if (predicate(arr[i])) return i;
@@ -250,6 +266,7 @@ const MOBILE_BREAKPOINT = 768;
 const SIDEBAR_WIDTH = 336;
 const CONTEXT_PANEL_MIN = 260;
 const MAIN_CONTENT_MIN = 360;
+const DETAIL_PANEL_WIDTH = 504;
 const subscribe = (cb: () => void) => { window.addEventListener('resize', cb); return () => window.removeEventListener('resize', cb); };
 const getIsMobile = () => window.innerWidth < MOBILE_BREAKPOINT;
 /** Can the context panel fit beside the main content? */
@@ -257,6 +274,12 @@ const getCanFitPanel = () => {
   const available = window.innerWidth - 16; // m-2 = 8px each side
   const sidebarW = window.innerWidth >= MOBILE_BREAKPOINT ? SIDEBAR_WIDTH : 0;
   return available - sidebarW - MAIN_CONTENT_MIN >= CONTEXT_PANEL_MIN;
+};
+/** Can the detail panel fit beside the main content? */
+const getCanFitDetail = () => {
+  const available = window.innerWidth - 16;
+  const sidebarW = window.innerWidth >= MOBILE_BREAKPOINT ? SIDEBAR_WIDTH : 0;
+  return available - sidebarW - MAIN_CONTENT_MIN >= DETAIL_PANEL_WIDTH;
 };
 
 
@@ -271,6 +294,7 @@ export default function App() {
   const [activeView, setActiveView] = useState<'chat' | 'tasks' | 'connectors' | 'design-system' | 'overview' | 'library'>('chat');
   const [inputMode, setInputMode] = useState<'Chat' | 'Tasks' | 'Code'>('Chat');
   const [taskModeMsgSent, setTaskModeMsgSent] = useState(false);
+  const [taskPanelPreviewing, setTaskPanelPreviewing] = useState(false);
   const [_taskModeUserMsg, setTaskModeUserMsg] = useState('');
   const [projects, setProjects] = useState<Project[]>([
     { id: 'proj-1', name: 'Agent Design' },
@@ -280,7 +304,10 @@ export default function App() {
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const isMobile = useSyncExternalStore(subscribe, getIsMobile);
   const canFitPanel = useSyncExternalStore(subscribe, getCanFitPanel);
+  const canFitDetail = useSyncExternalStore(subscribe, getCanFitDetail);
   const [contextPanelOpen, setContextPanelOpen] = useState(true);
+  // 0–3 = current active step index in alcohol-delivery flow, 4 = all completed
+  const [alcoholProgress, setAlcoholProgress] = useState(4);
 
   // Toggle dark class on root element
   useEffect(() => {
@@ -357,7 +384,94 @@ export default function App() {
     }
   }, [activeChatId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Custom multi-step flow for the Alcohol Delivery Issues demo chat
+  const runAlcoholDeliveryFlow = useCallback((chatId: string) => {
+    const cardMsgId = nextId();
+
+    // 1. Show in-progress research card after a short delay
+    setTimeout(() => {
+      setChats(prev => prev.map(c => {
+        if (c.id !== chatId) return c;
+        const inProgress: Message = {
+          id: cardMsgId,
+          role: 'assistant',
+          content: '',
+          timestamp: new Date(),
+          card: {
+            type: 'research',
+            title: 'Confirming citation',
+            summary: '',
+            status: 'in-progress',
+          },
+        };
+        return { ...c, messages: [...c.messages, inProgress], timestamp: new Date() };
+      }));
+    }, 300);
+
+    // 2. Animate progress steps in the right panel
+    setAlcoholProgress(0);
+    setTimeout(() => setAlcoholProgress(1), 1300);
+    setTimeout(() => setAlcoholProgress(2), 2300);
+    setTimeout(() => setAlcoholProgress(3), 3300);
+
+    // 3. Swap in-progress card → final report preview + chips
+    setTimeout(() => {
+      setAlcoholProgress(4);
+      setChats(prev => prev.map(c => {
+        if (c.id !== chatId) return c;
+        const messages = c.messages.map(m =>
+          m.id === cardMsgId
+            ? {
+                ...m,
+                content: 'All done! Let me know if you\'d like some **recommendations** based on the report findings — or, if it makes sense, we can also **explore solutions** or even **set up a meeting** to discuss things further. 😊',
+                card: {
+                  type: 'research' as const,
+                  title: 'Summary Report: Spark Driver Alcohol',
+                  summary: 'Alcohol delivery introduces a higher regulatory and reputational risk for delivery platforms.',
+                },
+                chips: [
+                  { label: 'Set Up Meeting', action: 'set-up-meeting' },
+                  { label: 'Explore Solutions', action: 'explore-solutions' },
+                  { label: 'View Recommendations', action: 'view-recommendations' },
+                ],
+              }
+            : m
+        );
+        return { ...c, messages };
+      }));
+    }, 4300);
+  }, []);
+
   const handleSend = useCallback((text: string) => {
+    // Special-case the alcohol-delivery demo chat: keep title, run scripted flow
+    if (activeChatId === 'alcohol-delivery') {
+      const userMessage: Message = {
+        id: nextId(),
+        role: 'user',
+        content: text,
+        timestamp: new Date(),
+      };
+      setChats(prev => prev.map(c =>
+        c.id === 'alcohol-delivery'
+          ? { ...c, messages: [...c.messages, userMessage], lastMessage: text, timestamp: new Date() }
+          : c
+      ));
+      setInputMode('Tasks');
+      setTaskModeMsgSent(true);
+      setTaskModeUserMsg(text);
+      if (getCanFitPanel()) {
+        // Desktop with room: open the inline panel directly (original behavior)
+        setContextPanelOpen(true);
+      } else {
+        // Narrow viewport: keep chat in focus, run a preview animation hint
+        setContextPanelOpen(false);
+        setTaskPanelPreviewing(true);
+        window.setTimeout(() => setTaskPanelPreviewing(false), 3000);
+      }
+      runAlcoholDeliveryFlow('alcohol-delivery');
+      return;
+    }
+
     if (inputMode === 'Tasks') { setTaskModeMsgSent(true); setTaskModeUserMsg(text); }
     // Find or create active chat
     let chatId = activeChatId;
@@ -473,6 +587,27 @@ export default function App() {
           messages[idx] = {
             ...messages[idx],
             card: { ...existingCard, status: 'saved' },
+          };
+        }
+        return { ...c, messages };
+      }));
+      return;
+    }
+
+    // confirm-schedule: transition schedule card in-place to "sent" + add closing message
+    if (action === 'confirm-schedule') {
+      setChats(prev => prev.map(c => {
+        if (c.id !== activeChatId) return c;
+        const messages = [...c.messages];
+        const idx = findLastIndex(messages, (m: Message) =>
+          m.card?.type === 'schedule' && (m.card as ScheduleCard).status !== 'sent'
+        );
+        if (idx !== -1) {
+          const existingCard = messages[idx].card as ScheduleCard;
+          messages[idx] = {
+            ...messages[idx],
+            chips: undefined,
+            card: { ...existingCard, status: 'sent', statusLabel: 'Sent' },
           };
         }
         return { ...c, messages };
@@ -616,6 +751,18 @@ export default function App() {
         c.id === 'my-workpal' ? { ...c, messages: [] } : c
       ));
     }
+    // Reset Alcohol Delivery Issues every visit (demo mode)
+    if (id === 'alcohol-delivery') {
+      setChats(prev => prev.map(c =>
+        c.id === 'alcohol-delivery' ? { ...c, messages: [] } : c
+      ));
+      setAlcoholProgress(4);
+      setDetailOpen(false);
+      setContextPanelOpen(false);
+      setTaskPanelPreviewing(false);
+    }
+    // Clear task-mode panel state when switching chats
+    setTaskModeMsgSent(false);
     setActiveChatId(id);
     setActiveProjectId(null);
     setActiveView('chat');
@@ -679,15 +826,6 @@ export default function App() {
           />
         )}
 
-        {/* Detail Panel */}
-        {detailOpen && (
-          <DetailPanel
-            title="Summary Report: Spark Driver Alcohol"
-            content={REPORT_CONTENT}
-            onClose={() => setDetailOpen(false)}
-          />
-        )}
-
         {/* Main Content */}
         {activeProjectId && projects.find(p => p.id === activeProjectId) ? (
           <ProjectPage
@@ -728,14 +866,14 @@ export default function App() {
             onToggleSidebar={() => setSidebarOpen(o => !o)}
           />
         ) : (
-          <>
+          <div className="flex flex-1 min-w-0 app-bg relative">
             <ChatPanel
               chat={activeChat?.id === 'my-workpal' && (!onboardingDone || (activeChat?.messages.length ?? 0) === 0) ? null : activeChat ?? null}
               onSend={handleSend}
               onChipClick={handleChipClick}
               onCardAction={(action) => {
+                if (action === 'view-report') { setDetailOpen(true); setContextPanelOpen(false); return; }
                 handleCardAction(action);
-                if (action === 'view-report') setDetailOpen(true);
               }}
               sidebarOpen={sidebarOpen || !isMobile}
               onToggleSidebar={() => setSidebarOpen(o => !o)}
@@ -743,25 +881,63 @@ export default function App() {
               selectedAvatarId={selectedAvatarId}
               onAvatarChange={setSelectedAvatarId}
               onModeChange={(m) => { setInputMode(m); if (m !== 'Tasks') { setTaskModeMsgSent(false); setTaskModeUserMsg(''); } }}
-              showContextToggle={inputMode === 'Tasks' && taskModeMsgSent}
+              showContextToggle={inputMode === 'Tasks' && taskModeMsgSent && !detailOpen}
               contextPanelOpen={contextPanelOpen}
               onToggleContextPanel={() => setContextPanelOpen(o => !o)}
               isAiResponding={isAiResponding}
+              draftValue={activeChat?.draftPrompt}
+              forceMode={activeChat?.id === 'alcohol-delivery' ? 'Tasks' : undefined}
             />
             {/* Inline context panel (desktop with enough space) */}
-            {inputMode === 'Tasks' && taskModeMsgSent && canFitPanel && contextPanelOpen && (
-              <TaskContextPanel onClose={() => setContextPanelOpen(false)} />
+            {inputMode === 'Tasks' && taskModeMsgSent && canFitPanel && contextPanelOpen && !detailOpen && (
+              <TaskContextPanel
+                onClose={() => setContextPanelOpen(false)}
+                progress={activeChatId === 'alcohol-delivery' ? buildAlcoholProgress(alcoholProgress) : undefined}
+              />
             )}
             {/* Fullscreen overlay context panel (mobile or narrow viewport) */}
-            {inputMode === 'Tasks' && taskModeMsgSent && !canFitPanel && contextPanelOpen && (
-              <>
-                <div className="absolute inset-0 z-20 bg-black/30" onClick={() => setContextPanelOpen(false)} />
-                <div className="absolute inset-0 z-30 flex">
-                  <TaskContextPanel onClose={() => setContextPanelOpen(false)} />
-                </div>
-              </>
+            {inputMode === 'Tasks' && taskModeMsgSent && !canFitPanel && contextPanelOpen && !detailOpen && (
+              <div className="absolute inset-0 z-30 flex">
+                <TaskContextPanel
+                  onClose={() => setContextPanelOpen(false)}
+                  progress={activeChatId === 'alcohol-delivery' ? buildAlcoholProgress(alcoholProgress) : undefined}
+                  fullScreen
+                />
+              </div>
             )}
-          </>
+            {/* Detail Panel — inline (desktop with enough space) */}
+            {detailOpen && canFitDetail && (
+              <DetailPanel
+                title="Summary Report: Spark Driver Alcohol"
+                content={REPORT_CONTENT}
+                onClose={() => { setDetailOpen(false); setContextPanelOpen(true); }}
+              />
+            )}
+            {/* Detail Panel — fullscreen overlay (mobile or narrow viewport) */}
+            {detailOpen && !canFitDetail && (
+              <div className="absolute inset-0 z-30 flex">
+                <DetailPanel
+                  title="Summary Report: Spark Driver Alcohol"
+                  content={REPORT_CONTENT}
+                  onClose={() => { setDetailOpen(false); setContextPanelOpen(true); }}
+                  fullScreen
+                />
+              </div>
+            )}
+            {/* Task panel preview — slides in from right then back out (3s) */}
+            {taskPanelPreviewing && !contextPanelOpen && !detailOpen && (
+              <div
+                className="absolute top-0 right-0 bottom-0 z-20 task-panel-preview pointer-events-none overflow-hidden"
+                style={{ width: 'min(60vw, 504px)' }}
+              >
+                <TaskContextPanel
+                  onClose={() => {}}
+                  progress={activeChatId === 'alcohol-delivery' ? buildAlcoholProgress(alcoholProgress) : undefined}
+                  fullScreen
+                />
+              </div>
+            )}
+          </div>
         )}
       </div>
 

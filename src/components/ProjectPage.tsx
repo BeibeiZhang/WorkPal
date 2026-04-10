@@ -343,7 +343,7 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
                             key={r.id}
                             className="flex items-start gap-3 w-full px-5 py-4 rounded-2xl border border-stroke-outline bg-white dark:bg-[#1a1f2e] hover:bg-bg-hover transition-colors text-left"
                           >
-                            <div className="flex items-center justify-center shrink-0 mt-px">
+                            <div className="flex items-center justify-center shrink-0 mt-px text-text-primary">
                               <Icon size={18} />
                             </div>
                             <div className="flex-1 min-w-0 flex flex-col gap-1.5">

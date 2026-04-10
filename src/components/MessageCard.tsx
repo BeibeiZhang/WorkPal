@@ -1,3 +1,4 @@
+import { Download } from 'lucide-react';
 import { CardData, MeetingCard, ResearchCard, TicketCard, ScheduleCard, AgentCard } from '../types';
 import { iconAsana, iconDoc20, iconGmail, iconUsers, iconPin, iconClock } from '../assets';
 
@@ -7,9 +8,9 @@ interface MessageCardProps {
 }
 
 /* ── Shared card shell ── */
-function CardShell({ children }: { children: React.ReactNode }) {
+function CardShell({ children, className = 'mb-3' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className="border border-stroke-outline rounded-lg overflow-hidden mb-3 w-full max-w-[370px]" style={{ background: 'var(--color-bg-page)' }}>
+    <div className={`border border-stroke-outline rounded-lg overflow-hidden w-full max-w-[370px] ${className}`} style={{ background: 'var(--color-bg-page)' }}>
       {children}
     </div>
   );
@@ -59,7 +60,7 @@ function InfoRow({ icon, children, textClass = 'text-text-primary' }: {
   return (
     <div className="flex items-center gap-2 w-full">
       <div className="w-6 h-6 shrink-0 flex items-center justify-center">
-        <img src={icon} alt="" className="w-[18px] h-[18px] object-contain" />
+        <img src={icon} alt="" className="w-[18px] h-[18px] object-contain icon-theme" />
       </div>
       <p className={`flex-1 text-base leading-[22px] ${textClass}`}>{children}</p>
     </div>
@@ -169,24 +170,21 @@ function LoadingDots() {
 /* ── Status tag (Sent, Done, etc.) ── */
 function StatusTag({ label }: { label: string }) {
   return (
-    <span
-      className="text-sm font-semibold leading-[22px] tracking-[-0.3px] whitespace-nowrap px-[10px] py-1 rounded shrink-0"
-      style={{ background: 'rgba(2, 137, 1, 0.1)', color: '#00c7be' }}
-    >
+    <span className="text-sm font-semibold leading-[22px] tracking-[-0.3px] whitespace-nowrap px-[10px] py-1 rounded shrink-0 bg-[rgba(2,137,1,0.1)] text-[#028901] dark:bg-[rgba(2,137,1,0.2)] dark:text-[#5fd35e]">
       {label}
     </span>
   );
 }
 
 /* ── Research / text-only card ── */
-function ResearchCardView({ card }: { card: ResearchCard }) {
+function ResearchCardView({ card, onAction }: { card: ResearchCard; onAction?: (a: string) => void }) {
   // In-progress state: compact card with loading dots and status tag
   if (card.status === 'in-progress' || card.status === 'sent') {
     return (
       <CardShell>
         <div className="flex items-center gap-2 px-4 h-[61px]">
           <div className="w-6 h-6 shrink-0 flex items-center justify-center">
-            <img src={iconDoc20} alt="" className="w-[18px] h-[18px] object-contain icon-theme" />
+            <img src={iconDoc20} alt="" className="w-[18px] h-[18px] object-contain" />
           </div>
           <div className="flex-1 flex items-center gap-[10px] overflow-hidden">
             <p className="font-bold text-base leading-[22px] text-text-primary whitespace-nowrap">
@@ -200,22 +198,49 @@ function ResearchCardView({ card }: { card: ResearchCard }) {
     );
   }
 
-  // Default: full card with content
+  // Default: full card with content — clickable to open the report detail panel
   const parts = card.summary.split(/(\*\*[^*]+\*\*)/g);
   return (
-    <CardShell>
-      <CardHeader icon={iconDoc20} title={card.title} borderBottom />
-      <div className="p-4">
-        <p className="text-base leading-[22px] text-text-primary">
-          {parts.map((part, i) => {
-            if (part.startsWith('**') && part.endsWith('**')) {
-              return <span key={i} className="font-bold">{part.slice(2, -2)}</span>;
-            }
-            return <span key={i}>{part}</span>;
-          })}
-        </p>
-      </div>
-    </CardShell>
+    <button
+      type="button"
+      onClick={() => onAction?.('view-report')}
+      className="inline-block max-w-full mb-3 text-left cursor-pointer transition-shadow hover:shadow-[0_4px_20px_rgba(1,44,197,0.12)] rounded-lg"
+    >
+      <CardShell className="">
+        <CardHeader
+          icon={iconDoc20}
+          title={card.title}
+          borderBottom
+          rightElement={
+            <span
+              role="button"
+              tabIndex={0}
+              aria-label="Download report"
+              onClick={(e) => { e.stopPropagation(); onAction?.('download-report'); }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.stopPropagation();
+                  onAction?.('download-report');
+                }
+              }}
+              className="w-6 h-6 shrink-0 flex items-center justify-center text-text-primary cursor-pointer rounded hover:bg-bg-hover"
+            >
+              <Download size={18} />
+            </span>
+          }
+        />
+        <div className="p-4">
+          <p className="text-base leading-[22px] text-text-primary">
+            {parts.map((part, i) => {
+              if (part.startsWith('**') && part.endsWith('**')) {
+                return <span key={i} className="font-bold">{part.slice(2, -2)}</span>;
+              }
+              return <span key={i}>{part}</span>;
+            })}
+          </p>
+        </div>
+      </CardShell>
+    </button>
   );
 }
 
@@ -307,9 +332,15 @@ function TicketCardView({ card, onAction }: { card: TicketCard; onAction?: (a: s
 
 /* ── Schedule / radio-list card ── */
 function ScheduleCardView({ card, onAction }: { card: ScheduleCard; onAction?: (a: string) => void }) {
+  const isSent = card.status === 'sent';
   return (
     <CardShell>
-      <CardHeader icon={iconGmail} title={card.title} borderBottom />
+      <CardHeader
+        icon={iconGmail}
+        title={card.title}
+        borderBottom
+        rightElement={isSent ? <StatusTag label={card.statusLabel || 'Sent'} /> : undefined}
+      />
       <div className="p-4 flex flex-col gap-4">
         {/* Meeting info */}
         <div className="flex flex-col gap-2">
@@ -331,10 +362,10 @@ function ScheduleCardView({ card, onAction }: { card: ScheduleCard; onAction?: (
         </div>
 
         {/* Divider */}
-        {card.timeOptions && card.timeOptions.length > 0 && <Divider />}
+        {!isSent && card.timeOptions && card.timeOptions.length > 0 && <Divider />}
 
         {/* Scheduling section */}
-        {card.timeOptions && card.timeOptions.length > 0 && (
+        {!isSent && card.timeOptions && card.timeOptions.length > 0 && (
           <div className="flex flex-col gap-2">
             <p className="font-bold text-base leading-[22px] text-text-primary h-[30px] flex items-center">
               Scheduling
@@ -367,9 +398,11 @@ function ScheduleCardView({ card, onAction }: { card: ScheduleCard; onAction?: (
           </div>
         )}
       </div>
-      <div className="px-4 pb-4">
-        <GradientButton label="Send" onClick={() => onAction?.('confirm-schedule')} />
-      </div>
+      {!isSent && (
+        <div className="px-4 pb-4">
+          <GradientButton label="Send" onClick={() => onAction?.('confirm-schedule')} />
+        </div>
+      )}
     </CardShell>
   );
 }
@@ -478,7 +511,7 @@ function AgentCardView({ card, onAction }: { card: AgentCard; onAction?: (a: str
    ═══════════════════════════════════════════════════ */
 export default function MessageCard({ card, onAction }: MessageCardProps) {
   if (card.type === 'meeting') return <MeetingCardView card={card as MeetingCard} />;
-  if (card.type === 'research') return <ResearchCardView card={card as ResearchCard} />;
+  if (card.type === 'research') return <ResearchCardView card={card as ResearchCard} onAction={onAction} />;
   if (card.type === 'ticket') return <TicketCardView card={card as TicketCard} onAction={onAction} />;
   if (card.type === 'schedule') return <ScheduleCardView card={card as ScheduleCard} onAction={onAction} />;
   if (card.type === 'agent') return <AgentCardView card={card as AgentCard} onAction={onAction} />;

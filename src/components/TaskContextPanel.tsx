@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, File, Loader, PanelRight } from 'lucide-react';
+import { ChevronDown, File, MessageCircle, PanelRight } from 'lucide-react';
 
 /* ── Types ───────────────────────────────────────────── */
 
@@ -18,6 +18,7 @@ interface TaskContextPanelProps {
   folder?: FileEntry[];
   context?: FileEntry[];
   toolsActive?: FileEntry[];
+  fullScreen?: boolean;
 }
 
 /* ── Defaults ────────────────────────────────────────── */
@@ -56,7 +57,7 @@ function Section({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border border-stroke-outline rounded-2xl overflow-hidden bg-white dark:bg-[#1a1f2e] shrink-0">
+    <div className="border border-stroke-outline rounded-2xl overflow-hidden shrink-0">
       <button
         onClick={() => setOpen(o => !o)}
         className="flex items-center w-full px-5 py-4 text-left hover:bg-bg-hover transition-colors"
@@ -64,7 +65,7 @@ function Section({
         <span className="flex-1 text-[15px] font-semibold text-text-primary">{title}</span>
         <ChevronDown
           size={16}
-          className={`text-text-secondary transition-transform ${open ? '' : '-rotate-90'}`}
+          className={`text-text-primary transition-transform ${open ? '' : '-rotate-90'}`}
         />
       </button>
       {open && (
@@ -90,10 +91,13 @@ function CompletedIcon() {
   );
 }
 
-function ActiveIcon() {
+function ActiveIcon({ number }: { number: number }) {
   return (
-    <div className="w-[22px] h-[22px] rounded-full flex items-center justify-center shrink-0 border-2 border-stroke-outline">
-      <Loader size={12} className="text-text-secondary animate-spin" />
+    <div
+      className="w-[22px] h-[22px] rounded-full flex items-center justify-center shrink-0 border-[1.5px]"
+      style={{ borderColor: '#3171ff' }}
+    >
+      <span className="text-[11px] font-medium" style={{ color: '#3171ff' }}>{number}</span>
     </div>
   );
 }
@@ -101,7 +105,7 @@ function ActiveIcon() {
 function PendingIcon({ number }: { number: number }) {
   return (
     <div className="w-[22px] h-[22px] rounded-full flex items-center justify-center shrink-0 border-[1.5px] border-stroke-outline">
-      <span className="text-[11px] font-medium text-text-secondary">{number}</span>
+      <span className="text-[11px] font-medium text-text-primary">{number}</span>
     </div>
   );
 }
@@ -114,13 +118,13 @@ export default function TaskContextPanel({
   folder = DEFAULT_FOLDER,
   context = DEFAULT_CONTEXT,
   toolsActive = DEFAULT_TOOLS,
+  fullScreen = false,
 }: TaskContextPanelProps) {
   return (
     <div
-      className="flex flex-col h-full shrink-0"
+      className={`flex flex-col h-full shrink-0 ${fullScreen ? 'w-full app-bg' : ''}`}
       style={{
-        width: 280,
-        background: 'var(--color-bg-page)',
+        width: fullScreen ? undefined : 280,
       }}
     >
       {/* Header with close button */}
@@ -141,24 +145,28 @@ export default function TaskContextPanel({
             {progress.map((step, i) => {
               const stepNumber = i + 1;
 
+              const isCompleted = step.status === 'completed';
+              const isActive = step.status === 'active';
               return (
                 <div key={i} className="flex items-start gap-3 relative" style={{ paddingBottom: i < progress.length - 1 ? 16 : 0 }}>
-                  {/* Vertical connector line */}
+                  {/* Vertical connector line — solid after a completed step, dashed after active/pending */}
                   {i < progress.length - 1 && (
                     <div
                       className="absolute left-[10px] w-px"
                       style={{
                         top: 22,
                         bottom: 0,
-                        borderLeft: '1.5px solid var(--color-stroke-outline)',
+                        borderLeft: isCompleted
+                          ? '1.5px solid #3171ff'
+                          : '1.5px dashed var(--color-stroke-outline)',
                       }}
                     />
                   )}
                   {/* Step icon */}
-                  {step.status === 'completed' ? (
+                  {isCompleted ? (
                     <CompletedIcon />
-                  ) : step.status === 'active' ? (
-                    <ActiveIcon />
+                  ) : isActive ? (
+                    <ActiveIcon number={stepNumber} />
                   ) : (
                     <PendingIcon number={stepNumber} />
                   )}
@@ -166,13 +174,18 @@ export default function TaskContextPanel({
                   <span
                     className="flex-1 min-w-0 text-[13px] leading-[22px] pt-px"
                     style={{
-                      color: step.status === 'completed'
+                      color: isCompleted
                         ? 'var(--color-text-secondary)'
                         : 'var(--color-text-primary)',
+                      textDecoration: isCompleted ? 'line-through' : 'none',
                     }}
                   >
                     {step.label}
                   </span>
+                  {/* Active step: chat bubble icon at the right */}
+                  {isActive && (
+                    <MessageCircle size={16} className="text-text-primary shrink-0 mt-[3px]" />
+                  )}
                 </div>
               );
             })}

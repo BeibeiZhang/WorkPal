@@ -64,7 +64,7 @@ function FeedbackBar({ text }: { text: string }) {
     { src: iconRefresh, label: 'Retry' },
   ];
   return (
-    <div className="flex items-center gap-1.5 md:gap-1 mt-2">
+    <div className="flex items-center gap-1.5 md:gap-1 mt-2 text-text-primary">
       {/* TTS play/stop button */}
       <button
         title={isSpeaking ? 'Stop reading' : 'Read aloud'}
