@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useSyncExternalStore } from 'react';
-import Sidebar from './components/Sidebar';
+import Sidebar, { MiniSidebar } from './components/Sidebar';
 import type { Project } from './components/Sidebar';
 import ChatPanel from './components/ChatPanel';
 import DetailPanel from './components/DetailPanel';
@@ -641,7 +641,7 @@ export default function App() {
       {/* Outer rounded container */}
       <div className="flex-1 flex overflow-hidden m-2 rounded-[40px] shadow-2xl relative" style={{ border: `1px solid var(--color-outer-border)` }}>
         {/* Sidebar */}
-        {sidebarOpen && (
+        {sidebarOpen ? (
           <>
             {/* Backdrop overlay on mobile */}
             {isMobile && (
@@ -668,6 +668,15 @@ export default function App() {
               />
             </div>
           </>
+        ) : !isMobile && (
+          <MiniSidebar
+            activeView={activeView}
+            activeChatId={activeChatId}
+            onViewChange={(view) => { setActiveView(view); setActiveProjectId(null); }}
+            onChatSelect={handleChatSelect}
+            onNewChat={handleNewChat}
+            onToggleSidebar={() => setSidebarOpen(o => !o)}
+          />
         )}
 
         {/* Detail Panel */}
@@ -683,39 +692,39 @@ export default function App() {
         {activeProjectId && projects.find(p => p.id === activeProjectId) ? (
           <ProjectPage
             project={projects.find(p => p.id === activeProjectId)!}
-            sidebarOpen={sidebarOpen}
+            sidebarOpen={sidebarOpen || !isMobile}
             onToggleSidebar={() => setSidebarOpen(o => !o)}
           />
         ) : activeView === 'design-system' ? (
           <DesignSystemPage
-            sidebarOpen={sidebarOpen}
+            sidebarOpen={sidebarOpen || !isMobile}
             onToggleSidebar={() => setSidebarOpen(o => !o)}
           />
         ) : activeView === 'connectors' ? (
           <ConnectorsPage
-            sidebarOpen={sidebarOpen}
+            sidebarOpen={sidebarOpen || !isMobile}
             onToggleSidebar={() => setSidebarOpen(o => !o)}
           />
         ) : activeView === 'overview' ? (
           <ComingSoonPage
             view="overview"
-            sidebarOpen={sidebarOpen}
+            sidebarOpen={sidebarOpen || !isMobile}
             onToggleSidebar={() => setSidebarOpen(o => !o)}
           />
         ) : activeView === 'library' ? (
           <LibraryPage
-            sidebarOpen={sidebarOpen}
+            sidebarOpen={sidebarOpen || !isMobile}
             onToggleSidebar={() => setSidebarOpen(o => !o)}
           />
         ) : activeView === 'tasks' ? (
           <TaskScreen
-            sidebarOpen={sidebarOpen}
+            sidebarOpen={sidebarOpen || !isMobile}
             onToggleSidebar={() => setSidebarOpen(o => !o)}
           />
         ) : !onboardingDone && activeChatId === 'my-workpal' ? (
           <Onboarding
             onComplete={handleOnboardingComplete}
-            sidebarOpen={sidebarOpen}
+            sidebarOpen={sidebarOpen || !isMobile}
             onToggleSidebar={() => setSidebarOpen(o => !o)}
           />
         ) : (
@@ -728,7 +737,7 @@ export default function App() {
                 handleCardAction(action);
                 if (action === 'view-report') setDetailOpen(true);
               }}
-              sidebarOpen={sidebarOpen}
+              sidebarOpen={sidebarOpen || !isMobile}
               onToggleSidebar={() => setSidebarOpen(o => !o)}
               isDark={isDark}
               selectedAvatarId={selectedAvatarId}

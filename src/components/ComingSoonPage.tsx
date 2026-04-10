@@ -1,5 +1,3 @@
-import { LayoutDashboard, BookOpen } from 'lucide-react';
-
 export type ComingSoonView = 'overview' | 'library';
 
 interface ComingSoonPageProps {
@@ -8,25 +6,25 @@ interface ComingSoonPageProps {
   onToggleSidebar: () => void;
 }
 
-const TITLES: Record<ComingSoonView, { title: string; Icon: typeof LayoutDashboard }> = {
-  overview: { title: 'Overview', Icon: LayoutDashboard },
-  library: { title: 'Library', Icon: BookOpen },
+const TITLES: Record<ComingSoonView, string> = {
+  overview: 'Overview',
+  library: 'Library',
 };
 
 const PINK_BG = '#FFAFA7';
 
 export default function ComingSoonPage({ view, sidebarOpen, onToggleSidebar }: ComingSoonPageProps) {
-  const { title, Icon } = TITLES[view];
+  const title = TITLES[view];
 
   return (
     <div className="flex-1 flex flex-col min-w-0 h-full" style={{ background: PINK_BG }}>
 
-      {/* Header bar */}
-      <div className="flex items-center gap-4 px-8 h-16 shrink-0">
+      {/* Header bar — toggle only */}
+      <div className="flex items-center gap-4 px-4 h-12 shrink-0">
         {!sidebarOpen && (
           <button
             onClick={onToggleSidebar}
-            className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors shrink-0"
+            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/20 transition-colors shrink-0"
             style={{ color: '#142740' }}
           >
             <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
@@ -35,18 +33,19 @@ export default function ComingSoonPage({ view, sidebarOpen, onToggleSidebar }: C
             </svg>
           </button>
         )}
-        <div className="flex items-center gap-2">
-          <Icon size={20} style={{ color: '#142740' }} />
-          <h1
-            className="text-[20px] font-bold tracking-[-0.43px]"
-            style={{
-              color: '#142740',
-              fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-            }}
-          >
-            {title}
-          </h1>
-        </div>
+      </div>
+
+      {/* Page title — Agent Design style */}
+      <div className="px-8 pb-2 shrink-0">
+        <h1
+          className="text-[40px] font-bold leading-[48px] tracking-[-0.5px]"
+          style={{
+            color: '#142740',
+            fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
+          }}
+        >
+          {title}
+        </h1>
       </div>
 
       {/* Content — centered video + Coming Soon text */}

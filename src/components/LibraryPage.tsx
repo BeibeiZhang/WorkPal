@@ -206,7 +206,7 @@ function LibraryCard({ item }: { item: LibraryItem }) {
             className="absolute inset-0 w-full h-full object-cover"
           />
         ) : (
-          <div className="absolute inset-x-0 top-0 bottom-[68px] flex items-center justify-center pointer-events-none">
+          <div className="absolute inset-x-0 top-0 bottom-[48px] flex items-center justify-center pointer-events-none">
             <div className="w-[30%] aspect-square">
               <TypeIcon strokeWidth={1.6} style={{ color: '#fff', width: '100%', height: '100%' }} />
             </div>
@@ -268,27 +268,6 @@ function LibraryCard({ item }: { item: LibraryItem }) {
           >
             {item.title}
           </p>
-          <div className="flex items-center gap-1.5 mt-1">
-            <p
-              className="text-white truncate"
-              style={{
-                fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-                fontSize: 11,
-                fontWeight: 400,
-                lineHeight: '14px',
-              }}
-            >
-              {item.source} · {item.createdAt}
-            </p>
-            {item.duration && (
-              <span
-                className="ml-auto px-1.5 py-0.5 rounded text-[10px] font-medium text-white shrink-0"
-                style={{ background: 'rgba(0,0,0,0.25)' }}
-              >
-                {item.duration}
-              </span>
-            )}
-          </div>
         </div>
       </div>
     </div>
@@ -324,13 +303,12 @@ export default function LibraryPage({ sidebarOpen, onToggleSidebar }: LibraryPag
   return (
     <div className="flex-1 flex flex-col min-w-0 h-full" style={{ background: 'var(--color-bg-page)' }}>
 
-      {/* Header bar */}
-      <div className="flex items-center gap-4 px-4 sm:px-8 h-16 shrink-0">
+      {/* Header bar — toggle only */}
+      <div className="flex items-center gap-4 px-4 h-12 shrink-0">
         {!sidebarOpen && (
           <button
             onClick={onToggleSidebar}
-            className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-bg-hover transition-colors shrink-0"
-            style={{ color: 'var(--color-icon-primary)' }}
+            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors shrink-0 text-text-primary"
           >
             <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
               <rect width="22" height="2" rx="1" fill="currentColor" />
@@ -338,18 +316,17 @@ export default function LibraryPage({ sidebarOpen, onToggleSidebar }: LibraryPag
             </svg>
           </button>
         )}
-        <div className="flex items-center gap-2">
-          <BookOpen size={20} className="text-text-primary" />
-          <h1
-            className="text-[20px] font-bold text-text-primary tracking-[-0.43px]"
-            style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
-          >
-            Library
-          </h1>
-        </div>
+      </div>
 
-        {/* Search — right aligned */}
-        <div className="ml-auto hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full w-[260px]"
+      {/* Page title row — Agent Design style + search */}
+      <div className="flex items-center gap-4 px-4 sm:px-8 pb-2 shrink-0">
+        <h1
+          className="flex-1 text-[40px] font-bold text-text-primary leading-[48px] tracking-[-0.5px]"
+          style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
+        >
+          Library
+        </h1>
+        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full w-[260px]"
           style={{ background: 'var(--color-bg-hover)' }}
         >
           <Search size={16} className="shrink-0 text-text-primary" />

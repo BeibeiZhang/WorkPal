@@ -3,7 +3,7 @@ import { PanelRight } from 'lucide-react';
 import { Chat, Message, ActionChip } from '../types';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
-import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan, iconChevronDown } from '../assets';
+import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from '../assets';
 
 interface ChatPanelProps {
   chat: Chat | null;
@@ -147,49 +147,34 @@ export default function ChatPanel({
   }, [chat?.messages]);
 
   const isNewChat = !chat || chat.messages.length === 0;
-  const chatTitle = chat?.title || 'WorkPal';
-
   // Get chips from the last assistant message (for bottom input area)
   const lastMessage = chat?.messages?.[chat.messages.length - 1];
   const activeChips = lastMessage?.role === 'assistant' && lastMessage.chips?.length ? lastMessage.chips : undefined;
 
   return (
-    <div className="flex flex-col h-full flex-1 min-w-0 app-bg">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 h-16 shrink-0">
-        {/* Left: menu toggle — always rendered to prevent layout shift */}
+    <div className="relative flex flex-col h-full flex-1 min-w-0 app-bg">
+      {/* Floating menu toggle — only when sidebar is closed */}
+      {!sidebarOpen && (
         <button
           onClick={onToggleSidebar}
-          className={`w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-primary ${sidebarOpen ? 'invisible' : ''}`}
+          className="absolute top-3 left-4 z-10 w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-primary"
         >
           <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
             <rect width="22" height="2" rx="1" fill="currentColor"/>
             <rect width="15" height="2" rx="1" y="7" fill="currentColor"/>
           </svg>
         </button>
+      )}
 
-        {/* Center: title */}
-        <div className="flex-1 flex items-center justify-center gap-1.5">
-          {chat && chat.id !== 'my-workpal' ? (
-            <h2 className="text-base font-semibold text-text-primary">{chatTitle}</h2>
-          ) : (
-            <div className="flex items-center gap-1.5">
-              <h2 className="text-base font-semibold text-text-primary">WorkPal</h2>
-              <div className="relative overflow-hidden w-5 h-5 shrink-0 flex items-center justify-center">
-                <img src={iconChevronDown} alt="" className="object-contain opacity-50 icon-theme" style={{ width: 12, height: 6 }} />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Right: context panel toggle — invisible when panel is open (panel has its own close button) */}
+      {/* Floating context panel toggle — only when applicable */}
+      {showContextToggle && !contextPanelOpen && (
         <button
           onClick={onToggleContextPanel}
-          className={`w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-primary ${!(showContextToggle && !contextPanelOpen) ? 'invisible' : ''}`}
+          className="absolute top-3 right-4 z-10 w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-primary"
         >
           <PanelRight size={20} />
         </button>
-      </div>
+      )}
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto min-h-0 px-8 py-4">
