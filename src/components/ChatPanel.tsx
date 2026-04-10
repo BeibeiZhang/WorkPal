@@ -20,6 +20,8 @@ interface ChatPanelProps {
   contextPanelOpen?: boolean;
   onToggleContextPanel?: () => void;
   isAiResponding?: boolean;
+  draftValue?: string;
+  forceMode?: 'Chat' | 'Tasks' | 'Code';
 }
 
 const WELCOME_CHIPS = ['Create performance goals', 'Analyze doc(s)', 'Visualize data'];
@@ -139,6 +141,8 @@ export default function ChatPanel({
   contextPanelOpen,
   onToggleContextPanel,
   isAiResponding,
+  draftValue,
+  forceMode,
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -146,13 +150,13 @@ export default function ChatPanel({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chat?.messages]);
 
-  const isNewChat = !chat || chat.messages.length === 0;
+  const isNewChat = (!chat || chat.messages.length === 0) && !chat?.draftPrompt;
   // Get chips from the last assistant message (for bottom input area)
   const lastMessage = chat?.messages?.[chat.messages.length - 1];
   const activeChips = lastMessage?.role === 'assistant' && lastMessage.chips?.length ? lastMessage.chips : undefined;
 
   return (
-    <div className="relative flex flex-col h-full flex-1 min-w-0 app-bg">
+    <div className="relative flex flex-col h-full flex-1 min-w-[360px]">
       {/* Floating menu toggle — only when sidebar is closed */}
       {!sidebarOpen && (
         <button
@@ -212,6 +216,9 @@ export default function ChatPanel({
             onChipClick={onChipClick}
             onModeChange={onModeChange}
             isAiResponding={isAiResponding}
+            chatKey={chat?.id}
+            draftValue={draftValue}
+            forceMode={forceMode}
           />
         </div>
       </div>

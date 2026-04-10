@@ -119,43 +119,8 @@ export const INITIAL_CHATS: Chat[] = [
     lastMessage: 'Find any reports about Spark drivers...',
     timestamp: new Date(Date.now() - 3600000),
     isActive: true,
-    messages: [
-      {
-        id: '1',
-        role: 'user',
-        content: 'Find any reports about Spark drivers experiencing issues with alcohol deliveries and summarize the key pain points.',
-        timestamp: new Date(Date.now() - 3600000),
-      },
-      {
-        id: '1b',
-        role: 'assistant',
-        content: '',
-        timestamp: new Date(Date.now() - 3550000),
-        card: {
-          type: 'research',
-          title: 'Confirming citation',
-          summary: '',
-          status: 'in-progress',
-          statusLabel: 'Sent',
-        },
-      },
-      {
-        id: '2',
-        role: 'assistant',
-        content: 'All done! Let me know if you\'d like some **recommendations** based on the report findings — or, if it makes sense, we can also **explore solutions** or even **set up a meeting** to discuss things further. 😊',
-        timestamp: new Date(Date.now() - 3500000),
-        card: {
-          type: 'research',
-          title: 'Pickup & Drop-off V4 Metrics Report',
-          summary: 'The Pickup & Drop-off V4 Report shows a **12% improvement** in delivery efficiency, reducing average wait time from **8.5 minutes to 7.4 minutes**.',
-        },
-        chips: [
-          { label: 'Set Up Meeting', action: 'set-up-meeting' },
-          { label: 'Explore Solutions', action: 'explore-solutions' },
-          { label: 'View Recommendations', action: 'view-recommendations' },
-        ],
-      },
-    ],
+    draftPrompt: 'Find any reports about Spark drivers experiencing issues with alcohol deliveries and summarize the key pain points.',
+    messages: [],
   },
   {
     id: 'ux-meeting',

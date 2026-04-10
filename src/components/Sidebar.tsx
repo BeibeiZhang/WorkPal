@@ -141,7 +141,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
   );
 
   return (
-    <div className="flex flex-col h-full w-[320px] select-none shrink-0" style={{ background: 'var(--color-sidebar-bg)', borderRight: '1px solid var(--color-stroke-outline)' }}>
+    <div className="flex flex-col h-full w-[300px] select-none shrink-0" style={{ background: 'var(--color-sidebar-bg)', borderRight: '1px solid var(--color-stroke-outline)' }}>
 
       {/* Top toolbar */}
       <div className="flex items-center justify-between px-6 h-16 shrink-0">

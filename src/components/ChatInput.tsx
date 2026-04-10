@@ -51,6 +51,12 @@ interface ChatInputProps {
   onModeChange?: (mode: 'Chat' | 'Tasks' | 'Code') => void;
   chatOnly?: boolean;
   isAiResponding?: boolean;
+  /** Identifier for the active chat — when this changes, draftValue/forceMode are re-applied. */
+  chatKey?: string;
+  /** Value to populate the input with when chatKey changes. */
+  draftValue?: string;
+  /** Mode to force when chatKey changes. */
+  forceMode?: InputMode;
 }
 
 /** Exact pixel dimensions from Figma for each toolbar icon within its 24×24 container */
@@ -164,11 +170,11 @@ const FOLDER_OPTIONS = [
 /** Simulated branch options */
 const BRANCH_OPTIONS = ['main', 'develop', 'feature/chat-input', 'fix/ui-polish'];
 
-export default function ChatInput({ onSend, placeholder = 'Message WorkPal', quickChips, actionChips, onChipClick, onModeChange, chatOnly, isAiResponding }: ChatInputProps) {
-  const [value, setValue] = useState('');
+export default function ChatInput({ onSend, placeholder = 'Message WorkPal', quickChips, actionChips, onChipClick, onModeChange, chatOnly, isAiResponding, chatKey, draftValue, forceMode }: ChatInputProps) {
+  const [value, setValue] = useState(() => draftValue ?? '');
   const [focused, setFocused] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
-  const [mode, setMode] = useState<InputMode>('Chat');
+  const [mode, setMode] = useState<InputMode>(() => forceMode ?? 'Chat');
   const [folder, setFolder] = useState(FOLDER_OPTIONS[0]);
   const [showFolderMenu, setShowFolderMenu] = useState(false);
   const [branch, setBranch] = useState(BRANCH_OPTIONS[0]);
@@ -182,6 +188,27 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
   const attachRef = useRef<HTMLDivElement>(null);
   const folderRef = useRef<HTMLDivElement>(null);
   const branchRef = useRef<HTMLDivElement>(null);
+
+  // Sync draft value + forced mode whenever the active chat changes
+  const lastChatKeyRef = useRef<string | undefined>(chatKey);
+  useEffect(() => {
+    if (chatKey === lastChatKeyRef.current) return;
+    lastChatKeyRef.current = chatKey;
+    setValue(draftValue ?? '');
+    if (forceMode && forceMode !== mode) {
+      setMode(forceMode);
+      onModeChange?.(forceMode);
+    }
+  }, [chatKey, draftValue, forceMode, mode, onModeChange]);
+
+  // Auto-resize textarea whenever its value changes (covers both typing and
+  // programmatic updates like draft pre-fills, voice transcription, etc.)
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+  }, [value]);
 
   // Simulated voice phrases for demo fallback when mic permission is denied
   const DEMO_PHRASES = [
@@ -430,12 +457,12 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
 
       {/* Action chips from last AI message */}
       {actionChips && actionChips.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex gap-2 overflow-x-auto scrollbar-autohide -mx-4 px-4">
           {actionChips.map(chip => (
             <button
               key={chip.action}
               onClick={() => onChipClick?.(chip)}
-              className="chip-gradient-hover px-3 py-1 rounded-full border border-stroke-outline text-base leading-[22px] text-text-primary transition-colors cursor-pointer"
+              className="chip-gradient-hover shrink-0 px-3 py-1 rounded-full border border-stroke-outline text-base leading-[22px] text-text-primary transition-colors cursor-pointer whitespace-nowrap"
             >
               {chip.label}
             </button>
@@ -468,7 +495,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
           onBlur={() => setFocused(false)}
           placeholder={voicePlaceholder}
           rows={1}
-          className="w-full bg-transparent resize-none outline-none text-text-primary placeholder-text-tertiary"
+          className="w-full bg-transparent resize-none outline-none text-text-primary placeholder-text-tertiary chat-textarea"
           style={{
             fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
             fontSize: 16,

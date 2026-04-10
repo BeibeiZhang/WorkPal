@@ -51,6 +51,8 @@ export interface ScheduleCard {
   location?: string;
   timeOptions?: TimeOption[];
   type: 'schedule';
+  status?: 'pending' | 'sent';
+  statusLabel?: string;
 }
 
 export interface AgentCard {
@@ -81,6 +83,7 @@ export interface Chat {
   timestamp: Date;
   messages: Message[];
   isActive?: boolean;
+  draftPrompt?: string;
 }
 
 export interface App {
