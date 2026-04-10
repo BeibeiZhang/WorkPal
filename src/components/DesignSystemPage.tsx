@@ -24,23 +24,23 @@ interface DesignSystemPageProps {
 
 /* ---- Color swatch data ---- */
 const COLORS = [
-  { name: 'Text Primary', var: '--color-text-primary', light: '#142740', dark: '#FFFFFF' },
-  { name: 'Text Secondary', var: '--color-text-secondary', light: 'rgba(20,39,64,0.7)', dark: 'rgba(226,243,255,0.8)' },
-  { name: 'Text Tertiary', var: '--color-text-tertiary', light: 'rgba(20,39,64,0.4)', dark: 'rgba(226,243,255,0.4)' },
-  { name: 'Background Page', var: '--color-bg-page', light: '#FFFFFF', dark: '#001424' },
-  { name: 'Background Hover / Message', var: '--color-bg-hover', light: '#F2F3F4', dark: 'rgba(226,243,255,0.1)' },
-  { name: 'Sidebar Background', var: '--color-sidebar-bg', light: '#f2f3f4', dark: '#0d2136' },
-  { name: 'Stroke Outline', var: '--color-stroke-outline', light: '#E8E8E8', dark: 'rgba(115,178,255,0.2)' },
-  { name: 'Stroke Toggle', var: '--color-stroke-toggle', light: '#e6e8ea', dark: 'rgba(115,178,255,0.2)' },
-  { name: 'Icon Primary', var: '--color-icon-primary', light: '#001424', dark: '#FFFFFF' },
+  { name: 'Text Primary', var: '--color-text-primary', light: '#142740', dark: '#FFFFFF', usage: 'Headings, body copy, primary icons' },
+  { name: 'Text Secondary', var: '--color-text-secondary', light: 'rgba(20,39,64,0.7)', dark: 'rgba(226,243,255,0.8)', usage: 'Descriptions, captions, helper text' },
+  { name: 'Text Tertiary', var: '--color-text-tertiary', light: 'rgba(20,39,64,0.4)', dark: 'rgba(226,243,255,0.4)', usage: 'Disabled labels, muted metadata' },
+  { name: 'Background Page', var: '--color-bg-page', light: '#FFFFFF', dark: '#001424', usage: 'Main app surface, content panels' },
+  { name: 'Background Hover / Message', var: '--color-bg-hover', light: '#F2F3F4', dark: 'rgba(226,243,255,0.1)', usage: 'Hover states, message bubbles' },
+  { name: 'Sidebar Background', var: '--color-sidebar-bg', light: '#f2f3f4', dark: '#0d2136', usage: 'Left navigation panel surface' },
+  { name: 'Stroke Outline', var: '--color-stroke-outline', light: '#E8E8E8', dark: 'rgba(115,178,255,0.2)', usage: 'Card borders, dividers, chip outlines' },
+  { name: 'Stroke Toggle', var: '--color-stroke-toggle', light: '#e6e8ea', dark: 'rgba(115,178,255,0.2)', usage: 'Toggle and input field borders' },
+  { name: 'Icon Primary', var: '--color-icon-primary', light: '#001424', dark: '#FFFFFF', usage: 'Default icon fill across the app' },
 ];
 
 const SPECIAL_COLORS = [
-  { name: 'Status Tag BG', value: 'rgba(2,137,1,0.1)', preview: 'rgba(2,137,1,0.1)' },
-  { name: 'Status Tag Text', value: '#028901', preview: '#028901' },
-  { name: 'Link / @Mention', value: '#3171ff', preview: '#3171ff' },
-  { name: 'Selected Chip BG', value: 'var(--color-selected-bg)', preview: 'var(--color-selected-bg)' },
-  { name: 'Agent Profile BG', value: '#E5E9F1', preview: '#E5E9F1' },
+  { name: 'Status Tag BG', value: 'rgba(2,137,1,0.1)', preview: 'rgba(2,137,1,0.1)', usage: 'Success / connected tag background' },
+  { name: 'Status Tag Text', value: '#028901', preview: '#028901', usage: 'Success / connected tag label' },
+  { name: 'Link / @Mention', value: '#3171ff', preview: '#3171ff', usage: 'Inline links and @mentions' },
+  { name: 'Selected Chip BG', value: 'var(--color-selected-bg)', preview: 'var(--color-selected-bg)', usage: 'Active chip / filter background' },
+  { name: 'Agent Profile BG', value: '#E5E9F1', preview: '#E5E9F1', usage: 'Agent avatar circle background' },
 ];
 
 const TYPOGRAPHY = [
@@ -173,9 +173,9 @@ function ComponentShowcase() {
         <div className="flex flex-col gap-1 w-[260px] p-3 rounded-xl" style={{ background: 'var(--color-sidebar-bg)' }}>
           {/* Search */}
           <div className="flex items-center gap-3 px-3 py-1.5 rounded-full border text-[13px]"
-            style={{ background: 'var(--color-bg-hover)', borderColor: 'var(--color-stroke-toggle)', color: 'var(--color-text-secondary)' }}>
+            style={{ background: 'var(--color-bg-hover)', borderColor: 'var(--color-stroke-toggle)', color: 'var(--color-text-primary)' }}>
             <Search size={14} className="shrink-0 text-text-primary" />
-            <span className="text-text-secondary text-[13px]">Search</span>
+            <span className="text-text-primary text-[13px]">Search</span>
           </div>
 
           {/* Nav items */}
@@ -235,12 +235,12 @@ function ComponentShowcase() {
 
           {/* ── Text Field States ── */}
           <div>
-            <p className="text-xs font-semibold text-text-secondary mb-3 uppercase tracking-wider">Text Field States</p>
+            <p className="text-xs font-semibold text-text-primary mb-3 uppercase tracking-wider">Text Field States</p>
             <div className="flex flex-col gap-3 max-w-[480px]">
               {/* Default / Empty */}
-              <p className="text-[11px] text-text-tertiary mt-1">Default (empty)</p>
+              <p className="text-[11px] text-text-primary mt-1">Default (empty)</p>
               <div className="input-gradient-hover flex items-center gap-2 px-4 py-3 rounded-full" style={{ background: 'var(--color-bg-message)', border: '2px solid transparent' }}>
-                <span className="text-text-tertiary text-[14px] flex-1">Message WorkPal</span>
+                <span className="text-text-primary text-[14px] flex-1">Message WorkPal</span>
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 flex items-center justify-center rounded-full">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-text-primary"><rect x="9" y="1" width="6" height="11" rx="3" /><path d="M19 10v1a7 7 0 0 1-14 0v-1" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>
@@ -252,9 +252,9 @@ function ComponentShowcase() {
               </div>
 
               {/* Focused / No text — gradient border, send icon (inactive) */}
-              <p className="text-[11px] text-text-tertiary mt-1">Focused (no text)</p>
+              <p className="text-[11px] text-text-primary mt-1">Focused (no text)</p>
               <div className="flex items-center gap-2 px-4 py-3 rounded-full" style={{ background: 'linear-gradient(var(--color-bg-page), var(--color-bg-page)) padding-box, linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box', border: '2px solid transparent' }}>
-                <span className="text-text-tertiary text-[14px] flex-1">Message WorkPal</span>
+                <span className="text-text-primary text-[14px] flex-1">Message WorkPal</span>
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 flex items-center justify-center rounded-full">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-text-primary"><rect x="9" y="1" width="6" height="11" rx="3" /><path d="M19 10v1a7 7 0 0 1-14 0v-1" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>
@@ -266,7 +266,7 @@ function ComponentShowcase() {
               </div>
 
               {/* With text — gradient border, gradient send button */}
-              <p className="text-[11px] text-text-tertiary mt-1">With text (active)</p>
+              <p className="text-[11px] text-text-primary mt-1">With text (active)</p>
               <div className="flex items-center gap-2 px-4 py-3 rounded-full" style={{ background: 'linear-gradient(var(--color-bg-page), var(--color-bg-page)) padding-box, linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box', border: '2px solid transparent' }}>
                 <span className="text-text-primary text-[14px] flex-1">Summarize yesterday's meeting</span>
                 <div className="flex items-center gap-2">
@@ -283,7 +283,7 @@ function ComponentShowcase() {
 
           {/* ── Action Chips ── */}
           <div>
-            <p className="text-xs font-semibold text-text-secondary mb-3 uppercase tracking-wider">Action Chips</p>
+            <p className="text-xs font-semibold text-text-primary mb-3 uppercase tracking-wider">Action Chips</p>
             <div className="flex flex-wrap gap-2">
               <span className="chip-gradient-hover rounded-full border px-3 py-1 text-text-primary text-[13px] cursor-pointer" style={{ borderColor: 'var(--color-stroke-outline)' }}>Set Up Meeting</span>
               <span className="chip-gradient-hover rounded-full border px-3 py-1 text-text-primary text-[13px] cursor-pointer" style={{ borderColor: 'var(--color-stroke-outline)' }}>Explore Solutions</span>
@@ -293,7 +293,7 @@ function ComponentShowcase() {
 
           {/* ── Quick Chips (with icons) ── */}
           <div>
-            <p className="text-xs font-semibold text-text-secondary mb-3 uppercase tracking-wider">Quick Chips (with icons)</p>
+            <p className="text-xs font-semibold text-text-primary mb-3 uppercase tracking-wider">Quick Chips (with icons)</p>
             <div className="flex flex-wrap gap-2">
               <span className="chip-gradient-hover flex items-center gap-1 rounded-full border px-3 py-1 text-text-primary text-[13px] cursor-pointer" style={{ borderColor: 'var(--color-stroke-outline)' }}>
                 <div className="relative overflow-hidden w-4 h-4 shrink-0 flex items-center justify-center"><img src={iconGoals} alt="" className="max-w-full max-h-full object-contain opacity-70 icon-theme" /></div>
@@ -312,7 +312,7 @@ function ComponentShowcase() {
 
           {/* ── Toolbar: Chat Mode ── */}
           <div>
-            <p className="text-xs font-semibold text-text-secondary mb-3 uppercase tracking-wider">Toolbar — Chat Mode</p>
+            <p className="text-xs font-semibold text-text-primary mb-3 uppercase tracking-wider">Toolbar — Chat Mode</p>
             <div className="flex items-center gap-2">
               <button className="flex items-center justify-center rounded-full border border-stroke-outline hover:bg-bg-hover toolbar-gradient-hover transition-all shrink-0 cursor-pointer text-text-primary" style={{ width: 32, height: 32 }}>
                 <img src={iconAdd} alt="Add" className="w-4 h-4 icon-theme" />
@@ -334,7 +334,7 @@ function ComponentShowcase() {
 
           {/* ── Toolbar: Tasks Mode ── */}
           <div>
-            <p className="text-xs font-semibold text-text-secondary mb-3 uppercase tracking-wider">Toolbar — Tasks Mode</p>
+            <p className="text-xs font-semibold text-text-primary mb-3 uppercase tracking-wider">Toolbar — Tasks Mode</p>
             <div className="flex items-center gap-2 flex-wrap">
               <button className="flex items-center justify-center rounded-full border border-stroke-outline hover:bg-bg-hover toolbar-gradient-hover transition-all shrink-0 cursor-pointer text-text-primary" style={{ width: 32, height: 32 }}>
                 <img src={iconAdd} alt="Add" className="w-4 h-4 icon-theme" />
@@ -362,7 +362,7 @@ function ComponentShowcase() {
 
           {/* ── Toolbar: Code Mode ── */}
           <div>
-            <p className="text-xs font-semibold text-text-secondary mb-3 uppercase tracking-wider">Toolbar — Code Mode</p>
+            <p className="text-xs font-semibold text-text-primary mb-3 uppercase tracking-wider">Toolbar — Code Mode</p>
             <div className="flex items-center gap-2 flex-wrap">
               <button className="flex items-center justify-center rounded-full border border-stroke-outline hover:bg-bg-hover toolbar-gradient-hover transition-all shrink-0 cursor-pointer text-text-primary" style={{ width: 32, height: 32 }}>
                 <img src={iconAdd} alt="Add" className="w-4 h-4 icon-theme" />
@@ -401,42 +401,42 @@ function ComponentShowcase() {
 
           {/* ── Send Button States ── */}
           <div>
-            <p className="text-xs font-semibold text-text-secondary mb-3 uppercase tracking-wider">Send Button States</p>
+            <p className="text-xs font-semibold text-text-primary mb-3 uppercase tracking-wider">Send Button States</p>
             <div className="flex items-center gap-4">
               {/* Voice (default) */}
               <div className="flex flex-col items-center gap-1.5">
                 <div className="w-8 h-8 flex items-center justify-center rounded-full">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-text-primary"><line x1="4" y1="8" x2="4" y2="16" /><line x1="8" y1="5" x2="8" y2="19" /><line x1="12" y1="2" x2="12" y2="22" /><line x1="16" y1="5" x2="16" y2="19" /><line x1="20" y1="8" x2="20" y2="16" /></svg>
                 </div>
-                <span className="text-[10px] text-text-tertiary">Voice</span>
+                <span className="text-[10px] text-text-primary">Voice</span>
               </div>
               {/* Send (inactive) */}
               <div className="flex flex-col items-center gap-1.5">
                 <div className="w-8 h-8 flex items-center justify-center rounded-full">
                   <img src={iconSend} alt="Send" className="w-4 h-4 icon-theme" />
                 </div>
-                <span className="text-[10px] text-text-tertiary">Inactive</span>
+                <span className="text-[10px] text-text-primary">Inactive</span>
               </div>
               {/* Send (active/gradient) */}
               <div className="flex flex-col items-center gap-1.5">
                 <div className="w-8 h-8 flex items-center justify-center rounded-full" style={{ background: 'linear-gradient(183.55deg, #7652B9 16.2%, #B46470 49%, #CA9D8C 109.3%)' }}>
                   <img src={iconSendActive} alt="Send" className="w-3.5 h-3.5 brightness-0 invert" />
                 </div>
-                <span className="text-[10px] text-text-tertiary">Active</span>
+                <span className="text-[10px] text-text-primary">Active</span>
               </div>
               {/* Mic */}
               <div className="flex flex-col items-center gap-1.5">
                 <div className="w-8 h-8 flex items-center justify-center rounded-full">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-text-primary"><rect x="9" y="1" width="6" height="11" rx="3" /><path d="M19 10v1a7 7 0 0 1-14 0v-1" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>
                 </div>
-                <span className="text-[10px] text-text-tertiary">Mic</span>
+                <span className="text-[10px] text-text-primary">Mic</span>
               </div>
             </div>
           </div>
 
           {/* ── Attach Menu (static preview) ── */}
           <div>
-            <p className="text-xs font-semibold text-text-secondary mb-3 uppercase tracking-wider">Attach Menu</p>
+            <p className="text-xs font-semibold text-text-primary mb-3 uppercase tracking-wider">Attach Menu</p>
             <div className="w-48 bg-bg-page border border-stroke-outline rounded-xl shadow-lg py-2">
               {[
                 { label: 'Mention', isSvg: true },
@@ -652,7 +652,7 @@ function ComponentShowcase() {
             <video src={avatarWhiteManSayhi} autoPlay loop muted playsInline className="w-full h-full object-cover" />
           </div>
           <h2 className="gradient-text text-[20px] font-semibold">Hi, Beibei</h2>
-          <p className="text-text-secondary text-[13px] text-center">How can I help you today?</p>
+          <p className="text-text-primary text-[13px] text-center">How can I help you today?</p>
           {/* Quick chips */}
           <div className="flex flex-wrap gap-2 justify-center">
             <span className="chip-gradient-hover rounded-full border px-3 py-1 text-text-primary text-[12px] cursor-pointer flex items-center gap-1" style={{ borderColor: 'var(--color-stroke-outline)' }}>Summarize Meeting</span>
@@ -666,7 +666,7 @@ function ComponentShowcase() {
       <ComponentSection title="Onboarding">
         <div className="flex flex-col gap-3 w-full max-w-[400px]">
           <h2 className="text-[18px] font-bold text-text-primary">Welcome to WorkPal</h2>
-          <p className="text-[13px] text-text-secondary leading-[18px]">Select the traits that matter to you, and we'll build your ideal partner.</p>
+          <p className="text-[13px] text-text-primary leading-[18px]">Select the traits that matter to you, and we'll build your ideal partner.</p>
           <div className="flex flex-wrap gap-2">
             {['\u{1F6DF} Stable', '\u{1F9E0} Organized', '\u{1F917} Kind', '\u{1F9D8} Calm', '\u{1F331} Open-minded'].map(trait => {
               const isSelected = selectedChip === trait;
@@ -701,8 +701,8 @@ function ComponentShowcase() {
           {/* Tab bar */}
           <div className="flex gap-0 rounded-full overflow-hidden border border-stroke-outline w-fit">
             <span className="text-[12px] px-4 py-1.5 font-medium text-white" style={{ background: 'var(--color-text-primary)' }}>Apps</span>
-            <span className="text-[12px] px-4 py-1.5 text-text-secondary border-l border-stroke-outline">Custom API</span>
-            <span className="text-[12px] px-4 py-1.5 text-text-secondary border-l border-stroke-outline">Custom MCP</span>
+            <span className="text-[12px] px-4 py-1.5 text-text-primary border-l border-stroke-outline">Custom API</span>
+            <span className="text-[12px] px-4 py-1.5 text-text-primary border-l border-stroke-outline">Custom MCP</span>
           </div>
           {/* App cards */}
           <div className="flex flex-col gap-2">
@@ -719,7 +719,7 @@ function ComponentShowcase() {
                 {app.connected ? (
                   <span className="text-[11px] font-semibold px-2 py-0.5 rounded" style={{ background: 'rgba(2,137,1,0.1)', color: '#028901' }}>Connected</span>
                 ) : (
-                  <button className="text-[11px] px-3 py-1 rounded-full border border-stroke-outline text-text-secondary hover:bg-bg-hover">Connect</button>
+                  <button className="text-[11px] px-3 py-1 rounded-full border border-stroke-outline text-text-primary hover:bg-bg-hover">Connect</button>
                 )}
               </div>
             ))}
@@ -733,7 +733,7 @@ function ComponentShowcase() {
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="text-[18px] font-bold text-text-primary tracking-[-0.43px] mt-8 mb-4 pb-2" style={{ borderBottom: '1px solid var(--color-stroke-outline)' }}>
+    <h2 className="text-[18px] font-bold text-text-primary tracking-[-0.43px] mt-8 mb-6">
       {children}
     </h2>
   );
@@ -764,36 +764,36 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
         <div className="flex flex-wrap gap-4">
           <div className="flex flex-col gap-2">
             <div className="gradient-btn rounded-xl" style={{ width: 200, height: 60 }} />
-            <p className="text-text-secondary text-[13px]">#7652B9 → #B46470 → #CA9D8C</p>
+            <p className="text-text-primary text-[13px]">#7652B9 → #B46470 → #CA9D8C</p>
           </div>
           <div className="flex flex-col gap-2 items-start">
             <span className="gradient-text text-[24px] font-bold">Gradient Text</span>
-            <p className="text-text-secondary text-[13px]">.gradient-text (31.6deg)</p>
+            <p className="text-text-primary text-[13px]">.gradient-text (31.6deg)</p>
           </div>
         </div>
 
         {/* Colors */}
         <SectionTitle>Color Tokens</SectionTitle>
-        <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
+        <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
           {COLORS.map(c => (
-            <div key={c.var} className="flex items-center gap-3 p-3 rounded-xl" style={{ border: '1px solid var(--color-stroke-outline)' }}>
-              <div className="shrink-0 rounded-lg" style={{ width: 36, height: 36, background: `var(${c.var})`, border: '1px solid var(--color-stroke-outline)' }} />
-              <div className="min-w-0">
-                <p className="text-text-primary font-medium text-[13px] truncate">{c.name}</p>
-                <p className="text-text-tertiary text-[12px] truncate">{c.var}</p>
+            <div key={c.var} className="flex rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-stroke-outline)', minHeight: 96 }}>
+              <div className="w-1/3 shrink-0" style={{ background: `var(${c.var})` }} />
+              <div className="w-2/3 min-w-0 p-3 flex flex-col justify-center gap-1">
+                <p className="text-text-primary font-semibold text-[13px] truncate">{c.name}</p>
+                <p className="text-text-primary text-[12px] leading-[16px]">{c.usage}</p>
               </div>
             </div>
           ))}
         </div>
 
         <h3 className="text-[15px] font-semibold text-text-primary mt-6 mb-3">Special Colors</h3>
-        <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+        <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
           {SPECIAL_COLORS.map(c => (
-            <div key={c.name} className="flex items-center gap-3 p-3 rounded-xl" style={{ border: '1px solid var(--color-stroke-outline)' }}>
-              <div className="shrink-0 rounded-lg" style={{ width: 36, height: 36, background: c.preview, border: '1px solid var(--color-stroke-outline)' }} />
-              <div className="min-w-0">
-                <p className="text-text-primary font-medium text-[13px] truncate">{c.name}</p>
-                <p className="text-text-tertiary text-[12px] truncate">{c.value}</p>
+            <div key={c.name} className="flex rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-stroke-outline)', minHeight: 96 }}>
+              <div className="w-1/3 shrink-0" style={{ background: c.preview }} />
+              <div className="w-2/3 min-w-0 p-3 flex flex-col justify-center gap-1">
+                <p className="text-text-primary font-semibold text-[13px] truncate">{c.name}</p>
+                <p className="text-text-primary text-[12px] leading-[16px]">{c.usage}</p>
               </div>
             </div>
           ))}
@@ -804,21 +804,21 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
         <div className="overflow-x-auto">
           <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--color-stroke-outline)' }}>
+              <tr>
                 {['Style', 'Font', 'Size', 'Weight', 'Line Height', 'Spacing'].map(h => (
-                  <th key={h} className="text-text-secondary font-medium text-[13px] py-2 pr-4">{h}</th>
+                  <th key={h} className="text-text-primary font-semibold text-[13px] py-2 px-4">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {TYPOGRAPHY.map(t => (
-                <tr key={t.style} style={{ borderBottom: '1px solid var(--color-stroke-outline)' }}>
-                  <td className="text-text-primary font-medium text-[13px] py-3 pr-4">{t.style}</td>
-                  <td className="text-text-secondary text-[13px] py-3 pr-4">{t.font}</td>
-                  <td className="text-text-secondary text-[13px] py-3 pr-4">{t.size}</td>
-                  <td className="text-text-secondary text-[13px] py-3 pr-4">{t.weight}</td>
-                  <td className="text-text-secondary text-[13px] py-3 pr-4">{t.lineHeight}</td>
-                  <td className="text-text-secondary text-[13px] py-3 pr-4">{t.spacing}</td>
+              {TYPOGRAPHY.map((t, i) => (
+                <tr key={t.style} style={{ background: i % 2 === 0 ? 'var(--color-bg-hover)' : 'transparent' }}>
+                  <td className="text-text-primary font-medium text-[13px] py-3 px-4">{t.style}</td>
+                  <td className="text-text-primary text-[13px] py-3 px-4">{t.font}</td>
+                  <td className="text-text-primary text-[13px] py-3 px-4">{t.size}</td>
+                  <td className="text-text-primary text-[13px] py-3 px-4">{t.weight}</td>
+                  <td className="text-text-primary text-[13px] py-3 px-4">{t.lineHeight}</td>
+                  <td className="text-text-primary text-[13px] py-3 px-4">{t.spacing}</td>
                 </tr>
               ))}
             </tbody>
@@ -835,7 +835,7 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
                 <div key={s.token} className="flex items-center gap-4">
                   <div className="rounded" style={{ width: parseInt(s.value), height: 16, background: 'linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%)', minWidth: 4 }} />
                   <span className="text-text-primary text-[13px] font-medium w-20">{s.value}</span>
-                  <span className="text-text-tertiary text-[12px]">{s.tw}</span>
+                  <span className="text-text-primary text-[12px]">{s.tw}</span>
                 </div>
               ))}
             </div>
@@ -847,7 +847,7 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
                 <div key={r.token} className="flex flex-col items-center gap-2">
                   <div style={{ width: 48, height: 48, borderRadius: r.value === '1000px' || r.value === '100px' ? '50%' : r.value, border: '2px solid var(--color-stroke-outline)', background: 'var(--color-bg-hover)' }} />
                   <span className="text-text-primary text-[12px] font-medium">{r.value}</span>
-                  <span className="text-text-tertiary text-[11px]">{r.tw}</span>
+                  <span className="text-text-primary text-[11px]">{r.tw}</span>
                 </div>
               ))}
             </div>
@@ -856,7 +856,7 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
 
         {/* Icon Library */}
         <SectionTitle>Icon Library</SectionTitle>
-        <p className="text-text-secondary text-[14px] leading-[20px] mb-4">
+        <p className="text-text-primary text-[14px] leading-[20px] mb-4">
           All icons used across the app, organized by category. Custom SVG assets are from Figma; Lucide icons are from <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>lucide-react</code>.
         </p>
 
@@ -917,7 +917,7 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
           <div key={group.label} className="mb-5">
             <div className="flex items-baseline gap-2 mb-2">
               <span className="text-text-primary font-medium text-[13px]">{group.label}</span>
-              <span className="text-text-tertiary text-[12px]">{group.desc}</span>
+              <span className="text-text-primary text-[12px]">{group.desc}</span>
             </div>
             <div className="flex flex-wrap gap-3">
               {group.items.map(icon => (
@@ -926,7 +926,6 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
                     <img src={icon.src} alt={icon.name} className="max-w-[24px] max-h-[24px] object-contain icon-theme" />
                   </div>
                   <span className="text-text-primary text-[11px] text-center leading-tight">{icon.name}</span>
-                  <span className="text-text-tertiary text-[10px] text-center leading-tight truncate w-full">{icon.file}</span>
                 </div>
               ))}
             </div>
@@ -935,64 +934,62 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
 
         {/* Inline SVG Icons (ChatInput) */}
         <h3 className="text-[15px] font-semibold text-text-primary mt-6 mb-3">Inline SVG Icons (ChatInput)</h3>
-        <p className="text-text-secondary text-[13px] leading-[18px] mb-3">
+        <p className="text-text-primary text-[13px] leading-[18px] mb-3">
           Mode selector, input field, and toolbar inline SVGs rendered directly in <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>ChatInput.tsx</code>.
         </p>
         <div className="flex flex-wrap gap-3">
           {([
-            { name: 'Chat', Icon: MessageSquare, usage: 'Mode — Chat' },
-            { name: 'Tasks', Icon: CheckSquare, usage: 'Mode — Tasks' },
-            { name: 'Code', Icon: Code2, usage: 'Mode — Code' },
-            { name: 'Mic (stroke)', Icon: Mic, usage: 'Input — Microphone' },
-            { name: 'Voice (stroke)', Icon: Activity, usage: 'Input — Voice' },
-            { name: 'Mention (@)', Icon: AtSign, usage: 'Attach — Mention' },
-            { name: 'Folder', Icon: Folder, usage: 'Toolbar — Folder' },
-            { name: 'Git Branch', Icon: GitBranch, usage: 'Toolbar — Branch' },
-          ] as { name: string; Icon: React.FC<{ size?: number; className?: string }>; usage: string }[]).map(({ name, Icon, usage }) => (
+            { name: 'Chat', Icon: MessageSquare },
+            { name: 'Tasks', Icon: CheckSquare },
+            { name: 'Code', Icon: Code2 },
+            { name: 'Mic (stroke)', Icon: Mic },
+            { name: 'Voice (stroke)', Icon: Activity },
+            { name: 'Mention (@)', Icon: AtSign },
+            { name: 'Folder', Icon: Folder },
+            { name: 'Git Branch', Icon: GitBranch },
+          ] as { name: string; Icon: React.FC<{ size?: number; className?: string }> }[]).map(({ name, Icon }) => (
             <div key={name} className="flex flex-col items-center gap-1.5 p-3 rounded-xl w-[90px]" style={{ border: '1px solid var(--color-stroke-outline)' }}>
               <div className="w-8 h-8 flex items-center justify-center">
                 <Icon size={20} className="text-text-primary" />
               </div>
               <span className="text-text-primary text-[11px] text-center leading-tight">{name}</span>
-              <span className="text-text-tertiary text-[10px] text-center leading-tight truncate w-full" title={usage}>{usage}</span>
             </div>
           ))}
         </div>
 
         {/* Lucide React Icons */}
         <h3 className="text-[15px] font-semibold text-text-primary mt-6 mb-3">Lucide React Icons</h3>
-        <p className="text-text-secondary text-[13px] leading-[18px] mb-3">
+        <p className="text-text-primary text-[13px] leading-[18px] mb-3">
           From <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>lucide-react</code> package. Rendered as inline SVG at 20px.
         </p>
         <div className="flex flex-wrap gap-3">
           {([
-            { name: 'BookOpen', Icon: BookOpen, usage: 'Sidebar — Library' },
-            { name: 'ChevronDown', Icon: ChevronDown, usage: 'Accordions, dropdowns' },
-            { name: 'ChevronRight', Icon: ChevronRight, usage: 'Tree expand' },
-            { name: 'Code2', Icon: Code2, usage: 'Code view tab' },
-            { name: 'FileCode2', Icon: FileCode2, usage: 'File type icon' },
-            { name: 'FileText', Icon: FileText, usage: 'Document reference' },
-            { name: 'FolderOpen', Icon: FolderOpen, usage: 'Open folder' },
-            { name: 'FolderPlus', Icon: FolderPlus, usage: 'New folder' },
-            { name: 'LayoutDashboard', Icon: LayoutDashboard, usage: 'Sidebar — Overview' },
-            { name: 'Link', Icon: Link, usage: 'Sidebar — Connectors' },
-            { name: 'Menu', Icon: Menu, usage: 'Sidebar toggle' },
-            { name: 'MessageCircle', Icon: MessageCircle, usage: 'Comments' },
-            { name: 'MoreVertical', Icon: MoreVertical, usage: 'Overflow menu' },
-            { name: 'Palette', Icon: Palette, usage: 'Design System nav' },
-            { name: 'PanelRight', Icon: PanelRight, usage: 'Side panel toggle' },
-            { name: 'Pen', Icon: Pen, usage: 'Edit action' },
-            { name: 'Plus', Icon: Plus, usage: 'New session / add' },
-            { name: 'Search', Icon: Search, usage: 'Search bar' },
-            { name: 'Star', Icon: Star, usage: 'Favorites' },
-            { name: 'X', Icon: X, usage: 'Close / dismiss' },
-          ] as { name: string; Icon: React.FC<{ size?: number; className?: string }>; usage: string }[]).map(({ name, Icon, usage }) => (
+            { name: 'BookOpen', Icon: BookOpen },
+            { name: 'ChevronDown', Icon: ChevronDown },
+            { name: 'ChevronRight', Icon: ChevronRight },
+            { name: 'Code2', Icon: Code2 },
+            { name: 'FileCode2', Icon: FileCode2 },
+            { name: 'FileText', Icon: FileText },
+            { name: 'FolderOpen', Icon: FolderOpen },
+            { name: 'FolderPlus', Icon: FolderPlus },
+            { name: 'LayoutDashboard', Icon: LayoutDashboard },
+            { name: 'Link', Icon: Link },
+            { name: 'Menu', Icon: Menu },
+            { name: 'MessageCircle', Icon: MessageCircle },
+            { name: 'MoreVertical', Icon: MoreVertical },
+            { name: 'Palette', Icon: Palette },
+            { name: 'PanelRight', Icon: PanelRight },
+            { name: 'Pen', Icon: Pen },
+            { name: 'Plus', Icon: Plus },
+            { name: 'Search', Icon: Search },
+            { name: 'Star', Icon: Star },
+            { name: 'X', Icon: X },
+          ] as { name: string; Icon: React.FC<{ size?: number; className?: string }> }[]).map(({ name, Icon }) => (
             <div key={name} className="flex flex-col items-center gap-1.5 p-3 rounded-xl w-[90px]" style={{ border: '1px solid var(--color-stroke-outline)' }}>
               <div className="w-8 h-8 flex items-center justify-center">
                 <Icon size={20} className="text-text-primary" />
               </div>
               <span className="text-text-primary text-[11px] text-center leading-tight">{name}</span>
-              <span className="text-text-tertiary text-[10px] text-center leading-tight truncate w-full" title={usage}>{usage}</span>
             </div>
           ))}
         </div>
@@ -1009,7 +1006,7 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
               <code className="text-[13px] font-mono shrink-0 px-2 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff', minWidth: 200 }}>
                 {u.cls}
               </code>
-              <span className="text-text-secondary text-[13px]">{u.desc}</span>
+              <span className="text-text-primary text-[13px]">{u.desc}</span>
             </div>
           ))}
         </div>
@@ -1067,25 +1064,25 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
 
         {/* Dark Mode */}
         <SectionTitle>Dark Mode</SectionTitle>
-        <p className="text-text-secondary text-[14px] leading-[20px]">
+        <p className="text-text-primary text-[14px] leading-[20px]">
           Dark mode is toggled via the <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>.dark</code> class on <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>&lt;html&gt;</code>. All components use CSS variables that automatically switch. Monochrome icons use the <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>.icon-theme</code> class for auto-inversion. Gradient elements (avatars, spinner, buttons) do NOT use <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>.icon-theme</code>.
         </p>
 
         {/* Figma vs Code Diff */}
         <SectionTitle>Figma vs Code Diff</SectionTitle>
-        <p className="text-text-secondary text-[14px] leading-[20px] mb-4">
+        <p className="text-text-primary text-[14px] leading-[20px] mb-4">
           Comparison between Figma design system variables (WorkPal library, <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>L&DMode</code> collection) and the current code implementation.
         </p>
 
         {/* Figma tokens missing from code */}
         <h3 className="text-[15px] font-semibold text-text-primary mb-3">Figma Tokens Not Implemented as CSS Variables</h3>
-        <p className="text-text-secondary text-[13px] leading-[18px] mb-3">These Figma variables exist in the WorkPal library but are either hardcoded inline or missing in code.</p>
+        <p className="text-text-primary text-[13px] leading-[18px] mb-3">These Figma variables exist in the WorkPal library but are either hardcoded inline or missing in code.</p>
         <div className="overflow-x-auto mb-6">
           <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--color-stroke-outline)' }}>
+              <tr>
                 {['Figma Variable', 'Status in Code', 'Notes'].map(h => (
-                  <th key={h} className="text-text-secondary font-medium text-[13px] py-2 pr-4">{h}</th>
+                  <th key={h} className="text-text-primary font-semibold text-[13px] py-2 px-4">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -1097,16 +1094,16 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
                 { figma: 'Color/Text/Button', status: 'Hardcoded', note: 'Gradient buttons use text-white directly' },
                 { figma: 'Color/Stroke/Dot', status: 'Missing', note: 'No CSS variable; not referenced in components' },
                 { figma: 'Font/Detail/Letter spacing', status: 'Hardcoded', note: 'Used inline as letterSpacing: 0px in Detail style' },
-              ].map(row => (
-                <tr key={row.figma} style={{ borderBottom: '1px solid var(--color-stroke-outline)' }}>
-                  <td className="text-text-primary font-medium text-[13px] py-3 pr-4 font-mono">{row.figma}</td>
-                  <td className="py-3 pr-4">
+              ].map((row, i) => (
+                <tr key={row.figma} style={{ background: i % 2 === 0 ? 'var(--color-bg-hover)' : 'transparent' }}>
+                  <td className="text-text-primary font-medium text-[13px] py-3 px-4 font-mono">{row.figma}</td>
+                  <td className="py-3 px-4">
                     <span className="text-[12px] font-semibold px-2 py-0.5 rounded" style={{
                       background: row.status === 'Missing' ? 'rgba(220,38,38,0.1)' : 'rgba(234,179,8,0.15)',
                       color: row.status === 'Missing' ? '#dc2626' : '#a16207',
                     }}>{row.status}</span>
                   </td>
-                  <td className="text-text-secondary text-[13px] py-3 pr-4">{row.note}</td>
+                  <td className="text-text-primary text-[13px] py-3 px-4">{row.note}</td>
                 </tr>
               ))}
             </tbody>
@@ -1115,13 +1112,13 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
 
         {/* Code tokens not in Figma */}
         <h3 className="text-[15px] font-semibold text-text-primary mb-3">Code Tokens Not in Figma Variables</h3>
-        <p className="text-text-secondary text-[13px] leading-[18px] mb-3">These CSS variables exist in code but have no corresponding Figma variable in the WorkPal library.</p>
+        <p className="text-text-primary text-[13px] leading-[18px] mb-3">These CSS variables exist in code but have no corresponding Figma variable in the WorkPal library.</p>
         <div className="overflow-x-auto mb-6">
           <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--color-stroke-outline)' }}>
+              <tr>
                 {['CSS Variable', 'Light Value', 'Dark Value', 'Notes'].map(h => (
-                  <th key={h} className="text-text-secondary font-medium text-[13px] py-2 pr-4">{h}</th>
+                  <th key={h} className="text-text-primary font-semibold text-[13px] py-2 px-4">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -1131,12 +1128,12 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
                 { css: '--color-icon-primary', light: '#001424', dark: '#FFFFFF', note: 'No Figma variable; icon fill color derived from text/primary' },
                 { css: '--color-outer-bg', light: '#f5f5f7', dark: '#001424', note: 'No Figma variable; outer shell background behind the app frame' },
                 { css: '--color-outer-border', light: '#f5f5f7', dark: '#001424', note: 'No Figma variable; outer shell border color' },
-              ].map(row => (
-                <tr key={row.css} style={{ borderBottom: '1px solid var(--color-stroke-outline)' }}>
-                  <td className="text-text-primary font-medium text-[13px] py-3 pr-4 font-mono">{row.css}</td>
-                  <td className="text-text-secondary text-[13px] py-3 pr-4 font-mono">{row.light}</td>
-                  <td className="text-text-secondary text-[13px] py-3 pr-4 font-mono">{row.dark}</td>
-                  <td className="text-text-secondary text-[13px] py-3 pr-4">{row.note}</td>
+              ].map((row, i) => (
+                <tr key={row.css} style={{ background: i % 2 === 0 ? 'var(--color-bg-hover)' : 'transparent' }}>
+                  <td className="text-text-primary font-medium text-[13px] py-3 px-4 font-mono">{row.css}</td>
+                  <td className="text-text-primary text-[13px] py-3 px-4 font-mono">{row.light}</td>
+                  <td className="text-text-primary text-[13px] py-3 px-4 font-mono">{row.dark}</td>
+                  <td className="text-text-primary text-[13px] py-3 px-4">{row.note}</td>
                 </tr>
               ))}
             </tbody>
@@ -1145,13 +1142,13 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
 
         {/* Value discrepancies */}
         <h3 className="text-[15px] font-semibold text-text-primary mb-3">Value Discrepancies</h3>
-        <p className="text-text-secondary text-[13px] leading-[18px] mb-3">Tokens that exist in both Figma and code but may differ in value or naming.</p>
+        <p className="text-text-primary text-[13px] leading-[18px] mb-3">Tokens that exist in both Figma and code but may differ in value or naming.</p>
         <div className="overflow-x-auto">
           <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--color-stroke-outline)' }}>
+              <tr>
                 {['Token', 'Discrepancy'].map(h => (
-                  <th key={h} className="text-text-secondary font-medium text-[13px] py-2 pr-4">{h}</th>
+                  <th key={h} className="text-text-primary font-semibold text-[13px] py-2 px-4">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -1160,10 +1157,10 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
                 { token: 'Sidebar BG (dark)', desc: 'Code uses #0d2136; Figma "Color/Background/Web Menu" dark mode may use rgba(226,243,255,0.1) — same as bg-hover' },
                 { token: 'StatusTag color', desc: 'DesignSystemPage MiniStatusTag uses #00c7be (teal) while the main app & DESIGN_SYSTEM.md use #028901 (green)' },
                 { token: 'Body/Emphasized line-height', desc: 'DESIGN_SYSTEM.md says 32px; typical Figma body emphasized is 22px — verify in Figma source' },
-              ].map(row => (
-                <tr key={row.token} style={{ borderBottom: '1px solid var(--color-stroke-outline)' }}>
-                  <td className="text-text-primary font-medium text-[13px] py-3 pr-4 whitespace-nowrap">{row.token}</td>
-                  <td className="text-text-secondary text-[13px] py-3 pr-4">{row.desc}</td>
+              ].map((row, i) => (
+                <tr key={row.token} style={{ background: i % 2 === 0 ? 'var(--color-bg-hover)' : 'transparent' }}>
+                  <td className="text-text-primary font-medium text-[13px] py-3 px-4 whitespace-nowrap">{row.token}</td>
+                  <td className="text-text-primary text-[13px] py-3 px-4">{row.desc}</td>
                 </tr>
               ))}
             </tbody>
@@ -1172,7 +1169,7 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
 
         {/* Responsive Rules */}
         <SectionTitle>Responsive Rules (Mobile vs Desktop)</SectionTitle>
-        <p className="text-text-secondary text-[14px] leading-[20px] mb-4">
+        <p className="text-text-primary text-[14px] leading-[20px] mb-4">
           The app uses a <strong className="text-text-primary">mobile-first</strong> approach. Base styles target mobile ({'<'}768px), and desktop overrides kick in at the <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>md:</code> breakpoint (768px+) via Tailwind and <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>@media (min-width: 768px)</code>.
         </p>
 
@@ -1181,9 +1178,9 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
         <div className="overflow-x-auto mb-6">
           <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--color-stroke-outline)' }}>
+              <tr>
                 {['Property', 'Mobile (< 768px)', 'Desktop (≥ 768px)'].map(h => (
-                  <th key={h} className="text-text-secondary font-medium text-[13px] py-2 pr-4">{h}</th>
+                  <th key={h} className="text-text-primary font-semibold text-[13px] py-2 px-4">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -1195,11 +1192,11 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
                 { prop: '--toolbar-icon-size', mobile: '24px', desktop: '16px' },
                 { prop: '--input-btn-size', mobile: '36px', desktop: '24px' },
                 { prop: '.toolbar-icon-scale', mobile: 'scale(1.5)', desktop: 'scale(1)' },
-              ].map(row => (
-                <tr key={row.prop} style={{ borderBottom: '1px solid var(--color-stroke-outline)' }}>
-                  <td className="text-text-primary font-medium text-[13px] py-3 pr-4 font-mono">{row.prop}</td>
-                  <td className="text-text-secondary text-[13px] py-3 pr-4 font-mono">{row.mobile}</td>
-                  <td className="text-text-secondary text-[13px] py-3 pr-4 font-mono">{row.desktop}</td>
+              ].map((row, i) => (
+                <tr key={row.prop} style={{ background: i % 2 === 0 ? 'var(--color-bg-hover)' : 'transparent' }}>
+                  <td className="text-text-primary font-medium text-[13px] py-3 px-4 font-mono">{row.prop}</td>
+                  <td className="text-text-primary text-[13px] py-3 px-4 font-mono">{row.mobile}</td>
+                  <td className="text-text-primary text-[13px] py-3 px-4 font-mono">{row.desktop}</td>
                 </tr>
               ))}
             </tbody>
@@ -1208,13 +1205,13 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
 
         {/* Component-level patterns */}
         <h3 className="text-[15px] font-semibold text-text-primary mb-3">Component-Level Tailwind Patterns</h3>
-        <p className="text-text-secondary text-[13px] leading-[18px] mb-3">Common <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>md:</code> responsive patterns used across components.</p>
+        <p className="text-text-primary text-[13px] leading-[18px] mb-3">Common <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>md:</code> responsive patterns used across components.</p>
         <div className="overflow-x-auto mb-6">
           <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--color-stroke-outline)' }}>
+              <tr>
                 {['Category', 'Mobile', 'Desktop (md:)', 'Example Component'].map(h => (
-                  <th key={h} className="text-text-secondary font-medium text-[13px] py-2 pr-4">{h}</th>
+                  <th key={h} className="text-text-primary font-semibold text-[13px] py-2 px-4">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -1230,12 +1227,12 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
                 { cat: 'Margin', mobile: 'mb-3', desktop: 'mb-2', comp: 'Chip section spacing' },
                 { cat: 'Layout direction', mobile: 'flex-col', desktop: 'flex-row', comp: 'ConnectorsPage filter bar' },
                 { cat: 'Grid columns', mobile: 'grid-cols-1', desktop: 'grid-cols-2', comp: 'ConnectorsPage cards' },
-              ].map(row => (
-                <tr key={row.cat} style={{ borderBottom: '1px solid var(--color-stroke-outline)' }}>
-                  <td className="text-text-primary font-medium text-[13px] py-3 pr-4">{row.cat}</td>
-                  <td className="text-text-secondary text-[13px] py-3 pr-4 font-mono">{row.mobile}</td>
-                  <td className="text-text-secondary text-[13px] py-3 pr-4 font-mono">{row.desktop}</td>
-                  <td className="text-text-secondary text-[13px] py-3 pr-4">{row.comp}</td>
+              ].map((row, i) => (
+                <tr key={row.cat} style={{ background: i % 2 === 0 ? 'var(--color-bg-hover)' : 'transparent' }}>
+                  <td className="text-text-primary font-medium text-[13px] py-3 px-4">{row.cat}</td>
+                  <td className="text-text-primary text-[13px] py-3 px-4 font-mono">{row.mobile}</td>
+                  <td className="text-text-primary text-[13px] py-3 px-4 font-mono">{row.desktop}</td>
+                  <td className="text-text-primary text-[13px] py-3 px-4">{row.comp}</td>
                 </tr>
               ))}
             </tbody>
@@ -1254,7 +1251,7 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
           ].map(item => (
             <div key={item.label} className="flex items-start gap-3 py-2" style={{ borderBottom: '1px solid var(--color-stroke-outline)' }}>
               <span className="text-text-primary font-medium text-[13px] shrink-0 w-40">{item.label}</span>
-              <span className="text-text-secondary text-[13px]">{item.desc}</span>
+              <span className="text-text-primary text-[13px]">{item.desc}</span>
             </div>
           ))}
         </div>

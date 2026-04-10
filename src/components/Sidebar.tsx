@@ -243,7 +243,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
             <p className="text-base font-bold text-text-primary tracking-[-0.43px]">Projects</p>
             <ChevronDown
               size={16}
-              className={`text-text-secondary transition-transform ${projectsOpen ? '' : '-rotate-90'}`}
+              className={`text-text-primary transition-transform ${projectsOpen ? '' : '-rotate-90'}`}
             />
           </button>
 
@@ -291,7 +291,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
             <p className="text-base font-bold text-text-primary tracking-[-0.43px]">Admin</p>
             <ChevronDown
               size={16}
-              className={`text-text-secondary transition-transform ${onboardingOpen ? '' : '-rotate-90'}`}
+              className={`text-text-primary transition-transform ${onboardingOpen ? '' : '-rotate-90'}`}
             />
           </button>
 
@@ -373,7 +373,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
             <p className="text-base font-bold text-text-primary tracking-[-0.43px]">Recents</p>
             <ChevronDown
               size={16}
-              className={`text-text-secondary transition-transform ${recentsOpen ? '' : '-rotate-90'}`}
+              className={`text-text-primary transition-transform ${recentsOpen ? '' : '-rotate-90'}`}
             />
           </button>
 

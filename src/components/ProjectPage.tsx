@@ -234,7 +234,7 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
                   <h3 className="text-[16px] font-semibold text-text-primary">Output</h3>
                   <ChevronDown
                     size={16}
-                    className={`text-text-secondary transition-transform ${outputOpen ? '' : '-rotate-90'}`}
+                    className={`text-text-primary transition-transform ${outputOpen ? '' : '-rotate-90'}`}
                   />
                 </button>
 
@@ -304,7 +304,7 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
                   <h3 className="text-[16px] font-semibold text-text-primary">Recents</h3>
                   <ChevronDown
                     size={16}
-                    className={`text-text-secondary transition-transform ${recentsOpen ? '' : '-rotate-90'}`}
+                    className={`text-text-primary transition-transform ${recentsOpen ? '' : '-rotate-90'}`}
                   />
                 </button>
 
