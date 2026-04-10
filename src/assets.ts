@@ -1,6 +1,6 @@
 // Local icon assets — downloaded from Figma design system
 // Avatars
-export const avatarBlackWoman = '/icons/avatar-black-woman.mp4';
+export const avatarBlackWoman = '/icons/avatar-black-woman.png';
 export const avatarAsianWoman = '/icons/avatar-asian-woman.png';
 export const avatarWhiteMan = '/icons/avatar-white-man.png';
 export const avatarWhiteManSayhi = '/icons/avatar-white-man-sayhi.mp4';

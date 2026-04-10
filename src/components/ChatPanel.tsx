@@ -150,7 +150,7 @@ export default function ChatPanel({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chat?.messages]);
 
-  const isNewChat = (!chat || chat.messages.length === 0) && !chat?.draftPrompt;
+  const isNewChat = !chat || chat.messages.length === 0;
   // Get chips from the last assistant message (for bottom input area)
   const lastMessage = chat?.messages?.[chat.messages.length - 1];
   const activeChips = lastMessage?.role === 'assistant' && lastMessage.chips?.length ? lastMessage.chips : undefined;
@@ -182,7 +182,7 @@ export default function ChatPanel({
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto min-h-0 px-8 py-4">
-        <div className={`max-w-2xl mx-auto ${isNewChat ? 'h-full flex flex-col justify-center' : ''}`}>
+        <div className={`max-w-[863px] mx-auto ${isNewChat ? 'h-full flex flex-col justify-center' : ''}`}>
           {isNewChat ? (
             <WelcomeState isDark={isDark} selectedAvatarId={selectedAvatarId} onAvatarChange={onAvatarChange} />
           ) : (
@@ -208,10 +208,10 @@ export default function ChatPanel({
 
       {/* Input area */}
       <div className="px-8 pb-[40px] shrink-0">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-[863px] mx-auto">
           <ChatInput
             onSend={onSend}
-            quickChips={isNewChat ? WELCOME_CHIPS : undefined}
+            quickChips={isNewChat && !chat?.draftPrompt ? WELCOME_CHIPS : undefined}
             actionChips={!isNewChat ? activeChips : undefined}
             onChipClick={onChipClick}
             onModeChange={onModeChange}

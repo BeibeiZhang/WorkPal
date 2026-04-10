@@ -76,15 +76,6 @@ const ITEMS: LibraryItem[] = [
     ratio: '1/1',
   },
   {
-    id: 'a4',
-    title: 'Tipsy delivery flow — Hero illustration',
-    type: 'image',
-    source: 'Alcohol Delivery Issues',
-    createdAt: 'Yesterday',
-    thumbnail: '/icons/avatar-asian-woman.png',
-    ratio: '4/5',
-  },
-  {
     id: 'a5',
     title: 'Driver onboarding walkthrough',
     type: 'video',
@@ -121,15 +112,6 @@ const ITEMS: LibraryItem[] = [
     ratio: '9/16',
   },
   {
-    id: 'a9',
-    title: 'Persona moodboard — Late-night shoppers',
-    type: 'image',
-    source: 'UX Meeting Minutes',
-    createdAt: '5 days ago',
-    thumbnail: '/icons/avatar-black-woman.png',
-    ratio: '3/4',
-  },
-  {
     id: 'a10',
     title: 'Q1 OKR rollup — Slide deck',
     type: 'presentation',
@@ -146,15 +128,6 @@ const ITEMS: LibraryItem[] = [
     createdAt: 'Last week',
     pages: 9,
     ratio: '4/5',
-  },
-  {
-    id: 'a12',
-    title: 'V4 sprint retro — Board snapshot',
-    type: 'image',
-    source: 'Pickup & Drop-off V4 Metrics',
-    createdAt: 'Last week',
-    thumbnail: '/icons/avatar-white-man.png',
-    ratio: '1/1',
   },
 ];
 
