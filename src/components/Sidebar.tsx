@@ -61,6 +61,75 @@ function DarkToggle({ isDark, onToggle }: { isDark: boolean; onToggle: () => voi
   );
 }
 
+/* ─── Minimized icon-only sidebar (desktop collapsed) ─── */
+interface MiniSidebarProps {
+  activeView?: SidebarProps['activeView'];
+  activeChatId: string;
+  onViewChange?: SidebarProps['onViewChange'];
+  onChatSelect: (id: string) => void;
+  onNewChat: () => void;
+  onToggleSidebar?: () => void;
+}
+
+export function MiniSidebar({ activeView, activeChatId, onViewChange, onNewChat, onToggleSidebar }: MiniSidebarProps) {
+  const items: { id: string; label: string; Icon: typeof LayoutDashboard; onClick: () => void; active: boolean }[] = [
+    { id: 'overview', label: 'Overview', Icon: LayoutDashboard, onClick: () => onViewChange?.('overview'), active: activeView === 'overview' && !activeChatId },
+    { id: 'new', label: 'New Session', Icon: Plus, onClick: onNewChat, active: false },
+    { id: 'connectors', label: 'Connectors', Icon: Link, onClick: () => onViewChange?.('connectors'), active: activeView === 'connectors' },
+    { id: 'library', label: 'Library', Icon: BookOpen, onClick: () => onViewChange?.('library'), active: activeView === 'library' },
+    { id: 'design-system', label: 'Design System', Icon: Palette, onClick: () => onViewChange?.('design-system'), active: activeView === 'design-system' },
+  ];
+
+  return (
+    <div
+      className="flex flex-col h-full w-[64px] select-none shrink-0 items-center"
+      style={{ background: 'var(--color-sidebar-bg)', borderRight: '1px solid var(--color-stroke-outline)' }}
+    >
+      {/* Top: hamburger to expand */}
+      <div className="flex items-center justify-center h-16 shrink-0">
+        <button
+          onClick={onToggleSidebar}
+          title="Open sidebar"
+          className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-[#e6e8ea] dark:hover:bg-bg-hover transition-colors"
+          style={{ color: 'var(--color-icon-primary)' }}
+        >
+          <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
+            <rect width="22" height="2" rx="1" fill="currentColor"/>
+            <rect width="15" height="2" rx="1" y="7" fill="currentColor"/>
+          </svg>
+        </button>
+      </div>
+
+      {/* Nav icons */}
+      <div className="flex-1 flex flex-col items-center gap-1 pt-2">
+        {items.map(({ id, label, Icon, onClick, active }) => (
+          <button
+            key={id}
+            onClick={onClick}
+            title={label}
+            className={`w-11 h-11 flex items-center justify-center rounded-full transition-colors ${
+              active ? '' : 'hover:bg-[#e6e8ea] dark:hover:bg-bg-hover'
+            }`}
+            style={active ? {
+              border: '1px solid transparent',
+              background: `linear-gradient(var(--color-sidebar-bg), var(--color-sidebar-bg)) padding-box, linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box`,
+            } : { border: '1px solid transparent' }}
+          >
+            <Icon size={20} className="text-text-primary" />
+          </button>
+        ))}
+      </div>
+
+      {/* Profile at bottom */}
+      <div className="pb-10 shrink-0 flex items-center justify-center">
+        <div className="rounded-full overflow-hidden shrink-0" style={{ width: 35, height: 35 }}>
+          <img src={USER_PROFILE_IMG} alt="Beibei Zhang" className="w-full h-full object-cover" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Sidebar({ chats, activeChatId, activeView, activeProjectId, projects, onChatSelect, onNewChat, onNewProject, onProjectSelect, onViewChange, isDark, onToggleDark, onToggleSidebar }: SidebarProps) {
   const [search, setSearch] = useState('');
   const [projectsOpen, setProjectsOpen] = useState(true);

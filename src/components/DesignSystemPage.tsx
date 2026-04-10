@@ -742,18 +742,23 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: DesignSystemPageProps) {
   return (
     <div className="flex-1 flex flex-col min-w-0 h-full" style={{ background: 'var(--color-bg-page)' }}>
-      {/* Header */}
-      <div className="flex items-center gap-4 px-6 h-16 shrink-0" style={{ borderBottom: '1px solid var(--color-stroke-outline)' }}>
+      {/* Header — toggle only */}
+      <div className="flex items-center gap-4 px-4 h-12 shrink-0">
         {!sidebarOpen && (
-          <button onClick={onToggleSidebar} className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-bg-hover transition-colors">
-            <Menu size={20} className="text-text-primary" />
+          <button onClick={onToggleSidebar} className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-primary">
+            <Menu size={20} />
           </button>
         )}
-        <h1 className="text-[20px] font-bold text-text-primary tracking-[-0.43px]">Design System</h1>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-8 pb-12 scrollbar-autohide">
+        <h1
+          className="text-[40px] font-bold text-text-primary leading-[48px] tracking-[-0.5px] mb-2"
+          style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
+        >
+          Design System
+        </h1>
         {/* Brand Gradient */}
         <SectionTitle>Brand Gradient</SectionTitle>
         <div className="flex flex-wrap gap-4">
