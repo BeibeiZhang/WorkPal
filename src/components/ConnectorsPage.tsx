@@ -75,15 +75,14 @@ type Tab = 'apps' | 'custom-api' | 'custom-mcp';
 function ConnectorCard({ connector }: { connector: Connector | APIConnector }) {
   return (
     <button
-      className="flex items-center gap-4 p-4 rounded-2xl border transition-all text-left hover:shadow-sm group"
-      style={{ borderColor: 'var(--color-stroke-outline)', background: 'var(--color-bg-page)' }}
+      className="flex items-start gap-3 w-full px-5 py-4 rounded-2xl border border-stroke-outline bg-white dark:bg-[#1a1f2e] hover:bg-bg-hover transition-colors text-left"
     >
-      {connector.logo}
-      <div className="flex-1 min-w-0">
-        <p className="text-[15px] font-semibold text-text-primary truncate" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
+      <div className="shrink-0">{connector.logo}</div>
+      <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+        <span className="text-[15px] font-semibold text-text-primary truncate" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
           {connector.name}
-        </p>
-        <p className="text-[13px] text-text-primary mt-0.5 line-clamp-2" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
+        </span>
+        <p className="text-[13px] text-text-primary leading-relaxed line-clamp-1" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
           {connector.description}
         </p>
       </div>
@@ -141,26 +140,27 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: Connect
 
       {/* Tabs + Search row */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between px-8 pt-4 gap-3 shrink-0">
-        <div className="flex items-center gap-6">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className="relative pb-2 text-[15px] font-medium transition-colors"
-              style={{
-                fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-                color: activeTab === tab.id ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
-              }}
-            >
-              {tab.label}
-              {activeTab === tab.id && (
-                <div
-                  className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full"
-                  style={{ background: 'var(--color-text-primary)' }}
-                />
-              )}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          {tabs.map(tab => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-3 py-1 rounded-full text-[14px] leading-[22px] transition-colors cursor-pointer ${
+                  isActive
+                    ? 'border border-transparent font-medium'
+                    : 'chip-gradient-hover border border-stroke-outline text-text-primary'
+                }`}
+                style={isActive ? {
+                  background: 'rgba(49,113,255,0.1)',
+                  color: '#3171ff',
+                } : undefined}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Search */}
@@ -190,7 +190,7 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: Connect
             <p className="text-[13px] font-medium text-text-primary mb-3 tracking-wide uppercase" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
               Recommended
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
+            <div className="flex flex-col gap-3 mb-8">
               {filterBySearch(RECOMMENDED_APPS).map(c => <ConnectorCard key={c.id} connector={c} />)}
             </div>
 
@@ -198,7 +198,7 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: Connect
             <p className="text-[13px] font-medium text-text-primary mb-3 tracking-wide uppercase" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
               Apps
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="flex flex-col gap-3">
               {filterBySearch(APP_CONNECTORS).map(c => <ConnectorCard key={c.id} connector={c} />)}
             </div>
           </>
@@ -221,11 +221,10 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: Connect
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="flex flex-col gap-3">
               {/* Add custom API card */}
               <button
-                className="flex items-center gap-4 p-4 rounded-2xl border border-dashed transition-all text-left hover:shadow-sm"
-                style={{ borderColor: 'var(--color-stroke-outline)' }}
+                className="flex items-start gap-3 w-full px-5 py-4 rounded-2xl border border-dashed border-stroke-outline hover:bg-bg-hover transition-colors text-left"
               >
                 <div
                   className="flex items-center justify-center rounded-xl shrink-0"
@@ -233,9 +232,11 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: Connect
                 >
                   <Plus size={20} className="text-text-primary" />
                 </div>
-                <p className="text-[15px] font-semibold text-text-primary" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
-                  Add custom API
-                </p>
+                <div className="flex-1 min-w-0 flex flex-col justify-center" style={{ minHeight: 36 }}>
+                  <span className="text-[15px] font-semibold text-text-primary" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
+                    Add custom API
+                  </span>
+                </div>
               </button>
 
               {filterBySearch(API_CONNECTORS).map(c => <ConnectorCard key={c.id} connector={c} />)}
