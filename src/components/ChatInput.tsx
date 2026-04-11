@@ -187,6 +187,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
   const [isRecording, setIsRecording] = useState(false);
   const [voiceMode, setVoiceMode] = useState(false);
   const [voiceListening, setVoiceListening] = useState(false);
+  const [isMultiline, setIsMultiline] = useState(false);
   const voiceModeRef = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const attachRef = useRef<HTMLDivElement>(null);
@@ -206,12 +207,17 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
   }, [chatKey, draftValue, forceMode, mode, onModeChange]);
 
   // Auto-resize textarea whenever its value changes (covers both typing and
-  // programmatic updates like draft pre-fills, voice transcription, etc.)
+  // programmatic updates like draft pre-fills, voice transcription, etc.).
+  // Also tracks whether the content has wrapped to multiple lines so the
+  // wrapper can animate from a pill to a rounded rectangle.
   useEffect(() => {
     const ta = textareaRef.current;
     if (!ta) return;
     ta.style.height = 'auto';
-    ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+    const next = Math.min(ta.scrollHeight, 120);
+    ta.style.height = next + 'px';
+    // Single line is 22px (line-height). Anything taller has wrapped.
+    setIsMultiline(ta.scrollHeight > 30);
   }, [value]);
 
   // Simulated voice phrases for demo fallback when mic permission is denied
@@ -405,6 +411,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
     if (!trimmed && !forceSendActive) return;
     onSend(trimmed);
     setValue('');
+    setIsMultiline(false);
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
@@ -431,7 +438,6 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
   };
 
   const canSend = value.trim().length > 0;
-  const isMultiline = textareaRef.current ? textareaRef.current.scrollHeight > 44 : false;
   const isActive = focused || canSend || voiceMode;
 
   const voicePlaceholder = voiceMode
@@ -475,9 +481,11 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
         </div>
       )}
 
-      {/* Text field — follows Figma component library states */}
+      {/* Text field — follows Figma component library states.
+          When the textarea content wraps to more than one line, the wrapper
+          animates from a pill (rounded-full) into a rounded rectangle. */}
       <div
-        className={`px-4 py-4 flex items-center transition-all ${
+        className={`px-4 py-4 flex items-center transition-[border-radius,background-color,box-shadow] duration-200 ease-out ${
           isActive
             ? (isMultiline ? 'rounded-lg' : 'rounded-full')
             : 'rounded-full input-gradient-hover'

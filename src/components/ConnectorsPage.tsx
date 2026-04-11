@@ -1,37 +1,43 @@
 import { useState } from 'react';
 import { Search, Plus, ChevronDown, Globe } from 'lucide-react';
+import { iconAsana, iconGmail, iconZoom, iconDoc20, iconSheet } from '../assets';
 
 /* ─── Connector data ─── */
 interface Connector {
   id: string;
   name: string;
-  description: string;
   /** Official site domain — logo is fetched directly from this site's favicon */
   domain?: string;
+  /** When true, show Connected tag instead of Connect button */
+  connected?: boolean;
 }
 
-/* Brand logo — fetches the official favicon directly from each product's
-   own domain via Google's favicon service. */
-function BrandLogo({ name, domain }: { name: string; domain?: string }) {
+/* Local icon library — prefer these over remote favicons when available.
+   Keys match Connector.id. */
+const LOCAL_ICONS: Record<string, string> = {
+  gmail: iconGmail,
+  asana: iconAsana,
+  zoom: iconZoom,
+  'google-docs': iconDoc20,
+  'google-sheets': iconSheet,
+};
+
+/* Brand logo — prefers a local SVG from the icon library; falls back to
+   Google's favicon service for connectors without a library asset. */
+function BrandLogo({ id, name, domain }: { id: string; name: string; domain?: string }) {
+  const localIcon = LOCAL_ICONS[id];
   return (
-    <div
-      className="flex items-center justify-center rounded-xl shrink-0 overflow-hidden"
-      style={{
-        width: 36,
-        height: 36,
-        background: 'var(--color-bg-hover)',
-      }}
-    >
-      {domain ? (
+    <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-bg-hover shrink-0 overflow-hidden">
+      {localIcon ? (
+        <img src={localIcon} alt={`${name} logo`} className="w-5 h-5 object-contain" />
+      ) : domain ? (
         <img
           src={`https://www.google.com/s2/favicons?domain=${domain}&sz=128`}
           alt={`${name} logo`}
-          width={24}
-          height={24}
-          style={{ width: 24, height: 24, objectFit: 'contain' }}
+          className="w-5 h-5 object-contain"
         />
       ) : (
-        <Globe size={20} className="text-text-primary" />
+        <Globe size={18} className="text-text-primary" />
       )}
     </div>
   );
@@ -40,64 +46,68 @@ function BrandLogo({ name, domain }: { name: string; domain?: string }) {
 /* ─── Connector lists ─── */
 
 const RECOMMENDED_APPS: Connector[] = [
-  { id: 'slack', name: 'Slack', description: 'Send messages, search channels, and manage team communication', domain: 'slack.com' },
-  { id: 'jira', name: 'Jira', description: 'Track issues, manage sprints, and streamline project workflows', domain: 'atlassian.com' },
-  { id: 'notion', name: 'Notion', description: 'Access docs, databases, and wikis from your workspace', domain: 'notion.so' },
-  { id: 'browser', name: 'My Browser', description: 'Access the web on your own browser' },
+  { id: 'slack', name: 'Slack', domain: 'slack.com' },
+  { id: 'jira', name: 'Jira', domain: 'atlassian.com' },
+  { id: 'notion', name: 'Notion', domain: 'notion.so' },
+  { id: 'browser', name: 'My Browser' },
 ];
 
 const APP_CONNECTORS: Connector[] = [
-  { id: 'gmail', name: 'Gmail', description: 'Draft replies, search your inbox, and summarize email threads instantly', domain: 'mail.google.com' },
-  { id: 'google-cal', name: 'Google Calendar', description: 'Understand your schedule, manage events, and optimize your time', domain: 'calendar.google.com' },
-  { id: 'google-drive', name: 'Google Drive', description: 'Access your files, search instantly, and manage documents intelligently', domain: 'drive.google.com' },
-  { id: 'asana', name: 'Asana', description: 'Track tasks, manage projects, and coordinate team workflows', domain: 'asana.com' },
-  { id: 'zoom', name: 'Zoom', description: 'Schedule meetings, access recordings, and manage conference settings', domain: 'zoom.us' },
-  { id: 'figma', name: 'Figma', description: 'Access design files, inspect components, and export assets', domain: 'figma.com' },
-  { id: 'github', name: 'GitHub', description: 'Manage repos, review PRs, and track issues from your workspace', domain: 'github.com' },
-  { id: 'linear', name: 'Linear', description: 'Track issues, plan cycles, and manage product development', domain: 'linear.app' },
-  { id: 'confluence', name: 'Confluence', description: 'Search documentation, access team knowledge bases, and collaborate', domain: 'confluence.atlassian.com' },
-  { id: 'outlook-mail', name: 'Outlook Mail', description: 'Write, search, and manage your Outlook emails seamlessly', domain: 'outlook.com' },
-  { id: 'teams', name: 'Microsoft Teams', description: 'Chat, call, and collaborate with your team in one place', domain: 'teams.microsoft.com' },
-  { id: 'dropbox', name: 'Dropbox', description: 'Store, share, and access your files from anywhere', domain: 'dropbox.com' },
+  { id: 'gmail', name: 'Gmail', domain: 'mail.google.com', connected: true },
+  { id: 'google-cal', name: 'Google Calendar', domain: 'calendar.google.com' },
+  { id: 'google-docs', name: 'Google Docs', domain: 'docs.google.com', connected: true },
+  { id: 'google-sheets', name: 'Google Sheets', domain: 'sheets.google.com' },
+  { id: 'google-drive', name: 'Google Drive', domain: 'drive.google.com' },
+  { id: 'asana', name: 'Asana', domain: 'asana.com' },
+  { id: 'zoom', name: 'Zoom', domain: 'zoom.us' },
+  { id: 'figma', name: 'Figma', domain: 'figma.com' },
+  { id: 'github', name: 'GitHub', domain: 'github.com' },
+  { id: 'linear', name: 'Linear', domain: 'linear.app' },
+  { id: 'confluence', name: 'Confluence', domain: 'confluence.atlassian.com' },
+  { id: 'outlook-mail', name: 'Outlook Mail', domain: 'outlook.com' },
+  { id: 'teams', name: 'Microsoft Teams', domain: 'teams.microsoft.com' },
+  { id: 'dropbox', name: 'Dropbox', domain: 'dropbox.com' },
 ];
 
-interface APIConnector {
-  id: string;
-  name: string;
-  description: string;
-  domain?: string;
-}
-
-const API_CONNECTORS: APIConnector[] = [
-  { id: 'openai', name: 'OpenAI', description: 'Leverage GPT model series for intelligent text generation and processing', domain: 'openai.com' },
-  { id: 'anthropic', name: 'Anthropic', description: 'Access reliable AI assistant services with safe and intelligent conversations', domain: 'anthropic.com' },
-  { id: 'gemini', name: 'Google Gemini', description: 'Process multimodal content including text, images, and code seamlessly', domain: 'gemini.google.com' },
-  { id: 'perplexity', name: 'Perplexity', description: 'Search real-time information and get accurate answers with reliable citations', domain: 'perplexity.ai' },
-  { id: 'cohere', name: 'Cohere', description: 'Build enterprise AI applications and optimize text processing workflows', domain: 'cohere.com' },
-  { id: 'elevenlabs', name: 'ElevenLabs', description: 'Generate realistic voices, clone speech, and create custom audio content', domain: 'elevenlabs.io' },
+const API_CONNECTORS: Connector[] = [
+  { id: 'openai', name: 'OpenAI', domain: 'openai.com' },
+  { id: 'anthropic', name: 'Anthropic', domain: 'anthropic.com' },
+  { id: 'gemini', name: 'Google Gemini', domain: 'gemini.google.com' },
+  { id: 'perplexity', name: 'Perplexity', domain: 'perplexity.ai' },
+  { id: 'cohere', name: 'Cohere', domain: 'cohere.com' },
+  { id: 'elevenlabs', name: 'ElevenLabs', domain: 'elevenlabs.io' },
 ];
 
 /* ─── Tab type ─── */
 type Tab = 'apps' | 'custom-api' | 'custom-mcp';
 
-/* ─── ConnectorCard ─── */
-function ConnectorCard({ connector }: { connector: Connector | APIConnector }) {
+/* ─── ConnectorCard ─── compact spec: icon + name + Connected tag / Connect button */
+function ConnectorCard({ connector }: { connector: Connector }) {
   return (
-    <button
-      className="flex items-start gap-3 w-full px-5 py-4 rounded-2xl border border-stroke-outline bg-white dark:bg-[#1a1f2e] hover:bg-bg-hover transition-colors text-left"
+    <div
+      className="flex items-center gap-3 p-3 rounded-lg border border-stroke-outline"
+      style={{ background: 'var(--color-bg-page)' }}
     >
-      <div className="shrink-0">
-        <BrandLogo name={connector.name} domain={connector.domain} />
-      </div>
-      <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-        <span className="text-[15px] font-semibold text-text-primary truncate" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
-          {connector.name}
+      <BrandLogo id={connector.id} name={connector.name} domain={connector.domain} />
+      <span
+        className="flex-1 text-[13px] text-text-primary font-medium truncate"
+        style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
+      >
+        {connector.name}
+      </span>
+      {connector.connected ? (
+        <span
+          className="text-[11px] font-semibold px-2 py-0.5 rounded"
+          style={{ background: 'rgba(2,137,1,0.1)', color: '#028901' }}
+        >
+          Connected
         </span>
-        <p className="text-[13px] text-text-primary leading-relaxed line-clamp-1" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
-          {connector.description}
-        </p>
-      </div>
-    </button>
+      ) : (
+        <button className="text-[11px] px-3 py-1 rounded-full border border-stroke-outline text-text-primary hover:bg-bg-hover transition-colors">
+          Connect
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -118,8 +128,8 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: Connect
   ];
 
   /* Filter connectors by search */
-  const filterBySearch = <T extends { name: string; description: string }>(items: T[]) =>
-    search ? items.filter(c => c.name.toLowerCase().includes(search.toLowerCase()) || c.description.toLowerCase().includes(search.toLowerCase())) : items;
+  const filterBySearch = <T extends { name: string }>(items: T[]) =>
+    search ? items.filter(c => c.name.toLowerCase().includes(search.toLowerCase())) : items;
 
   return (
     <div className="flex-1 flex flex-col min-w-0 h-full" style={{ background: 'var(--color-bg-page)' }}>
@@ -201,7 +211,7 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: Connect
             <p className="text-[13px] font-medium text-text-primary mb-3 tracking-wide uppercase" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
               Recommended
             </p>
-            <div className="flex flex-col gap-3 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-8">
               {filterBySearch(RECOMMENDED_APPS).map(c => <ConnectorCard key={c.id} connector={c} />)}
             </div>
 
@@ -209,7 +219,7 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: Connect
             <p className="text-[13px] font-medium text-text-primary mb-3 tracking-wide uppercase" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
               Apps
             </p>
-            <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {filterBySearch(APP_CONNECTORS).map(c => <ConnectorCard key={c.id} connector={c} />)}
             </div>
           </>
@@ -232,22 +242,21 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: Connect
               </p>
             </div>
 
-            <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {/* Add custom API card */}
               <button
-                className="flex items-start gap-3 w-full px-5 py-4 rounded-2xl border border-dashed border-stroke-outline hover:bg-bg-hover transition-colors text-left"
+                className="flex items-center gap-3 w-full p-3 rounded-lg border border-dashed border-stroke-outline hover:bg-bg-hover transition-colors text-left"
+                style={{ background: 'var(--color-bg-page)' }}
               >
-                <div
-                  className="flex items-center justify-center rounded-xl shrink-0"
-                  style={{ width: 36, height: 36 }}
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-bg-hover shrink-0">
+                  <Plus size={16} className="text-text-primary" />
+                </div>
+                <span
+                  className="flex-1 text-[13px] text-text-primary font-medium"
+                  style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
                 >
-                  <Plus size={20} className="text-text-primary" />
-                </div>
-                <div className="flex-1 min-w-0 flex flex-col justify-center" style={{ minHeight: 36 }}>
-                  <span className="text-[15px] font-semibold text-text-primary" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
-                    Add custom API
-                  </span>
-                </div>
+                  Add custom API
+                </span>
               </button>
 
               {filterBySearch(API_CONNECTORS).map(c => <ConnectorCard key={c.id} connector={c} />)}

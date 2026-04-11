@@ -84,6 +84,11 @@ export interface Chat {
   messages: Message[];
   isActive?: boolean;
   draftPrompt?: string;
+  /** True for a fresh "New Session" that has not yet received its first
+   *  user message. Draft chats are not shown in the Recents list — they
+   *  stay highlighted under the top "New Session" button until the user
+   *  submits something. */
+  isDraft?: boolean;
 }
 
 export interface App {
