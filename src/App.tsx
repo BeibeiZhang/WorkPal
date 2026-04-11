@@ -16,10 +16,16 @@ import { Chat, Message, ActionChip, TicketCard, AgentCard, ScheduleCard } from '
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
 import { INITIAL_CHATS } from './data';
 
-const STORAGE_KEY = 'workpal-chats';
+// Bump this whenever INITIAL_CHATS gains new seed fields (e.g. draftPrompt) so
+// returning visitors with stale localStorage drop their cached chats and pick
+// up the new demo data on next load.
+const STORAGE_KEY = 'workpal-chats-v2';
+const LEGACY_STORAGE_KEYS = ['workpal-chats'];
 
 function loadChats(): Chat[] {
   try {
+    // Drop any pre-versioned cache so old demo data can't shadow new seed fields.
+    LEGACY_STORAGE_KEYS.forEach(k => localStorage.removeItem(k));
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);

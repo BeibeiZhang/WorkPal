@@ -59,7 +59,7 @@ export default function ComingSoonPage({ view, sidebarOpen, onToggleSidebar }: C
           className="w-full rounded-3xl"
           style={{
             minWidth: 300,
-            maxWidth: 300,
+            maxWidth: 450,
             objectFit: 'contain',
           }}
         />
@@ -73,7 +73,7 @@ export default function ComingSoonPage({ view, sidebarOpen, onToggleSidebar }: C
             letterSpacing: '-0.43px',
           }}
         >
-          Coming Soon~
+          Dashboard function coming soon
         </p>
       </div>
     </div>
