@@ -57,6 +57,10 @@ interface ChatInputProps {
   draftValue?: string;
   /** Mode to force when chatKey changes. */
   forceMode?: InputMode;
+  /** Replace the voice-mode toggle with an always-visible send (up-arrow) button. Voice mode is disabled. */
+  voiceAsSend?: boolean;
+  /** Force the send button into its active state even when the input is empty. Click still calls onSend (with empty string if no text). */
+  forceSendActive?: boolean;
 }
 
 /** Exact pixel dimensions from Figma for each toolbar icon within its 24×24 container */
@@ -170,7 +174,7 @@ const FOLDER_OPTIONS = [
 /** Simulated branch options */
 const BRANCH_OPTIONS = ['main', 'develop', 'feature/chat-input', 'fix/ui-polish'];
 
-export default function ChatInput({ onSend, placeholder = 'Message WorkPal', quickChips, actionChips, onChipClick, onModeChange, chatOnly, isAiResponding, chatKey, draftValue, forceMode }: ChatInputProps) {
+export default function ChatInput({ onSend, placeholder = 'Message WorkPal', quickChips, actionChips, onChipClick, onModeChange, chatOnly, isAiResponding, chatKey, draftValue, forceMode, voiceAsSend, forceSendActive }: ChatInputProps) {
   const [value, setValue] = useState(() => draftValue ?? '');
   const [focused, setFocused] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
@@ -397,8 +401,9 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
   }, [showAttachMenu, showFolderMenu, showBranchMenu]);
 
   const handleSend = () => {
-    if (!value.trim()) return;
-    onSend(value.trim());
+    const trimmed = value.trim();
+    if (!trimmed && !forceSendActive) return;
+    onSend(trimmed);
     setValue('');
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -514,7 +519,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
               <MicIcon16 />
             </button>
           </Tooltip>
-          {voiceMode ? (
+          {voiceMode && !voiceAsSend ? (
             <Tooltip label="Stop voice mode">
               <button
                 onClick={toggleVoiceMode}
@@ -524,23 +529,28 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
                 <StopIcon16 />
               </button>
             </Tooltip>
-          ) : focused || canSend ? (
-            <Tooltip label="Send">
-              <button
-                onClick={canSend ? handleSend : undefined}
-                className={`flex items-center justify-center shrink-0 cursor-pointer rounded-full transition-all ${canSend ? 'hover:shadow-[0_2px_15px_rgba(1,44,197,0.3)]' : 'hover:bg-bg-hover'}`}
-                style={{
-                  width: 'var(--input-btn-size)', height: 'var(--input-btn-size)',
-                  ...(canSend ? { backgroundImage: 'linear-gradient(183.55deg, #7652B9 16.2%, #B46470 49%, #CA9D8C 109.3%)' } : {}),
-                } as React.CSSProperties}
-              >
-                {canSend ? (
-                  <IconImg src={iconSendActive} alt="Send" noTheme size={16} />
-                ) : (
-                  <IconImg src={iconSend} alt="Send" size={16} />
-                )}
-              </button>
-            </Tooltip>
+          ) : voiceAsSend || focused || canSend ? (
+            (() => {
+              const isSendActive = canSend || !!forceSendActive;
+              return (
+                <Tooltip label="Send">
+                  <button
+                    onClick={isSendActive ? handleSend : undefined}
+                    className={`flex items-center justify-center shrink-0 rounded-full transition-all ${isSendActive ? 'cursor-pointer hover:shadow-[0_2px_15px_rgba(1,44,197,0.3)]' : 'cursor-default hover:bg-bg-hover'}`}
+                    style={{
+                      width: 'var(--input-btn-size)', height: 'var(--input-btn-size)',
+                      ...(isSendActive ? { backgroundImage: 'linear-gradient(183.55deg, #7652B9 16.2%, #B46470 49%, #CA9D8C 109.3%)' } : {}),
+                    } as React.CSSProperties}
+                  >
+                    {isSendActive ? (
+                      <IconImg src={iconSendActive} alt="Send" noTheme size={16} />
+                    ) : (
+                      <IconImg src={iconSend} alt="Send" size={16} />
+                    )}
+                  </button>
+                </Tooltip>
+              );
+            })()
           ) : (
             <Tooltip label="Voice mode">
               <button

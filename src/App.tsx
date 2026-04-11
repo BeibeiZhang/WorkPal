@@ -656,15 +656,26 @@ export default function App() {
     'white-man': avatarWhiteMan,
   };
 
-  const handleOnboardingComplete = useCallback((description: string, traits: string[]) => {
+  const handleOnboardingComplete = useCallback((mostImportant: string[], avoid: string[], description?: string) => {
     setOnboardingDone(true);
     localStorage.setItem('workpal-onboarding-done', 'true');
 
-    // Build user message content: description + trait bullets
-    const traitBullets = traits.map(t => `  • ${t}`).join('\n');
-    const userContent = description
-      ? `${description}\n${traitBullets}`
-      : traitBullets || 'Set up my WorkPal agent';
+    // Build user message content: optional description + most-important + avoid sections
+    const lines: string[] = [];
+    if (description) {
+      lines.push(description);
+    }
+    if (mostImportant.length) {
+      if (lines.length) lines.push('');
+      lines.push('Most important to me:');
+      lines.push(...mostImportant.map(t => `  • ${t}`));
+    }
+    if (avoid.length) {
+      if (lines.length) lines.push('');
+      lines.push('Avoid:');
+      lines.push(...avoid.map(t => `  • ${t}`));
+    }
+    const userContent = lines.length ? lines.join('\n') : 'Set up my WorkPal agent';
 
     // Create "My WorkPal" chat with the user message
     const chatId = 'my-workpal';
