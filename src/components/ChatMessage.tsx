@@ -22,7 +22,7 @@ function renderText(text: string) {
 
 function SpeakerIcon({ playing }: { playing: boolean }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`w-[26px] h-[26px] md:w-5 md:h-5 ${playing ? 'text-[#7652B9]' : 'opacity-40 hover:opacity-70'}`}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`w-[26px] h-[26px] md:w-5 md:h-5 ${playing ? 'text-[#3171FF]' : 'opacity-40 hover:opacity-70'}`}>
       <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
       {playing ? (
         <>
@@ -69,7 +69,7 @@ function FeedbackBar({ text }: { text: string }) {
       <button
         title={isSpeaking ? 'Stop reading' : 'Read aloud'}
         onClick={toggleSpeak}
-        className={`w-10 h-10 md:w-7 md:h-7 flex items-center justify-center rounded-lg hover:bg-bg-hover transition-colors ${isSpeaking ? 'bg-bg-hover' : ''}`}
+        className={`w-10 h-10 md:w-7 md:h-7 flex items-center justify-center rounded-lg transition-colors ${isSpeaking ? 'bg-[#3171FF]/10 hover:bg-[#3171FF]/15' : 'hover:bg-bg-hover'}`}
       >
         <SpeakerIcon playing={isSpeaking} />
       </button>
