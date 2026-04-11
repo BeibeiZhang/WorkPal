@@ -1,29 +1,38 @@
 import { useState } from 'react';
-import { Search, Plus, ChevronDown } from 'lucide-react';
+import { Search, Plus, ChevronDown, Globe } from 'lucide-react';
 
 /* ─── Connector data ─── */
 interface Connector {
   id: string;
   name: string;
   description: string;
-  logo: React.ReactNode;
+  /** Official site domain — logo is fetched directly from this site's favicon */
+  domain?: string;
 }
 
-/* Unified monochrome logo — uses system primary color */
-function BrandLogo({ name }: { name: string }) {
-  const initial = name.charAt(0).toUpperCase();
+/* Brand logo — fetches the official favicon directly from each product's
+   own domain via Google's favicon service. */
+function BrandLogo({ name, domain }: { name: string; domain?: string }) {
   return (
     <div
-      className="flex items-center justify-center rounded-xl shrink-0 font-bold text-text-primary"
+      className="flex items-center justify-center rounded-xl shrink-0 overflow-hidden"
       style={{
         width: 36,
         height: 36,
         background: 'var(--color-bg-hover)',
-        fontSize: 14,
-        fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
       }}
     >
-      {initial}
+      {domain ? (
+        <img
+          src={`https://www.google.com/s2/favicons?domain=${domain}&sz=128`}
+          alt={`${name} logo`}
+          width={24}
+          height={24}
+          style={{ width: 24, height: 24, objectFit: 'contain' }}
+        />
+      ) : (
+        <Globe size={20} className="text-text-primary" />
+      )}
     </div>
   );
 }
@@ -31,41 +40,41 @@ function BrandLogo({ name }: { name: string }) {
 /* ─── Connector lists ─── */
 
 const RECOMMENDED_APPS: Connector[] = [
-  { id: 'slack', name: 'Slack', description: 'Send messages, search channels, and manage team communication', logo: <BrandLogo name="Slack" /> },
-  { id: 'jira', name: 'Jira', description: 'Track issues, manage sprints, and streamline project workflows', logo: <BrandLogo name="Jira" /> },
-  { id: 'notion', name: 'Notion', description: 'Access docs, databases, and wikis from your workspace', logo: <BrandLogo name="Notion" /> },
-  { id: 'browser', name: 'My Browser', description: 'Access the web on your own browser', logo: <BrandLogo name="My Browser" /> },
+  { id: 'slack', name: 'Slack', description: 'Send messages, search channels, and manage team communication', domain: 'slack.com' },
+  { id: 'jira', name: 'Jira', description: 'Track issues, manage sprints, and streamline project workflows', domain: 'atlassian.com' },
+  { id: 'notion', name: 'Notion', description: 'Access docs, databases, and wikis from your workspace', domain: 'notion.so' },
+  { id: 'browser', name: 'My Browser', description: 'Access the web on your own browser' },
 ];
 
 const APP_CONNECTORS: Connector[] = [
-  { id: 'gmail', name: 'Gmail', description: 'Draft replies, search your inbox, and summarize email threads instantly', logo: <BrandLogo name="Gmail" /> },
-  { id: 'google-cal', name: 'Google Calendar', description: 'Understand your schedule, manage events, and optimize your time', logo: <BrandLogo name="Google Calendar" /> },
-  { id: 'google-drive', name: 'Google Drive', description: 'Access your files, search instantly, and manage documents intelligently', logo: <BrandLogo name="Google Drive" /> },
-  { id: 'asana', name: 'Asana', description: 'Track tasks, manage projects, and coordinate team workflows', logo: <BrandLogo name="Asana" /> },
-  { id: 'zoom', name: 'Zoom', description: 'Schedule meetings, access recordings, and manage conference settings', logo: <BrandLogo name="Zoom" /> },
-  { id: 'figma', name: 'Figma', description: 'Access design files, inspect components, and export assets', logo: <BrandLogo name="Figma" /> },
-  { id: 'github', name: 'GitHub', description: 'Manage repos, review PRs, and track issues from your workspace', logo: <BrandLogo name="GitHub" /> },
-  { id: 'linear', name: 'Linear', description: 'Track issues, plan cycles, and manage product development', logo: <BrandLogo name="Linear" /> },
-  { id: 'confluence', name: 'Confluence', description: 'Search documentation, access team knowledge bases, and collaborate', logo: <BrandLogo name="Confluence" /> },
-  { id: 'outlook-mail', name: 'Outlook Mail', description: 'Write, search, and manage your Outlook emails seamlessly', logo: <BrandLogo name="Outlook Mail" /> },
-  { id: 'teams', name: 'Microsoft Teams', description: 'Chat, call, and collaborate with your team in one place', logo: <BrandLogo name="Microsoft Teams" /> },
-  { id: 'dropbox', name: 'Dropbox', description: 'Store, share, and access your files from anywhere', logo: <BrandLogo name="Dropbox" /> },
+  { id: 'gmail', name: 'Gmail', description: 'Draft replies, search your inbox, and summarize email threads instantly', domain: 'mail.google.com' },
+  { id: 'google-cal', name: 'Google Calendar', description: 'Understand your schedule, manage events, and optimize your time', domain: 'calendar.google.com' },
+  { id: 'google-drive', name: 'Google Drive', description: 'Access your files, search instantly, and manage documents intelligently', domain: 'drive.google.com' },
+  { id: 'asana', name: 'Asana', description: 'Track tasks, manage projects, and coordinate team workflows', domain: 'asana.com' },
+  { id: 'zoom', name: 'Zoom', description: 'Schedule meetings, access recordings, and manage conference settings', domain: 'zoom.us' },
+  { id: 'figma', name: 'Figma', description: 'Access design files, inspect components, and export assets', domain: 'figma.com' },
+  { id: 'github', name: 'GitHub', description: 'Manage repos, review PRs, and track issues from your workspace', domain: 'github.com' },
+  { id: 'linear', name: 'Linear', description: 'Track issues, plan cycles, and manage product development', domain: 'linear.app' },
+  { id: 'confluence', name: 'Confluence', description: 'Search documentation, access team knowledge bases, and collaborate', domain: 'confluence.atlassian.com' },
+  { id: 'outlook-mail', name: 'Outlook Mail', description: 'Write, search, and manage your Outlook emails seamlessly', domain: 'outlook.com' },
+  { id: 'teams', name: 'Microsoft Teams', description: 'Chat, call, and collaborate with your team in one place', domain: 'teams.microsoft.com' },
+  { id: 'dropbox', name: 'Dropbox', description: 'Store, share, and access your files from anywhere', domain: 'dropbox.com' },
 ];
 
 interface APIConnector {
   id: string;
   name: string;
   description: string;
-  logo: React.ReactNode;
+  domain?: string;
 }
 
 const API_CONNECTORS: APIConnector[] = [
-  { id: 'openai', name: 'OpenAI', description: 'Leverage GPT model series for intelligent text generation and processing', logo: <BrandLogo name="OpenAI" /> },
-  { id: 'anthropic', name: 'Anthropic', description: 'Access reliable AI assistant services with safe and intelligent conversations', logo: <BrandLogo name="Anthropic" /> },
-  { id: 'gemini', name: 'Google Gemini', description: 'Process multimodal content including text, images, and code seamlessly', logo: <BrandLogo name="Google Gemini" /> },
-  { id: 'perplexity', name: 'Perplexity', description: 'Search real-time information and get accurate answers with reliable citations', logo: <BrandLogo name="Perplexity" /> },
-  { id: 'cohere', name: 'Cohere', description: 'Build enterprise AI applications and optimize text processing workflows', logo: <BrandLogo name="Cohere" /> },
-  { id: 'elevenlabs', name: 'ElevenLabs', description: 'Generate realistic voices, clone speech, and create custom audio content', logo: <BrandLogo name="ElevenLabs" /> },
+  { id: 'openai', name: 'OpenAI', description: 'Leverage GPT model series for intelligent text generation and processing', domain: 'openai.com' },
+  { id: 'anthropic', name: 'Anthropic', description: 'Access reliable AI assistant services with safe and intelligent conversations', domain: 'anthropic.com' },
+  { id: 'gemini', name: 'Google Gemini', description: 'Process multimodal content including text, images, and code seamlessly', domain: 'gemini.google.com' },
+  { id: 'perplexity', name: 'Perplexity', description: 'Search real-time information and get accurate answers with reliable citations', domain: 'perplexity.ai' },
+  { id: 'cohere', name: 'Cohere', description: 'Build enterprise AI applications and optimize text processing workflows', domain: 'cohere.com' },
+  { id: 'elevenlabs', name: 'ElevenLabs', description: 'Generate realistic voices, clone speech, and create custom audio content', domain: 'elevenlabs.io' },
 ];
 
 /* ─── Tab type ─── */
@@ -77,7 +86,9 @@ function ConnectorCard({ connector }: { connector: Connector | APIConnector }) {
     <button
       className="flex items-start gap-3 w-full px-5 py-4 rounded-2xl border border-stroke-outline bg-white dark:bg-[#1a1f2e] hover:bg-bg-hover transition-colors text-left"
     >
-      <div className="shrink-0">{connector.logo}</div>
+      <div className="shrink-0">
+        <BrandLogo name={connector.name} domain={connector.domain} />
+      </div>
       <div className="flex-1 min-w-0 flex flex-col gap-1.5">
         <span className="text-[15px] font-semibold text-text-primary truncate" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
           {connector.name}
