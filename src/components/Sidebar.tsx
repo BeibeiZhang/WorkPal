@@ -136,9 +136,22 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
   const [onboardingOpen, setOnboardingOpen] = useState(true);
   const [recentsOpen, setRecentsOpen] = useState(true);
 
+  // Hide drafts (and any leftover empty "New Session" entries from older
+  // sessions in localStorage) from the Recents list — they live under the
+  // top "New Session" button until the user actually sends a message.
+  const isDraftLike = (c: Chat) =>
+    c.isDraft || (c.title === 'New Session' && c.messages.length === 0);
+
   const filteredChats = chats.filter(c =>
-    c.id !== 'my-workpal' && c.title.toLowerCase().includes(search.toLowerCase())
+    c.id !== 'my-workpal' &&
+    !isDraftLike(c) &&
+    c.title.toLowerCase().includes(search.toLowerCase())
   );
+
+  // The top "New Session" button shows as selected while a draft chat is the
+  // active chat — i.e. the user has clicked it but hasn't sent a message yet.
+  const activeChat = chats.find(c => c.id === activeChatId);
+  const isNewSessionActive = activeView === 'chat' && !!activeChat && isDraftLike(activeChat);
 
   return (
     <div className="flex flex-col h-full w-[300px] select-none shrink-0" style={{ background: 'var(--color-sidebar-bg)', borderRight: '1px solid var(--color-stroke-outline)' }}>
@@ -191,15 +204,43 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
             </span>
           </button>
 
-          {/* New Session */}
+          {/* New Session — shows the gradient-border selected state while a
+              draft chat is active (i.e. user clicked it but hasn't sent yet). */}
           <button
             onClick={onNewChat}
-            className="flex items-center gap-4 w-full px-4 py-2 rounded-full hover:bg-[#e6e8ea] dark:hover:bg-bg-hover transition-colors text-left"
+            className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${
+              isNewSessionActive ? '' : 'hover:bg-[#e6e8ea] dark:hover:bg-bg-hover'
+            }`}
+            style={isNewSessionActive ? {
+              border: '1px solid transparent',
+              background: `linear-gradient(var(--color-sidebar-bg), var(--color-sidebar-bg)) padding-box, linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box`,
+            } : { border: '1px solid transparent' }}
           >
             <Plus size={20} className="shrink-0 text-text-primary" />
             <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
               New Session
             </span>
+            {isNewSessionActive && (
+              <div className="flex items-center justify-center shrink-0" style={{ width: 25, height: 25 }}>
+                <div
+                  className="animate-spin"
+                  style={{
+                    width: 23,
+                    height: 23,
+                    background: 'linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%)',
+                    WebkitMaskImage: `url(${iconSpinner})`,
+                    WebkitMaskSize: 'contain',
+                    WebkitMaskRepeat: 'no-repeat',
+                    WebkitMaskPosition: 'center',
+                    maskImage: `url(${iconSpinner})`,
+                    maskSize: 'contain',
+                    maskRepeat: 'no-repeat',
+                    maskPosition: 'center',
+                    animationDuration: '1.5s',
+                  }}
+                />
+              </div>
+            )}
           </button>
 
           {/* Connectors */}

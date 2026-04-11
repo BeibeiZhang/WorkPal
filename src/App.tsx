@@ -485,11 +485,12 @@ export default function App() {
     // If on welcome screen or empty session, update the existing chat's title
     if (!activeChat || activeChat.messages.length === 0) {
       if (activeChat && activeChat.messages.length === 0) {
-        // Reuse existing empty chat (e.g. "New Session") and update its title
+        // Reuse existing empty chat (e.g. "New Session") and update its title.
+        // Promote it from draft → recent so it shows up in the Recents list.
         chatId = activeChat.id;
         const newTitle = text.slice(0, 40) + (text.length > 40 ? '...' : '');
         setChats(prev => prev.map(c =>
-          c.id === chatId ? { ...c, title: newTitle, lastMessage: text, timestamp: new Date() } : c
+          c.id === chatId ? { ...c, title: newTitle, lastMessage: text, timestamp: new Date(), isDraft: false } : c
         ));
       } else {
         // No active chat at all — create a new one
@@ -746,15 +747,25 @@ export default function App() {
   }, [selectedAvatarId]);
 
   const handleNewChat = useCallback(() => {
-    const newId = `chat-${Date.now()}`;
-    setChats(prev => [{
-      id: newId,
-      title: 'New Session',
-      lastMessage: '',
-      timestamp: new Date(),
-      messages: [],
-    }, ...prev]);
-    setActiveChatId(newId);
+    setChats(prev => {
+      // Reuse an existing draft chat if one is already pending — clicking
+      // "New Session" repeatedly should not pile up empty drafts.
+      const existingDraft = prev.find(c => c.isDraft);
+      if (existingDraft) {
+        setActiveChatId(existingDraft.id);
+        return prev;
+      }
+      const newId = `chat-${Date.now()}`;
+      setActiveChatId(newId);
+      return [{
+        id: newId,
+        title: 'New Session',
+        lastMessage: '',
+        timestamp: new Date(),
+        messages: [],
+        isDraft: true,
+      }, ...prev];
+    });
     setActiveView('chat');
   }, []);
 
