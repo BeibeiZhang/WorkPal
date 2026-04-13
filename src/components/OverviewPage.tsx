@@ -1,11 +1,11 @@
 import { useState, useCallback } from 'react';
 import {
-  Sparkles, ChevronRight, Check, Eye, Play,
-  Brain, Timer, Volume2, Briefcase, Home, Smile,
+  Sparkles, ChevronRight, Check,
+  Brain, Volume2, Briefcase, Home, Smile,
 } from 'lucide-react';
 import {
-  SectionTitle, ProgressBar, LabeledBar, CircularProgress,
-  TimePill, StepIndicator, Tag, SolutionRow, SummaryFooter,
+  SectionTitle, LabeledBar, CircularProgress,
+  Tag, SolutionRow, SummaryFooter,
   MetricCard, InsightCard, AreaChart, TaskProgressCard, ReviewItemCard,
 } from './shared';
 
