@@ -452,7 +452,6 @@ export function ReviewItemCard({
   type,
   time,
   humanTime,
-  urgent = false,
   done = false,
   onToggle,
 }: {
@@ -461,7 +460,6 @@ export function ReviewItemCard({
   type: string;
   time: string;
   humanTime: string;
-  urgent?: boolean;
   done?: boolean;
   onToggle?: () => void;
 }) {

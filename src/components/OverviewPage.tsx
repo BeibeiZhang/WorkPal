@@ -300,7 +300,6 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
                   type={item.type}
                   time={item.time}
                   humanTime={item.humanTime}
-                  urgent={item.urgent}
                   done={reviewDone[i] || false}
                   onToggle={() => setReviewDone(p => ({ ...p, [i]: !p[i] }))}
                 />

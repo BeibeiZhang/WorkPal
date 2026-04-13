@@ -1581,7 +1581,7 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
             </div>
             <p className="text-[13px] text-text-primary leading-[18px] mb-3">Card with optional urgent accent bar, metadata, time pill, and action button.</p>
             <div className="flex flex-col gap-2 p-4 rounded-xl bg-bg-hover mb-3">
-              <ReviewItemCard title="UX meeting summary — 6 action items" source="Zoom → Docs" type="Document" time="3 min ago" humanTime="~5 min" urgent />
+              <ReviewItemCard title="UX meeting summary — 6 action items" source="Zoom → Docs" type="Document" time="3 min ago" humanTime="~5 min" />
               <ReviewItemCard title="Weekly stakeholder email draft" source="Gmail" type="Email" time="2h ago" humanTime="~3 min" />
             </div>
             <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'ReviewItemCard'}</code> from shared.tsx</p>

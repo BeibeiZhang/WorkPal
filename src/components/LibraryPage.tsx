@@ -9,7 +9,6 @@ import {
   Video,
   FileSpreadsheet,
   StickyNote,
-  Sparkles,
   MoreHorizontal,
   Play,
   Download,
