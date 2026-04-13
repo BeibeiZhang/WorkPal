@@ -9,11 +9,11 @@ import {
   Video,
   FileSpreadsheet,
   StickyNote,
-  Sparkles,
   MoreHorizontal,
   Play,
   Download,
 } from 'lucide-react';
+import { FilterChip } from './shared';
 
 interface LibraryPageProps {
   sidebarOpen: boolean;
@@ -135,7 +135,7 @@ const ITEMS: LibraryItem[] = [
 type FilterId = 'all' | ArtifactType;
 
 const FILTERS: { id: FilterId; label: string; Icon: typeof FileText | null }[] = [
-  { id: 'all', label: 'All', Icon: Sparkles },
+  { id: 'all', label: 'All', Icon: null },
   { id: 'report', label: 'Reports', Icon: FileText },
   { id: 'presentation', label: 'Presentations', Icon: Presentation },
   { id: 'image', label: 'Images', Icon: ImageIcon },
@@ -318,43 +318,15 @@ export default function LibraryPage({ sidebarOpen, onToggleSidebar }: LibraryPag
         <div className="flex flex-nowrap sm:flex-wrap gap-2 overflow-x-auto sm:overflow-visible scrollbar-autohide px-4 sm:px-8">
           {FILTERS.map(({ id, label, Icon }) => {
             const active = filter === id;
-            const count = counts[id];
             return (
-              <button
+              <FilterChip
                 key={id}
+                label={label}
+                active={active}
+                icon={Icon ? <Icon size={14} className={active ? '' : 'icon-theme'} /> : undefined}
+                count={counts[id]}
                 onClick={() => setFilter(id)}
-                className={`shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-full border text-[14px] leading-[20px] transition-colors ${
-                  active ? '' : 'chip-gradient-hover'
-                }`}
-                style={
-                  active
-                    ? {
-                        border: '1px solid transparent',
-                        background: 'rgba(49,113,255,0.1)',
-                        color: '#3171ff',
-                        fontWeight: 600,
-                      }
-                    : {
-                        borderColor: 'var(--color-stroke-outline)',
-                        background: 'var(--color-bg-page)',
-                        color: 'var(--color-text-primary)',
-                      }
-                }
-              >
-                {Icon && <Icon size={14} className={active ? '' : 'icon-theme'} />}
-                <span style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
-                  {label}
-                </span>
-                <span
-                  className="text-[11px]"
-                  style={{
-                    color: active ? '#3171ff' : 'var(--color-text-primary)',
-                    fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-                  }}
-                >
-                  {count}
-                </span>
-              </button>
+              />
             );
           })}
         </div>

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { PrimaryButton, SecondaryButton } from './shared';
 
 interface NewProjectDialogProps {
   open: boolean;
@@ -116,21 +117,8 @@ export default function NewProjectDialog({ open, onClose, onCreate }: NewProject
 
         {/* Actions */}
         <div className="flex items-center justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="px-6 py-2.5 rounded-full text-[15px] font-medium text-text-primary hover:bg-bg-hover transition-colors"
-            style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleCreate}
-            disabled={!canCreate}
-            className="gradient-btn px-6 py-2.5 rounded-[4px] text-[15px] font-medium text-white transition-opacity disabled:opacity-40"
-            style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
-          >
-            Create Project
-          </button>
+          <SecondaryButton onClick={onClose} className="px-6">Cancel</SecondaryButton>
+          <PrimaryButton onClick={handleCreate} disabled={!canCreate} className="px-6">Create Project</PrimaryButton>
         </div>
       </div>
     </div>,

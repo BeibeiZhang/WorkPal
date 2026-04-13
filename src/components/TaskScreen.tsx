@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { iconAsana, iconClock } from '../assets';
+import { FilterChip } from './shared';
 
 interface Task {
   id: string;
@@ -170,30 +171,14 @@ export default function TaskScreen({ sidebarOpen, onToggleSidebar }: TaskScreenP
 
           {/* Filter chips */}
           <div className="flex flex-wrap gap-2 mb-6">
-            {FILTER_CHIPS.map(chip => {
-              const isActive = activeFilter === chip;
-              return (
-                <button
-                  key={chip}
-                  onClick={() => setActiveFilter(chip)}
-                  className={`flex items-center gap-1 rounded-full transition-all cursor-pointer ${
-                    isActive ? '' : 'chip-gradient-hover'
-                  }`}
-                  style={{
-                    padding: '3px 11px',
-                    border: isActive ? '1px solid transparent' : '1px solid var(--color-stroke-outline)',
-                    background: isActive ? 'var(--color-selected-bg)' : 'transparent',
-                    color: isActive ? 'var(--color-selected-text)' : 'var(--color-text-primary)',
-                    fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-                    fontSize: 16,
-                    fontWeight: 400,
-                    lineHeight: '22px',
-                  }}
-                >
-                  {chip}
-                </button>
-              );
-            })}
+            {FILTER_CHIPS.map(chip => (
+              <FilterChip
+                key={chip}
+                label={chip}
+                active={activeFilter === chip}
+                onClick={() => setActiveFilter(chip)}
+              />
+            ))}
           </div>
 
           {/* Task groups */}

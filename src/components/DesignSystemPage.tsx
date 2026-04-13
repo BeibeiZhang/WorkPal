@@ -7,7 +7,8 @@ import {
 } from 'lucide-react';
 import {
   SectionTitle as SharedSectionTitle, ProgressBar, LabeledBar, CircularProgress,
-  TimePill, StepIndicator, Tag, SolutionRow, SummaryFooter,
+  TimePill, StepIndicator, Tag, FilterChip, PrimaryButton, SecondaryButton,
+  SolutionRow, SummaryFooter,
   MetricCard, InsightCard, AreaChart, TaskProgressCard, ReviewItemCard,
 } from './shared';
 import {
@@ -29,7 +30,7 @@ interface DesignSystemPageProps {
 
 /* ---- Color swatch data ---- */
 const COLORS = [
-  { name: 'Text Primary', var: '--color-text-primary', light: '#142740', dark: '#FFFFFF', usage: 'Headings, body copy, primary icons', examples: 'Page titles, task names, chat messages, nav labels, card titles' },
+  { name: 'Text & Icon Primary', var: '--color-text-primary', light: '#142740', dark: '#FFFFFF', usage: 'Headings, body copy, and all primary icons', examples: 'Page titles, task names, chat messages, nav labels, card titles, sidebar nav icons, toolbar icons, hamburger menu, close buttons' },
   { name: 'Text Secondary', var: '--color-text-secondary', light: 'rgba(20,39,64,0.7)', dark: 'rgba(226,243,255,0.8)', usage: 'Descriptions, captions, helper text', examples: 'Task due dates, "open/completed" counters, chip footnotes, sidebar timestamps' },
   { name: 'Text Tertiary', var: '--color-text-tertiary', light: 'rgba(20,39,64,0.4)', dark: 'rgba(226,243,255,0.4)', usage: 'Disabled labels, muted metadata', examples: 'Completed task text (strikethrough), empty-state messages, placeholder text' },
   { name: 'Background Page', var: '--color-bg-page', light: '#FFFFFF', dark: '#001424', usage: 'Main app surface, content panels', examples: 'Chat panel, task cards, message cards, dialog backgrounds' },
@@ -37,7 +38,6 @@ const COLORS = [
   { name: 'Sidebar Background', var: '--color-sidebar-bg', light: '#f2f3f4', dark: '#0d2136', usage: 'Left navigation panel surface', examples: 'Sidebar container, search bar area, profile section' },
   { name: 'Stroke Outline', var: '--color-stroke-outline', light: '#E8E8E8', dark: 'rgba(115,178,255,0.2)', usage: 'Card borders, dividers, chip outlines', examples: 'Task group cards, message cards, filter chip borders, section dividers' },
   { name: 'Stroke Toggle', var: '--color-stroke-toggle', light: '#e6e8ea', dark: 'rgba(115,178,255,0.2)', usage: 'Toggle and input field borders', examples: 'Dark mode toggle pill, chat input border, text field outlines' },
-  { name: 'Icon Primary', var: '--color-icon-primary', light: '#001424', dark: '#FFFFFF', usage: 'Default icon fill across the app', examples: 'Sidebar nav icons, toolbar icons, hamburger menu, close buttons' },
 ];
 
 const SPECIAL_COLORS = [
@@ -46,6 +46,8 @@ const SPECIAL_COLORS = [
   { name: 'Link / @Mention', value: '#3171ff', preview: '#3171ff', usage: 'Inline links and @mentions', examples: '@assignee names in tasks, "In Progress" badges, callout highlights' },
   { name: 'Selected Chip BG', value: 'var(--color-selected-bg)', preview: 'var(--color-selected-bg)', usage: 'Active chip / filter background', examples: 'Active filter chips on Tasks page, Design System nav chips' },
   { name: 'Agent Profile BG', value: '#E5E9F1', preview: '#E5E9F1', usage: 'Agent avatar circle background', examples: 'AI assistant avatar in chat messages' },
+  { name: 'Warning / Orange', value: '#F59E0B', preview: '#F59E0B', usage: 'Medium-risk progress, caution indicators', examples: 'CircularProgress at ~50%, stress category bars' },
+  { name: 'Danger / Red', value: '#EF4444', preview: '#EF4444', usage: 'Low progress, high-risk indicators', examples: 'CircularProgress at ~30%, deadline pressure bars' },
 ];
 
 const TYPOGRAPHY = [
@@ -101,11 +103,7 @@ function MiniStatusTag({ label }: { label: string }) {
 }
 
 function MiniGradientButton({ label }: { label: string }) {
-  return (
-    <button className="gradient-btn w-full flex items-center justify-center h-10 px-4 rounded-[4px] text-white font-bold text-[13px] leading-[18px] cursor-default">
-      {label}
-    </button>
-  );
+  return <PrimaryButton fullWidth className="h-10 text-[13px] leading-[18px] cursor-default">{label}</PrimaryButton>;
 }
 
 function MiniInfoRow({ icon, children }: { icon: string; children: React.ReactNode }) {
@@ -747,6 +745,7 @@ function SectionTitle({ children, id }: { children: React.ReactNode; id?: string
 const FILTER_CHIPS = [
   { label: 'All', id: '' },
   { label: 'Principles', id: 'ds-principles' },
+  { label: 'Buttons', id: 'ds-buttons' },
   { label: 'Colors', id: 'ds-colors' },
   { label: 'Typography', id: 'ds-typography' },
   { label: 'Spacing', id: 'ds-spacing' },
@@ -817,20 +816,24 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
         {/* ━━━ DESIGN PRINCIPLES ━━━ */}
         <SectionTitle id="ds-principles">Design Principles</SectionTitle>
 
-        {/* 5.1 Primary Button Rule */}
-        <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+        {/* 5.1 PrimaryButton & SecondaryButton (shared) */}
+        <div id="ds-buttons" className="mb-6 rounded-2xl border border-stroke-outline p-5 scroll-mt-4" style={{ background: 'var(--color-bg-page)' }}>
           <div className="flex items-center gap-2 mb-3">
             <span className="text-[16px]">1️⃣</span>
-            <span className="text-[16px] font-bold text-text-primary">Primary Button Rule</span>
+            <span className="text-[16px] font-bold text-text-primary">PrimaryButton & SecondaryButton (shared)</span>
           </div>
           <p className="text-[14px] text-text-primary leading-[22px] mb-3">
-            Only <strong>ONE</strong> primary button (<code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>.gradient-btn</code>) per page/view. All other buttons use secondary style.
+            Master button components from <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>shared.tsx</code>. Only <strong>ONE</strong> primary button per page/view. All other buttons use secondary.
           </p>
-          <div className="flex gap-3 items-center">
-            <button className="gradient-btn text-white font-bold rounded-[4px] px-5 py-2 text-[14px]">Primary Action</button>
-            <button className="px-5 py-2 rounded-[4px] border border-stroke-outline text-text-primary text-[14px] hover:bg-bg-hover chip-gradient-hover">Secondary</button>
-            <button className="px-5 py-2 rounded-[4px] border border-stroke-outline text-text-primary text-[14px] hover:bg-bg-hover chip-gradient-hover">Secondary</button>
+          <div className="flex flex-wrap gap-3 items-center">
+            <PrimaryButton>Primary Action</PrimaryButton>
+            <SecondaryButton>Secondary</SecondaryButton>
+            <PrimaryButton disabled>Disabled</PrimaryButton>
+            <SecondaryButton disabled>Disabled</SecondaryButton>
           </div>
+          <p className="text-[13px] text-text-primary mt-3 leading-[18px]">
+            Props: <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>children</code>, <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>onClick</code>, <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>disabled</code>, <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>fullWidth</code>, <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>className</code> (extra)
+          </p>
         </div>
 
         {/* 5.2 Brand Color Budget */}
@@ -915,22 +918,24 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
           </div>
         </div>
 
-        {/* 5.5 Chip Selected State */}
+        {/* 5.5 FilterChip (shared) */}
         <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
           <div className="flex items-center gap-2 mb-3">
-            <span className="text-[16px]">🏷️</span>
-            <span className="text-[16px] font-bold text-text-primary">Chip Selected State</span>
+            <span className="text-[16px]">🔘</span>
+            <span className="text-[16px] font-bold text-text-primary">FilterChip (shared)</span>
           </div>
           <p className="text-[14px] text-text-primary leading-[22px] mb-3">
-            Selected chips use blue, NEVER <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>.gradient-btn</code>.
+            Master filter chip used across Library, Tasks, Projects, Connectors. Supports optional <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>icon</code> and <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>count</code>.
           </p>
-          <div className="flex gap-3 items-center">
-            <button className="px-4 py-1.5 rounded-full border border-stroke-outline text-text-primary text-[14px] chip-gradient-hover">Default</button>
-            <button className="px-4 py-1.5 rounded-full border-transparent text-[14px]" style={{ background: 'var(--color-selected-bg)', color: 'var(--color-selected-text)' }}>Selected</button>
+          <div className="flex flex-wrap gap-3 items-center">
+            <FilterChip label="All" active count={9} />
+            <FilterChip label="Reports" icon={<FileText size={14} className="icon-theme" />} count={2} />
+            <FilterChip label="Documents" />
+            <FilterChip label="Active" active />
           </div>
         </div>
 
-        {/* 5.7 StatusTag */}
+        {/* 5.8 StatusTag */}
         <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
           <div className="flex items-center gap-2 mb-3">
             <span className="text-[16px]">🏷️</span>
@@ -1346,7 +1351,7 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
             <tbody>
               {[
                 { css: '--color-text-tertiary', light: 'rgba(20,39,64,0.4)', dark: 'rgba(226,243,255,0.4)', note: 'No Figma variable; used for placeholder text & subtle labels' },
-                { css: '--color-icon-primary', light: '#001424', dark: '#FFFFFF', note: 'No Figma variable; icon fill color derived from text/primary' },
+                { css: '--color-icon-primary', light: '#142740', dark: '#FFFFFF', note: 'Merged with text/primary — same value in both light and dark modes' },
                 { css: '--color-outer-bg', light: '#f5f5f7', dark: '#001424', note: 'No Figma variable; outer shell background behind the app frame' },
                 { css: '--color-outer-border', light: '#f5f5f7', dark: '#001424', note: 'No Figma variable; outer shell border color' },
               ].map((row, i) => (
@@ -1495,12 +1500,18 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
             </div>
             <p className="text-[13px] text-text-primary leading-[18px] mb-3">SVG circle with stroke-dasharray progress + centered text overlay.</p>
             <div className="flex items-center gap-6 p-4 rounded-xl bg-bg-hover mb-3">
-              <CircularProgress value={100} size={72} color="#028901">
+              <CircularProgress value={100} color="#3171ff">
                 <span className="text-[16px] font-bold text-text-primary">4/4</span>
                 <span className="text-[10px] text-text-primary">goals</span>
               </CircularProgress>
-              <CircularProgress value={65} size={72} color="#3171ff">
+              <CircularProgress value={65} color="#3171ff">
                 <span className="text-[16px] font-bold text-text-primary">65%</span>
+              </CircularProgress>
+              <CircularProgress value={50} color="#F59E0B">
+                <span className="text-[16px] font-bold text-text-primary">50%</span>
+              </CircularProgress>
+              <CircularProgress value={30} color="#EF4444">
+                <span className="text-[16px] font-bold text-text-primary">30%</span>
               </CircularProgress>
             </div>
             <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'CircularProgress'}</code> from shared.tsx</p>
@@ -1514,7 +1525,7 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
             </div>
             <p className="text-[13px] text-text-primary leading-[18px] mb-3">SVG area chart with gradient fill, data points, and labels.</p>
             <div className="p-4 rounded-xl bg-bg-hover mb-3">
-              <AreaChart data={[{ label: 'M', value: 85 }, { label: 'T', value: 72 }, { label: 'W', value: 65 }, { label: 'T', value: 78 }, { label: 'F', value: 60 }, { label: 'S', value: 90 }]} color="#028901" height={70} gradientId="dsAreaGrad" />
+              <AreaChart data={[{ label: 'M', value: 85 }, { label: 'T', value: 72 }, { label: 'W', value: 65 }, { label: 'T', value: 78 }, { label: 'F', value: 60 }, { label: 'S', value: 90 }]} color="#3171ff" height={70} gradientId="dsAreaGrad" />
             </div>
             <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'AreaChart'}</code> from shared.tsx</p>
           </div>
@@ -1570,7 +1581,7 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
             </div>
             <p className="text-[13px] text-text-primary leading-[18px] mb-3">Card with optional urgent accent bar, metadata, time pill, and action button.</p>
             <div className="flex flex-col gap-2 p-4 rounded-xl bg-bg-hover mb-3">
-              <ReviewItemCard title="UX meeting summary — 6 action items" source="Zoom → Docs" type="Document" time="3 min ago" humanTime="~5 min" urgent />
+              <ReviewItemCard title="UX meeting summary — 6 action items" source="Zoom → Docs" type="Document" time="3 min ago" humanTime="~5 min" />
               <ReviewItemCard title="Weekly stakeholder email draft" source="Gmail" type="Email" time="2h ago" humanTime="~3 min" />
             </div>
             <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'ReviewItemCard'}</code> from shared.tsx</p>
