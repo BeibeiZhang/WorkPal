@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Search, Plus, ChevronDown, Globe } from 'lucide-react';
 import { iconAsana, iconGmail, iconZoom, iconDoc20, iconSheet } from '../assets';
+import { FilterChip } from './shared';
 
 /* ─── Connector data ─── */
 interface Connector {
@@ -162,26 +163,14 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: Connect
       {/* Tabs + Search row */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between px-8 pt-4 gap-3 shrink-0">
         <div className="flex items-center gap-2">
-          {tabs.map(tab => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-3 py-1 rounded-full text-[14px] leading-[22px] transition-colors cursor-pointer ${
-                  isActive
-                    ? 'border border-transparent font-medium'
-                    : 'chip-gradient-hover border border-stroke-outline text-text-primary'
-                }`}
-                style={isActive ? {
-                  background: 'rgba(49,113,255,0.1)',
-                  color: '#3171ff',
-                } : undefined}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
+          {tabs.map(tab => (
+            <FilterChip
+              key={tab.id}
+              label={tab.label}
+              active={activeTab === tab.id}
+              onClick={() => setActiveTab(tab.id)}
+            />
+          ))}
         </div>
 
         {/* Search */}

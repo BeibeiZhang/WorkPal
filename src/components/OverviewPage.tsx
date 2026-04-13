@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import {
   SectionTitle, LabeledBar, CircularProgress,
-  Tag, SolutionRow, SummaryFooter,
+  Tag, SolutionRow, SummaryFooter, PrimaryButton, SecondaryButton,
   MetricCard, InsightCard, AreaChart, TaskProgressCard, ReviewItemCard,
 } from './shared';
 
@@ -157,8 +157,8 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
       <div className="flex-1 overflow-y-auto min-h-0 px-8 pb-10 scrollbar-autohide">
 
           {/* ━━━ 1. GREETING ━━━ */}
-          <div className="rounded-2xl p-8 mb-6 relative overflow-hidden bg-bg-hover">
-            <div className="flex gap-6 relative">
+          <div className="rounded-2xl p-6 md:p-8 mb-6 relative overflow-hidden bg-bg-hover">
+            <div className="flex flex-col md:flex-row gap-4 md:gap-6 relative">
               <div className="w-[72px] h-[72px] rounded-2xl shrink-0 overflow-hidden bg-bg-hover">
                 <video
                   src={videoSrc}
@@ -185,14 +185,10 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
                 <p className="text-[14px] text-text-primary leading-[1.65] tracking-[-0.43px]">
                   Your life commitments are all locked in — 2h family time, 7h sleep, check ✓. I've protected your 9–11am focus block, and today's workload is light. I finished your meeting notes and drafted 3 tickets — review them whenever you're ready.
                 </p>
-                <button
-                  onClick={toggleSpeak}
-                  className="mt-3 px-5 py-2.5 rounded-[4px] text-[14px] font-semibold flex items-center gap-2 transition-colors gradient-btn text-white"
-                  title={isSpeaking ? 'Stop speaking' : 'Read aloud'}
-                >
+                <PrimaryButton onClick={toggleSpeak} className="mt-3 gap-2">
                   <Volume2 size={16} />
                   {isSpeaking ? 'Stop' : 'Listen'}
-                </button>
+                </PrimaryButton>
               </div>
             </div>
           </div>
@@ -201,11 +197,11 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
           <div className="mb-6">
             <SectionTitle emoji="🔋" title="Life Health Index" />
 
-            <div className="grid grid-cols-[200px_1fr] gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-5">
               {/* Overall Score Ring */}
               <div className="bg-bg-page rounded-2xl border border-stroke-outline p-6 text-center flex flex-col items-center dark:bg-[rgba(226,243,255,0.05)]">
                 <div className="mb-3">
-                  <CircularProgress value={overallScore} size={100} color="#028901">
+                  <CircularProgress value={overallScore} color="#3171ff">
                     <span className="text-[28px] font-bold text-text-primary">{metCount}/{totalDimensions}</span>
                     <span className="text-[14px] text-text-primary">goals met</span>
                   </CircularProgress>
@@ -224,7 +220,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
                         <span className="text-[14px] font-bold text-text-primary">{d.label}</span>
                         {d.target ? (
                           <span className="text-[14px] font-bold px-2 py-[1px] rounded-lg bg-bg-hover text-text-primary">
-                            {d.value}/{d.target}{d.unit} {d.met ? '✓' : '!'}
+                            {d.value}/{d.target}{d.unit}
                           </span>
                         ) : (
                           <span className="text-[14px] font-bold px-2 py-[1px] rounded-lg bg-bg-hover text-text-primary">
@@ -277,9 +273,9 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
                       ))}
                     </div>
 
-                    <button className="mt-3 px-4 py-2 rounded-full border border-stroke-outline text-text-primary text-[14px] font-semibold flex items-center gap-1.5 hover:bg-bg-hover transition-colors chip-gradient-hover">
+                    <SecondaryButton className="mt-3 gap-1.5">
                       View Full Health Report <ChevronRight size={12} />
-                    </button>
+                    </SecondaryButton>
                   </div>
                 )}
               </div>
@@ -288,7 +284,12 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
 
           {/* ━━━ 3. NEEDS YOUR EYES ━━━ */}
           <div className="mb-6">
-            <SectionTitle emoji="👀" title="Needs Your Eyes" count={REVIEW_ITEMS.filter((_, i) => !reviewDone[i]).length} />
+            <div className="flex flex-wrap items-center justify-between">
+              <SectionTitle emoji="👀" title="Needs Your Eyes" count={REVIEW_ITEMS.filter((_, i) => !reviewDone[i]).length} />
+              <SummaryFooter>
+                Total review time: <strong className="text-text-primary">~16 min</strong> for 3 items
+              </SummaryFooter>
+            </div>
 
             <div className="flex flex-col gap-2.5">
               {REVIEW_ITEMS.map((item, i) => (
@@ -304,10 +305,6 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
                   onToggle={() => setReviewDone(p => ({ ...p, [i]: !p[i] }))}
                 />
               ))}
-
-              <SummaryFooter>
-                Total review time: <strong className="text-text-primary">~16 min</strong> for 3 items
-              </SummaryFooter>
             </div>
           </div>
 
@@ -335,7 +332,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
             <InsightCard
               body="I noticed your focus time has dropped 40% this week compared to your best weeks. Your most productive hours are usually between 9-11am, but those slots got filled with meetings. Want me to protect those morning blocks going forward?"
               actions={[
-                { label: 'Yes, protect my mornings', primary: true },
+                { label: 'Yes, protect my mornings' },
                 { label: 'Show me the data' },
               ]}
             />
@@ -343,7 +340,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
 
           {/* ━━━ 6. POSITIVE IMPACT — 7 DAY, THREE DIMENSIONS ━━━ */}
           <div className="mb-10">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-wrap items-center justify-between mb-4">
               <SectionTitle emoji="🌟" title="Your Positive Impact This Week" />
               <span className="text-[14px] text-text-primary">Apr 7 – 13, 2026 · 7 days</span>
             </div>
@@ -358,7 +355,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
                 <span className="text-[14px] text-text-primary">— Project impact, user data, feedback & revenue</span>
               </div>
 
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                 {IMPACT_WORK.map((item, i) => {
                   const tc = TYPE_CONFIG[item.type];
                   return (
@@ -375,7 +372,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
             </div>
 
             {/* ── FAMILY + SELF side by side ── */}
-            <div className="grid grid-cols-2 gap-3 mb-3.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3.5">
               {/* Family */}
               <div className="bg-bg-page rounded-2xl border border-stroke-outline p-5 dark:bg-[rgba(226,243,255,0.05)]">
                 <div className="flex items-center gap-2 mb-3.5">
@@ -424,7 +421,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
             {/* Energy trend */}
             <div className="bg-bg-page rounded-2xl border border-stroke-outline p-5 dark:bg-[rgba(226,243,255,0.05)]">
               <div className="text-[14px] font-bold text-text-primary mb-2.5">Energy Trend This Week</div>
-              <AreaChart data={WEEKLY_ENERGY} color="#028901" gradientId="energyGrad" />
+              <AreaChart data={WEEKLY_ENERGY} color="#3171ff" gradientId="energyGrad" />
             </div>
           </div>
       </div>

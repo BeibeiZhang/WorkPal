@@ -581,8 +581,17 @@ export default function App() {
   }, [activeChatId, showTypingThenRespond]);
 
   const handleCardAction = useCallback((action: string) => {
-    // set-agent: transition agent card from 'ready' to 'saved'
+    // set-agent: transition agent card from 'ready' to 'saved', then add follow-up message
     if (action === 'set-agent') {
+      // Find the user's selected qualities from the user message in this chat
+      const activeChat = chats.find(c => c.id === activeChatId);
+      const userMsg = activeChat?.messages.find(m => m.role === 'user');
+      const qualityLines = userMsg?.content?.split('\n').filter(l => l.trim().startsWith('•')) || [];
+      const qualities = qualityLines.map(l => l.replace(/^\s*•\s*/, '').replace(/^[\p{Emoji}\s]+/u, '').trim());
+      const qualityText = qualities.length
+        ? qualities.slice(0, 3).join(', ').toLowerCase()
+        : 'the qualities you care about';
+
       setChats(prev => prev.map(c => {
         if (c.id !== activeChatId) return c;
         const messages = [...c.messages];
@@ -596,6 +605,18 @@ export default function App() {
             card: { ...existingCard, status: 'saved' },
           };
         }
+        // Add follow-up AI message with suggestions
+        messages.push({
+          id: nextId(),
+          role: 'assistant',
+          content: `Great, I'm all set up! I'll bring the qualities you care about — ${qualityText} — into everything I do. What would you like to start with?`,
+          timestamp: new Date(),
+          chips: [
+            { label: '🔗 Connect my tools', action: 'connect-tools' },
+            { label: '🚀 Start a task', action: 'start-task' },
+            { label: '💬 Just chat', action: 'just-chat' },
+          ],
+        });
         return { ...c, messages };
       }));
       return;

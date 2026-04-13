@@ -5,7 +5,7 @@
  * Update a component here → it updates everywhere in the app.
  */
 import { Check, Clock, Eye, Play, Timer, User, Sparkles } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { type ReactNode, useRef, useState, useLayoutEffect } from 'react';
 
 /* ─── 1. SectionTitle ─── */
 export function SectionTitle({
@@ -80,9 +80,10 @@ export function LabeledBar({
 export function CircularProgress({
   value,
   max = 100,
-  size = 100,
+  size: sizeProp,
   strokeWidth = 8,
-  color = '#028901',
+  color = '#3171ff',
+  innerPadding = 4,
   children,
 }: {
   value: number;
@@ -90,13 +91,38 @@ export function CircularProgress({
   size?: number;
   strokeWidth?: number;
   color?: string;
+  innerPadding?: number;
   children?: ReactNode;
 }) {
+  const measureRef = useRef<HTMLSpanElement>(null);
+  const [autoSize, setAutoSize] = useState<number | null>(null);
+
+  useLayoutEffect(() => {
+    if (sizeProp || !measureRef.current) return;
+    const el = measureRef.current;
+    const w = el.offsetWidth;
+    const h = el.offsetHeight;
+    // Content rect diagonal must fit inside the inner circle (ring inner edge)
+    // Inner circle diameter = size - 2*strokeWidth
+    // Content diagonal + 2*padding <= inner circle diameter
+    const diagonal = Math.sqrt(w * w + h * h);
+    const needed = diagonal + innerPadding * 2 + strokeWidth * 2;
+    // round up to even number for clean SVG
+    setAutoSize(Math.ceil(needed / 2) * 2);
+  }, [sizeProp, strokeWidth, innerPadding, children]);
+
+  const size = sizeProp ?? autoSize ?? 100;
   const r = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * r;
   const pct = Math.min(1, Math.max(0, value / max));
   return (
     <div className="relative" style={{ width: size, height: size }}>
+      {/* Hidden measurement element for auto-sizing */}
+      {!sizeProp && children && (
+        <span ref={measureRef} className="flex flex-col items-center justify-center" style={{ position: 'absolute', visibility: 'hidden', whiteSpace: 'nowrap' }}>
+          {children}
+        </span>
+      )}
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-bg-hover)" strokeWidth={strokeWidth} />
         <circle
@@ -148,6 +174,91 @@ export function Tag({ children }: { children: ReactNode }) {
     <span className="text-[14px] text-text-primary bg-bg-hover px-2 py-0.5 rounded-lg">
       {children}
     </span>
+  );
+}
+
+/* ─── 7b. PrimaryButton ─── */
+export function PrimaryButton({
+  children,
+  onClick,
+  disabled,
+  className: extra = '',
+  fullWidth,
+}: {
+  children: ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+  className?: string;
+  fullWidth?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`gradient-btn flex items-center justify-center px-5 py-2.5 rounded-[4px] text-white font-bold text-[14px] leading-[22px] cursor-pointer transition-opacity disabled:opacity-40 ${fullWidth ? 'w-full' : ''} ${extra}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/* ─── 7c. SecondaryButton ─── */
+export function SecondaryButton({
+  children,
+  onClick,
+  disabled,
+  className: extra = '',
+  fullWidth,
+}: {
+  children: ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+  className?: string;
+  fullWidth?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex items-center justify-center px-5 py-2.5 rounded-[4px] border border-stroke-outline text-text-primary font-semibold text-[14px] leading-[22px] cursor-pointer hover:bg-bg-hover chip-gradient-hover transition-colors disabled:opacity-40 ${fullWidth ? 'w-full' : ''} ${extra}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/* ─── 7d. FilterChip ─── */
+export function FilterChip({
+  label,
+  active = false,
+  icon,
+  count,
+  onClick,
+}: {
+  label: string;
+  active?: boolean;
+  icon?: ReactNode;
+  count?: number;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`shrink-0 flex items-center gap-2 px-3 py-1 rounded-full border text-[14px] leading-[22px] tracking-[-0.43px] transition-colors cursor-pointer ${
+        active ? 'border-transparent font-medium' : 'chip-gradient-hover border-stroke-outline text-text-primary'
+      }`}
+      style={
+        active
+          ? { background: 'rgba(49,113,255,0.1)', color: '#3171ff' }
+          : undefined
+      }
+    >
+      {icon && <span className="flex items-center">{icon}</span>}
+      <span>{label}</span>
+      {count !== undefined && (
+        <span className={active ? '' : 'text-text-primary'}>{count}</span>
+      )}
+    </button>
   );
 }
 
@@ -218,20 +329,14 @@ export function InsightCard({
         <Sparkles size={14} className="text-text-primary" /> MAYA'S INSIGHT
       </div>
       <p className="text-[14px] text-text-primary leading-[1.7] mb-4 tracking-[-0.43px]">{body}</p>
-      <div className="flex gap-2.5">
-        {actions.map((a, i) => (
-          <button
-            key={i}
-            onClick={a.onClick}
-            className={`px-5 py-2.5 rounded-full text-[14px] transition-colors chip-gradient-hover ${
-              a.primary
-                ? 'border border-stroke-outline text-text-primary font-semibold hover:bg-bg-hover'
-                : 'bg-bg-page text-text-primary border border-stroke-outline hover:border-transparent'
-            }`}
-          >
-            {a.label}
-          </button>
-        ))}
+      <div className="flex flex-wrap gap-2.5">
+        {actions.map((a, i) =>
+          a.primary ? (
+            <PrimaryButton key={i} onClick={a.onClick}>{a.label}</PrimaryButton>
+          ) : (
+            <SecondaryButton key={i} onClick={a.onClick}>{a.label}</SecondaryButton>
+          )
+        )}
       </div>
     </div>
   );
@@ -240,7 +345,7 @@ export function InsightCard({
 /* ─── 12. AreaChart ─── */
 export function AreaChart({
   data,
-  color = '#028901',
+  color = '#3171ff',
   height = 100,
   gradientId,
 }: {
@@ -308,19 +413,21 @@ export function TaskProgressCard({
       onClick={onClick}
       className="bg-bg-page rounded-2xl border border-stroke-outline p-5 text-left transition-colors dark:bg-[rgba(226,243,255,0.05)] w-full"
     >
-      <div className="flex items-center gap-3.5">
+      <div className="flex items-start gap-3.5">
         <div className="w-9 h-9 rounded-xl bg-bg-hover flex items-center justify-center shrink-0">
           <Play size={14} className="text-text-primary" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-[14px] font-bold text-text-primary">{title}</div>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <div className="text-[14px] font-bold text-text-primary">{title}</div>
+            <div className="text-[14px] text-text-primary flex items-center gap-1 shrink-0">
+              <Timer size={12} /> ETA {eta}
+            </div>
+          </div>
           <div className="flex items-center gap-3 mt-1.5">
-            <ProgressBar value={progress} height={6} />
+            <div className="flex-1"><ProgressBar value={progress} height={6} /></div>
             <span className="text-[14px] text-text-primary shrink-0">{progress}%</span>
           </div>
-        </div>
-        <div className="text-[14px] text-text-primary flex items-center gap-1 shrink-0">
-          <Timer size={12} /> ETA {eta}
         </div>
       </div>
       {expanded && (
@@ -359,19 +466,12 @@ export function ReviewItemCard({
   onToggle?: () => void;
 }) {
   return (
-    <div className={`bg-bg-page rounded-2xl border px-5 py-4 flex items-center gap-4 transition-all dark:bg-[rgba(226,243,255,0.05)] ${
-      urgent && !done
-        ? 'border-[rgba(118,82,185,0.3)] shadow-[0_0_0_3px_rgba(118,82,185,0.06)]'
-        : 'border-stroke-outline'
-    } ${done ? 'opacity-50' : ''}`}>
-      {urgent && !done && (
-        <div className="w-1 h-10 rounded-sm shrink-0" style={{ background: '#3171ff', boxShadow: 'none' }} />
-      )}
+    <div className={`bg-bg-page rounded-2xl border border-stroke-outline px-5 py-4 flex flex-col md:flex-row md:items-center gap-3 md:gap-4 transition-all dark:bg-[rgba(226,243,255,0.05)] ${done ? 'opacity-50' : ''}`}>
       <div className="flex-1 min-w-0">
         <div className={`text-[14px] font-bold text-text-primary ${done ? 'line-through' : ''}`}>
           {title}
         </div>
-        <div className="text-[14px] text-text-primary mt-1 flex items-center gap-2">
+        <div className="text-[14px] text-text-primary mt-1 flex items-center gap-2 flex-wrap">
           <span>{source}</span>
           <span>·</span>
           <span className="bg-bg-hover px-2 rounded">{type}</span>
@@ -379,17 +479,12 @@ export function ReviewItemCard({
           <span>{time}</span>
         </div>
       </div>
-      <TimePill time={humanTime} />
-      <button
-        onClick={onToggle}
-        className={`px-4 py-2 rounded-full text-[14px] font-semibold flex items-center gap-1.5 shrink-0 transition-colors ${
-          done
-            ? 'bg-bg-hover text-text-primary'
-            : 'border border-stroke-outline text-text-primary hover:bg-bg-hover chip-gradient-hover'
-        }`}
-      >
-        {done ? <><Check size={14} /> Done</> : <><Eye size={14} /> Review</>}
-      </button>
+      <div className="flex items-center gap-3 md:gap-4 shrink-0">
+        <TimePill time={humanTime} />
+        <SecondaryButton onClick={onToggle} className="gap-1.5 shrink-0">
+          {done ? <><Check size={14} /> Done</> : <><Eye size={14} /> Review</>}
+        </SecondaryButton>
+      </div>
     </div>
   );
 }

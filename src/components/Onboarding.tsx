@@ -23,12 +23,11 @@ const INITIAL_TRAITS = [
   '\u{1F648} Not sure yet',
 ];
 
-type Zone = 'available' | 'important' | 'avoid';
+type Zone = 'available' | 'important';
 
 export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }: OnboardingProps) {
   const [available, setAvailable] = useState<string[]>(INITIAL_TRAITS);
   const [important, setImportant] = useState<string[]>([]);
-  const [avoid, setAvoid] = useState<string[]>([]);
   const [dragOverZone, setDragOverZone] = useState<Zone | null>(null);
 
   const moveTrait = useCallback(
@@ -41,11 +40,9 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
 
       if (from === 'available') setAvailable(remove);
       if (from === 'important') setImportant(remove);
-      if (from === 'avoid') setAvoid(remove);
 
       if (to === 'available') setAvailable(add);
       if (to === 'important') setImportant(add);
-      if (to === 'avoid') setAvoid(add);
     },
     [important.length]
   );
@@ -76,8 +73,12 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
     }
   };
 
-  const removeFromZone = (trait: string, from: Zone) => {
-    moveTrait(trait, from, 'available');
+  const handleChipClick = (trait: string, from: Zone) => {
+    if (from === 'available') {
+      moveTrait(trait, 'available', 'important');
+    } else {
+      moveTrait(trait, 'important', 'available');
+    }
   };
 
   const canProceed = important.length === 3;
@@ -85,36 +86,28 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
   const handleChatSend = (text: string) => {
     const trimmed = text.trim();
     if (!canProceed && !trimmed) return;
-    onComplete(important, avoid, trimmed || undefined);
+    onComplete(important, [], trimmed || undefined);
   };
 
   const renderChip = (trait: string, from: Zone, removable = false) => {
-    const inZone = from !== 'available';
+    const inZone = from === 'important';
     return (
       <div
         key={`${from}-${trait}`}
         draggable
         onDragStart={(e) => handleDragStart(e, trait, from)}
-        className={`flex items-center gap-1 rounded-full transition-all cursor-grab active:cursor-grabbing ${
-          inZone ? '' : 'chip-gradient-hover'
+        onClick={() => handleChipClick(trait, from)}
+        className={`flex items-center gap-1 px-3 py-1 rounded-full border border-stroke-outline text-base leading-[22px] tracking-[-0.43px] transition-all cursor-grab active:cursor-grabbing select-none ${
+          inZone
+            ? 'bg-[var(--color-selected-bg)] text-[var(--color-selected-text)] border-transparent'
+            : 'text-text-primary chip-gradient-hover'
         }`}
-        style={{
-          padding: '4px 12px',
-          border: '1px solid var(--color-stroke-outline)',
-          background: inZone ? 'var(--color-selected-bg)' : 'transparent',
-          color: inZone ? 'var(--color-selected-text)' : 'var(--color-text-primary)',
-          fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-          fontSize: 16,
-          fontWeight: 400,
-          lineHeight: '22px',
-          letterSpacing: '0px',
-        }}
       >
         <span>{trait}</span>
         {removable && (
           <button
             type="button"
-            onClick={() => removeFromZone(trait, from)}
+            onClick={(e) => { e.stopPropagation(); handleChipClick(trait, from); }}
             className="ml-1 -mr-1 flex items-center justify-center rounded-full hover:opacity-70"
             style={{ width: 16, height: 16, color: 'inherit' }}
             aria-label={`Remove ${trait}`}
@@ -125,12 +118,6 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
       </div>
     );
   };
-
-  const dropZoneStyle = (zone: Zone) => ({
-    border: `1px ${dragOverZone === zone ? 'solid' : 'dashed'} var(--color-stroke-outline)`,
-    background: dragOverZone === zone ? 'var(--color-bg-hover)' : 'transparent',
-    minHeight: 140,
-  });
 
   return (
     <div className="flex flex-col h-full flex-1 min-w-0 app-bg">
@@ -151,141 +138,70 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto min-h-0 px-4 py-4">
+      <div className="flex-1 overflow-y-auto min-h-0 px-8 py-4">
         <div className="max-w-[863px] mx-auto">
-          {/* Title */}
-          <h1
-            className="text-text-primary"
-            style={{
-              fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-              fontSize: 40,
-              fontWeight: 700,
-              lineHeight: '48px',
-              letterSpacing: '0px',
-            }}
-          >
+          {/* Page title — matches design system Page Title: 40px/48px/700 */}
+          <h1 className="text-[40px] font-bold leading-[48px] tracking-[-0.5px] text-text-primary">
             Welcome to WorkPal
           </h1>
 
-          {/* Scenario + action guide */}
-          <div className="mt-6 flex flex-col gap-4">
-            <p
-              className="text-text-primary"
-              style={{
-                fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-                fontSize: 16,
-                fontWeight: 700,
-                lineHeight: '22px',
-                letterSpacing: '0px',
-              }}
-            >
-              Think about the teammates you've admired most in your career — what qualities inspired you the most?
+          {/* Scenario question — Body/Emphasized: 16px/32px/700/-0.43px */}
+          <p className="text-base font-bold leading-[32px] tracking-[-0.43px] text-text-primary mt-6">
+            Think about the teammates you've admired most in your career — what qualities inspired you the most?
+          </p>
+
+          {/* Subtitle — Body/Regular: 16px/32px/400/-0.43px */}
+          <p className="text-base leading-[32px] tracking-[-0.43px] text-text-primary mt-3">
+            All qualities help shape your agent. Pick your <strong className="text-[var(--color-selected-text)]">top 3</strong> for extra weight — or describe what matters in your own words.
+          </p>
+
+          {/* Drop zone header */}
+          <div className="mt-8 flex items-center gap-3">
+            <p className="text-base font-bold leading-[32px] tracking-[-0.43px] text-text-primary">
+              Extra Weight — Your Top 3
             </p>
-            <p
-              className="text-text-primary"
-              style={{
-                fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-                fontSize: 16,
-                fontWeight: 400,
-                lineHeight: '22px',
-                letterSpacing: '0px',
-              }}
-            >
-              Drag your top 3 into Most Important to You. These will get higher weight. All qualities will still be used. Skip any that don't fit, or type your own below.
-            </p>
+            <span className="text-[14px] text-text-primary bg-bg-hover px-2 py-0.5 rounded-md">
+              {important.length}/3
+            </span>
           </div>
 
-          {/* Available trait pool */}
+          {/* Drop zone */}
           <div
-            className="mt-6 flex flex-wrap gap-2 rounded-2xl p-2 transition-colors"
-            onDragOver={(e) => handleDragOver(e, 'available')}
+            onDragOver={(e) => handleDragOver(e, 'important')}
             onDragLeave={handleDragLeave}
-            onDrop={(e) => handleDrop(e, 'available')}
+            onDrop={(e) => handleDrop(e, 'important')}
+            className="mt-3 rounded-2xl p-5 transition-all"
             style={{
-              background: dragOverZone === 'available' ? 'var(--color-bg-hover)' : 'transparent',
-              minHeight: 48,
+              border: `1px ${dragOverZone === 'important' ? 'solid' : 'dashed'} var(--color-stroke-outline)`,
+              background: dragOverZone === 'important' ? 'var(--color-bg-hover)' : 'transparent',
+              minHeight: 64,
             }}
           >
-            {available.map(t => renderChip(t, 'available'))}
-          </div>
-
-          {/* Drop zones */}
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Most Important */}
-            <div
-              onDragOver={(e) => handleDragOver(e, 'important')}
-              onDragLeave={handleDragLeave}
-              onDrop={(e) => handleDrop(e, 'important')}
-              className="rounded-2xl p-4 transition-all"
-              style={dropZoneStyle('important')}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <p
-                  className="text-text-primary"
-                  style={{
-                    fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-                    fontSize: 16,
-                    fontWeight: 600,
-                    lineHeight: '22px',
-                  }}
-                >
-                  Most Important to You
-                </p>
-                <span
-                  className="text-text-primary"
-                  style={{
-                    fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-                    fontSize: 14,
-                  }}
-                >
-                  {important.length}/3
-                </span>
-              </div>
+            {important.length === 0 ? (
+              <p className="text-base text-text-tertiary text-center">
+                Click or drag qualities here...
+              </p>
+            ) : (
               <div className="flex flex-wrap gap-2">
                 {important.map(t => renderChip(t, 'important', true))}
               </div>
-            </div>
+            )}
+          </div>
 
-            {/* Avoid */}
-            <div
-              onDragOver={(e) => handleDragOver(e, 'avoid')}
-              onDragLeave={handleDragLeave}
-              onDrop={(e) => handleDrop(e, 'avoid')}
-              className="rounded-2xl p-4 transition-all"
-              style={dropZoneStyle('avoid')}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <p
-                  className="text-text-primary"
-                  style={{
-                    fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-                    fontSize: 16,
-                    fontWeight: 600,
-                    lineHeight: '22px',
-                  }}
-                >
-                  Skip
-                </p>
-                <span
-                  className="text-text-primary"
-                  style={{
-                    fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-                    fontSize: 14,
-                  }}
-                >
-                  Optional
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {avoid.map(t => renderChip(t, 'avoid', true))}
-              </div>
-            </div>
+          {/* Available traits */}
+          <div
+            className="mt-6 flex flex-wrap gap-2 transition-colors"
+            onDragOver={(e) => handleDragOver(e, 'available')}
+            onDragLeave={handleDragLeave}
+            onDrop={(e) => handleDrop(e, 'available')}
+          >
+            {available.map(t => renderChip(t, 'available'))}
           </div>
 
         </div>
       </div>
 
-      {/* Bottom: ChatInput — voice mode replaced with up-arrow send button */}
+      {/* Bottom: ChatInput */}
       <div className="px-4 pb-[40px] shrink-0">
         <div className="max-w-[863px] mx-auto">
           <ChatInput
@@ -293,6 +209,7 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
             chatOnly
             voiceAsSend
             forceSendActive={canProceed}
+            placeholder={canProceed ? 'Want to add anything in your own words? Or just hit send' : 'Describe what matters in your own words'}
           />
         </div>
       </div>

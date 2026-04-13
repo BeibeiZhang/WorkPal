@@ -6,6 +6,7 @@ import {
   FileCode2, MessageCircle, CheckSquare, Code2, Pen, File,
   MonitorPlay, Presentation,
 } from 'lucide-react';
+import { FilterChip } from './shared';
 
 /** Breakpoint: right panel hides when viewport < this */
 const PANEL_BREAKPOINT = 700;
@@ -356,26 +357,14 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
                   <>
                     {/* Output filter chips */}
                     <div className="flex gap-2">
-                      {OUTPUT_FILTERS.map(filter => {
-                        const isActive = outputFilter === filter;
-                        return (
-                          <button
-                            key={filter}
-                            onClick={() => setOutputFilter(filter)}
-                            className={`px-3 py-1 rounded-full text-[14px] leading-[22px] transition-colors cursor-pointer ${
-                              isActive
-                                ? 'border border-transparent font-medium'
-                                : 'chip-gradient-hover border border-stroke-outline text-text-primary'
-                            }`}
-                            style={isActive ? {
-                              background: 'rgba(49,113,255,0.1)',
-                              color: '#3171ff',
-                            } : undefined}
-                          >
-                            {filter}
-                          </button>
-                        );
-                      })}
+                      {OUTPUT_FILTERS.map(f => (
+                        <FilterChip
+                          key={f}
+                          label={f}
+                          active={outputFilter === f}
+                          onClick={() => setOutputFilter(f)}
+                        />
+                      ))}
                     </div>
 
                     {/* Output cards */}
@@ -426,26 +415,14 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
                   <>
                     {/* Recents filter chips */}
                     <div className="flex gap-2">
-                      {FILTER_OPTIONS.map(filter => {
-                        const isActive = recentsFilter === filter;
-                        return (
-                          <button
-                            key={filter}
-                            onClick={() => setRecentsFilter(filter)}
-                            className={`px-3 py-1 rounded-full text-[14px] leading-[22px] transition-colors cursor-pointer ${
-                              isActive
-                                ? 'border border-transparent font-medium'
-                                : 'chip-gradient-hover border border-stroke-outline text-text-primary'
-                            }`}
-                            style={isActive ? {
-                              background: 'rgba(49,113,255,0.1)',
-                              color: '#3171ff',
-                            } : undefined}
-                          >
-                            {filter}
-                          </button>
-                        );
-                      })}
+                      {FILTER_OPTIONS.map(f => (
+                        <FilterChip
+                          key={f}
+                          label={f}
+                          active={recentsFilter === f}
+                          onClick={() => setRecentsFilter(f)}
+                        />
+                      ))}
                     </div>
 
                     {/* Recent items */}

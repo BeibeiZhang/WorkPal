@@ -1,6 +1,7 @@
 import { Download } from 'lucide-react';
 import { CardData, MeetingCard, ResearchCard, TicketCard, ScheduleCard, AgentCard } from '../types';
 import { iconAsana, iconDoc20, iconGmail, iconUsers, iconPin, iconClock } from '../assets';
+import { PrimaryButton, SecondaryButton } from './shared';
 
 interface MessageCardProps {
   card: CardData;
@@ -34,17 +35,7 @@ function CardHeader({ icon, title, rightElement, borderBottom = false }: {
   );
 }
 
-/* ── Gradient action button (Create / Send) ── */
-function GradientButton({ label, onClick }: { label: string; onClick?: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="gradient-btn w-full flex items-center justify-center h-12 px-4 rounded-[4px] text-white font-bold text-base leading-[22px] cursor-pointer"
-    >
-      {label}
-    </button>
-  );
-}
+/* ── Gradient action button — uses shared PrimaryButton ── */
 
 /* ── Horizontal divider ── */
 function Divider() {
@@ -324,7 +315,7 @@ function TicketCardView({ card, onAction }: { card: TicketCard; onAction?: (a: s
         ))}
       </div>
       <div className="px-4 pb-4">
-        <GradientButton label="Create" onClick={() => onAction?.('confirm-ticket')} />
+        <PrimaryButton fullWidth className="h-12" onClick={() => onAction?.('confirm-ticket')}>Create</PrimaryButton>
       </div>
     </CardShell>
   );
@@ -400,7 +391,7 @@ function ScheduleCardView({ card, onAction }: { card: ScheduleCard; onAction?: (
       </div>
       {!isSent && (
         <div className="px-4 pb-4">
-          <GradientButton label="Send" onClick={() => onAction?.('confirm-schedule')} />
+          <PrimaryButton fullWidth className="h-12" onClick={() => onAction?.('confirm-schedule')}>Send</PrimaryButton>
         </div>
       )}
     </CardShell>
@@ -492,14 +483,12 @@ function AgentCardView({ card, onAction }: { card: AgentCard; onAction?: (a: str
           </div>
         </div>
 
-        {/* Set as my agent button — only in 'ready' state */}
+        {/* Set as my agent + go back — only in 'ready' state */}
         {status === 'ready' && (
-          <button
-            onClick={() => onAction?.('set-agent')}
-            className="gradient-btn w-full flex items-center justify-center h-12 px-4 rounded-[4px] text-white font-bold text-base leading-[22px] cursor-pointer"
-          >
-            Set as my agent
-          </button>
+          <div className="flex flex-col gap-2">
+            <PrimaryButton fullWidth className="h-12" onClick={() => onAction?.('set-agent')}>Set as my agent</PrimaryButton>
+            <SecondaryButton fullWidth className="h-12" onClick={() => onAction?.('change-selections')}>← Change my selections</SecondaryButton>
+          </div>
         )}
       </div>
     </CardShell>
