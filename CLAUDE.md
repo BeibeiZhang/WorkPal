@@ -20,6 +20,7 @@ Key rules:
 - StatusTag: `bg: rgba(2,137,1,0.1)`, `color: #028901`
 - Active nav item: gradient border (brand gradient via `background-clip`) + spinner
 - All icons in dark mode use `.icon-theme` class for auto-inversion
+- **Shared-first:** Always build reusable UI in `src/components/shared.tsx` first, then import into app pages. This ensures the Design System page monitors all shared components and updates propagate everywhere automatically.
 
 ## Dev
 ```bash

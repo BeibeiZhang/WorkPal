@@ -139,7 +139,7 @@ export default function TaskScreen({ sidebarOpen, onToggleSidebar }: TaskScreenP
         )}
         <div className="flex-1 flex items-center justify-center">
           <h2
-            className="text-text-primary font-bold text-[17px] leading-[22px] tracking-[-0.43px]"
+            className="text-text-primary font-bold text-[16px] leading-[22px] tracking-[-0.43px]"
             style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
           >
             Tasks
@@ -158,13 +158,13 @@ export default function TaskScreen({ sidebarOpen, onToggleSidebar }: TaskScreenP
               <span className="text-[28px] font-bold text-text-primary" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
                 {tasks.filter(t => !t.completed).length}
               </span>
-              <span className="text-text-secondary text-base">open</span>
+              <span className="text-text-primary text-base">open</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[28px] font-bold text-text-primary" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
                 {tasks.filter(t => t.completed).length}
               </span>
-              <span className="text-text-secondary text-base">completed</span>
+              <span className="text-text-primary text-base">completed</span>
             </div>
           </div>
 
@@ -211,7 +211,7 @@ export default function TaskScreen({ sidebarOpen, onToggleSidebar }: TaskScreenP
                 <p className="font-bold text-base leading-[22px] text-text-primary flex-1 truncate">
                   {project}
                 </p>
-                <span className="text-text-secondary text-sm">
+                <span className="text-text-primary text-sm">
                   {projectTasks.length} task{projectTasks.length !== 1 ? 's' : ''}
                 </span>
               </div>
@@ -249,7 +249,7 @@ export default function TaskScreen({ sidebarOpen, onToggleSidebar }: TaskScreenP
                         <div className="flex items-center gap-3 mt-1">
                           <div className="flex items-center gap-1">
                             <img src={iconClock} alt="" className="w-3 h-3 object-contain icon-theme opacity-50" />
-                            <span className="text-text-secondary text-xs">{task.due}</span>
+                            <span className="text-text-primary text-xs">{task.due}</span>
                           </div>
                         </div>
                       </div>

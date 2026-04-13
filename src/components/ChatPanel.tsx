@@ -97,7 +97,7 @@ function WelcomeState({ isDark, selectedAvatarId, onAvatarChange }: { isDark?: b
         className="text-[24px] text-center w-full"
         style={{
           fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-          fontWeight: 590,
+          fontWeight: 400,
           lineHeight: '22px',
           letterSpacing: '-0.43px',
           backgroundImage: 'linear-gradient(31.6deg, #7652B9 0%, #B46470 51.9%, #CA9D8C 100%)',
@@ -114,7 +114,7 @@ function WelcomeState({ isDark, selectedAvatarId, onAvatarChange }: { isDark?: b
           className="flex-1 text-center text-text-primary"
           style={{
             fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-            fontSize: 17,
+            fontSize: 16,
             lineHeight: '22px',
             letterSpacing: '-0.43px',
           }}

@@ -76,10 +76,8 @@ html, body, #root {
   }
 }
 
-/* Force body text elements to use the responsive root font-size (16px mobile / 14px desktop) */
-p, span, a, button, input, textarea, select, label, li, td, th, div {
-  font-size: inherit !important;
-}
+/* Responsive root font-size (16px mobile / 14px desktop) cascades naturally via inheritance.
+   Tailwind text-[Xpx] classes override as needed. */
 
 ::-webkit-scrollbar {
   width: 4px;

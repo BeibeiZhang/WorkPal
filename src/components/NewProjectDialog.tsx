@@ -69,7 +69,7 @@ export default function NewProjectDialog({ open, onClose, onCreate }: NewProject
         {/* Project Name */}
         <div className="mb-5">
           <label
-            className="block text-[14px] font-medium text-text-secondary mb-2 tracking-[-0.2px]"
+            className="block text-[14px] font-medium text-text-primary mb-2 tracking-[-0.2px]"
             style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
           >
             Project name
@@ -81,7 +81,7 @@ export default function NewProjectDialog({ open, onClose, onCreate }: NewProject
             onChange={e => setName(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="e.g. Q2 Design Sprint"
-            className="w-full px-4 py-3 rounded-2xl text-[16px] leading-[22px] text-text-primary placeholder-text-tertiary outline-none transition-colors"
+            className="w-full px-4 py-3 rounded-[4px] text-[16px] leading-[22px] text-text-primary placeholder-text-tertiary outline-none transition-colors"
             style={{
               background: 'var(--color-bg-hover)',
               border: '1px solid var(--color-stroke-outline)',
@@ -93,7 +93,7 @@ export default function NewProjectDialog({ open, onClose, onCreate }: NewProject
         {/* Description */}
         <div className="mb-8">
           <label
-            className="block text-[14px] font-medium text-text-secondary mb-2 tracking-[-0.2px]"
+            className="block text-[14px] font-medium text-text-primary mb-2 tracking-[-0.2px]"
             style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
           >
             Description
@@ -105,7 +105,7 @@ export default function NewProjectDialog({ open, onClose, onCreate }: NewProject
             onKeyDown={e => { if (e.key === 'Escape') onClose(); }}
             placeholder="What's this project about?"
             rows={3}
-            className="w-full px-4 py-3 rounded-2xl text-[16px] leading-[22px] text-text-primary placeholder-text-tertiary outline-none resize-none transition-colors"
+            className="w-full px-4 py-3 rounded-[4px] text-[16px] leading-[22px] text-text-primary placeholder-text-tertiary outline-none resize-none transition-colors"
             style={{
               background: 'var(--color-bg-hover)',
               border: '1px solid var(--color-stroke-outline)',
@@ -118,7 +118,7 @@ export default function NewProjectDialog({ open, onClose, onCreate }: NewProject
         <div className="flex items-center justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-6 py-2.5 rounded-full text-[15px] font-medium text-text-secondary hover:bg-bg-hover transition-colors"
+            className="px-6 py-2.5 rounded-full text-[15px] font-medium text-text-primary hover:bg-bg-hover transition-colors"
             style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
           >
             Cancel
@@ -126,7 +126,7 @@ export default function NewProjectDialog({ open, onClose, onCreate }: NewProject
           <button
             onClick={handleCreate}
             disabled={!canCreate}
-            className="gradient-btn px-6 py-2.5 rounded-full text-[15px] font-medium text-white transition-opacity disabled:opacity-40"
+            className="gradient-btn px-6 py-2.5 rounded-[4px] text-[15px] font-medium text-white transition-opacity disabled:opacity-40"
             style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
           >
             Create Project

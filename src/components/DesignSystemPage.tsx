@@ -6,6 +6,11 @@ import {
   MessageSquare, CheckSquare, AtSign, Folder, GitBranch, Mic, Activity,
 } from 'lucide-react';
 import {
+  SectionTitle as SharedSectionTitle, ProgressBar, LabeledBar, CircularProgress,
+  TimePill, StepIndicator, Tag, SolutionRow, SummaryFooter,
+  MetricCard, InsightCard, AreaChart, TaskProgressCard, ReviewItemCard,
+} from './shared';
+import {
   iconSun, iconMoon, iconSpinner, iconMicrophone, iconVoice, iconSend,
   iconCopy, iconShare, iconThumbsUp, iconRefresh,
   iconAsana, iconDoc20, iconGmail, iconUsers, iconPin, iconClock,
@@ -24,30 +29,31 @@ interface DesignSystemPageProps {
 
 /* ---- Color swatch data ---- */
 const COLORS = [
-  { name: 'Text Primary', var: '--color-text-primary', light: '#142740', dark: '#FFFFFF', usage: 'Headings, body copy, primary icons' },
-  { name: 'Text Secondary', var: '--color-text-secondary', light: 'rgba(20,39,64,0.7)', dark: 'rgba(226,243,255,0.8)', usage: 'Descriptions, captions, helper text' },
-  { name: 'Text Tertiary', var: '--color-text-tertiary', light: 'rgba(20,39,64,0.4)', dark: 'rgba(226,243,255,0.4)', usage: 'Disabled labels, muted metadata' },
-  { name: 'Background Page', var: '--color-bg-page', light: '#FFFFFF', dark: '#001424', usage: 'Main app surface, content panels' },
-  { name: 'Background Hover / Message', var: '--color-bg-hover', light: '#F2F3F4', dark: 'rgba(226,243,255,0.1)', usage: 'Hover states, message bubbles' },
-  { name: 'Sidebar Background', var: '--color-sidebar-bg', light: '#f2f3f4', dark: '#0d2136', usage: 'Left navigation panel surface' },
-  { name: 'Stroke Outline', var: '--color-stroke-outline', light: '#E8E8E8', dark: 'rgba(115,178,255,0.2)', usage: 'Card borders, dividers, chip outlines' },
-  { name: 'Stroke Toggle', var: '--color-stroke-toggle', light: '#e6e8ea', dark: 'rgba(115,178,255,0.2)', usage: 'Toggle and input field borders' },
-  { name: 'Icon Primary', var: '--color-icon-primary', light: '#001424', dark: '#FFFFFF', usage: 'Default icon fill across the app' },
+  { name: 'Text Primary', var: '--color-text-primary', light: '#142740', dark: '#FFFFFF', usage: 'Headings, body copy, primary icons', examples: 'Page titles, task names, chat messages, nav labels, card titles' },
+  { name: 'Text Secondary', var: '--color-text-secondary', light: 'rgba(20,39,64,0.7)', dark: 'rgba(226,243,255,0.8)', usage: 'Descriptions, captions, helper text', examples: 'Task due dates, "open/completed" counters, chip footnotes, sidebar timestamps' },
+  { name: 'Text Tertiary', var: '--color-text-tertiary', light: 'rgba(20,39,64,0.4)', dark: 'rgba(226,243,255,0.4)', usage: 'Disabled labels, muted metadata', examples: 'Completed task text (strikethrough), empty-state messages, placeholder text' },
+  { name: 'Background Page', var: '--color-bg-page', light: '#FFFFFF', dark: '#001424', usage: 'Main app surface, content panels', examples: 'Chat panel, task cards, message cards, dialog backgrounds' },
+  { name: 'Background Hover / Message', var: '--color-bg-hover', light: '#F2F3F4', dark: 'rgba(226,243,255,0.1)', usage: 'Hover states, message bubbles', examples: 'AI message bubbles, sidebar hover, table row zebra stripes, input fields' },
+  { name: 'Sidebar Background', var: '--color-sidebar-bg', light: '#f2f3f4', dark: '#0d2136', usage: 'Left navigation panel surface', examples: 'Sidebar container, search bar area, profile section' },
+  { name: 'Stroke Outline', var: '--color-stroke-outline', light: '#E8E8E8', dark: 'rgba(115,178,255,0.2)', usage: 'Card borders, dividers, chip outlines', examples: 'Task group cards, message cards, filter chip borders, section dividers' },
+  { name: 'Stroke Toggle', var: '--color-stroke-toggle', light: '#e6e8ea', dark: 'rgba(115,178,255,0.2)', usage: 'Toggle and input field borders', examples: 'Dark mode toggle pill, chat input border, text field outlines' },
+  { name: 'Icon Primary', var: '--color-icon-primary', light: '#001424', dark: '#FFFFFF', usage: 'Default icon fill across the app', examples: 'Sidebar nav icons, toolbar icons, hamburger menu, close buttons' },
 ];
 
 const SPECIAL_COLORS = [
-  { name: 'Status Tag BG', value: 'rgba(2,137,1,0.1)', preview: 'rgba(2,137,1,0.1)', usage: 'Success / connected tag background' },
-  { name: 'Status Tag Text', value: '#028901', preview: '#028901', usage: 'Success / connected tag label' },
-  { name: 'Link / @Mention', value: '#3171ff', preview: '#3171ff', usage: 'Inline links and @mentions' },
-  { name: 'Selected Chip BG', value: 'var(--color-selected-bg)', preview: 'var(--color-selected-bg)', usage: 'Active chip / filter background' },
-  { name: 'Agent Profile BG', value: '#E5E9F1', preview: '#E5E9F1', usage: 'Agent avatar circle background' },
+  { name: 'Status Tag BG', value: 'rgba(2,137,1,0.1)', preview: 'rgba(2,137,1,0.1)', usage: 'Success / connected tag background', examples: '"Connected", "Sent", "Done" status badges in message cards' },
+  { name: 'Status Tag Text', value: '#028901', preview: '#028901', usage: 'Success / connected tag label', examples: 'StatusTag text in meeting cards, ticket cards, task "Done" badges' },
+  { name: 'Link / @Mention', value: '#3171ff', preview: '#3171ff', usage: 'Inline links and @mentions', examples: '@assignee names in tasks, "In Progress" badges, callout highlights' },
+  { name: 'Selected Chip BG', value: 'var(--color-selected-bg)', preview: 'var(--color-selected-bg)', usage: 'Active chip / filter background', examples: 'Active filter chips on Tasks page, Design System nav chips' },
+  { name: 'Agent Profile BG', value: '#E5E9F1', preview: '#E5E9F1', usage: 'Agent avatar circle background', examples: 'AI assistant avatar in chat messages' },
 ];
 
 const TYPOGRAPHY = [
-  { style: 'Body / Regular', font: 'SF Pro', size: '17px', weight: 400, lineHeight: '22px', spacing: '-0.43px' },
+  { style: 'Page Title', font: 'SF Pro', size: '40px', weight: 700, lineHeight: '48px', spacing: '-0.5px' },
+  { style: 'Body / Regular', font: 'SF Pro', size: '16px', weight: 400, lineHeight: '32px', spacing: '-0.43px' },
   { style: 'Body / Emphasized', font: 'SF Pro', size: '16px', weight: 700, lineHeight: '32px', spacing: '-0.43px' },
-  { style: 'Detail / Regular', font: 'SF Pro', size: '16px', weight: 400, lineHeight: '22px', spacing: '0px' },
-  { style: 'Headline / Regular', font: 'SF Pro', size: '17px', weight: 590, lineHeight: '22px', spacing: '-0.43px' },
+  { style: 'Detail / Regular', font: 'SF Pro', size: '14px', weight: 400, lineHeight: '22px', spacing: '0px' },
+  { style: 'Detail / Emphasized', font: 'SF Pro', size: '14px', weight: 700, lineHeight: '22px', spacing: '0px' },
 ];
 
 const SPACING = [
@@ -60,7 +66,6 @@ const SPACING = [
 
 const RADII = [
   { token: 'radius/xl', value: '100px', tw: 'rounded-full' },
-  { token: 'radius/full', value: '1000px', tw: 'rounded-full' },
   { token: 'Outer shell', value: '40px', tw: 'rounded-[40px]' },
 ];
 
@@ -91,13 +96,13 @@ function MiniCardHeader({ icon, title, rightElement, borderBottom = false }: {
 function MiniStatusTag({ label }: { label: string }) {
   return (
     <span className="text-[11px] font-semibold whitespace-nowrap px-2 py-0.5 rounded shrink-0"
-      style={{ background: 'rgba(2, 137, 1, 0.1)', color: '#00c7be' }}>{label}</span>
+      style={{ background: 'rgba(2, 137, 1, 0.1)', color: '#028901' }}>{label}</span>
   );
 }
 
 function MiniGradientButton({ label }: { label: string }) {
   return (
-    <button className="gradient-btn w-full flex items-center justify-center h-10 px-4 rounded text-white font-bold text-[13px] leading-[18px] cursor-default">
+    <button className="gradient-btn w-full flex items-center justify-center h-10 px-4 rounded-[4px] text-white font-bold text-[13px] leading-[18px] cursor-default">
       {label}
     </button>
   );
@@ -494,7 +499,7 @@ function ComponentShowcase() {
           {/* Loading indicator */}
           <div className="flex items-center gap-1 py-1 px-1">
             {[0, 1, 2].map(i => (
-              <div key={i} className="w-2 h-2 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 typing-dot" style={{ animationDelay: `${i * 0.2}s` }} />
+              <div key={i} className="w-2 h-2 rounded-full loading-dot" style={{ animationDelay: `${i * 0.2}s` }} />
             ))}
           </div>
         </div>
@@ -731,15 +736,44 @@ function ComponentShowcase() {
   );
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+function SectionTitle({ children, id }: { children: React.ReactNode; id?: string }) {
   return (
-    <h2 className="text-[18px] font-bold text-text-primary tracking-[-0.43px] mt-8 mb-6">
+    <h2 id={id} className="text-[18px] font-bold text-text-primary tracking-[-0.43px] mt-8 mb-6 scroll-mt-[120px]">
       {children}
     </h2>
   );
 }
 
+const FILTER_CHIPS = [
+  { label: 'All', id: '' },
+  { label: 'Principles', id: 'ds-principles' },
+  { label: 'Colors', id: 'ds-colors' },
+  { label: 'Typography', id: 'ds-typography' },
+  { label: 'Spacing', id: 'ds-spacing' },
+  { label: 'Icons', id: 'ds-icons' },
+  { label: 'Components', id: 'ds-components' },
+  { label: 'CSS Utilities', id: 'ds-css' },
+  { label: 'Live Samples', id: 'ds-samples' },
+  { label: 'Dark Mode', id: 'ds-dark' },
+  { label: 'Figma Diff', id: 'ds-diff' },
+  { label: 'Responsive', id: 'ds-responsive' },
+  { label: 'Needs Review', id: 'ds-review' },
+];
+
 export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: DesignSystemPageProps) {
+  const [activeFilter, setActiveFilter] = useState('');
+
+  const handleChipClick = (id: string) => {
+    setActiveFilter(id);
+    if (id) {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      const scrollEl = document.getElementById('ds-scroll-container');
+      if (scrollEl) scrollEl.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col min-w-0 h-full" style={{ background: 'var(--color-bg-page)' }}>
       {/* Header — toggle only */}
@@ -751,16 +785,201 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
         )}
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-8 pb-12 scrollbar-autohide">
+      {/* Title + Filter chips — sticky */}
+      <div className="px-8 pb-4 shrink-0">
         <h1
-          className="text-[40px] font-bold text-text-primary leading-[48px] tracking-[-0.5px] mb-2"
+          className="text-[40px] font-bold text-text-primary leading-[48px] tracking-[-0.5px] mb-4"
           style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
         >
           Design System
         </h1>
+        <div className="flex flex-wrap gap-2">
+          {FILTER_CHIPS.map(chip => (
+            <button
+              key={chip.id}
+              onClick={() => handleChipClick(chip.id)}
+              className={`px-4 py-1.5 rounded-full text-[14px] transition-colors border ${
+                activeFilter === chip.id
+                  ? 'border-transparent'
+                  : 'border-stroke-outline text-text-primary hover:bg-bg-hover chip-gradient-hover'
+              }`}
+              style={activeFilter === chip.id ? { background: 'var(--color-selected-bg)', color: 'var(--color-selected-text)' } : undefined}
+            >
+              {chip.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div id="ds-scroll-container" className="flex-1 overflow-y-auto px-8 pb-12 scrollbar-autohide">
+
+        {/* ━━━ DESIGN PRINCIPLES ━━━ */}
+        <SectionTitle id="ds-principles">Design Principles</SectionTitle>
+
+        {/* 5.1 Primary Button Rule */}
+        <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-[16px]">1️⃣</span>
+            <span className="text-[16px] font-bold text-text-primary">Primary Button Rule</span>
+          </div>
+          <p className="text-[14px] text-text-primary leading-[22px] mb-3">
+            Only <strong>ONE</strong> primary button (<code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>.gradient-btn</code>) per page/view. All other buttons use secondary style.
+          </p>
+          <div className="flex gap-3 items-center">
+            <button className="gradient-btn text-white font-bold rounded-[4px] px-5 py-2 text-[14px]">Primary Action</button>
+            <button className="px-5 py-2 rounded-[4px] border border-stroke-outline text-text-primary text-[14px] hover:bg-bg-hover chip-gradient-hover">Secondary</button>
+            <button className="px-5 py-2 rounded-[4px] border border-stroke-outline text-text-primary text-[14px] hover:bg-bg-hover chip-gradient-hover">Secondary</button>
+          </div>
+        </div>
+
+        {/* 5.2 Brand Color Budget */}
+        <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-[16px]">🎨</span>
+            <span className="text-[16px] font-bold text-text-primary">Brand Color Budget — 1–2% Max</span>
+          </div>
+          <p className="text-[14px] text-text-primary leading-[22px] mb-4">
+            Brand gradient (<code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>#7652B9 → #B46470 → #CA9D8C</code>) must occupy ≤ 1–2% of any page.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl border border-stroke-outline p-3">
+              <div className="text-[14px] font-bold text-text-primary mb-2">✅ Allowed</div>
+              <ul className="text-[14px] text-text-primary leading-[22px] list-disc pl-4 space-y-1">
+                <li>One <code className="text-[13px] px-1 rounded" style={{ background: 'var(--color-bg-hover)' }}>.gradient-btn</code> per page</li>
+                <li>Active nav indicator</li>
+                <li>Urgent accent bar (4px)</li>
+                <li>Hero gradient text</li>
+                <li>Loading dots</li>
+              </ul>
+            </div>
+            <div className="rounded-xl border border-stroke-outline p-3">
+              <div className="text-[14px] font-bold text-text-primary mb-2">🚫 Not Allowed</div>
+              <ul className="text-[14px] text-text-primary leading-[22px] list-disc pl-4 space-y-1">
+                <li>Text colors</li>
+                <li>Icon colors</li>
+                <li>Progress bars, badges, tags</li>
+                <li>Multiple buttons per page</li>
+                <li>Data visualizations</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* 5.3 Default Text & Icon Colors */}
+        <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-[16px]">🔤</span>
+            <span className="text-[16px] font-bold text-text-primary">Default Text & Icon Colors</span>
+          </div>
+          <p className="text-[14px] text-text-primary leading-[22px] mb-3">
+            All text and icons use system defaults. Never hardcode hex colors.
+          </p>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl" style={{ background: 'var(--color-bg-hover)' }}>
+              <div className="w-4 h-4 rounded-full" style={{ background: 'var(--color-text-primary)' }} />
+              <code className="text-[13px] font-mono" style={{ color: '#3171ff' }}>text-text-primary</code>
+              <span className="text-[14px] text-text-primary flex-1">— Headings, body, labels, icons</span>
+            </div>
+            <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl" style={{ background: 'var(--color-bg-hover)' }}>
+              <div className="w-4 h-4 rounded-full" style={{ background: 'var(--color-text-secondary)' }} />
+              <code className="text-[13px] font-mono" style={{ color: '#3171ff' }}>text-text-secondary</code>
+              <span className="text-[14px] text-text-primary flex-1">— Descriptions, captions, helper text</span>
+            </div>
+            <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl" style={{ background: 'var(--color-bg-hover)' }}>
+              <div className="w-4 h-4 rounded-full" style={{ background: 'var(--color-text-tertiary)' }} />
+              <code className="text-[13px] font-mono" style={{ color: '#3171ff' }}>text-text-tertiary</code>
+              <span className="text-[14px] text-text-primary flex-1">— Disabled, muted metadata</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 5.4 Callout Color */}
+        <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-[16px]">💙</span>
+            <span className="text-[16px] font-bold text-text-primary">Callout & Highlight Color — Blue #3171ff</span>
+          </div>
+          <p className="text-[14px] text-text-primary leading-[22px] mb-3">
+            For emphasis, selection, progress, and callouts — use blue, NOT the brand gradient.
+          </p>
+          <div className="flex flex-wrap gap-3 items-center">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full border-transparent" style={{ background: 'var(--color-selected-bg)', color: 'var(--color-selected-text)' }}>
+              <span className="text-[14px]">Selected Chip</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-32 h-2 rounded-full" style={{ background: '#3171ff' }} />
+              <span className="text-[14px] text-text-primary">Progress bar</span>
+            </div>
+            <span className="text-[14px]" style={{ color: '#3171ff' }}>@mention link</span>
+          </div>
+        </div>
+
+        {/* 5.5 Chip Selected State */}
+        <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-[16px]">🏷️</span>
+            <span className="text-[16px] font-bold text-text-primary">Chip Selected State</span>
+          </div>
+          <p className="text-[14px] text-text-primary leading-[22px] mb-3">
+            Selected chips use blue, NEVER <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>.gradient-btn</code>.
+          </p>
+          <div className="flex gap-3 items-center">
+            <button className="px-4 py-1.5 rounded-full border border-stroke-outline text-text-primary text-[14px] chip-gradient-hover">Default</button>
+            <button className="px-4 py-1.5 rounded-full border-transparent text-[14px]" style={{ background: 'var(--color-selected-bg)', color: 'var(--color-selected-text)' }}>Selected</button>
+          </div>
+        </div>
+
+        {/* 5.7 StatusTag */}
+        <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-[16px]">🏷️</span>
+            <span className="text-[16px] font-bold text-text-primary">StatusTag Colors</span>
+          </div>
+          <p className="text-[14px] text-text-primary leading-[22px] mb-3">
+            StatusTag always uses design system green. This is the only place this green appears.
+          </p>
+          <div className="flex items-center gap-3">
+            <span className="text-[14px] font-semibold px-3 py-1 rounded" style={{ background: 'rgba(2,137,1,0.1)', color: '#028901' }}>Connected</span>
+            <span className="text-[14px] font-semibold px-3 py-1 rounded" style={{ background: 'rgba(2,137,1,0.1)', color: '#028901' }}>Sent</span>
+            <span className="text-[14px] font-semibold px-3 py-1 rounded" style={{ background: 'rgba(2,137,1,0.1)', color: '#028901' }}>Done</span>
+            <code className="text-[13px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>bg: rgba(2,137,1,0.1) · color: #028901</code>
+          </div>
+        </div>
+
+        {/* 5.8 Shared-First Development */}
+        <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-[16px]">🧩</span>
+            <span className="text-[16px] font-bold text-text-primary">Shared-First Development</span>
+          </div>
+          <p className="text-[14px] text-text-primary leading-[22px] mb-4">
+            Always build reusable UI in <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>shared.tsx</code> first. App pages import from shared — never duplicate component code inline.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl border border-stroke-outline p-3">
+              <div className="text-[14px] font-bold text-text-primary mb-2">✅ Workflow</div>
+              <ol className="text-[14px] text-text-primary leading-[22px] list-decimal pl-4 space-y-1">
+                <li>Define component in <code className="text-[13px] px-1 rounded" style={{ background: 'var(--color-bg-hover)' }}>shared.tsx</code></li>
+                <li>Import into app pages</li>
+                <li>Monitor on Design System page</li>
+                <li>Update once → updates everywhere</li>
+              </ol>
+            </div>
+            <div className="rounded-xl border border-stroke-outline p-3">
+              <div className="text-[14px] font-bold text-text-primary mb-2">🚫 Avoid</div>
+              <ul className="text-[14px] text-text-primary leading-[22px] list-disc pl-4 space-y-1">
+                <li>Inline one-off components in pages</li>
+                <li>Copy-pasting component code</li>
+                <li>Styling variants outside shared file</li>
+                <li>Skipping Design System registration</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
         {/* Brand Gradient */}
-        <SectionTitle>Brand Gradient</SectionTitle>
+        <SectionTitle id="ds-colors">Brand Gradient</SectionTitle>
         <div className="flex flex-wrap gap-4">
           <div className="flex flex-col gap-2">
             <div className="gradient-btn rounded-xl" style={{ width: 200, height: 60 }} />
@@ -773,7 +992,7 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
         </div>
 
         {/* Colors */}
-        <SectionTitle>Color Tokens</SectionTitle>
+        <SectionTitle id="ds-color-tokens">Color Tokens</SectionTitle>
         <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
           {COLORS.map(c => (
             <div key={c.var} className="flex rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-stroke-outline)', minHeight: 96 }}>
@@ -781,6 +1000,7 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
               <div className="w-2/3 min-w-0 p-3 flex flex-col justify-center gap-1">
                 <p className="text-text-primary font-semibold text-[13px] truncate">{c.name}</p>
                 <p className="text-text-primary text-[12px] leading-[16px]">{c.usage}</p>
+                <p className="text-text-secondary text-[11px] leading-[15px]">e.g. {c.examples}</p>
               </div>
             </div>
           ))}
@@ -794,13 +1014,14 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
               <div className="w-2/3 min-w-0 p-3 flex flex-col justify-center gap-1">
                 <p className="text-text-primary font-semibold text-[13px] truncate">{c.name}</p>
                 <p className="text-text-primary text-[12px] leading-[16px]">{c.usage}</p>
+                <p className="text-text-secondary text-[11px] leading-[15px]">e.g. {c.examples}</p>
               </div>
             </div>
           ))}
         </div>
 
         {/* Typography */}
-        <SectionTitle>Typography</SectionTitle>
+        <SectionTitle id="ds-typography">Typography</SectionTitle>
         <div className="overflow-x-auto">
           <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
             <thead>
@@ -826,14 +1047,14 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
         </div>
 
         {/* Spacing & Radii */}
-        <SectionTitle>Spacing & Border Radius</SectionTitle>
+        <SectionTitle id="ds-spacing">Spacing & Border Radius</SectionTitle>
         <div className="flex flex-wrap gap-8">
           <div>
             <h3 className="text-[15px] font-semibold text-text-primary mb-3">Spacing</h3>
             <div className="flex flex-col gap-2">
               {SPACING.map(s => (
                 <div key={s.token} className="flex items-center gap-4">
-                  <div className="rounded" style={{ width: parseInt(s.value), height: 16, background: 'linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%)', minWidth: 4 }} />
+                  <div className="rounded" style={{ width: parseInt(s.value), height: 16, background: '#3171ff', minWidth: 4 }} />
                   <span className="text-text-primary text-[13px] font-medium w-20">{s.value}</span>
                   <span className="text-text-primary text-[12px]">{s.tw}</span>
                 </div>
@@ -855,7 +1076,7 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
         </div>
 
         {/* Icon Library */}
-        <SectionTitle>Icon Library</SectionTitle>
+        <SectionTitle id="ds-icons">Icon Library</SectionTitle>
         <p className="text-text-primary text-[14px] leading-[20px] mb-4">
           All icons used across the app, organized by category. Custom SVG assets are from Figma; Lucide icons are from <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>lucide-react</code>.
         </p>
@@ -995,11 +1216,11 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
         </div>
 
         {/* Components */}
-        <SectionTitle>Components</SectionTitle>
+        <SectionTitle id="ds-components">Components</SectionTitle>
         <ComponentShowcase />
 
         {/* CSS Utility Classes */}
-        <SectionTitle>CSS Utility Classes</SectionTitle>
+        <SectionTitle id="ds-css">CSS Utility Classes</SectionTitle>
         <div className="flex flex-col gap-2">
           {CSS_UTILITIES.map(u => (
             <div key={u.cls} className="flex items-start gap-4 py-2" style={{ borderBottom: '1px solid var(--color-stroke-outline)' }}>
@@ -1012,7 +1233,7 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
         </div>
 
         {/* Live Samples */}
-        <SectionTitle>Live Samples</SectionTitle>
+        <SectionTitle id="ds-samples">Live Samples</SectionTitle>
         <div className="flex flex-wrap gap-6 items-start">
           {/* Chips */}
           <div className="flex flex-col gap-3">
@@ -1030,7 +1251,7 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
           {/* Buttons */}
           <div className="flex flex-col gap-3">
             <h3 className="text-[15px] font-semibold text-text-primary">Gradient Button</h3>
-            <button className="gradient-btn text-white font-medium rounded-xl px-6 py-3 text-[14px]">
+            <button className="gradient-btn text-white font-medium rounded-[4px] px-6 py-3 text-[14px]">
               Action Button
             </button>
           </div>
@@ -1063,13 +1284,13 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
         </div>
 
         {/* Dark Mode */}
-        <SectionTitle>Dark Mode</SectionTitle>
+        <SectionTitle id="ds-dark">Dark Mode</SectionTitle>
         <p className="text-text-primary text-[14px] leading-[20px]">
           Dark mode is toggled via the <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>.dark</code> class on <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>&lt;html&gt;</code>. All components use CSS variables that automatically switch. Monochrome icons use the <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>.icon-theme</code> class for auto-inversion. Gradient elements (avatars, spinner, buttons) do NOT use <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>.icon-theme</code>.
         </p>
 
         {/* Figma vs Code Diff */}
-        <SectionTitle>Figma vs Code Diff</SectionTitle>
+        <SectionTitle id="ds-diff">Figma vs Code Diff</SectionTitle>
         <p className="text-text-primary text-[14px] leading-[20px] mb-4">
           Comparison between Figma design system variables (WorkPal library, <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>L&DMode</code> collection) and the current code implementation.
         </p>
@@ -1168,7 +1389,7 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
         </div>
 
         {/* Responsive Rules */}
-        <SectionTitle>Responsive Rules (Mobile vs Desktop)</SectionTitle>
+        <SectionTitle id="ds-responsive">Responsive Rules (Mobile vs Desktop)</SectionTitle>
         <p className="text-text-primary text-[14px] leading-[20px] mb-4">
           The app uses a <strong className="text-text-primary">mobile-first</strong> approach. Base styles target mobile ({'<'}768px), and desktop overrides kick in at the <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>md:</code> breakpoint (768px+) via Tailwind and <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>@media (min-width: 768px)</code>.
         </p>
@@ -1254,6 +1475,248 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
               <span className="text-text-primary text-[13px]">{item.desc}</span>
             </div>
           ))}
+        </div>
+
+        {/* Needs Review — custom patterns not yet in the design system */}
+        <SectionTitle id="ds-review">Needs Review</SectionTitle>
+        <p className="text-text-primary text-[14px] leading-[20px] mb-4">
+          These UI patterns are used in the app but are <strong>not yet part of the design system</strong>. Each card shows a live sample, description, and the closest existing component. Review to decide: promote to design system, or replace with an existing pattern.
+        </p>
+
+        <div className="flex flex-col gap-4">
+          {/* === All samples below use shared components from shared.tsx === */}
+          {/* Update a component in shared.tsx → it updates here AND in the app */}
+
+          {/* 1. Circular Score Ring */}
+          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[14px] font-bold text-text-primary">CircularProgress</span>
+              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
+            </div>
+            <p className="text-[13px] text-text-primary leading-[18px] mb-3">SVG circle with stroke-dasharray progress + centered text overlay.</p>
+            <div className="flex items-center gap-6 p-4 rounded-xl bg-bg-hover mb-3">
+              <CircularProgress value={100} size={72} color="#028901">
+                <span className="text-[16px] font-bold text-text-primary">4/4</span>
+                <span className="text-[10px] text-text-primary">goals</span>
+              </CircularProgress>
+              <CircularProgress value={65} size={72} color="#3171ff">
+                <span className="text-[16px] font-bold text-text-primary">65%</span>
+              </CircularProgress>
+            </div>
+            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'CircularProgress'}</code> from shared.tsx</p>
+          </div>
+
+          {/* 2. AreaChart */}
+          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[14px] font-bold text-text-primary">AreaChart</span>
+              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
+            </div>
+            <p className="text-[13px] text-text-primary leading-[18px] mb-3">SVG area chart with gradient fill, data points, and labels.</p>
+            <div className="p-4 rounded-xl bg-bg-hover mb-3">
+              <AreaChart data={[{ label: 'M', value: 85 }, { label: 'T', value: 72 }, { label: 'W', value: 65 }, { label: 'T', value: 78 }, { label: 'F', value: 60 }, { label: 'S', value: 90 }]} color="#028901" height={70} gradientId="dsAreaGrad" />
+            </div>
+            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'AreaChart'}</code> from shared.tsx</p>
+          </div>
+
+          {/* 3. ProgressBar */}
+          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[14px] font-bold text-text-primary">ProgressBar</span>
+              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
+            </div>
+            <p className="text-[13px] text-text-primary leading-[18px] mb-3">Determinate progress bar with configurable color and optional label.</p>
+            <div className="flex flex-col gap-3 p-4 rounded-xl bg-bg-hover mb-3">
+              <ProgressBar value={62} showLabel />
+              <ProgressBar value={35} showLabel />
+            </div>
+            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'ProgressBar'}</code> from shared.tsx</p>
+          </div>
+
+          {/* 4. LabeledBar */}
+          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[14px] font-bold text-text-primary">LabeledBar</span>
+              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
+            </div>
+            <p className="text-[13px] text-text-primary leading-[18px] mb-3">Thin bar with label + percentage, custom color per category.</p>
+            <div className="p-4 rounded-xl bg-bg-hover mb-3">
+              <LabeledBar label="Deadline pressure" pct={35} color="#EF4444" />
+              <LabeledBar label="Keeping up with AI" pct={28} color="#F59E0B" />
+              <LabeledBar label="Cross-team alignment" pct={22} color="#7652B9" />
+            </div>
+            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'LabeledBar'}</code> from shared.tsx</p>
+          </div>
+
+          {/* 5. SectionTitle */}
+          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[14px] font-bold text-text-primary">SectionTitle</span>
+              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
+            </div>
+            <p className="text-[13px] text-text-primary leading-[18px] mb-3">Emoji + bold title + optional count badge.</p>
+            <div className="flex flex-col gap-1 p-4 rounded-xl bg-bg-hover mb-3">
+              <SharedSectionTitle emoji="👀" title="Needs Your Eyes" count={3} />
+              <SharedSectionTitle emoji="⚡" title="Maya is Working On" />
+            </div>
+            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'SectionTitle'}</code> from shared.tsx</p>
+          </div>
+
+          {/* 6. ReviewItemCard */}
+          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[14px] font-bold text-text-primary">ReviewItemCard</span>
+              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
+            </div>
+            <p className="text-[13px] text-text-primary leading-[18px] mb-3">Card with optional urgent accent bar, metadata, time pill, and action button.</p>
+            <div className="flex flex-col gap-2 p-4 rounded-xl bg-bg-hover mb-3">
+              <ReviewItemCard title="UX meeting summary — 6 action items" source="Zoom → Docs" type="Document" time="3 min ago" humanTime="~5 min" urgent />
+              <ReviewItemCard title="Weekly stakeholder email draft" source="Gmail" type="Email" time="2h ago" humanTime="~3 min" />
+            </div>
+            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'ReviewItemCard'}</code> from shared.tsx</p>
+          </div>
+
+          {/* 7. TimePill */}
+          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[14px] font-bold text-text-primary">TimePill</span>
+              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
+            </div>
+            <p className="text-[13px] text-text-primary leading-[18px] mb-3">Small bordered pill with user icon + time estimate.</p>
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-bg-hover mb-3">
+              <TimePill time="~5 min" />
+              <TimePill time="~8 min" />
+              <TimePill time="~3 min" />
+            </div>
+            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'TimePill'}</code> from shared.tsx</p>
+          </div>
+
+          {/* 8. Greeting Banner — page-specific, not shared */}
+          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[14px] font-bold text-text-primary">Greeting Banner</span>
+              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">OverviewPage</span>
+            </div>
+            <p className="text-[13px] text-text-primary leading-[18px] mb-3">Page-specific — full-width card with avatar, title, body, TTS button.</p>
+            <div className="p-4 rounded-xl bg-bg-hover mb-3">
+              <div className="flex gap-4 items-start">
+                <div className="w-[48px] h-[48px] rounded-xl bg-bg-page shrink-0 overflow-hidden">
+                  <img src={avatarBlackWoman} alt="" className="w-full h-full object-cover" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[11px] font-bold text-text-primary tracking-[0.5px] mb-0.5">MAYA · MORNING BRIEFING</div>
+                  <div className="text-[13px] font-bold text-text-primary mb-1">Good morning! Today is a steady day</div>
+                  <div className="text-[12px] text-text-primary leading-[18px]">Your schedule is clear and focus time is protected.</div>
+                  <button className="mt-2 px-3 py-1 rounded-[4px] gradient-btn text-white text-[11px] font-semibold">Listen</button>
+                </div>
+              </div>
+            </div>
+            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Status:</strong> One-off for Overview page. Not extracted to shared.tsx.</p>
+          </div>
+
+          {/* 9. TaskProgressCard */}
+          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[14px] font-bold text-text-primary">TaskProgressCard</span>
+              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
+            </div>
+            <p className="text-[13px] text-text-primary leading-[18px] mb-3">Clickable card with progress bar, expands to show step list.</p>
+            <div className="p-4 rounded-xl bg-bg-hover mb-3">
+              <TaskProgressCard title="Analyzing Q2 metrics" progress={62} eta="~8 min" steps={['Pulling data from Sheets', 'Building charts', 'Formatting']} expanded />
+            </div>
+            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'TaskProgressCard'}</code> from shared.tsx</p>
+          </div>
+
+          {/* 10. StepIndicator */}
+          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[14px] font-bold text-text-primary">StepIndicator</span>
+              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
+            </div>
+            <p className="text-[13px] text-text-primary leading-[18px] mb-3">Three states: done (checkmark), in-progress (filled dot), pending (empty circle).</p>
+            <div className="flex items-center gap-6 p-4 rounded-xl bg-bg-hover mb-3">
+              <div className="flex items-center gap-2"><StepIndicator status="done" /><span className="text-[12px] text-text-primary">Done</span></div>
+              <div className="flex items-center gap-2"><StepIndicator status="in-progress" /><span className="text-[12px] text-text-primary">In Progress</span></div>
+              <div className="flex items-center gap-2"><StepIndicator status="pending" /><span className="text-[12px] text-text-primary">Pending</span></div>
+            </div>
+            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'StepIndicator'}</code> from shared.tsx</p>
+          </div>
+
+          {/* 11. InsightCard */}
+          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[14px] font-bold text-text-primary">InsightCard</span>
+              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
+            </div>
+            <p className="text-[13px] text-text-primary leading-[18px] mb-3">Callout card with sparkle icon, body text, and action buttons.</p>
+            <div className="p-4 rounded-xl bg-bg-hover mb-3">
+              <InsightCard body="Your focus time dropped 40% this week. Want me to protect morning blocks?" actions={[{ label: 'Yes, protect mornings', primary: true }, { label: 'Show data' }]} />
+            </div>
+            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'InsightCard'}</code> from shared.tsx</p>
+          </div>
+
+          {/* 12. MetricCard */}
+          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[14px] font-bold text-text-primary">MetricCard</span>
+              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
+            </div>
+            <p className="text-[13px] text-text-primary leading-[18px] mb-3">Large centered number with title and subtitle.</p>
+            <div className="flex gap-3 p-4 rounded-xl bg-bg-hover mb-3">
+              <div className="flex-1 bg-bg-page rounded-xl border border-stroke-outline p-3">
+                <MetricCard title="Emotional value" value="10" subtitle="/10" />
+              </div>
+              <div className="flex-1 bg-bg-page rounded-xl border border-stroke-outline p-3">
+                <MetricCard title="Time gained" value="+2h" subtitle="this week" />
+              </div>
+            </div>
+            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'MetricCard'}</code> from shared.tsx</p>
+          </div>
+
+          {/* 13. Tag */}
+          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[14px] font-bold text-text-primary">Tag</span>
+              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
+            </div>
+            <p className="text-[13px] text-text-primary leading-[18px] mb-3">Non-interactive display-only label pill.</p>
+            <div className="flex flex-wrap gap-1.5 p-4 rounded-xl bg-bg-hover mb-3">
+              <Tag>😊 Relaxed evenings</Tag>
+              <Tag>🎲 Board game night</Tag>
+              <Tag>👶 Co-bedtime</Tag>
+              <Tag>🎮 Gaming time</Tag>
+              <Tag>📚 Reading</Tag>
+            </div>
+            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'Tag'}</code> from shared.tsx</p>
+          </div>
+
+          {/* 14. SolutionRow */}
+          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[14px] font-bold text-text-primary">SolutionRow</span>
+              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
+            </div>
+            <p className="text-[13px] text-text-primary leading-[18px] mb-3">Row with emoji, title + description, and right-aligned category tag.</p>
+            <div className="p-4 rounded-xl bg-bg-hover mb-3">
+              <SolutionRow icon="🎧" title="AI趋势速报" desc="每天3分钟音频" tag="针对：AI" />
+              <SolutionRow icon="🧘" title="Focus Block" desc="自动拦截非紧急会议" tag="针对：Deadline" />
+            </div>
+            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'SolutionRow'}</code> from shared.tsx</p>
+          </div>
+
+          {/* 15. SummaryFooter */}
+          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[14px] font-bold text-text-primary">SummaryFooter</span>
+              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
+            </div>
+            <p className="text-[13px] text-text-primary leading-[18px] mb-3">Right-aligned row with clock icon + summary text.</p>
+            <div className="p-4 rounded-xl bg-bg-hover mb-3">
+              <SummaryFooter>Total review time: <strong>~16 min</strong> for 3 items</SummaryFooter>
+            </div>
+            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'SummaryFooter'}</code> from shared.tsx</p>
+          </div>
+
         </div>
       </div>
     </div>

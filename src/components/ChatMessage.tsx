@@ -22,7 +22,7 @@ function renderText(text: string) {
 
 function SpeakerIcon({ playing }: { playing: boolean }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`w-[26px] h-[26px] md:w-5 md:h-5 ${playing ? 'text-[#3171FF]' : 'opacity-40 hover:opacity-70'}`}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`w-[26px] h-[26px] md:w-5 md:h-5 ${playing ? 'text-text-primary' : 'opacity-40 hover:opacity-70'}`}>
       <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
       {playing ? (
         <>
@@ -96,7 +96,7 @@ function TypingIndicator() {
       {[0, 1, 2].map(i => (
         <div
           key={i}
-          className="w-2 h-2 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 typing-dot"
+          className="w-2 h-2 rounded-full loading-dot"
           style={{ animationDelay: `${i * 0.2}s` }}
         />
       ))}

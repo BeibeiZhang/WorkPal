@@ -10,6 +10,7 @@ import ProjectPage from './components/ProjectPage';
 import ConnectorsPage from './components/ConnectorsPage';
 import DesignSystemPage from './components/DesignSystemPage';
 import ComingSoonPage from './components/ComingSoonPage';
+import OverviewPage from './components/OverviewPage';
 import LibraryPage from './components/LibraryPage';
 import NewProjectDialog from './components/NewProjectDialog';
 import { Chat, Message, ActionChip, TicketCard, AgentCard, ScheduleCard } from './types';
@@ -872,10 +873,11 @@ export default function App() {
             onToggleSidebar={() => setSidebarOpen(o => !o)}
           />
         ) : activeView === 'overview' ? (
-          <ComingSoonPage
-            view="overview"
+          <OverviewPage
             sidebarOpen={sidebarOpen || !isMobile}
             onToggleSidebar={() => setSidebarOpen(o => !o)}
+            isDark={isDark}
+            selectedAvatarId={selectedAvatarId}
           />
         ) : activeView === 'library' ? (
           <LibraryPage

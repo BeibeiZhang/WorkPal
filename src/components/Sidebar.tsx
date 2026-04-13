@@ -170,7 +170,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
       {/* Search */}
       <div className="pl-4 pr-2 pt-0.5 shrink-0">
         <div
-          className="flex items-center gap-4 px-4 py-[7px] rounded-full border text-[17px] leading-[22px]"
+          className="flex items-center gap-4 px-4 py-[7px] rounded-full border text-[16px] leading-[22px]"
           style={{ background: 'var(--color-bg-hover)', borderColor: 'var(--color-stroke-toggle)', color: 'var(--color-text-secondary)' }}
         >
           <Search size={18} className="shrink-0 text-text-primary" />
@@ -179,7 +179,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
             placeholder="Search"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="flex-1 bg-transparent outline-none text-[17px] leading-[22px] text-text-primary placeholder-text-secondary tracking-[-0.43px] truncate"
+            className="flex-1 bg-transparent outline-none text-[16px] leading-[22px] text-text-primary placeholder-text-secondary tracking-[-0.43px] truncate"
           />
         </div>
       </div>
