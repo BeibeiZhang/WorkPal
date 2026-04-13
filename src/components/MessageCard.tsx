@@ -39,7 +39,7 @@ function GradientButton({ label, onClick }: { label: string; onClick?: () => voi
   return (
     <button
       onClick={onClick}
-      className="gradient-btn w-full flex items-center justify-center h-12 px-4 rounded text-white font-bold text-base leading-[22px] cursor-pointer"
+      className="gradient-btn w-full flex items-center justify-center h-12 px-4 rounded-[4px] text-white font-bold text-base leading-[22px] cursor-pointer"
     >
       {label}
     </button>
@@ -170,7 +170,7 @@ function LoadingDots() {
 /* ── Status tag (Sent, Done, etc.) ── */
 function StatusTag({ label }: { label: string }) {
   return (
-    <span className="text-sm font-semibold leading-[22px] tracking-[-0.3px] whitespace-nowrap px-[10px] py-1 rounded shrink-0 bg-[rgba(2,137,1,0.1)] text-[#028901] dark:bg-[rgba(2,137,1,0.2)] dark:text-[#5fd35e]">
+    <span className="text-sm font-semibold leading-[22px] tracking-[-0.3px] whitespace-nowrap px-[10px] py-1 rounded shrink-0 bg-[rgba(2,137,1,0.1)] text-[#028901] dark:bg-[rgba(2,137,1,0.2)] dark:text-[#028901]">
       {label}
     </span>
   );
@@ -496,7 +496,7 @@ function AgentCardView({ card, onAction }: { card: AgentCard; onAction?: (a: str
         {status === 'ready' && (
           <button
             onClick={() => onAction?.('set-agent')}
-            className="gradient-btn w-full flex items-center justify-center h-12 px-4 rounded text-white font-bold text-base leading-[22px] cursor-pointer"
+            className="gradient-btn w-full flex items-center justify-center h-12 px-4 rounded-[4px] text-white font-bold text-base leading-[22px] cursor-pointer"
           >
             Set as my agent
           </button>

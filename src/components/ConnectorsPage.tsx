@@ -267,7 +267,7 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: Connect
         {/* ── Custom MCP tab ── */}
         {activeTab === 'custom-mcp' && (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
-            <div className="text-text-secondary opacity-40">
+            <div className="text-text-primary opacity-40">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M15 7h3a5 5 0 0 1 0 10h-3M9 17H6a5 5 0 0 1 0-10h3"/>
                 <line x1="8" y1="12" x2="16" y2="12"/>

@@ -69,10 +69,11 @@ border: 1px solid transparent;
 
 | Figma Style | Font | Size | Weight | Line Height | Letter Spacing |
 |---|---|---|---|---|---|
-| `Body/Regular` | SF Pro | 17px | 400 | 22px | -0.43px |
+| `Page Title` | SF Pro | 40px | 700 | 48px | -0.5px |
+| `Body/Regular` | SF Pro | 16px | 400 | 32px | -0.43px |
 | `Body/Emphasized` | SF Pro | 16px | 700 | 32px | -0.43px |
-| `Detail/Regular` | Inter | 16px | 400 | 22px | 0px |
-| `Headline/Regular` | SF Pro | 17px | 590 | 22px | -0.43px |
+| `Detail/Regular` | SF Pro | 14px | 400 | 22px | 0px |
+| `Detail/Emphasized` | SF Pro | 14px | 700 | 22px | 0px |
 
 **CSS font stack:** `font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', 'Inter', sans-serif`
 
@@ -227,13 +228,109 @@ border: 1px solid transparent;
 
 ---
 
-## 5. Dark Mode
+## 5. Design Principles
+
+These rules MUST be followed when building or modifying any page/component. They override any default assumptions.
+
+### 5.1 Primary Button Rule
+
+**Only ONE primary button (`.gradient-btn`) per page/view.**
+
+- The gradient button is the single highest-emphasis action on the screen.
+- All other buttons must use secondary styles: `border border-stroke-outline text-text-primary hover:bg-bg-hover chip-gradient-hover`.
+- Having multiple gradient buttons on the same page is a violation.
+- Gradient button border radius: `rounded-[4px]`.
+
+### 5.2 Brand Color Budget (1–2% Rule)
+
+**Brand gradient (`#7652B9 → #B46470 → #CA9D8C`) must occupy no more than 1–2% of any page's visual area.**
+
+The brand gradient exists to create a single focal point. Overusing it makes every element compete for attention and dilutes brand impact.
+
+| Allowed | NOT Allowed |
+|---|---|
+| One `.gradient-btn` per page | Multiple gradient buttons |
+| Active nav indicator (sidebar gradient border) | Text colors |
+| Urgent item accent bar (thin 4px strip) | Icon colors |
+| `.gradient-text` for hero/welcome titles only | Progress bars, badges, tags |
+| Loading dots (`.loading-dot`) | Data visualizations |
+
+### 5.3 Default Text & Icon Colors
+
+**All text uses default system colors unless specifically called out.**
+
+| Role | Class | When to use |
+|---|---|---|
+| Primary | `text-text-primary` | Headings, body copy, labels, most text |
+| Secondary | `text-text-secondary` | Descriptions, captions, helper text |
+| Tertiary | `text-text-tertiary` | Disabled labels, muted metadata |
+
+- **Never** use brand gradient colors (`#7652B9`, `#B46470`, `#CA9D8C`) for text.
+- **Never** use hardcoded hex colors for text — always use the CSS variable classes above.
+- **Icons** always use `text-text-primary` (= `var(--color-icon-primary)`) by default.
+
+### 5.4 Callout & Highlight Color (Blue)
+
+**When you need emphasis, selection, or callout — use blue `#3171ff`, NOT the brand gradient.**
+
+| Use case | Style |
+|---|---|
+| Selected/active chip | `bg: var(--color-selected-bg)` + `color: var(--color-selected-text)` |
+| Progress bars | `background: #3171ff` |
+| Links & @mentions | `color: #3171ff` |
+| Focus indicators | `border-color: #3171ff` |
+
+- Light mode selected: `bg: rgba(49,113,255,0.1)`, `color: #3171ff`
+- Dark mode selected: `bg: #3171ff`, `color: #ffffff`
+
+### 5.5 Chip Selected State
+
+**Selected/active chips must use the blue selected style, NEVER `.gradient-btn`.**
+
+| State | Style |
+|---|---|
+| Default | `border border-stroke-outline text-text-primary` + `.chip-gradient-hover` |
+| Selected | `bg: var(--color-selected-bg)` + `color: var(--color-selected-text)` + `border-transparent` |
+
+### 5.6 Typography Scale
+
+**Only 5 text styles exist. Do not invent new sizes.**
+
+| Style | Size | Weight | Line Height | Letter Spacing | Use |
+|---|---|---|---|---|---|
+| Page Title | 40px | 700 (bold) | 48px | -0.5px | Page headings (e.g. "Overview", "Design System") |
+| Body / Regular | 16px | 400 | 32px | -0.43px | Default body text, paragraphs |
+| Body / Emphasized | 16px | 700 (bold) | 32px | -0.43px | Labels, titles, section headers |
+| Detail / Regular | 14px | 400 | 22px | 0px | Metadata, captions, secondary info |
+| Detail / Emphasized | 14px | 700 (bold) | 22px | 0px | Emphasized metadata, bold detail |
+
+- Large display numbers (e.g. "10", "+2h") may use larger sizes for data emphasis.
+- **Never** use 17px, 13px, 12px, 11px, 10px, or 9px — they are not in the type scale.
+
+### 5.7 StatusTag Colors
+
+**StatusTag (Connected, Sent, Done, etc.) always uses the design system green.**
+
+- Background: `rgba(2, 137, 1, 0.1)`
+- Text: `#028901`
+- This is the ONLY place this green appears. It is not used for text, icons, or other elements.
+
+### 5.8 Shared-First Development
+
+**Always build reusable UI in `shared.tsx` first.** App pages import from shared — never duplicate component code inline.
+
+- **Workflow:** Define in `shared.tsx` → Import into app pages → Monitor on Design System page → Update once, updates everywhere
+- **Avoid:** Inline one-off components in pages, copy-pasting component code, styling variants outside shared file, skipping Design System registration
+
+---
+
+## 6. Dark Mode
 
 Dark mode is toggled via `.dark` class on `<html>`. All components use CSS variables that automatically switch. Icons use `.icon-theme` class (`filter: brightness(0) invert(1)` in dark mode). Gradient avatars/spinner do NOT use `.icon-theme`.
 
 ---
 
-## 6. CSS Utility Classes (`src/index.css`)
+## 7. CSS Utility Classes (`src/index.css`)
 
 | Class | Usage |
 |---|---|
