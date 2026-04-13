@@ -179,7 +179,7 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
                 letterSpacing: '0px',
               }}
             >
-              Think about the teammates you've admired most in your career — what qualities inspired you or meant the most to you at work?
+              Think about the teammates you've admired most in your career — what qualities inspired you the most?
             </p>
             <p
               className="text-text-primary"
@@ -191,7 +191,7 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
                 letterSpacing: '0px',
               }}
             >
-              Drag the three qualities that matter most to you into the box below. If there are qualities you'd rather avoid, feel free to drop those into the Avoid box. Can't find what you're looking for? Just type it in the message box at the bottom.
+              Drag your top 3 into Most Important to You. These will get higher weight. All qualities will still be used. Skip any that don't fit, or type your own below.
             </p>
           </div>
 
@@ -264,7 +264,7 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
                     lineHeight: '22px',
                   }}
                 >
-                  Avoid
+                  Skip
                 </p>
                 <span
                   className="text-text-primary"
