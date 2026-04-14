@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
-import { PrimaryButton, SecondaryButton } from './shared';
+import { PrimaryButton, TertiaryButton } from './shared';
 
 interface NewProjectDialogProps {
   open: boolean;
@@ -48,7 +48,7 @@ export default function NewProjectDialog({ open, onClose, onCreate }: NewProject
 
       {/* Dialog */}
       <div
-        className="relative w-[480px] max-w-[90vw] rounded-3xl p-8 shadow-2xl"
+        className="relative w-[480px] max-w-[90vw] rounded-[8px] p-8 shadow-2xl"
         style={{ background: 'var(--color-bg-page)', border: '1px solid var(--color-stroke-outline)' }}
       >
         {/* Close button */}
@@ -117,7 +117,7 @@ export default function NewProjectDialog({ open, onClose, onCreate }: NewProject
 
         {/* Actions */}
         <div className="flex items-center justify-end gap-3">
-          <SecondaryButton onClick={onClose} className="px-6">Cancel</SecondaryButton>
+          <TertiaryButton onClick={onClose} className="px-6">Cancel</TertiaryButton>
           <PrimaryButton onClick={handleCreate} disabled={!canCreate} className="px-6">Create Project</PrimaryButton>
         </div>
       </div>

@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import {
   SectionTitle, LabeledBar, CircularProgress,
-  Tag, SolutionRow, SummaryFooter, PrimaryButton, SecondaryButton,
+  Tag, SolutionRow, SummaryFooter, PrimaryButton, TertiaryButton,
   MetricCard, InsightCard, AreaChart, TaskProgressCard, ReviewItemCard,
 } from './shared';
 
@@ -267,9 +267,9 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
                       ))}
                     </div>
 
-                    <SecondaryButton className="mt-3 gap-1.5">
+                    <TertiaryButton className="mt-3 gap-1.5">
                       View Full Health Report <ChevronRight size={12} />
-                    </SecondaryButton>
+                    </TertiaryButton>
                   </div>
                 )}
               </div>

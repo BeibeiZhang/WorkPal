@@ -261,7 +261,7 @@ export function Tag({
   );
 }
 
-/* ─── 7b. PrimaryButton ─── */
+/* ─── 7b. PrimaryButton ─── Tier 1: gradient background, white text, strongest CTA. */
 export function PrimaryButton({
   children,
   onClick,
@@ -286,8 +286,38 @@ export function PrimaryButton({
   );
 }
 
-/* ─── 7c. SecondaryButton ─── */
+/* ─── 7c. SecondaryButton ─── Tier 2: solid inverted surface
+ * Light mode: black bg + white text. Dark mode: white bg + black text.
+ * Color stays the same on hover — just picks up PrimaryButton's lift-shadow.
+ */
 export function SecondaryButton({
+  children,
+  onClick,
+  disabled,
+  className: extra = '',
+  fullWidth,
+}: {
+  children: ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+  className?: string;
+  fullWidth?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`inverted-btn flex items-center justify-center px-5 py-2.5 rounded-[4px] font-bold text-[14px] leading-[22px] cursor-pointer disabled:opacity-40 ${fullWidth ? 'w-full' : ''} ${extra}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/* ─── 7d. TertiaryButton ─── Tier 3: bordered surface with default text color.
+ * Lightest-weight option, subtle gradient-tinted border on hover.
+ */
+export function TertiaryButton({
   children,
   onClick,
   disabled,
@@ -418,7 +448,7 @@ export function InsightCard({
           a.primary ? (
             <PrimaryButton key={i} onClick={a.onClick}>{a.label}</PrimaryButton>
           ) : (
-            <SecondaryButton key={i} onClick={a.onClick}>{a.label}</SecondaryButton>
+            <TertiaryButton key={i} onClick={a.onClick}>{a.label}</TertiaryButton>
           )
         )}
       </div>
@@ -563,9 +593,9 @@ export function ReviewItemCard({
       </div>
       <div className="flex items-center gap-3 md:gap-4 shrink-0">
         <TimePill time={humanTime} />
-        <SecondaryButton onClick={onToggle} className="gap-1.5 shrink-0">
+        <TertiaryButton onClick={onToggle} className="gap-1.5 shrink-0">
           {done ? <><Check size={14} /> Done</> : <><Eye size={14} /> Review</>}
-        </SecondaryButton>
+        </TertiaryButton>
       </div>
     </div>
   );

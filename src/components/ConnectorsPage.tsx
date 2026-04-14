@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Search, Plus, ChevronDown, Globe } from 'lucide-react';
 import { iconAsana, iconGmail, iconZoom, iconDoc20, iconSheet } from '../assets';
-import { FilterChip, StatusTag } from './shared';
+import { FilterChip, StatusTag, SecondaryButton } from './shared';
 
 /* ─── Connector data ─── */
 interface Connector {
@@ -261,14 +261,11 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: Connect
             <p className="text-[15px] text-text-primary" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
               No custom MCP added yet.
             </p>
-            <button
-              className="flex items-center gap-2 px-5 py-2.5 rounded-full text-[14px] font-medium text-white transition-colors"
-              style={{ background: 'var(--color-text-primary)' }}
-            >
+            <SecondaryButton className="gap-2">
               <Plus size={16} />
               Add custom MCP
               <ChevronDown size={14} />
-            </button>
+            </SecondaryButton>
           </div>
         )}
       </div>

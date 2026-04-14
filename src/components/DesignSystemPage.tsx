@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import {
   SectionTitle as SharedSectionTitle, ProgressBar, LabeledBar, CircularProgress,
-  TimePill, StepIndicator, Tag, FilterChip, PrimaryButton, SecondaryButton,
+  TimePill, StepIndicator, Tag, FilterChip, PrimaryButton, SecondaryButton, TertiaryButton,
   SolutionRow, SummaryFooter,
   MetricCard, InsightCard, AreaChart, TaskProgressCard, ReviewItemCard,
   StatusTag,
@@ -832,23 +832,56 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
         {/* ━━━ DESIGN PRINCIPLES ━━━ */}
         <SectionTitle id="ds-principles">Design Principles</SectionTitle>
 
-        {/* 5.1 PrimaryButton & SecondaryButton (shared) */}
+        {/* 5.1 Button system (3 tiers) */}
         <div id="ds-buttons" className="mb-6 rounded-2xl border border-stroke-outline p-5 scroll-mt-4" style={{ background: 'var(--color-bg-page)' }}>
           <div className="flex items-center gap-2 mb-3">
             <span className="text-[16px]">1️⃣</span>
-            <span className="text-[16px] font-bold text-text-primary">PrimaryButton & SecondaryButton (shared)</span>
+            <span className="text-[16px] font-bold text-text-primary">Button system (3 tiers) — shared.tsx</span>
           </div>
-          <p className="text-[14px] text-text-primary leading-[22px] mb-3">
-            Master button components from <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>shared.tsx</code>. Only <strong>ONE</strong> primary button per page/view. All other buttons use secondary.
+          <p className="text-[14px] text-text-primary leading-[22px] mb-4">
+            Three levels of visual weight. Only <strong>ONE</strong> Primary per page/view.
+            Use Secondary for strong-but-not-hero actions; Tertiary for cancel / dismiss / low-weight options.
+            Primary and Secondary share the same lift-shadow on hover; Tertiary picks up a subtle gradient-tinted border.
           </p>
-          <div className="flex flex-wrap gap-3 items-center">
-            <PrimaryButton>Primary Action</PrimaryButton>
-            <SecondaryButton>Secondary</SecondaryButton>
-            <PrimaryButton disabled>Disabled</PrimaryButton>
-            <SecondaryButton disabled>Disabled</SecondaryButton>
+
+          {/* Tier 1 — Primary */}
+          <div className="mb-3 pt-3 border-t border-stroke-outline">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[12px] font-bold text-text-primary uppercase tracking-[0.5px]">Tier 1 · PrimaryButton</span>
+              <span className="text-[12px] text-text-primary">— gradient · hero CTA · max one per view</span>
+            </div>
+            <div className="flex flex-wrap gap-3 items-center">
+              <PrimaryButton>Primary Action</PrimaryButton>
+              <PrimaryButton disabled>Disabled</PrimaryButton>
+            </div>
           </div>
-          <p className="text-[13px] text-text-primary mt-3 leading-[18px]">
-            Props: <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>children</code>, <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>onClick</code>, <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>disabled</code>, <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>fullWidth</code>, <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>className</code> (extra)
+
+          {/* Tier 2 — Secondary (new) */}
+          <div className="mb-3 pt-3 border-t border-stroke-outline">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[12px] font-bold text-text-primary uppercase tracking-[0.5px]">Tier 2 · SecondaryButton</span>
+              <span className="text-[12px] text-text-primary">— solid inverted surface (auto flips in dark mode) · lift-shadow on hover</span>
+            </div>
+            <div className="flex flex-wrap gap-3 items-center">
+              <SecondaryButton>Secondary</SecondaryButton>
+              <SecondaryButton disabled>Disabled</SecondaryButton>
+            </div>
+          </div>
+
+          {/* Tier 3 — Tertiary */}
+          <div className="mb-2 pt-3 border-t border-stroke-outline">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[12px] font-bold text-text-primary uppercase tracking-[0.5px]">Tier 3 · TertiaryButton</span>
+              <span className="text-[12px] text-text-primary">— outlined · subtle gradient-tinted border on hover · cancel / dismiss</span>
+            </div>
+            <div className="flex flex-wrap gap-3 items-center">
+              <TertiaryButton>Tertiary</TertiaryButton>
+              <TertiaryButton disabled>Disabled</TertiaryButton>
+            </div>
+          </div>
+
+          <p className="text-[13px] text-text-primary mt-4 leading-[18px] pt-3 border-t border-stroke-outline">
+            All three share the same props: <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>children</code>, <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>onClick</code>, <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>disabled</code>, <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>fullWidth</code>, <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>className</code>.
           </p>
         </div>
 

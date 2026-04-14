@@ -1,7 +1,7 @@
 import { Download } from 'lucide-react';
 import { CardData, MeetingCard, ResearchCard, TicketCard, ScheduleCard, AgentCard } from '../types';
 import { iconAsana, iconDoc20, iconGmail, iconUsers, iconPin, iconClock } from '../assets';
-import { PrimaryButton, SecondaryButton, StatusTag as SharedStatusTag, type StatusVariant } from './shared';
+import { PrimaryButton, TertiaryButton, StatusTag as SharedStatusTag, type StatusVariant } from './shared';
 
 interface MessageCardProps {
   card: CardData;
@@ -497,7 +497,7 @@ function AgentCardView({ card, onAction }: { card: AgentCard; onAction?: (a: str
         {status === 'ready' && (
           <div className="flex flex-col gap-2">
             <PrimaryButton fullWidth className="h-12" onClick={() => onAction?.('set-agent')}>Set as my agent</PrimaryButton>
-            <SecondaryButton fullWidth className="h-12" onClick={() => onAction?.('change-selections')}>← Change my selections</SecondaryButton>
+            <TertiaryButton fullWidth className="h-12" onClick={() => onAction?.('change-selections')}>← Change my selections</TertiaryButton>
           </div>
         )}
       </div>
