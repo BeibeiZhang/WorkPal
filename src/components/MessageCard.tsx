@@ -1,7 +1,7 @@
 import { Download } from 'lucide-react';
 import { CardData, MeetingCard, ResearchCard, TicketCard, ScheduleCard, AgentCard } from '../types';
 import { iconAsana, iconDoc20, iconGmail, iconUsers, iconPin, iconClock } from '../assets';
-import { PrimaryButton, SecondaryButton } from './shared';
+import { PrimaryButton, TertiaryButton, StatusTag as SharedStatusTag, type StatusVariant } from './shared';
 
 interface MessageCardProps {
   card: CardData;
@@ -158,13 +158,23 @@ function LoadingDots() {
   );
 }
 
-/* ── Status tag (Sent, Done, etc.) ── */
+/* ── Status tag (Sent, Done, Saved, In progress, etc.) ──
+ * Maps a free-form status label to the shared StatusTag variant.
+ * Compact card headers → no icon.
+ */
+function variantFromLabel(label: string): StatusVariant {
+  const k = label.trim().toLowerCase();
+  if (k === 'pending') return 'pending';
+  if (k === 'in progress' || k === 'in-progress') return 'in-progress';
+  if (k === 'submitted') return 'submitted';
+  if (k === 'in review' || k === 'in-review') return 'in-review';
+  if (k === 'failed') return 'failed';
+  if (k === 'expired') return 'expired';
+  // Default: Sent / Done / Saved / Connected → success
+  return 'success';
+}
 function StatusTag({ label }: { label: string }) {
-  return (
-    <span className="text-sm font-semibold leading-[22px] tracking-[-0.3px] whitespace-nowrap px-[10px] py-1 rounded shrink-0 bg-[rgba(2,137,1,0.1)] text-[#028901] dark:bg-[rgba(2,137,1,0.2)] dark:text-[#028901]">
-      {label}
-    </span>
-  );
+  return <SharedStatusTag variant={variantFromLabel(label)} label={label} showIcon={false} />;
 }
 
 /* ── Research / text-only card ── */
@@ -487,7 +497,7 @@ function AgentCardView({ card, onAction }: { card: AgentCard; onAction?: (a: str
         {status === 'ready' && (
           <div className="flex flex-col gap-2">
             <PrimaryButton fullWidth className="h-12" onClick={() => onAction?.('set-agent')}>Set as my agent</PrimaryButton>
-            <SecondaryButton fullWidth className="h-12" onClick={() => onAction?.('change-selections')}>← Change my selections</SecondaryButton>
+            <TertiaryButton fullWidth className="h-12" onClick={() => onAction?.('change-selections')}>← Change my selections</TertiaryButton>
           </div>
         )}
       </div>

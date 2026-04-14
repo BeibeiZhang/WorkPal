@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { iconAsana, iconClock } from '../assets';
-import { FilterChip } from './shared';
+import { FilterChip, StatusTag, type StatusVariant } from './shared';
 
 interface Task {
   id: string;
@@ -77,21 +77,14 @@ const STATUS_LABELS: Record<string, string> = {
 
 const FILTER_CHIPS = ['All', 'To Do', 'In Progress', 'Done'];
 
+const STATUS_VARIANT: Record<Task['status'], StatusVariant> = {
+  'to-do': 'pending',
+  'in-progress': 'in-progress',
+  'done': 'success',
+};
+
 function StatusBadge({ status }: { status: Task['status'] }) {
-  const styles: Record<string, { bg: string; color: string }> = {
-    'to-do': { bg: 'rgba(49,113,255,0.1)', color: '#3171ff' },
-    'in-progress': { bg: 'rgba(255,149,0,0.1)', color: '#FF9500' },
-    'done': { bg: 'rgba(2,137,1,0.1)', color: '#028901' },
-  };
-  const s = styles[status];
-  return (
-    <span
-      className="text-sm font-semibold leading-[22px] tracking-[-0.3px] whitespace-nowrap px-[10px] py-1 rounded shrink-0"
-      style={{ background: s.bg, color: s.color }}
-    >
-      {STATUS_LABELS[status]}
-    </span>
-  );
+  return <StatusTag variant={STATUS_VARIANT[status]} label={STATUS_LABELS[status]} />;
 }
 
 interface TaskScreenProps {
