@@ -17,7 +17,7 @@ import {
   TimePill, StepIndicator, Tag, FilterChip, PrimaryButton, SecondaryButton, TertiaryButton,
   SolutionRow, SummaryFooter,
   MetricCard, InsightCard, AreaChart, TaskProgressCard, ReviewItemCard,
-  StatusTag, HealthDimensionRow, SearchBox, PageLayout,
+  StatusTag, ConnectorCard, HealthDimensionRow, SearchBox, PageLayout,
   HeaderBar, SplitView, SidePanelHeader, SideCard,
 } from './shared';
 // Live imports — every "real" component that ships in the app.
@@ -64,6 +64,53 @@ const TABS: { id: TabId; label: string; hint: string }[] = [
 function SearchBoxDemo() {
   const [q, setQ] = useState('');
   return <SearchBox value={q} onChange={setQ} placeholder="Search artifacts" width={220} />;
+}
+
+function SplitViewDemo() {
+  const [open, setOpen] = useState(true);
+  return (
+    <div className="rounded-lg overflow-hidden border border-stroke-outline" style={{ background: 'var(--color-bg-page)', height: 220 }}>
+      <SplitView
+        sideOpen={open}
+        onCloseSide={() => setOpen(false)}
+        sideWidth={220}
+        mainMinWidth={260}
+        side={
+          <div className="h-full border-l border-stroke-outline p-4" style={{ background: 'var(--color-bg-hover)' }}>
+            <SidePanelHeader title="Side panel" onClose={() => setOpen(false)} />
+            <p className="text-[12px] text-text-secondary">Side column content</p>
+          </div>
+        }
+      >
+        <div className="flex-1 p-4 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-[13px] text-text-primary mb-2">Main column</p>
+            {!open && (
+              <TertiaryButton onClick={() => setOpen(true)}>Open side panel</TertiaryButton>
+            )}
+          </div>
+        </div>
+      </SplitView>
+    </div>
+  );
+}
+
+function PageLayoutDemo() {
+  return (
+    <div className="rounded-lg overflow-hidden border border-stroke-outline" style={{ background: 'var(--color-bg-hover)' }}>
+      <div className="p-4">
+        <div className="rounded border border-dashed border-stroke-outline flex items-center px-3" style={{ height: 32, background: 'var(--color-bg-page)' }}>
+          <span className="text-[11px] font-mono text-text-secondary">Toggle bar · h-12</span>
+        </div>
+        <div className="mt-2 rounded border border-dashed border-stroke-outline px-3 py-2" style={{ background: 'var(--color-bg-page)' }}>
+          <span className="text-[16px] font-bold text-text-primary">Page Title</span>
+        </div>
+        <div className="mt-2 rounded border border-dashed border-stroke-outline flex items-center justify-center" style={{ background: 'var(--color-bg-page)', height: 80 }}>
+          <span className="text-[12px] font-mono text-text-secondary">children · maxWidth: 'full' | 'reading'</span>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: DesignSystemPageProps) {
@@ -1323,6 +1370,32 @@ function ComponentsTab() {
       ),
     },
     {
+      name: 'ConnectorCard',
+      description: 'Compact row for an integration. Logo + name + Connect button / Connected tag. 80% bg fill lets the shell gradient show through.',
+      usedIn: ['ConnectorsPage (Recommended / Apps / APIs grids)'],
+      preview: (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <ConnectorCard
+            name="Slack"
+            logo={
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-bg-hover shrink-0">
+                <Globe size={18} className="text-text-primary" />
+              </div>
+            }
+          />
+          <ConnectorCard
+            name="Gmail"
+            connected
+            logo={
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-bg-hover shrink-0">
+                <Mail size={18} className="text-text-primary" />
+              </div>
+            }
+          />
+        </div>
+      ),
+    },
+    {
       name: 'CircularProgress',
       description: 'SVG circle progress with stroke-dasharray + centered text overlay.',
       usedIn: ['Overview (score ring, health dimensions)'],
@@ -1558,6 +1631,55 @@ function ComponentsTab() {
     },
   ];
 
+  /* ─── Project Page · shared layout primitives ─── */
+  const projectPageEntries: LibEntry[] = [
+    {
+      name: 'PageLayout',
+      description: 'Canonical page shell used by ProjectPage: toggle bar + H1 + optional filters + scrollable body. One spec in shared.tsx, every page inherits it.',
+      usedIn: ['ProjectPage', 'OverviewPage', 'LibraryPage', 'ConnectorsPage', 'DesignSystemPage', 'Onboarding', 'ComingSoonPage'],
+      preview: <PageLayoutDemo />,
+    },
+    {
+      name: 'SplitView',
+      description: 'Main column + collapsible side column. Auto-switches to overlay mode when the viewport is too narrow to fit both inline. Drives the ProjectPage main/side layout.',
+      usedIn: ['ProjectPage', 'LibraryPage (detail panel)'],
+      preview: <SplitViewDemo />,
+    },
+    {
+      name: 'SidePanelHeader',
+      description: 'Shared header row for any side panel. Unifies close-button size (40px rounded-xl), hover, and typography across every panel. Supports `x` and `panel-right` close icons.',
+      usedIn: ['ProjectPage side panel', 'TaskContextPanel', 'DetailPanel'],
+      preview: (
+        <div className="flex flex-col gap-2">
+          <div className="rounded-lg overflow-hidden border border-stroke-outline" style={{ background: 'var(--color-bg-page)' }}>
+            <SidePanelHeader title="Panel title" onClose={() => {}} closeIcon="x" />
+          </div>
+          <div className="rounded-lg overflow-hidden border border-stroke-outline" style={{ background: 'var(--color-bg-page)' }}>
+            <SidePanelHeader title="With panel-right toggle" onClose={() => {}} closeIcon="panel-right" />
+          </div>
+        </div>
+      ),
+    },
+    {
+      name: 'SideCard',
+      description: 'Collapsible card for right-column side panels. Header with title + optional icon + optional add affordance + chevron. Used for Instructions / Scheduled / Files / Context in ProjectPage.',
+      usedIn: ['ProjectPage (Instructions/Scheduled/Files/Context)', 'TaskContextPanel'],
+      preview: (
+        <div className="flex flex-col gap-2">
+          <SideCard title="Instructions" defaultOpen>
+            <p className="text-[13px] text-text-primary">Write guidance for how the assistant should act in this project.</p>
+          </SideCard>
+          <SideCard title="Scheduled" hasAdd>
+            <p className="text-[13px] text-text-primary">Recurring briefings and workflows.</p>
+          </SideCard>
+          <SideCard title="Files">
+            <p className="text-[13px] text-text-primary">Attached documents.</p>
+          </SideCard>
+        </div>
+      ),
+    },
+  ];
+
   /* ─── Pages — live ─── */
   const pageEntries: LibEntry[] = [
     {
@@ -1641,6 +1763,11 @@ function ComponentsTab() {
       <SectionTitle id="ds-lib-panels">Side Panels &amp; Dialogs</SectionTitle>
       <div className="flex flex-col gap-4 mb-8">
         {panelEntries.map(e => <LibraryEntry key={e.name} entry={e} />)}
+      </div>
+
+      <SectionTitle id="ds-lib-project">ProjectPage · Shared Layout</SectionTitle>
+      <div className="flex flex-col gap-4 mb-8">
+        {projectPageEntries.map(e => <LibraryEntry key={e.name} entry={e} />)}
       </div>
 
       <SectionTitle id="ds-lib-pages">Pages</SectionTitle>

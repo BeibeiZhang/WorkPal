@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Chat } from '../types';
-import { LayoutDashboard, Plus, Link, BookOpen, FolderPlus, ChevronDown, Search, Palette } from 'lucide-react';
+import { LayoutDashboard, Plus, Link, BookOpen, FolderPlus, ChevronDown, Search, Palette, PanelLeft } from 'lucide-react';
 import {
   iconSun, iconMoon, iconSpinner,
 } from '../assets';
@@ -82,38 +82,45 @@ export function MiniSidebar({ activeView, activeChatId, onViewChange, onNewChat,
 
   return (
     <div
-      className="flex flex-col h-full w-[64px] select-none shrink-0 items-center"
-      style={{ background: 'var(--color-sidebar-bg)', borderRight: '1px solid var(--color-stroke-outline)' }}
+      className="flex flex-col h-full w-[64px] select-none shrink-0 items-center bg-bg-sidebar dark:bg-transparent"
+      style={{
+        backgroundImage: 'linear-gradient(to bottom, transparent 0%, var(--color-stroke-outline) 20%, var(--color-stroke-outline) 80%, transparent 100%)',
+        backgroundRepeat: 'no-repeat',
+        backgroundSize: '1px 100%',
+        backgroundPosition: 'right',
+      }}
     >
       {/* Top: hamburger to expand */}
       <div className="flex items-center justify-center h-16 shrink-0">
         <button
           onClick={onToggleSidebar}
           title="Open sidebar"
-          className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-[#e6e8ea] dark:hover:bg-bg-hover transition-colors"
+          className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-bg-hover transition-colors"
           style={{ color: 'var(--color-icon-primary)' }}
         >
-          <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
-            <rect width="22" height="2" rx="1" fill="currentColor"/>
-            <rect width="15" height="2" rx="1" y="7" fill="currentColor"/>
-          </svg>
+          <PanelLeft size={20} />
         </button>
       </div>
 
       {/* Nav icons */}
       <div className="flex-1 flex flex-col items-center gap-1 pt-2">
+        {/* Search — expands sidebar so the user can type */}
+        <button
+          onClick={onToggleSidebar}
+          title="Search"
+          className="w-11 h-11 flex items-center justify-center rounded-full transition-colors hover:bg-bg-hover"
+          style={{ border: '1px solid transparent' }}
+        >
+          <Search size={20} className="text-text-primary" />
+        </button>
         {items.map(({ id, label, Icon, onClick, active }) => (
           <button
             key={id}
             onClick={onClick}
             title={label}
             className={`w-11 h-11 flex items-center justify-center rounded-full transition-colors ${
-              active ? '' : 'hover:bg-[#e6e8ea] dark:hover:bg-bg-hover'
+              active ? 'gradient-ring' : 'hover:bg-bg-hover'
             }`}
-            style={active ? {
-              border: '1px solid transparent',
-              background: `linear-gradient(var(--color-sidebar-bg), var(--color-sidebar-bg)) padding-box, linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box`,
-            } : { border: '1px solid transparent' }}
           >
             <Icon size={20} className="text-text-primary" />
           </button>
@@ -154,16 +161,21 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
   const isNewSessionActive = activeView === 'chat' && !!activeChat && isDraftLike(activeChat);
 
   return (
-    <div className="flex flex-col h-full w-[300px] select-none shrink-0" style={{ background: 'var(--color-sidebar-bg)', borderRight: '1px solid var(--color-stroke-outline)' }}>
+    <div
+      className="flex flex-col h-full w-[300px] select-none shrink-0 bg-bg-sidebar dark:bg-transparent"
+      style={{
+        backgroundImage: 'linear-gradient(to bottom, transparent 0%, var(--color-stroke-outline) 20%, var(--color-stroke-outline) 80%, transparent 100%)',
+        backgroundRepeat: 'no-repeat',
+        backgroundSize: '1px 100%',
+        backgroundPosition: 'right',
+      }}
+    >
 
       {/* Top toolbar */}
       <div className="flex items-center justify-between px-6 h-16 shrink-0">
         {/* Hamburger nav — closes sidebar */}
-        <button onClick={onToggleSidebar} className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors" style={{ color: 'var(--color-icon-primary)' }}>
-          <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
-            <rect width="22" height="2" rx="1" fill="currentColor"/>
-            <rect width="15" height="2" rx="1" y="7" fill="currentColor"/>
-          </svg>
+        <button onClick={onToggleSidebar} title="Close sidebar" className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-bg-hover transition-colors" style={{ color: 'var(--color-icon-primary)' }}>
+          <PanelLeft size={20} />
         </button>
       </div>
 
@@ -171,7 +183,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
       <div className="pl-4 pr-2 pt-0.5 shrink-0">
         <div
           className="flex items-center gap-4 px-4 py-[7px] rounded-full border text-[16px] leading-[22px]"
-          style={{ background: 'var(--color-bg-hover)', borderColor: 'var(--color-stroke-toggle)', color: 'var(--color-text-secondary)' }}
+          style={{ background: 'transparent', borderColor: 'var(--color-stroke-toggle)', color: 'var(--color-text-secondary)' }}
         >
           <Search size={18} className="shrink-0 text-text-primary" />
           <input
@@ -185,18 +197,14 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto min-h-0 py-4">
+      <div className="flex-1 overflow-y-auto min-h-0 py-4 scrollbar-autohide">
 
         {/* Top menu items */}
         <div className="px-4 flex flex-col gap-1">
           {/* Overview */}
           <button
             onClick={() => onViewChange?.('overview')}
-            className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${activeView === 'overview' ? '' : 'hover:bg-[#e6e8ea] dark:hover:bg-bg-hover'}`}
-            style={activeView === 'overview' ? {
-              border: '1px solid transparent',
-              background: `linear-gradient(var(--color-sidebar-bg), var(--color-sidebar-bg)) padding-box, linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box`,
-            } : { border: '1px solid transparent' }}
+            className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${activeView === 'overview' ? 'gradient-ring' : 'hover:bg-bg-hover'}`}
           >
             <LayoutDashboard size={20} className="shrink-0 text-text-primary" />
             <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
@@ -209,12 +217,8 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
           <button
             onClick={onNewChat}
             className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${
-              isNewSessionActive ? '' : 'hover:bg-[#e6e8ea] dark:hover:bg-bg-hover'
+              isNewSessionActive ? 'gradient-ring' : 'hover:bg-bg-hover'
             }`}
-            style={isNewSessionActive ? {
-              border: '1px solid transparent',
-              background: `linear-gradient(var(--color-sidebar-bg), var(--color-sidebar-bg)) padding-box, linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box`,
-            } : { border: '1px solid transparent' }}
           >
             <Plus size={20} className="shrink-0 text-text-primary" />
             <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
@@ -246,11 +250,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
           {/* Connectors */}
           <button
             onClick={() => onViewChange?.('connectors')}
-            className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${activeView === 'connectors' ? '' : 'hover:bg-[#e6e8ea] dark:hover:bg-bg-hover'}`}
-            style={activeView === 'connectors' ? {
-              border: '1px solid transparent',
-              background: `linear-gradient(var(--color-sidebar-bg), var(--color-sidebar-bg)) padding-box, linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box`,
-            } : { border: '1px solid transparent' }}
+            className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${activeView === 'connectors' ? 'gradient-ring' : 'hover:bg-bg-hover'}`}
           >
             <Link size={20} className="shrink-0 text-text-primary" />
             <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
@@ -261,11 +261,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
           {/* Library */}
           <button
             onClick={() => onViewChange?.('library')}
-            className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${activeView === 'library' ? '' : 'hover:bg-[#e6e8ea] dark:hover:bg-bg-hover'}`}
-            style={activeView === 'library' ? {
-              border: '1px solid transparent',
-              background: `linear-gradient(var(--color-sidebar-bg), var(--color-sidebar-bg)) padding-box, linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box`,
-            } : { border: '1px solid transparent' }}
+            className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${activeView === 'library' ? 'gradient-ring' : 'hover:bg-bg-hover'}`}
           >
             <BookOpen size={20} className="shrink-0 text-text-primary" />
             <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
@@ -306,12 +302,8 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
                   key={proj.id}
                   onClick={() => onProjectSelect(proj.id)}
                   className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${
-                    activeProjectId === proj.id ? '' : 'hover:bg-[#e6e8ea] dark:hover:bg-bg-hover'
+                    activeProjectId === proj.id ? 'gradient-ring' : 'hover:bg-bg-hover'
                   }`}
-                  style={activeProjectId === proj.id ? {
-                    border: '1px solid transparent',
-                    background: `linear-gradient(var(--color-sidebar-bg), var(--color-sidebar-bg)) padding-box, linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box`,
-                  } : { border: '1px solid transparent' }}
                 >
                   <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px] truncate" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
                     {proj.name}
@@ -340,17 +332,13 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
             <>
               {/* Onboarding Experience */}
               {(() => {
-                const isActive = activeChatId === 'my-workpal';
+                const isActive = activeChatId === 'my-workpal' && activeView === 'chat';
                 return (
                   <button
                     onClick={() => onChatSelect('my-workpal')}
                     className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${
-                      isActive ? '' : 'hover:bg-[#e6e8ea] dark:hover:bg-bg-hover'
+                      isActive ? 'gradient-ring' : 'hover:bg-bg-hover'
                     }`}
-                    style={isActive ? {
-                      border: '1px solid transparent',
-                      background: `linear-gradient(var(--color-sidebar-bg), var(--color-sidebar-bg)) padding-box, linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box`,
-                    } : { border: '1px solid transparent' }}
                   >
                     <span
                       className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px] truncate"
@@ -386,11 +374,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
               {/* Design System */}
               <button
                 onClick={() => onViewChange?.('design-system')}
-                className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${activeView === 'design-system' ? '' : 'hover:bg-[#e6e8ea] dark:hover:bg-bg-hover'}`}
-                style={activeView === 'design-system' ? {
-                  border: '1px solid transparent',
-                  background: `linear-gradient(var(--color-sidebar-bg), var(--color-sidebar-bg)) padding-box, linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box`,
-                } : { border: '1px solid transparent' }}
+                className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${activeView === 'design-system' ? 'gradient-ring' : 'hover:bg-bg-hover'}`}
               >
                 <Palette size={18} className="shrink-0 text-text-primary" />
                 <span
@@ -419,18 +403,14 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
           </button>
 
           {recentsOpen && filteredChats.map(chat => {
-            const isActive = activeChatId === chat.id;
+            const isActive = activeChatId === chat.id && activeView === 'chat';
             return (
               <button
                 key={chat.id}
                 onClick={() => onChatSelect(chat.id)}
                 className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${
-                  isActive ? '' : 'hover:bg-[#e6e8ea] dark:hover:bg-bg-hover'
+                  isActive ? 'gradient-ring' : 'hover:bg-bg-hover'
                 }`}
-                style={isActive ? {
-                  border: '1px solid transparent',
-                  background: `linear-gradient(var(--color-sidebar-bg), var(--color-sidebar-bg)) padding-box, linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box`,
-                } : { border: '1px solid transparent' }}
               >
                 <span
                   className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px] truncate"
@@ -468,7 +448,12 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
       {/* Account footer */}
       <div
         className="px-4 pt-4 pb-10 shrink-0 flex items-center gap-6"
-        style={{ borderTop: '1px solid var(--color-stroke-outline)' }}
+        style={{
+          backgroundImage: 'linear-gradient(to right, transparent 0%, var(--color-stroke-outline) 20%, var(--color-stroke-outline) 80%, transparent 100%)',
+          backgroundRepeat: 'no-repeat',
+          backgroundSize: '100% 1px',
+          backgroundPosition: 'top',
+        }}
       >
         {/* Profile */}
         <div className="flex items-center gap-6 flex-1 min-w-0">

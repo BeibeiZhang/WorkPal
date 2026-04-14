@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Plus, ChevronDown, Globe } from 'lucide-react';
 import { iconAsana, iconGmail, iconZoom, iconDoc20, iconSheet } from '../assets';
-import { FilterChip, StatusTag, SecondaryButton, PageLayout, SearchBox } from './shared';
+import { FilterChip, ConnectorCard, SecondaryButton, PageLayout, SearchBox } from './shared';
 
 /* ─── Connector data ─── */
 interface Connector {
@@ -82,31 +82,6 @@ const API_CONNECTORS: Connector[] = [
 /* ─── Tab type ─── */
 type Tab = 'apps' | 'custom-api' | 'custom-mcp';
 
-/* ─── ConnectorCard ─── compact spec: icon + name + Connected tag / Connect button */
-function ConnectorCard({ connector }: { connector: Connector }) {
-  return (
-    <div
-      className="flex items-center gap-3 p-3 rounded-lg border border-stroke-outline"
-      style={{ background: 'var(--color-bg-page)' }}
-    >
-      <BrandLogo id={connector.id} name={connector.name} domain={connector.domain} />
-      <span
-        className="flex-1 text-[13px] text-text-primary font-medium truncate"
-        style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
-      >
-        {connector.name}
-      </span>
-      {connector.connected ? (
-        <StatusTag variant="success" label="Connected" size="sm" showIcon={false} />
-      ) : (
-        <button className="text-[11px] px-3 py-1 rounded-full border border-stroke-outline text-text-primary hover:bg-bg-hover transition-colors">
-          Connect
-        </button>
-      )}
-    </div>
-  );
-}
-
 /* ─── Main page ─── */
 interface ConnectorsPageProps {
   sidebarOpen: boolean;
@@ -130,6 +105,7 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: Connect
   return (
     <PageLayout
       title="Connectors"
+      bgClass="app-bg"
       sidebarOpen={sidebarOpen}
       onToggleSidebar={onToggleSidebar}
       rightSlot={<SearchBox value={search} onChange={setSearch} placeholder="Search" width={200} />}
@@ -154,7 +130,12 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: Connect
               Recommended
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-8">
-              {filterBySearch(RECOMMENDED_APPS).map(c => <ConnectorCard key={c.id} connector={c} />)}
+              {filterBySearch(RECOMMENDED_APPS).map(c => <ConnectorCard
+                  key={c.id}
+                  name={c.name}
+                  connected={c.connected}
+                  logo={<BrandLogo id={c.id} name={c.name} domain={c.domain} />}
+                />)}
             </div>
 
             {/* All Apps */}
@@ -162,7 +143,12 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: Connect
               Apps
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {filterBySearch(APP_CONNECTORS).map(c => <ConnectorCard key={c.id} connector={c} />)}
+              {filterBySearch(APP_CONNECTORS).map(c => <ConnectorCard
+                  key={c.id}
+                  name={c.name}
+                  connected={c.connected}
+                  logo={<BrandLogo id={c.id} name={c.name} domain={c.domain} />}
+                />)}
             </div>
           </>
         )}
@@ -201,7 +187,12 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: Connect
                 </span>
               </button>
 
-              {filterBySearch(API_CONNECTORS).map(c => <ConnectorCard key={c.id} connector={c} />)}
+              {filterBySearch(API_CONNECTORS).map(c => <ConnectorCard
+                  key={c.id}
+                  name={c.name}
+                  connected={c.connected}
+                  logo={<BrandLogo id={c.id} name={c.name} domain={c.domain} />}
+                />)}
             </div>
           </>
         )}

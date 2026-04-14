@@ -89,9 +89,12 @@ export default function TaskContextPanel({
 }: TaskContextPanelProps) {
   return (
     <div
-      className={`flex flex-col h-full shrink-0 ${fullScreen ? 'w-full app-bg' : ''}`}
+      className="flex flex-col h-full shrink-0 max-w-full"
       style={{
-        width: fullScreen ? undefined : 280,
+        width: 280,
+        // Overlay mode must be solid (no bleed-through onto ConversationPanel).
+        // In-flow mode inherits the shell background.
+        background: fullScreen ? 'var(--color-bg-page)' : undefined,
       }}
     >
       {/* Header with collapse-back toggle */}

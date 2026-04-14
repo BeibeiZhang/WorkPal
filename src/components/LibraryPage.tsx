@@ -275,6 +275,7 @@ export default function LibraryPage({ sidebarOpen, onToggleSidebar }: LibraryPag
   return (
     <PageLayout
       title="Library"
+      bgClass="app-bg"
       rightSlot={
         <SearchBox
           value={search}

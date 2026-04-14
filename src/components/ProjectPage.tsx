@@ -244,7 +244,10 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
       sideWidth={280}
       bgClass="app-bg"
       side={({ overlay }) => (
-        <div className={`flex flex-col h-full ${overlay ? 'app-bg' : ''}`}>
+        <div
+          className={`flex flex-col h-full ${overlay ? 'w-[280px] max-w-full' : ''}`}
+          style={overlay ? { background: 'var(--color-bg-page)' } : undefined}
+        >
           <SidePanelHeader
             onClose={() => setInfoPanelOpen(false)}
             closeIcon="panel-right"
@@ -310,9 +313,9 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
     >
       <PageLayout
         title={project.name}
+        bgClass="app-bg"
         sidebarOpen={sidebarOpen}
         onToggleSidebar={onToggleSidebar}
-        maxWidth="reading"
         headerRight={
           <>
             <button className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-primary" aria-label="Star">
@@ -382,8 +385,8 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
                             onClick={() => setSelectedOutputId(o.id)}
                             className={`flex flex-col items-center gap-2 min-w-[120px] w-[120px] p-2 rounded-lg border transition-colors ${
                               isSelected
-                                ? 'border-[#3171ff] bg-[rgba(49,113,255,0.06)]'
-                                : 'border-stroke-outline bg-white dark:bg-[#1a1f2e] hover:bg-bg-hover'
+                                ? 'border-[#3171ff]'
+                                : 'border-transparent hover:bg-bg-hover'
                             }`}
                           >
                             <Icon
@@ -391,7 +394,7 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
                               className={isSelected ? 'text-[#3171ff]' : 'text-text-secondary/40 dark:text-white'}
                               strokeWidth={1.2}
                             />
-                            <span className="text-[14px] text-text-primary text-center leading-[1.2] line-clamp-2 w-full">
+                            <span className={`text-[14px] text-center leading-[1.2] line-clamp-2 w-full ${isSelected ? 'text-[#3171ff]' : 'text-text-primary'}`}>
                               {o.name}
                             </span>
                           </button>
@@ -430,13 +433,13 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
                     </div>
 
                     {/* Recent items */}
-                    <div className="flex flex-col gap-3">
+                    <div className="flex flex-col">
                       {filteredRecents.map(r => {
                         const Icon = TYPE_ICON[r.type];
                         return (
                           <button
                             key={r.id}
-                            className="flex items-start gap-3 w-full px-5 py-4 rounded-2xl border border-stroke-outline bg-white dark:bg-[#1a1f2e] hover:bg-bg-hover transition-colors text-left"
+                            className="flex items-start gap-3 w-full px-5 py-4 hover:bg-bg-hover transition-colors text-left side-card-divider last:bg-none"
                           >
                             <div className="flex items-center justify-center shrink-0 mt-px text-text-primary">
                               <Icon size={18} />

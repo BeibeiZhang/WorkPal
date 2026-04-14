@@ -21,7 +21,7 @@ export default function DetailPanel({ title, content, onClose, fullScreen = fals
 
   return (
     <div
-      className={`flex flex-col h-full shrink-0 relative ${fullScreen ? 'w-full' : 'w-[504px]'}`}
+      className={`flex flex-col h-full shrink-0 relative w-[504px] max-w-full ${fullScreen ? '' : ''}`}
       style={{
         background: 'var(--color-bg-page)',
         boxShadow: '0px 4px 50px 0px var(--color-stroke-outline)',
