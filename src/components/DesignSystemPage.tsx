@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Menu, LayoutDashboard, Plus, Link, BookOpen, Search, ChevronDown,
   ChevronRight, Code2, FileCode2, FileText, FolderOpen, FolderPlus,
@@ -11,7 +11,7 @@ import {
   TimePill, StepIndicator, Tag, FilterChip, PrimaryButton, SecondaryButton, TertiaryButton,
   SolutionRow, SummaryFooter,
   MetricCard, InsightCard, AreaChart, TaskProgressCard, ReviewItemCard,
-  StatusTag, HealthDimensionRow,
+  StatusTag, HealthDimensionRow, SearchBox, PageLayout,
 } from './shared';
 import {
   iconSun, iconMoon, iconSpinner, iconMicrophone, iconVoice, iconSend,
@@ -340,7 +340,7 @@ function ComponentShowcase() {
               <div className="flex items-center rounded-full border border-stroke-outline overflow-hidden toolbar-gradient-hover">
                 <div className="flex items-center gap-1 px-3 cursor-pointer" style={{ height: 32, backgroundColor: 'var(--color-selected-bg)', color: 'var(--color-selected-text)', borderRadius: '9999px 0 0 9999px' }}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-                  <span className="text-xs font-medium">Chat</span>
+                  <span className="text-[16px] sm:text-[14px] font-medium">Chat</span>
                 </div>
                 <div className="flex items-center justify-center cursor-pointer text-text-primary hover:bg-bg-hover" style={{ width: 32, height: 32 }}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
@@ -365,7 +365,7 @@ function ComponentShowcase() {
                 </div>
                 <div className="flex items-center gap-1 px-3 cursor-pointer" style={{ height: 32, backgroundColor: 'var(--color-selected-bg)', color: 'var(--color-selected-text)' }}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
-                  <span className="text-xs font-medium">Tasks</span>
+                  <span className="text-[16px] sm:text-[14px] font-medium">Tasks</span>
                 </div>
                 <div className="flex items-center justify-center cursor-pointer text-text-primary hover:bg-bg-hover" style={{ width: 32, height: 32, borderRadius: '0 9999px 9999px 0' }}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>
@@ -396,7 +396,7 @@ function ComponentShowcase() {
                 </div>
                 <div className="flex items-center gap-1 px-3 cursor-pointer" style={{ height: 32, backgroundColor: 'var(--color-selected-bg)', color: 'var(--color-selected-text)', borderRadius: '0 9999px 9999px 0' }}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>
-                  <span className="text-xs font-medium">Code</span>
+                  <span className="text-[16px] sm:text-[14px] font-medium">Code</span>
                 </div>
               </div>
               {/* Folder picker */}
@@ -776,8 +776,21 @@ const FILTER_CHIPS = [
   { label: 'Needs Review', id: 'ds-review' },
 ];
 
+function SearchBoxDemo() {
+  const [q, setQ] = useState('');
+  return <SearchBox value={q} onChange={setQ} placeholder="Search artifacts" width={220} />;
+}
+
 export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: DesignSystemPageProps) {
   const [activeFilter, setActiveFilter] = useState('');
+  const [search, setSearch] = useState('');
+
+  const visibleChips = useMemo(() => {
+    if (!search.trim()) return FILTER_CHIPS;
+    const q = search.toLowerCase();
+    // Keep "All" available even when searching so users can reset.
+    return FILTER_CHIPS.filter(c => c.id === '' || c.label.toLowerCase().includes(q));
+  }, [search]);
 
   const handleChipClick = (id: string) => {
     setActiveFilter(id);
@@ -791,30 +804,19 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
   };
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 h-full" style={{ background: 'var(--color-bg-page)' }}>
-      {/* Header — toggle only */}
-      <div className="flex items-center gap-4 px-4 h-12 shrink-0">
-        {!sidebarOpen && (
-          <button onClick={onToggleSidebar} className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-primary">
-            <Menu size={20} />
-          </button>
-        )}
-      </div>
-
-      {/* Title + Filter chips — sticky */}
-      <div className="px-8 pb-4 shrink-0">
-        <h1
-          className="text-[40px] font-bold text-text-primary leading-[48px] tracking-[-0.5px] mb-4"
-          style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
-        >
-          Design System
-        </h1>
-        <div className="flex flex-wrap gap-2">
-          {FILTER_CHIPS.map(chip => (
+    <PageLayout
+      title="Design System"
+      sidebarOpen={sidebarOpen}
+      onToggleSidebar={onToggleSidebar}
+      scrollContainerId="ds-scroll-container"
+      rightSlot={<SearchBox value={search} onChange={setSearch} placeholder="Search sections" width={220} />}
+      filters={
+        <div className="flex flex-nowrap sm:flex-wrap gap-2 overflow-x-auto sm:overflow-visible scrollbar-autohide -mx-4 sm:mx-0 px-4 sm:px-0">
+          {visibleChips.map(chip => (
             <button
               key={chip.id}
               onClick={() => handleChipClick(chip.id)}
-              className={`px-4 py-1.5 rounded-full text-[14px] transition-colors border ${
+              className={`shrink-0 px-4 py-1.5 rounded-full text-[14px] transition-colors border ${
                 activeFilter === chip.id
                   ? 'border-transparent'
                   : 'border-stroke-outline text-text-primary hover:bg-bg-hover chip-gradient-hover'
@@ -825,13 +827,128 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
             </button>
           ))}
         </div>
-      </div>
-
-      {/* Content */}
-      <div id="ds-scroll-container" className="flex-1 overflow-y-auto px-8 pb-12 scrollbar-autohide">
+      }
+    >
 
         {/* ━━━ DESIGN PRINCIPLES ━━━ */}
         <SectionTitle id="ds-principles">Design Principles</SectionTitle>
+
+        {/* 5.0 Page Layout Template */}
+        <div id="ds-page-layout" className="mb-6 rounded-2xl border border-stroke-outline p-5 scroll-mt-4" style={{ background: 'var(--color-bg-page)' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-[16px]">📐</span>
+            <span className="text-[16px] font-bold text-text-primary">Page Layout Template — shared.tsx · PageLayout</span>
+          </div>
+          <p className="text-[14px] text-text-primary leading-[22px] mb-4">
+            Every top-level app page renders through <code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>&lt;PageLayout&gt;</code>.
+            This enforces uniform vertical rhythm and horizontal padding across the entire app — edit the component once, every page updates.
+            Zero per-page CSS for headers, paddings, or title sizes.
+          </p>
+
+          {/* Visual diagram */}
+          <div className="rounded-lg border border-stroke-outline overflow-hidden mb-4" style={{ background: 'var(--color-bg-hover)' }}>
+            <div className="p-6">
+              {/* Toggle bar */}
+              <div className="relative rounded border border-dashed border-stroke-outline flex items-center px-3" style={{ height: 48, background: 'var(--color-bg-page)' }}>
+                <div className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'var(--color-bg-hover)' }}>
+                  <svg width="14" height="10" viewBox="0 0 22 16" fill="none"><rect width="22" height="2" rx="1" fill="currentColor" /><rect width="15" height="2" rx="1" y="7" fill="currentColor" /></svg>
+                </div>
+                <span className="ml-3 text-[11px] font-mono text-text-secondary">Toggle bar · h-12 (48px) · px-4</span>
+              </div>
+
+              <div className="text-[11px] font-mono text-text-secondary text-center py-1">↕ (no gap — body scrolls from here)</div>
+
+              {/* Title row */}
+              <div className="relative rounded border border-dashed border-stroke-outline flex items-center gap-3 px-4 py-3" style={{ background: 'var(--color-bg-page)' }}>
+                <div className="flex-1 text-[18px] font-bold text-text-primary leading-[22px]">Page Title</div>
+                <div className="shrink-0 px-2 py-1 rounded text-[10px] font-mono text-text-secondary" style={{ background: 'var(--color-bg-hover)' }}>rightSlot?</div>
+              </div>
+              <div className="text-[11px] font-mono text-text-secondary pl-1 pt-1">H1 · text-[40px] / leading-[48px] / font-bold · tracking-[-0.5px]</div>
+
+              <div className="text-[11px] font-mono text-text-secondary text-center py-2">↕ mt-6 (24px)</div>
+
+              {/* Filters */}
+              <div className="relative rounded border border-dashed border-stroke-outline flex items-center gap-2 px-3 py-3" style={{ background: 'var(--color-bg-page)' }}>
+                <div className="px-3 py-1 rounded-full text-[11px] text-text-primary border border-stroke-outline">Filter A</div>
+                <div className="px-3 py-1 rounded-full text-[11px] text-text-primary border border-stroke-outline">Filter B</div>
+                <div className="flex-1" />
+                <div className="shrink-0 px-2 py-1 rounded text-[10px] font-mono text-text-secondary" style={{ background: 'var(--color-bg-hover)' }}>filters? (optional)</div>
+              </div>
+
+              <div className="text-[11px] font-mono text-text-secondary text-center py-2">↕ mt-8 (32px)</div>
+
+              {/* Content */}
+              <div className="relative rounded border border-dashed border-stroke-outline flex items-center justify-center" style={{ background: 'var(--color-bg-page)', height: 140 }}>
+                <span className="text-[12px] font-mono text-text-secondary">children · maxWidth: 'full' | 'reading' (863px)</span>
+              </div>
+
+              <div className="text-[11px] font-mono text-text-secondary text-center py-2">↕ pb-10 (40px)</div>
+            </div>
+          </div>
+
+          {/* Spec table */}
+          <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-[13px] text-text-primary mb-4">
+            <div><strong>Toggle bar height:</strong> 48px (<code className="font-mono text-[12px]">h-12</code>)</div>
+            <div><strong>Horizontal padding:</strong> <code className="font-mono text-[12px]">px-4 sm:px-8</code></div>
+            <div><strong>H1:</strong> <code className="font-mono text-[12px]">text-[40px] / leading-[48px] / font-bold</code></div>
+            <div><strong>Title → filters:</strong> 24px (<code className="font-mono text-[12px]">mt-6</code>)</div>
+            <div><strong>Title/filters → content:</strong> 32px (<code className="font-mono text-[12px]">mt-8</code>)</div>
+            <div><strong>Bottom padding:</strong> 40px (<code className="font-mono text-[12px]">pb-10</code>)</div>
+            <div><strong>maxWidth 'full':</strong> no limit (dashboards, listings)</div>
+            <div><strong>maxWidth 'reading':</strong> 863px (articles, forms)</div>
+          </div>
+
+          {/* Usage */}
+          <div className="rounded-lg border border-stroke-outline p-3 mb-4" style={{ background: 'var(--color-bg-hover)' }}>
+            <div className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.5px] mb-2">Usage</div>
+            <pre className="text-[12px] font-mono text-text-primary overflow-x-auto leading-[18px]">{`<PageLayout
+  title="Library"
+  rightSlot={<SearchBox value={q} onChange={setQ} />}   // optional
+  filters={<FilterPills />}                              // optional
+  maxWidth="full"                                        // 'full' | 'reading'
+  sidebarOpen={sidebarOpen}
+  onToggleSidebar={onToggleSidebar}
+>
+  {/* page content */}
+</PageLayout>`}</pre>
+          </div>
+
+          {/* SearchBox demo */}
+          <div className="rounded-lg border border-stroke-outline p-3 mb-4" style={{ background: 'var(--color-bg-hover)' }}>
+            <div className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.5px] mb-2">SearchBox — shared.tsx (recommended for rightSlot)</div>
+            <p className="text-[13px] text-text-primary leading-[20px] mb-3">
+              <strong>Desktop:</strong> always-expanded pill with icon + input.{' '}
+              <strong>Mobile (&lt; md):</strong> shows icon only. Tap → full-width search bar replaces the top bar, input autofocuses, keyboard appears. Back arrow clears and closes.
+            </p>
+            <div className="flex items-center gap-3 p-3 rounded-lg border border-stroke-outline" style={{ background: 'var(--color-bg-page)' }}>
+              <span className="text-[12px] font-mono text-text-secondary">Live:</span>
+              <SearchBoxDemo />
+              <span className="text-[11px] text-text-secondary ml-auto">Shrink viewport &lt; 768px to see the mobile behavior.</span>
+            </div>
+          </div>
+
+          {/* Pages that use it */}
+          <div className="mb-3">
+            <div className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.5px] mb-2">Used by (8 pages)</div>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-[13px] text-text-primary">
+              <div>• OverviewPage <span className="text-text-secondary">— full · no filters</span></div>
+              <div>• LibraryPage <span className="text-text-secondary">— full · filters + search</span></div>
+              <div>• ConnectorsPage <span className="text-text-secondary">— full · filters + search</span></div>
+              <div>• DesignSystemPage <span className="text-text-secondary">— full · filters</span></div>
+              <div>• ComingSoonPage <span className="text-text-secondary">— full · no filters</span></div>
+              <div>• Onboarding <span className="text-text-secondary">— reading (863px)</span></div>
+              <div>• ProjectPage <span className="text-text-secondary">— reading · rightSlot</span></div>
+            </div>
+          </div>
+
+          {/* Special pages */}
+          <div className="rounded-lg border p-3" style={{ background: 'rgba(220,38,38,0.04)', borderColor: 'rgba(220,38,38,0.2)' }}>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.5px] mb-2" style={{ color: '#C93838' }}>⚠ Pages that do NOT use PageLayout</div>
+            <div className="text-[13px] text-text-primary leading-[20px]">
+              <strong>ChatPanel</strong> — conversation container. No page title, messages scroll top-to-bottom with input docked at the bottom. Structurally different from title-led pages; keep standalone.
+            </div>
+          </div>
+        </div>
 
         {/* 5.1 Button system (3 tiers) */}
         <div id="ds-buttons" className="mb-6 rounded-2xl border border-stroke-outline p-5 scroll-mt-4" style={{ background: 'var(--color-bg-page)' }}>
@@ -1053,7 +1170,7 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
             </div>
 
             <div className="mt-3 text-[12px] text-text-primary leading-[18px] pt-3 border-t border-stroke-outline">
-              <strong>Used by:</strong> MessageCard (Sent / Saved / In progress), TaskScreen (To Do / In Progress / Done), ConnectorsPage (Connected), DesignSystem MiniStatusTag
+              <strong>Used by:</strong> MessageCard (Sent / Saved / In progress), ConnectorsPage (Connected), DesignSystem MiniStatusTag
             </div>
           </div>
 
@@ -1066,8 +1183,6 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
             <p className="text-[13px] text-text-primary leading-[20px] mb-3">
               Props: <code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>children</code>
               {' · '}
-              <code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>bold?</code>
-              {' · '}
               <code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>outline?</code>
             </p>
 
@@ -1078,16 +1193,8 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
                 <Tag>🎲 Board game night</Tag>
                 <Tag>📚 Reading</Tag>
                 <Tag>2/3</Tag>
-              </div>
-            </div>
-
-            <div className="mb-3">
-              <div className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.5px] mb-2">Bold — metric / progress labels</div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Tag bold>2/2h</Tag>
-                <Tag bold>7/7h</Tag>
-                <Tag bold>3 tasks · balanced</Tag>
-                <Tag bold>48/100 · Low</Tag>
+                <Tag>2/2h</Tag>
+                <Tag>48/100 · Low</Tag>
               </div>
             </div>
 
@@ -1897,7 +2004,6 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
           </div>
 
         </div>
-      </div>
-    </div>
+    </PageLayout>
   );
 }

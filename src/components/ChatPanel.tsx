@@ -3,6 +3,7 @@ import { PanelRight } from 'lucide-react';
 import { Chat, Message, ActionChip } from '../types';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
+import { HeaderBar } from './shared';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from '../assets';
 
 interface ChatPanelProps {
@@ -155,30 +156,24 @@ export default function ChatPanel({
   const lastMessage = chat?.messages?.[chat.messages.length - 1];
   const activeChips = lastMessage?.role === 'assistant' && lastMessage.chips?.length ? lastMessage.chips : undefined;
 
+  const contextToggleButton =
+    showContextToggle && !contextPanelOpen ? (
+      <button
+        onClick={onToggleContextPanel}
+        aria-label="Open context panel"
+        className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-primary"
+      >
+        <PanelRight size={20} />
+      </button>
+    ) : null;
+
   return (
     <div className="relative flex flex-col h-full flex-1 min-w-[360px]">
-      {/* Floating menu toggle — only when sidebar is closed */}
-      {!sidebarOpen && (
-        <button
-          onClick={onToggleSidebar}
-          className="absolute top-3 left-4 z-10 w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-primary"
-        >
-          <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
-            <rect width="22" height="2" rx="1" fill="currentColor"/>
-            <rect width="15" height="2" rx="1" y="7" fill="currentColor"/>
-          </svg>
-        </button>
-      )}
-
-      {/* Floating context panel toggle — only when applicable */}
-      {showContextToggle && !contextPanelOpen && (
-        <button
-          onClick={onToggleContextPanel}
-          className="absolute top-3 right-4 z-10 w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-primary"
-        >
-          <PanelRight size={20} />
-        </button>
-      )}
+      <HeaderBar
+        sidebarOpen={sidebarOpen}
+        onToggleSidebar={onToggleSidebar}
+        headerRight={contextToggleButton}
+      />
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto min-h-0 px-8 py-4">

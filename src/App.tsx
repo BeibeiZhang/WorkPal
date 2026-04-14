@@ -4,7 +4,6 @@ import type { Project } from './components/Sidebar';
 import ChatPanel from './components/ChatPanel';
 import DetailPanel from './components/DetailPanel';
 import Onboarding from './components/Onboarding';
-import TaskScreen from './components/TaskScreen';
 import TaskContextPanel from './components/TaskContextPanel';
 import ProjectPage from './components/ProjectPage';
 import ConnectorsPage from './components/ConnectorsPage';
@@ -12,6 +11,7 @@ import DesignSystemPage from './components/DesignSystemPage';
 import OverviewPage from './components/OverviewPage';
 import LibraryPage from './components/LibraryPage';
 import NewProjectDialog from './components/NewProjectDialog';
+import { SplitView } from './components/shared';
 import { Chat, Message, ActionChip, TicketCard, AgentCard, ScheduleCard } from './types';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
 import { INITIAL_CHATS } from './data';
@@ -272,20 +272,15 @@ const MOBILE_BREAKPOINT = 768;
 const SIDEBAR_WIDTH = 336;
 const CONTEXT_PANEL_MIN = 260;
 const MAIN_CONTENT_MIN = 360;
-const DETAIL_PANEL_WIDTH = 504;
 const subscribe = (cb: () => void) => { window.addEventListener('resize', cb); return () => window.removeEventListener('resize', cb); };
 const getIsMobile = () => window.innerWidth < MOBILE_BREAKPOINT;
-/** Can the context panel fit beside the main content? */
+/** Point-in-time check used on send to decide between opening the panel
+ *  inline vs. showing a preview animation. Inline render fit is now handled
+ *  reactively by SplitView via ResizeObserver. */
 const getCanFitPanel = () => {
   const available = window.innerWidth - 16; // m-2 = 8px each side
   const sidebarW = window.innerWidth >= MOBILE_BREAKPOINT ? SIDEBAR_WIDTH : 0;
   return available - sidebarW - MAIN_CONTENT_MIN >= CONTEXT_PANEL_MIN;
-};
-/** Can the detail panel fit beside the main content? */
-const getCanFitDetail = () => {
-  const available = window.innerWidth - 16;
-  const sidebarW = window.innerWidth >= MOBILE_BREAKPOINT ? SIDEBAR_WIDTH : 0;
-  return available - sidebarW - MAIN_CONTENT_MIN >= DETAIL_PANEL_WIDTH;
 };
 
 
@@ -297,7 +292,7 @@ export default function App() {
   const [selectedAvatarId, setSelectedAvatarId] = useState('black-woman');
   const [detailOpen, setDetailOpen] = useState(false);
   const [onboardingDone, setOnboardingDone] = useState(() => localStorage.getItem('workpal-onboarding-done') === 'true');
-  const [activeView, setActiveView] = useState<'chat' | 'tasks' | 'connectors' | 'design-system' | 'overview' | 'library'>('chat');
+  const [activeView, setActiveView] = useState<'chat' | 'connectors' | 'design-system' | 'overview' | 'library'>('chat');
   const [inputMode, setInputMode] = useState<'Chat' | 'Tasks' | 'Code'>('Chat');
   const [taskModeMsgSent, setTaskModeMsgSent] = useState(false);
   const [taskPanelPreviewing, setTaskPanelPreviewing] = useState(false);
@@ -309,8 +304,6 @@ export default function App() {
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const isMobile = useSyncExternalStore(subscribe, getIsMobile);
-  const canFitPanel = useSyncExternalStore(subscribe, getCanFitPanel);
-  const canFitDetail = useSyncExternalStore(subscribe, getCanFitDetail);
   const [contextPanelOpen, setContextPanelOpen] = useState(true);
   // 0–3 = current active step index in alcohol-delivery flow, 4 = all completed
   const [alcoholProgress, setAlcoholProgress] = useState(4);
@@ -904,91 +897,88 @@ export default function App() {
             sidebarOpen={sidebarOpen || !isMobile}
             onToggleSidebar={() => setSidebarOpen(o => !o)}
           />
-        ) : activeView === 'tasks' ? (
-          <TaskScreen
-            sidebarOpen={sidebarOpen || !isMobile}
-            onToggleSidebar={() => setSidebarOpen(o => !o)}
-          />
         ) : !onboardingDone && activeChatId === 'my-workpal' ? (
           <Onboarding
             onComplete={handleOnboardingComplete}
             sidebarOpen={sidebarOpen || !isMobile}
             onToggleSidebar={() => setSidebarOpen(o => !o)}
           />
-        ) : (
-          <div className="flex flex-1 min-w-0 app-bg relative">
-            <ChatPanel
-              chat={activeChat?.id === 'my-workpal' && (!onboardingDone || (activeChat?.messages.length ?? 0) === 0) ? null : activeChat ?? null}
-              onSend={handleSend}
-              onChipClick={handleChipClick}
-              onCardAction={(action) => {
-                if (action === 'view-report') { setDetailOpen(true); setContextPanelOpen(false); return; }
-                handleCardAction(action);
+        ) : (() => {
+          // Exactly one side panel is active at a time. DetailPanel wins over
+          // the task context panel (since the "view report" action closes the
+          // context panel when it opens Detail).
+          const sideKind: 'detail' | 'context' | null =
+            detailOpen ? 'detail'
+            : (inputMode === 'Tasks' && taskModeMsgSent && contextPanelOpen) ? 'context'
+            : null;
+          return (
+            <SplitView
+              sideOpen={sideKind !== null}
+              sideWidth={sideKind === 'detail' ? 504 : 280}
+              onCloseSide={sideKind === 'detail'
+                ? () => { setDetailOpen(false); setContextPanelOpen(true); }
+                : () => setContextPanelOpen(false)}
+              bgClass="app-bg"
+              side={({ overlay }) => {
+                if (sideKind === 'detail') {
+                  return (
+                    <DetailPanel
+                      title="Summary Report: Spark Driver Alcohol"
+                      content={REPORT_CONTENT}
+                      onClose={() => { setDetailOpen(false); setContextPanelOpen(true); }}
+                      fullScreen={overlay}
+                    />
+                  );
+                }
+                if (sideKind === 'context') {
+                  return (
+                    <TaskContextPanel
+                      onClose={() => setContextPanelOpen(false)}
+                      progress={activeChatId === 'alcohol-delivery' ? buildAlcoholProgress(alcoholProgress) : undefined}
+                      fullScreen={overlay}
+                    />
+                  );
+                }
+                return null;
               }}
-              sidebarOpen={sidebarOpen || !isMobile}
-              onToggleSidebar={() => setSidebarOpen(o => !o)}
-              isDark={isDark}
-              selectedAvatarId={selectedAvatarId}
-              onAvatarChange={setSelectedAvatarId}
-              onModeChange={(m) => { setInputMode(m); if (m !== 'Tasks') { setTaskModeMsgSent(false); setTaskModeUserMsg(''); } }}
-              showContextToggle={inputMode === 'Tasks' && taskModeMsgSent && !detailOpen}
-              contextPanelOpen={contextPanelOpen}
-              onToggleContextPanel={() => setContextPanelOpen(o => !o)}
-              isAiResponding={isAiResponding}
-              draftValue={activeChat?.draftPrompt}
-              forceMode={activeChat?.id === 'alcohol-delivery' ? 'Tasks' : undefined}
-            />
-            {/* Inline context panel (desktop with enough space) */}
-            {inputMode === 'Tasks' && taskModeMsgSent && canFitPanel && contextPanelOpen && !detailOpen && (
-              <TaskContextPanel
-                onClose={() => setContextPanelOpen(false)}
-                progress={activeChatId === 'alcohol-delivery' ? buildAlcoholProgress(alcoholProgress) : undefined}
+            >
+              <ChatPanel
+                chat={activeChat?.id === 'my-workpal' && (!onboardingDone || (activeChat?.messages.length ?? 0) === 0) ? null : activeChat ?? null}
+                onSend={handleSend}
+                onChipClick={handleChipClick}
+                onCardAction={(action) => {
+                  if (action === 'view-report') { setDetailOpen(true); setContextPanelOpen(false); return; }
+                  handleCardAction(action);
+                }}
+                sidebarOpen={sidebarOpen || !isMobile}
+                onToggleSidebar={() => setSidebarOpen(o => !o)}
+                isDark={isDark}
+                selectedAvatarId={selectedAvatarId}
+                onAvatarChange={setSelectedAvatarId}
+                onModeChange={(m) => { setInputMode(m); if (m !== 'Tasks') { setTaskModeMsgSent(false); setTaskModeUserMsg(''); } }}
+                showContextToggle={inputMode === 'Tasks' && taskModeMsgSent && !detailOpen}
+                contextPanelOpen={contextPanelOpen}
+                onToggleContextPanel={() => setContextPanelOpen(o => !o)}
+                isAiResponding={isAiResponding}
+                draftValue={activeChat?.draftPrompt}
+                forceMode={activeChat?.id === 'alcohol-delivery' ? 'Tasks' : undefined}
               />
-            )}
-            {/* Fullscreen overlay context panel (mobile or narrow viewport) */}
-            {inputMode === 'Tasks' && taskModeMsgSent && !canFitPanel && contextPanelOpen && !detailOpen && (
-              <div className="absolute inset-0 z-30 flex">
-                <TaskContextPanel
-                  onClose={() => setContextPanelOpen(false)}
-                  progress={activeChatId === 'alcohol-delivery' ? buildAlcoholProgress(alcoholProgress) : undefined}
-                  fullScreen
-                />
-              </div>
-            )}
-            {/* Detail Panel — inline (desktop with enough space) */}
-            {detailOpen && canFitDetail && (
-              <DetailPanel
-                title="Summary Report: Spark Driver Alcohol"
-                content={REPORT_CONTENT}
-                onClose={() => { setDetailOpen(false); setContextPanelOpen(true); }}
-              />
-            )}
-            {/* Detail Panel — fullscreen overlay (mobile or narrow viewport) */}
-            {detailOpen && !canFitDetail && (
-              <div className="absolute inset-0 z-30 flex">
-                <DetailPanel
-                  title="Summary Report: Spark Driver Alcohol"
-                  content={REPORT_CONTENT}
-                  onClose={() => { setDetailOpen(false); setContextPanelOpen(true); }}
-                  fullScreen
-                />
-              </div>
-            )}
-            {/* Task panel preview — slides in from right then back out (3s) */}
-            {taskPanelPreviewing && !contextPanelOpen && !detailOpen && (
-              <div
-                className="absolute top-0 right-0 bottom-0 z-20 task-panel-preview pointer-events-none overflow-hidden"
-                style={{ width: 'min(60vw, 504px)' }}
-              >
-                <TaskContextPanel
-                  onClose={() => {}}
-                  progress={activeChatId === 'alcohol-delivery' ? buildAlcoholProgress(alcoholProgress) : undefined}
-                  fullScreen
-                />
-              </div>
-            )}
-          </div>
-        )}
+              {/* Task panel preview — slides in from right then back out (3s) */}
+              {taskPanelPreviewing && !contextPanelOpen && !detailOpen && (
+                <div
+                  className="absolute top-0 right-0 bottom-0 z-20 task-panel-preview pointer-events-none overflow-hidden"
+                  style={{ width: 'min(60vw, 504px)' }}
+                >
+                  <TaskContextPanel
+                    onClose={() => {}}
+                    progress={activeChatId === 'alcohol-delivery' ? buildAlcoholProgress(alcoholProgress) : undefined}
+                    fullScreen
+                  />
+                </div>
+              )}
+            </SplitView>
+          );
+        })()}
       </div>
 
       {/* New Project Dialog */}

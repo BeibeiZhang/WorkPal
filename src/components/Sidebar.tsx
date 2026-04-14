@@ -16,14 +16,14 @@ export interface Project {
 interface SidebarProps {
   chats: Chat[];
   activeChatId: string;
-  activeView?: 'chat' | 'tasks' | 'connectors' | 'design-system' | 'overview' | 'library';
+  activeView?: 'chat' | 'connectors' | 'design-system' | 'overview' | 'library';
   activeProjectId?: string | null;
   projects: Project[];
   onChatSelect: (id: string) => void;
   onNewChat: () => void;
   onNewProject: () => void;
   onProjectSelect: (id: string) => void;
-  onViewChange?: (view: 'chat' | 'tasks' | 'connectors' | 'design-system' | 'overview' | 'library') => void;
+  onViewChange?: (view: 'chat' | 'connectors' | 'design-system' | 'overview' | 'library') => void;
   isDark: boolean;
   onToggleDark: () => void;
   onToggleSidebar?: () => void;

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ChevronDown, File, MessageCircle, PanelRight } from 'lucide-react';
+import { File, MessageCircle } from 'lucide-react';
+import { SideCard, SidePanelHeader } from './shared';
 
 /* ── Types ───────────────────────────────────────────── */
 
@@ -43,39 +43,6 @@ const DEFAULT_CONTEXT: FileEntry[] = [
 const DEFAULT_TOOLS: FileEntry[] = [
   { name: 'Instructions.md' },
 ];
-
-/* ── Collapsible section ────────────────────────────── */
-
-function Section({
-  title,
-  defaultOpen = true,
-  children,
-}: {
-  title: string;
-  defaultOpen?: boolean;
-  children: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div className="border border-stroke-outline rounded-2xl overflow-hidden shrink-0">
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="flex items-center w-full px-5 py-4 text-left hover:bg-bg-hover transition-colors"
-      >
-        <span className="flex-1 text-[15px] font-semibold text-text-primary">{title}</span>
-        <ChevronDown
-          size={16}
-          className={`text-text-primary transition-transform ${open ? '' : '-rotate-90'}`}
-        />
-      </button>
-      {open && (
-        <div className="px-5 pb-5">
-          {children}
-        </div>
-      )}
-    </div>
-  );
-}
 
 /* ── Progress step icons ────────────────────────────── */
 
@@ -127,20 +94,13 @@ export default function TaskContextPanel({
         width: fullScreen ? undefined : 280,
       }}
     >
-      {/* Header with close button */}
-      <div className="flex items-center justify-end px-3 h-16 shrink-0">
-        <button
-          onClick={onClose}
-          className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-primary"
-        >
-          <PanelRight size={20} />
-        </button>
-      </div>
+      {/* Header with collapse-back toggle */}
+      <SidePanelHeader onClose={onClose} closeIcon="panel-right" closeLabel="Collapse panel" />
       {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto min-h-0 px-3 pb-6 flex flex-col gap-4 scrollbar-autohide">
 
         {/* Progress */}
-        <Section title="Progress" defaultOpen>
+        <SideCard title="Progress" defaultOpen>
           <div className="flex flex-col gap-0">
             {progress.map((step, i) => {
               const stepNumber = i + 1;
@@ -190,10 +150,10 @@ export default function TaskContextPanel({
               );
             })}
           </div>
-        </Section>
+        </SideCard>
 
         {/* Folder */}
-        <Section title="Folder" defaultOpen>
+        <SideCard title="Folder" defaultOpen>
           <div className="flex flex-col gap-1">
             {folder.map(f => (
               <button
@@ -205,10 +165,10 @@ export default function TaskContextPanel({
               </button>
             ))}
           </div>
-        </Section>
+        </SideCard>
 
         {/* Context */}
-        <Section title="Context" defaultOpen>
+        <SideCard title="Context" defaultOpen>
           <div className="flex flex-col gap-1">
             {context.map(f => (
               <button
@@ -220,10 +180,10 @@ export default function TaskContextPanel({
               </button>
             ))}
           </div>
-        </Section>
+        </SideCard>
 
         {/* Tools active */}
-        <Section title="Tools active" defaultOpen>
+        <SideCard title="Tools active" defaultOpen>
           <div className="flex flex-col gap-1">
             {toolsActive.map(f => (
               <button
@@ -235,7 +195,7 @@ export default function TaskContextPanel({
               </button>
             ))}
           </div>
-        </Section>
+        </SideCard>
       </div>
     </div>
   );

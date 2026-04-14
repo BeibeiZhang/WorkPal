@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
   BookOpen,
-  Search,
   FileText,
   File as FileIcon,
   Presentation,
@@ -13,7 +12,7 @@ import {
   Play,
   Download,
 } from 'lucide-react';
-import { FilterChip } from './shared';
+import { FilterChip, PageLayout, SearchBox } from './shared';
 
 interface LibraryPageProps {
   sidebarOpen: boolean;
@@ -274,48 +273,17 @@ export default function LibraryPage({ sidebarOpen, onToggleSidebar }: LibraryPag
   }, [filter, search]);
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 h-full" style={{ background: 'var(--color-bg-page)' }}>
-
-      {/* Header bar — toggle only */}
-      <div className="flex items-center gap-4 px-4 h-12 shrink-0">
-        {!sidebarOpen && (
-          <button
-            onClick={onToggleSidebar}
-            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors shrink-0 text-text-primary"
-          >
-            <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
-              <rect width="22" height="2" rx="1" fill="currentColor" />
-              <rect width="15" height="2" rx="1" y="7" fill="currentColor" />
-            </svg>
-          </button>
-        )}
-      </div>
-
-      {/* Page title row — Agent Design style + search */}
-      <div className="flex items-center gap-4 px-4 sm:px-8 pb-2 shrink-0">
-        <h1
-          className="flex-1 text-[40px] font-bold text-text-primary leading-[48px] tracking-[-0.5px]"
-          style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
-        >
-          Library
-        </h1>
-        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full w-[260px]"
-          style={{ background: 'var(--color-bg-hover)' }}
-        >
-          <Search size={16} className="shrink-0 text-text-primary" />
-          <input
-            type="text"
-            placeholder="Search artifacts"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="flex-1 bg-transparent outline-none text-[14px] text-text-primary placeholder-text-secondary"
-          />
-        </div>
-      </div>
-
-      {/* Filter chips */}
-      <div className="pt-5 pb-4 shrink-0">
-        <div className="flex flex-nowrap sm:flex-wrap gap-2 overflow-x-auto sm:overflow-visible scrollbar-autohide px-4 sm:px-8">
+    <PageLayout
+      title="Library"
+      rightSlot={
+        <SearchBox
+          value={search}
+          onChange={setSearch}
+          placeholder="Search artifacts"
+        />
+      }
+      filters={
+        <div className="flex flex-nowrap sm:flex-wrap gap-2 overflow-x-auto sm:overflow-visible scrollbar-autohide -mx-4 sm:mx-0 px-4 sm:px-0">
           {FILTERS.map(({ id, label, Icon }) => {
             const active = filter === id;
             return (
@@ -330,52 +298,52 @@ export default function LibraryPage({ sidebarOpen, onToggleSidebar }: LibraryPag
             );
           })}
         </div>
-      </div>
-
-      {/* Grid */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-6">
-        {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 gap-3">
-            <div
-              className="flex items-center justify-center rounded-full"
-              style={{
-                width: 64, height: 64,
-                background: 'var(--color-bg-hover)',
-                border: '1px solid var(--color-stroke-outline)',
-              }}
-            >
-              <BookOpen size={26} className="text-text-primary" />
-            </div>
-            <p
-              className="text-text-primary"
-              style={{
-                fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-                fontSize: 16, fontWeight: 600,
-              }}
-            >
-              No artifacts match your filters
-            </p>
-            <p
-              className="text-text-secondary text-center max-w-[360px]"
-              style={{
-                fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-                fontSize: 14, lineHeight: '20px',
-              }}
-            >
-              Try a different category or clear your search to see everything WorkPal has produced.
-            </p>
-          </div>
-        ) : (
+      }
+      maxWidth="full"
+      sidebarOpen={sidebarOpen}
+      onToggleSidebar={onToggleSidebar}
+    >
+      {filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 gap-3">
           <div
-            className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 xl:columns-6"
-            style={{ columnGap: '12px' }}
+            className="flex items-center justify-center rounded-full"
+            style={{
+              width: 64, height: 64,
+              background: 'var(--color-bg-hover)',
+              border: '1px solid var(--color-stroke-outline)',
+            }}
           >
-            {filtered.map(item => (
-              <LibraryCard key={item.id} item={item} />
-            ))}
+            <BookOpen size={26} className="text-text-primary" />
           </div>
-        )}
-      </div>
-    </div>
+          <p
+            className="text-text-primary"
+            style={{
+              fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
+              fontSize: 16, fontWeight: 600,
+            }}
+          >
+            No artifacts match your filters
+          </p>
+          <p
+            className="text-text-secondary text-center max-w-[360px]"
+            style={{
+              fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
+              fontSize: 14, lineHeight: '20px',
+            }}
+          >
+            Try a different category or clear your search to see everything WorkPal has produced.
+          </p>
+        </div>
+      ) : (
+        <div
+          className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 xl:columns-6"
+          style={{ columnGap: '12px' }}
+        >
+          {filtered.map(item => (
+            <LibraryCard key={item.id} item={item} />
+          ))}
+        </div>
+      )}
+    </PageLayout>
   );
 }

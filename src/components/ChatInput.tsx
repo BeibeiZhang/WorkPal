@@ -648,7 +648,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
                   }}
                 >
                   <Icon />
-                  {isSelected && <span className="text-xs font-medium">{m}</span>}
+                  {isSelected && <span className="text-[16px] sm:text-[14px] font-medium">{m}</span>}
                 </button>
               );
               return isSelected ? btn : <Tooltip key={m} label={isDisabled ? `${m} (not available)` : m}>{btn}</Tooltip>;
