@@ -125,7 +125,6 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
       title="Welcome to WorkPal"
       sidebarOpen={sidebarOpen}
       onToggleSidebar={onToggleSidebar}
-      maxWidth="reading"
       bgClass="app-bg"
       footer={
         <ChatInput

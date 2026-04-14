@@ -1,346 +1,367 @@
-# WorkPal Design System Rules
+# WorkPal Design System
 
-> Figma file: `vpMqEZURIWcE8F40GBQJju` | Design System page: `6:166` (node: `291:11305`)
-> This document maps Figma design tokens and components to code implementations.
+> Single source of truth for AI agents and engineers. Concise by design — live examples and interactive specs live in the in-app **Design System** page (`src/components/DesignSystemPage.tsx`). This file exists so agents can parse the system without reading React.
+>
+> **Golden rule:** the in-app Design System page is the canonical reference. Always check it before building. If you need a component, use the one from `src/components/shared.tsx`. If nothing fits, build a new one and register it in the **Review Queue** tab.
 
 ---
 
-## 1. Design Tokens
+## 0. Architecture (must-read)
 
-### 1.1 Colors (CSS Variables)
-
-Defined in `src/index.css` `:root` / `.dark` selectors.
-
-| Figma Variable | CSS Variable | Light | Dark |
-|---|---|---|---|
-| `color/text/primary` | `--color-text-primary` | `#142740` | `#FFFFFF` |
-| `color/text/secondary` | `--color-text-secondary` | `rgba(20,39,64,0.7)` | `rgba(226,243,255,0.8)` |
-| `color/text/tertiary` | `--color-text-tertiary` | `rgba(20,39,64,0.4)` | `rgba(226,243,255,0.4)` |
-| `color/background/page` | `--color-bg-page` | `#FFFFFF` | `#001424` |
-| `color/background/hover-&-message` | `--color-bg-message`, `--color-bg-hover` | `#F2F3F4` | `rgba(226,243,255,0.1)` |
-| `color/background/web-menu` | `--color-sidebar-bg` | `#f2f3f4` | `rgba(226,243,255,0.1)` |
-| `color/stroke/outline` | `--color-stroke-outline` | `#E8E8E8` | `rgba(115,178,255,0.2)` |
-| `color/stroke/toggle` | `--color-stroke-toggle` | `#e6e8ea` | `rgba(115,178,255,0.2)` |
-| `color/icon/primary` | `--color-icon-primary` | `#001424` | `#FFFFFF` |
-| `color/state/web-menu/hover` | (inline) | `#e6e8ea` | `rgba(226,243,255,0.1)` |
-
-**Tailwind shortcuts:** `text-text-primary`, `text-text-secondary`, `bg-bg-hover`, `border-stroke-outline` (configured in `tailwind.config.js`).
-
-### 1.2 Brand Gradient
-
-```css
-/* Text gradient */
-.gradient-text {
-  background: linear-gradient(31.6deg, #7652B9 0%, #B46470 51.9%, #CA9D8C 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-/* Button/fill gradient */
-.gradient-btn {
-  background: linear-gradient(183.5deg, #7652B9 16.2%, #B46470 49%, #CA9D8C 109.3%);
-}
-
-/* Card button gradient (horizontal) */
-background: linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%)
-
-/* Border gradient (chips, nav items) — padding-box/border-box technique */
-background:
-  linear-gradient(var(--color-bg-page), var(--color-bg-page)) padding-box,
-  linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box;
-border: 1px solid transparent;
-
-/* Loading dots colors: #7652B9, #B46470, #CA9D8C */
+```
+App Shell (src/App.tsx) = three panels, every surface plugs in as a slot
+├── NavPanel          → src/components/Sidebar.tsx  (Sidebar · MiniSidebar)
+├── ConversationPanel → ChatPanel · or any page via PageLayout
+└── InspectorPanel    → DetailPanel · TaskContextPanel · SplitView side
 ```
 
-### 1.3 Special Colors
+**Source tree**
+- `src/index.css` — CSS variables, utility classes, animations. **Edit tokens here.**
+- `tailwind.config.js` — maps CSS vars → Tailwind utilities (`text-text-primary` etc).
+- `src/components/shared.tsx` — all reusable primitives (26 exports).
+- `src/components/*` — feature components (one panel/surface each).
+- `src/components/DesignSystemPage.tsx` — live showcase, the canonical reference.
 
-| Usage | Value |
+**Propagation rule:** every color, size, spacing, and radius is a token. Change `--color-*` or `--font-*` in `index.css` once → every component/page picks it up. Never hardcode hex values, px font sizes, or arbitrary spacing.
+
+---
+
+## 1. Foundations
+
+### 1.0 Token index (materialized — one-shot lookup)
+
+Every CSS variable with its resolved light / dark value. If you need a token, find it here first. Defined in `src/index.css` (:root + .dark).
+
+```
+# Surface & text
+--color-text-primary          #142740              / #FFFFFF
+--color-text-secondary        rgba(20,39,64,0.7)   / rgba(226,243,255,0.8)
+--color-text-tertiary         rgba(20,39,64,0.4)   / rgba(226,243,255,0.4)
+--color-bg-page               #FFFFFF              / #001424
+--color-bg-message            #F2F3F4              / rgba(226,243,255,0.1)
+--color-bg-hover              #F2F3F4              / rgba(226,243,255,0.1)
+--color-icon-primary          #142740              / #FFFFFF
+--color-sidebar-bg            #F2F3F4              / #0D2136
+--color-outer-bg              #F5F5F7              / #001424
+--color-outer-border          #F5F5F7              / #001424
+--color-stroke-outline        #E8E8E8              / rgba(115,178,255,0.2)
+--color-stroke-toggle         #E6E8EA              / rgba(115,178,255,0.2)
+--color-selected-bg           rgba(49,113,255,0.1) / #3171FF
+--color-selected-text         #3171FF              / #FFFFFF
+
+# Semantic accents (mode-invariant)
+--color-accent-blue           #3171FF
+--color-accent-green          #028901
+--color-accent-green-bg       rgba(2,137,1,0.1)
+--color-accent-red            #C93838
+--color-accent-amber          #A87725
+--color-accent-orange         #B8541A
+--color-accent-violet         #6B54E6
+--color-accent-neutral        #6B7280
+
+# Brand gradient stops
+--brand-grad-start            #7652B9
+--brand-grad-mid              #B46470
+--brand-grad-end              #CA9D8C
+
+# Typography
+--font-title-size/lh/weight/tracking       40px / 48px / 700 / -0.5px
+--font-body-size/lh/weight/tracking        16px / 32px / 400 (emph 700) / -0.43px
+--font-detail-size/lh/weight/tracking      14px / 22px / 400 (emph 700) / 0
+
+# Spacing (Tailwind-aligned)
+--space-1..10                 4 · 8 · 12 · 16 · 20 · 24 · 32 · 40 px
+
+# Radius
+--radius-sm / md / lg / pill / shell       8 · 12 · 16 · 9999 · 40 px
+```
+
+**Rule:** never hardcode these values. If a value is missing, add a new var here first.
+
+### 1.1 Color tokens (CSS variables, mode-aware)
+
+| Token | Light | Dark | Use |
+|---|---|---|---|
+| `--color-text-primary` | `#142740` | `#FFFFFF` | Headings, body, primary icons |
+| `--color-text-secondary` | `rgba(20,39,64,0.7)` | `rgba(226,243,255,0.8)` | Descriptions, helper text |
+| `--color-text-tertiary` | `rgba(20,39,64,0.4)` | `rgba(226,243,255,0.4)` | Disabled, muted metadata |
+| `--color-bg-page` | `#FFFFFF` | `#001424` | Main surfaces |
+| `--color-bg-message` / `--color-bg-hover` | `#F2F3F4` | `rgba(226,243,255,0.1)` | Message bubbles, hover, input fields |
+| `--color-sidebar-bg` | `#F2F3F4` | `#0D2136` | NavPanel surface |
+| `--color-stroke-outline` | `#E8E8E8` | `rgba(115,178,255,0.2)` | Borders, dividers |
+| `--color-stroke-toggle` | `#E6E8EA` | `rgba(115,178,255,0.2)` | Inputs, toggles |
+| `--color-selected-bg` | `rgba(49,113,255,0.1)` | `#3171FF` | Active chip/filter |
+| `--color-selected-text` | `#3171FF` | `#FFFFFF` | Active chip/filter label |
+| `--color-accent-blue` | `#3171FF` | — | Links, @mentions, progress, focus |
+| `--color-accent-green` / `-green-bg` | `#028901` / `rgba(2,137,1,0.1)` | — | StatusTag success only |
+| `--color-accent-red` | `#C93838` | — | StatusTag failed, danger |
+| `--color-accent-amber` | `#A87725` | — | StatusTag in-review |
+| `--color-accent-orange` | `#B8541A` | — | StatusTag pending |
+| `--color-accent-violet` | `#6B54E6` | — | StatusTag submitted, Maya's insight |
+| `--color-accent-neutral` | `#6B7280` | — | StatusTag expired |
+
+**Tailwind shortcuts:** `text-text-primary`, `text-text-secondary`, `bg-bg-page`, `bg-bg-hover`, `border-stroke-outline`.
+
+### 1.2 Brand gradient (scarce — 1–2% page budget)
+
+```
+#7652B9 → #B46470 → #CA9D8C
+CSS vars: --brand-grad-start, --brand-grad-mid, --brand-grad-end
+```
+
+| Class | Purpose |
 |---|---|
-| StatusTag bg | `rgba(2,137,1,0.1)` |
-| StatusTag text | `#028901` |
-| Callout / RichText @mention / link | `#3171ff` |
-| Selected chip bg | `rgba(49,113,255,0.1)` |
-| Selected chip text | `#3171ff` |
-| Agent profile bg | `#E5E9F1` |
-| Shadow (gradient button) | `0 5px 15px rgba(1,44,197,0.2)` |
+| `.gradient-btn` | Primary CTA fill (`PrimaryButton`) |
+| `.gradient-text` | Hero/welcome title text only |
+| `.chip-gradient-hover` | Gradient border on chip hover (unselected) |
+| `.input-gradient-hover` | Gradient border on input hover/focus |
+| `.loading-dot` | Animated dots in 3-color sequence |
 
-### 1.4 Typography
+**Never** use brand gradient for body text, icons, data viz, progress bars, or >1 button per view.
 
-| Figma Style | Font | Size | Weight | Line Height | Letter Spacing |
-|---|---|---|---|---|---|
-| `Page Title` | SF Pro | 40px | 700 | 48px | -0.5px |
-| `Body/Regular` | SF Pro | 16px | 400 | 32px | -0.43px |
-| `Body/Emphasized` | SF Pro | 16px | 700 | 32px | -0.43px |
-| `Detail/Regular` | SF Pro | 14px | 400 | 22px | 0px |
-| `Detail/Emphasized` | SF Pro | 14px | 700 | 22px | 0px |
+### 1.3 Typography (5 styles, no more)
 
-**CSS font stack:** `font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', 'Inter', sans-serif`
-
-### 1.5 Spacing & Border Radius
-
-| Figma Token | Value | Tailwind |
+| Class | Size / LH / Weight / Tracking | Use |
 |---|---|---|
-| `spacing/1` | 4px | `p-1`, `gap-1` |
-| `spacing/2` | 8px | `p-2`, `gap-2` |
-| `spacing/4` | 16px | `p-4`, `gap-4` |
-| `spacing/5` | 24px | `p-6`, `gap-6` |
-| `spacing/6` | 32px | `p-8`, `gap-8` |
-| `radius/xl` | 100px | `rounded-full` |
-| `radius/full` | 1000px | `rounded-full` |
-| Outer shell | 40px | `rounded-[40px]` |
+| `.type-title` | 40 / 48 / 700 / −0.5 | Page H1 |
+| `.type-body` | 16 / 32 / 400 / −0.43 | Default paragraph |
+| `.type-body-emphasized` | 16 / 32 / 700 / −0.43 | Section headers, labels |
+| `.type-detail` | 14 / 22 / 400 / 0 | Metadata, captions |
+| `.type-detail-emphasized` | 14 / 22 / 700 / 0 | Emphasized metadata |
 
----
+Font stack: `-apple-system, BlinkMacSystemFont, 'SF Pro', 'Inter', sans-serif`.
 
-## 2. Icons
+**Forbidden sizes:** 9, 10, 11, 12, 13, 17, 18, 24, 28, 32 px for running text. Large display numbers inside cards (e.g. MetricCard's "+2h") are allowed; set inline.
 
-### 2.1 Icons 24px (`src/assets/icons/`)
+### 1.4 Spacing (Tailwind scale only)
 
-| Figma Node | Name | File |
+`p-1`=4 · `p-2`=8 · `p-3`=12 · `p-4`=16 · `p-5`=20 · `p-6`=24 · `p-8`=32 · `p-10`=40. Never arbitrary values like `gap-[9px]`.
+
+### 1.5 Radius
+
+| Token | Value | Use |
 |---|---|---|
-| `10:345` | Microphone | `microphone.svg` |
-| `15:223` | Voice | `voice.svg` |
-| `15:228` | Camera | `camera.svg` |
-| `15:255` | Photo | `photo.svg` |
-| `15:240` | Upload | `upload.svg` |
-| `257:23375` | Send | `send.svg` |
-| `410:29953` | Sun | `sun.svg` |
-| `410:29958` | Moon | `moon.svg` |
-| `72:3378` | Clock | `clock.svg` |
-| `1005:30258` | Users | `users.svg` |
-| `1005:29312` | Pin | `pin.svg` |
-| `675:12029` | Spinner/Progress | `spinner.svg` |
+| `rounded-[4px]` | 4 | Gradient CTA button |
+| `rounded-lg` | 8 | Cards, inputs |
+| `rounded-xl` | 12 | Cards, side panels |
+| `rounded-2xl` | 16 | Large cards |
+| `rounded-full` | pill | Chips, StatusTag, nav items |
+| `rounded-[40px]` | 40 | App outer shell only |
 
-### 2.2 Icons 20px
+### 1.6 Icons — `lucide-react` only
 
-| Figma Node | Name | File |
+- Import from `lucide-react`. No other icon libraries, no inline SVG.
+- **Never** render an abbreviation or letter placeholder where an icon belongs.
+- Sizes: `16` default · `20` sidebar/list · `24` toolbar/header. Snap to ramp.
+- `strokeWidth` default `2`.
+- Color via `currentColor` (inherits parent `text-*` class) or inline `style={{ color: 'var(--color-accent-X)' }}`.
+- Monochrome PNG assets (not SVG) use `.icon-theme` for dark-mode auto-inversion.
+
+---
+
+## 2. Component Library (from `src/components/shared.tsx`)
+
+Always try to satisfy a design need with one of these first.
+
+### 2.0 Quick-table (one row per export)
+
+Scan this first. Subsections §2.1–§2.7 have the deeper reference.
+
+| Component | Category | Use when… | Key props |
+|---|---|---|---|
+| `HeaderBar` | Layout | Slim header for pages without PageLayout | `sidebarOpen`, `onToggleSidebar`, `headerRight?` |
+| `PageLayout` | Layout | Canonical page shell: toggle bar → H1 → filters → body → footer | `title`, `filters?`, `footer?`, `maxWidth` |
+| `SplitView` | Layout | Main + collapsible side column (auto-overlays on narrow) | `side`, `sideOpen`, `sideWidth`, `mainMinWidth` |
+| `SidePanelHeader` | Layout | 64px header for any side panel | `title`, `onClose`, `closeIcon` |
+| `SideCard` | Layout | Collapsible section inside side panels | `title`, `icon?`, `hasAdd?`, `defaultOpen?` |
+| `SearchBox` | Input | Responsive search pill | `value`, `onChange`, `placeholder?` |
+| `PrimaryButton` | Button | Single gradient CTA per view | `onClick`, `icon?`, `children` |
+| `SecondaryButton` | Button | Inverted solid fill | `onClick`, `icon?`, `children` |
+| `TertiaryButton` | Button | Bordered transparent | `onClick`, `icon?`, `children` |
+| `FilterChip` | Chip | Toggle-able filter pill | `active`, `icon?`, `count?`, `onClick` |
+| `StatusTag` | Tag | Semantic pill (8 variants) | `variant`, `size?`, `icon?`, `children` |
+| `Tag` | Tag | Neutral pill | `children`, `size?` |
+| `TimePill` | Tag | Neutral + User icon + time string | `time` |
+| `SectionTitle` | Row | Emoji + title + optional count | `emoji`, `title`, `count?` |
+| `SolutionRow` | Row | Emoji + title + desc + right tag | `emoji`, `title`, `desc`, `tag?` |
+| `SummaryFooter` | Row | Clock + summary text (section footer) | `children` |
+| `HealthDimensionRow` | Row | Icon + label + desc + auto-colored StatusTag | `icon`, `label`, `desc`, `value`, `target` |
+| `ReviewItemCard` | Row | Review row: auto-icon + metadata + action | `title`, `meta`, `action` |
+| `MetricCard` | Card | Centered label + big number + subtitle | `label`, `value`, `subtitle?` |
+| `InsightCard` | Card | "Maya's insight" card with actions | `title`, `body`, `actions?` |
+| `TaskProgressCard` | Card | Collapsible progress card with step list | `title`, `steps`, `defaultOpen?` |
+| `ProgressBar` | Data viz | Horizontal bar 0–100 | `value`, `label?` |
+| `LabeledBar` | Data viz | Labeled bar with category color | `label`, `value`, `color` |
+| `CircularProgress` | Data viz | SVG ring, auto-sized | `value`, `size?`, `children` |
+| `StepIndicator` | Data viz | done / in-progress / pending step glyph | `status` |
+| `AreaChart` | Data viz | SVG area chart, responsive, smoothed | `data`, `width?`, `height?` |
+
+**Decision shortcut:** button → `PrimaryButton`/`SecondaryButton`/`TertiaryButton`. Pill → `StatusTag` (semantic) / `FilterChip` (toggle) / `Tag` (neutral). Layout → `PageLayout` (full page) / `SplitView` (+ side panel) / `HeaderBar` (bare header only).
+
+### 2.1 Layout primitives
+
+| Component | Purpose | Key props |
 |---|---|---|
-| `111:2984` | Apps | `apps.svg` |
-| `483:23558` | Zoom | `zoom.svg` |
-| `1111:30131` | Doc | `doc20.svg` |
-| `1111:30139` | Sheet | `sheet.svg` |
-| `1111:30193` | Asana | `asana.svg` |
-| `1111:30183` | Gmail | `gmail.svg` |
+| `PageLayout` | Canonical page shell: 48px toggle bar → H1 → filters → scroll body → footer | `title`, `filters?`, `footer?`, `maxWidth: 'full'\|'reading'` |
+| `HeaderBar` | Slim header for pages without PageLayout (ChatPanel) | `sidebarOpen`, `onToggleSidebar`, `headerRight?` |
+| `SplitView` | Main + collapsible side column. Auto-overlays on narrow viewports | `side`, `sideOpen`, `sideWidth`, `mainMinWidth` |
+| `SidePanelHeader` | Shared 64px header for any side panel | `title`, `onClose`, `closeIcon: 'x'\|'panel-right'` |
+| `SideCard` | Collapsible section card inside side panels | `title`, `icon?`, `hasAdd?`, `defaultOpen?` |
 
-### 2.3 Icons 16px
+### 2.2 Buttons (three-tier — one Primary per view, max)
 
-| Figma Node | Name | File |
+| Component | Tier | Style |
 |---|---|---|
-| `675:11975` | Thumbs up | `thumbs-up.svg` |
-| `675:11976` | Thumbs down | `thumbs-down.svg` |
-| `675:11974` | Copy | `copy.svg` |
-| `876:35440` | Share | `share.svg` |
-| `675:11977` | Refresh | `refresh.svg` |
-| `965:30509` | Goals | `goals.svg` |
-| `965:30452` | Bar chart | `bar-chart.svg` |
-| `965:30499` | Doc 16 | `doc16.svg` |
+| `PrimaryButton` | Gradient CTA | `.gradient-btn`, `rounded-[4px]` — only ONE per view |
+| `SecondaryButton` | Inverted solid | Black bg light / white bg dark |
+| `TertiaryButton` | Bordered transparent | `.chip-gradient-hover` on hover |
 
----
+### 2.3 Tags, chips, pills
 
-## 3. Component Mapping
-
-### 3.1 Sidebar (`src/components/Sidebar.tsx`)
-
-| Figma Component | Node ID | Code Element | Key Styles |
-|---|---|---|---|
-| Nav Item / Default | `269:7666` | `<button>` (inactive) | `px-4 py-2 rounded-full gap-4` + `hover:bg-[#e6e8ea]` |
-| Nav Item / Active | `269:7682` | `<button>` (active) | Gradient border `padding-box/border-box` + spinner |
-| Nav Item / Hover | `269:7944` | CSS hover | `bg-[#e6e8ea]` (= `--color-stroke-toggle`) |
-| Account | `113:2933` | Footer section | Profile 35px + bold name + toggle |
-| Toggle Light | `410:30025` | `DarkToggle` | Pill bg `stroke-toggle`, Sun active gets `bg-page` |
-| Toggle Dark | `410:30024` | `DarkToggle` | Moon active gets `bg-page` |
-| Search Field | `109:3216` | `<input>` | `rounded-full border-stroke-toggle bg-bg-hover` |
-
-### 3.2 Chat Input (`src/components/ChatInput.tsx`)
-
-| Figma Component | Node ID | Code Element | Key Styles |
-|---|---|---|---|
-| Chip / Default | `142:16550` | Quick chip / action chip | `rounded-full border border-stroke-outline px-3 py-1 text-base leading-[22px]` |
-| Chip / Hover | `518:36675` | `.chip-gradient-hover:hover` | Gradient border via `padding-box/border-box` |
-| Chip / Select | `142:16548` | `.onboarding-chip-selected` | `bg: rgba(49,113,255,0.1)`, `color: #3171ff`, no border, gradient border via `::before` on hover |
-| Text Field / Default | `156:47510` | `<textarea>` wrapper | `rounded-full bg-bg-message border: 2px solid transparent` |
-| Text Field / Hover | `1202:12169` | `.input-gradient-hover:hover` | Gradient border via `padding-box/border-box` |
-| Text Field / Filled | `15:2805` | Focused state | Same gradient border |
-| Text Field / Multiline | `72:12105` | Multiline | `rounded-lg` instead of `rounded-full` |
-| Icon button / L | `246:8885` | Tool buttons | `44×44 rounded-full` |
-
-### 3.3 Message Cards (`src/components/MessageCard.tsx`)
-
-| Figma Component | Node ID | Code Element | Key Styles |
-|---|---|---|---|
-| Card / Checklist | `49:3550` | `TicketCardView` | Checklist items with @assignee / due |
-| Card / Text only | `86:7812` | `ResearchCardView` | Rich text content |
-| Card / Radio list | `67:2363` | `ScheduleCardView` | Radio options for scheduling |
-| Button / Large | `67:2970` | `GradientButton` | `h-12 rounded justify-center gradient 74deg`, `box-shadow: 0 5px 15px rgba(1,44,197,0.2)`, **no left icon** |
-| Progress bar | `167:54150` | `GradientProgressBar` | 3px gradient bar, `animate-progress-bar` |
-| Tag | `1631:31413` | `StatusTag` | `bg: rgba(2,137,1,0.1)`, `color: #028901` |
-| Loading dots | `339:8731` | `.loading-dot` | 3 dots: `#7652B9`, `#B46470`, `#CA9D8C` |
-| Agent Card (creating) | `1541:43057` | `AgentCardView` status=creating | Gradient icon + progress bar |
-| Agent Card (ready) | `1541:43882` | `AgentCardView` status=ready | 120px avatar on `#E5E9F1` + intro + button |
-| Agent Card (saved) | `1627:45498` | `AgentCardView` status=saved | Same + `StatusTag "Saved"` |
-
-### 3.4 Chat Message (`src/components/ChatMessage.tsx`)
-
-| Figma Component | Node ID | Code Element | Key Styles |
-|---|---|---|---|
-| Action Chip | `142:16526` | Post-AI chip buttons | Same as quick chips |
-| Feedback bar | `676:35551` | `FeedbackBar` | Copy, Share, Thumbs up/down, Refresh — 16px icons |
-
-### 3.5 Chat Panel (`src/components/ChatPanel.tsx`)
-
-| Figma Component | Node ID | Code Element | Key Styles |
-|---|---|---|---|
-| Avatar Selector | `431:25286` | Avatar circle | `150px rounded-full bg-bg-hover` |
-| Welcome title | — | "Hi, Beibei" | `.gradient-text text-[24px] font-semibold` |
-
-### 3.6 Onboarding (`src/components/Onboarding.tsx`)
-
-| Figma Component | Node ID | Code Element | Key Styles |
-|---|---|---|---|
-| Onboarding Default | `1541:41805` | Full onboarding screen | Steps 1-2 in `Onboarding.tsx` |
-| Welcome title | `1541:42444` | `<h1>` | SF Pro 40px/700, `text-text-primary`, left-aligned (NOT gradient) |
-| Trait Chip unselected | `1541:42446` | `<button>` | `rounded-full border border-stroke-outline px-[11px] py-[3px]` + `.chip-gradient-hover` |
-| Trait Chip selected | `1541:42446` | `<button>` | `bg: rgba(49,113,255,0.1)` + `.onboarding-chip-selected` |
-| Onboarding In-progress | `5794:50162` | Steps 3-5 in ChatPanel | Agent creating card |
-| Onboarding Complete | `5794:50621` | AgentCardView status=saved | Saved state |
-
----
-
-## 4. Conversation Flow States (node IDs for reference)
-
-| State | Node ID |
+| Component | Use |
 |---|---|
-| Onboarding Default | `1541:41805` |
-| Onboarding In-progress | `5794:50162` |
-| Onboarding Requires Action | `5794:50475` |
-| Onboarding Complete | `5794:50621` |
-| Research In-progress | `156:43027` |
-| Research Complete | `156:43068` |
-| Schedule In-progress | `156:42891` |
-| Schedule Requires Action | `156:42936` |
-| Schedule Complete | `156:42971` |
-| Meeting Confirm | `2848:40157` |
-| Meeting Complete | `52:4724` |
-| Ticket In-progress | `156:42736` |
-| Ticket Requires Action | `156:42780` |
-| Ticket Complete | `5748:53975` |
-| Text Only | `2848:40571` |
+| `StatusTag` | Semantic pill, 8 variants: `pending · in-progress · submitted · in-review · success · failed · expired · neutral`. Two sizes: `sm` / `md`. Optional `icon`. |
+| `Tag` | Neutral pill alias of StatusTag (no variant) |
+| `TimePill` | Neutral + User icon + time string |
+| `FilterChip` | Active/inactive toggle pill with optional `icon` + `count` |
 
----
+### 2.4 Progress / data
 
-## 5. Design Principles
-
-These rules MUST be followed when building or modifying any page/component. They override any default assumptions.
-
-### 5.1 Primary Button Rule
-
-**Only ONE primary button (`.gradient-btn`) per page/view.**
-
-- The gradient button is the single highest-emphasis action on the screen.
-- All other buttons must use secondary styles: `border border-stroke-outline text-text-primary hover:bg-bg-hover chip-gradient-hover`.
-- Having multiple gradient buttons on the same page is a violation.
-- Gradient button border radius: `rounded-[4px]`.
-
-### 5.2 Brand Color Budget (1–2% Rule)
-
-**Brand gradient (`#7652B9 → #B46470 → #CA9D8C`) must occupy no more than 1–2% of any page's visual area.**
-
-The brand gradient exists to create a single focal point. Overusing it makes every element compete for attention and dilutes brand impact.
-
-| Allowed | NOT Allowed |
+| Component | Purpose |
 |---|---|
-| One `.gradient-btn` per page | Multiple gradient buttons |
-| Active nav indicator (sidebar gradient border) | Text colors |
-| Urgent item accent bar (thin 4px strip) | Icon colors |
-| `.gradient-text` for hero/welcome titles only | Progress bars, badges, tags |
-| Loading dots (`.loading-dot`) | Data visualizations |
+| `ProgressBar` | Horizontal bar 0–100 · optional label |
+| `LabeledBar` | Labeled bar with category color |
+| `CircularProgress` | SVG ring, auto-sized to children |
+| `StepIndicator` | `done` / `in-progress` / `pending` step glyph |
+| `AreaChart` | SVG area chart, responsive, Catmull-Rom smoothing |
+| `MetricCard` | Centered label + big number + subtitle |
 
-### 5.3 Default Text & Icon Colors
+### 2.5 Rows & cards
 
-**All text uses default system colors unless specifically called out.**
+| Component | Purpose |
+|---|---|
+| `SectionTitle` | Emoji + title + optional count |
+| `InsightCard` | "Maya's insight" card with actions |
+| `TaskProgressCard` | Collapsible progress card with step list |
+| `ReviewItemCard` | Review row: auto-icon + metadata + action |
+| `HealthDimensionRow` | Icon + label + desc + auto-colored StatusTag (colored by value/target ratio) |
+| `SolutionRow` | Emoji + title + desc + right tag |
+| `SummaryFooter` | Clock + summary text (section footer) |
 
-| Role | Class | When to use |
+### 2.6 Inputs
+
+| Component | Purpose |
+|---|---|
+| `SearchBox` | Responsive search — expanded pill (desktop) / icon-expands (mobile) |
+
+### 2.7 Feature components (`src/components/*`, live via live-preview in DS page)
+
+| Component | Panel | Purpose |
 |---|---|---|
-| Primary | `text-text-primary` | Headings, body copy, labels, most text |
-| Secondary | `text-text-secondary` | Descriptions, captions, helper text |
-| Tertiary | `text-text-tertiary` | Disabled labels, muted metadata |
-
-- **Never** use brand gradient colors (`#7652B9`, `#B46470`, `#CA9D8C`) for text.
-- **Never** use hardcoded hex colors for text — always use the CSS variable classes above.
-- **Icons** always use `text-text-primary` (= `var(--color-icon-primary)`) by default.
-
-### 5.4 Callout & Highlight Color (Blue)
-
-**When you need emphasis, selection, or callout — use blue `#3171ff`, NOT the brand gradient.**
-
-| Use case | Style |
-|---|---|
-| Selected/active chip | `bg: var(--color-selected-bg)` + `color: var(--color-selected-text)` |
-| Progress bars | `background: #3171ff` |
-| Links & @mentions | `color: #3171ff` |
-| Focus indicators | `border-color: #3171ff` |
-
-- Light mode selected: `bg: rgba(49,113,255,0.1)`, `color: #3171ff`
-- Dark mode selected: `bg: #3171ff`, `color: #ffffff`
-
-### 5.5 Chip Selected State
-
-**Selected/active chips must use the blue selected style, NEVER `.gradient-btn`.**
-
-| State | Style |
-|---|---|
-| Default | `border border-stroke-outline text-text-primary` + `.chip-gradient-hover` |
-| Selected | `bg: var(--color-selected-bg)` + `color: var(--color-selected-text)` + `border-transparent` |
-
-### 5.6 Typography Scale
-
-**Only 5 text styles exist. Do not invent new sizes.**
-
-| Style | Size | Weight | Line Height | Letter Spacing | Use |
-|---|---|---|---|---|---|
-| Page Title | 40px | 700 (bold) | 48px | -0.5px | Page headings (e.g. "Overview", "Design System") |
-| Body / Regular | 16px | 400 | 32px | -0.43px | Default body text, paragraphs |
-| Body / Emphasized | 16px | 700 (bold) | 32px | -0.43px | Labels, titles, section headers |
-| Detail / Regular | 14px | 400 | 22px | 0px | Metadata, captions, secondary info |
-| Detail / Emphasized | 14px | 700 (bold) | 22px | 0px | Emphasized metadata, bold detail |
-
-- Large display numbers (e.g. "10", "+2h") may use larger sizes for data emphasis.
-- **Never** use 17px, 13px, 12px, 11px, 10px, or 9px — they are not in the type scale.
-
-### 5.7 StatusTag Colors
-
-**StatusTag (Connected, Sent, Done, etc.) always uses the design system green.**
-
-- Background: `rgba(2, 137, 1, 0.1)`
-- Text: `#028901`
-- This is the ONLY place this green appears. It is not used for text, icons, or other elements.
-
-### 5.8 Shared-First Development
-
-**Always build reusable UI in `shared.tsx` first.** App pages import from shared — never duplicate component code inline.
-
-- **Workflow:** Define in `shared.tsx` → Import into app pages → Monitor on Design System page → Update once, updates everywhere
-- **Avoid:** Inline one-off components in pages, copy-pasting component code, styling variants outside shared file, skipping Design System registration
+| `Sidebar` / `MiniSidebar` | NavPanel | Full / collapsed nav |
+| `ChatPanel` | ConversationPanel | Chat surface — welcome state + messages + input |
+| `ChatMessage` | ConversationPanel | Single bubble (user or assistant) |
+| `ChatInput` | ConversationPanel | Composer with Chat/Tasks/Code modes |
+| `MessageCard` | ConversationPanel | 5 variants: `meeting · research · ticket · schedule · agent` |
+| `DetailPanel` | InspectorPanel | Document viewer with AI transform actions |
+| `TaskContextPanel` | InspectorPanel | Progress + folder + context + tools (4 SideCards) |
+| `NewProjectDialog` | Modal | Create project flow |
+| `OverviewPage` / `LibraryPage` / `ConnectorsPage` / `ProjectPage` / `Onboarding` / `ComingSoonPage` | ConversationPanel (full page) | Top-level pages using PageLayout |
 
 ---
 
-## 6. Dark Mode
+## 3. Design Principles
 
-Dark mode is toggled via `.dark` class on `<html>`. All components use CSS variables that automatically switch. Icons use `.icon-theme` class (`filter: brightness(0) invert(1)` in dark mode). Gradient avatars/spinner do NOT use `.icon-theme`.
+1. **Shared-first.** Build in `shared.tsx`, import into pages. Never copy component code inline.
+2. **Tokens-first.** Use CSS variables / utility classes. Never hardcode hex, px font size, or arbitrary spacing.
+3. **One Primary button per view.** Multiple gradient CTAs = violation.
+4. **1–2% gradient budget.** The brand gradient is a focal point, not decoration.
+5. **Callouts are blue (`#3171FF`), not gradient.** Selected chips, links, progress, focus.
+6. **StatusTag success green is unique.** Only `--color-accent-green` / `-green-bg`. Not used anywhere else.
+7. **5 text styles only.** `.type-title` / `.type-body` / `.type-body-emphasized` / `.type-detail` / `.type-detail-emphasized`.
+8. **Icons = lucide-react.** Never render letters or abbreviations as icon stand-ins. Never import other icon libraries.
+9. **Dark-mode automatic.** All colors come from CSS vars bound to `:root` / `.dark`. PNGs use `.icon-theme`. Lucide SVGs inherit `currentColor`.
+10. **Three-panel shell.** Every feature is a slot in NavPanel / ConversationPanel / InspectorPanel. No new top-level chrome.
+11. **Review queue for new components.** If a need truly can't be met by `shared.tsx`, build it, then register it under the Design System **Review Queue** tab for explicit approval. Approved → promote into `shared.tsx`. Rejected → revert to closest existing component.
+
+### 3.1 When in doubt — decision tree
+
+```
+Need a button?
+  └─ primary CTA (one per view)       → PrimaryButton
+  └─ secondary emphasis               → SecondaryButton
+  └─ tertiary / bordered              → TertiaryButton
+
+Need a pill / tag?
+  └─ status meaning (success/fail/…) → StatusTag + variant
+  └─ on/off filter                    → FilterChip
+  └─ neutral label                    → Tag
+  └─ shows a time                     → TimePill
+
+Need a page shell?
+  └─ full standard page                → PageLayout
+  └─ page + side column                → PageLayout inside SplitView(main, side)
+  └─ bare header only (e.g. chat)      → HeaderBar
+
+Need a side panel?
+  └─ wrap in SplitView.side
+  └─ section inside it                 → SideCard (collapsible)
+  └─ panel header                      → SidePanelHeader
+
+Need a card?
+  └─ single metric                     → MetricCard
+  └─ insight / callout                 → InsightCard
+  └─ progress + steps                  → TaskProgressCard
+
+Need data viz?
+  └─ linear 0–100                      → ProgressBar / LabeledBar
+  └─ ring                              → CircularProgress
+  └─ step glyph                        → StepIndicator
+  └─ time series                       → AreaChart
+
+Nothing fits? → build in shared.tsx, register in Review Queue.
+```
 
 ---
 
-## 7. CSS Utility Classes (`src/index.css`)
+## 4. CSS utility reference (`src/index.css`)
 
-| Class | Usage |
+| Class | Effect |
 |---|---|
-| `.gradient-text` | Brand gradient text (Welcome title, etc.) |
-| `.gradient-btn` | Vertical gradient fill for buttons |
-| `.app-bg` | Page background with radial gradient blobs |
-| `.chip-gradient-hover` | Unselected chip: gradient border on hover |
-| `.onboarding-chip-selected` | Selected chip: `::before` pseudo-element gradient border ring on hover |
-| `.input-gradient-hover` | Input field: gradient border on hover (inactive state only) |
-| `.animate-progress-bar` | Progress bar fill animation |
-| `.loading-dot` | Individual animated dot (use 3 in sequence) |
-| `.message-appear` | Fade-in-up for new messages |
-| `.icon-theme` | Auto-invert icons in dark mode |
+| `.type-title` / `.type-body` / `.type-body-emphasized` / `.type-detail` / `.type-detail-emphasized` | Type scale |
+| `.gradient-btn` | Primary CTA gradient fill + shadow |
+| `.gradient-text` | Brand gradient text |
+| `.chip-gradient-hover` | Unselected chip: gradient border on hover (`padding-box/border-box`) |
+| `.input-gradient-hover` | Input: gradient border on focus/hover |
+| `.toolbar-gradient-hover` | Dark-mode-only gradient border for toolbar buttons |
+| `.icon-theme` | PNG auto-invert in dark mode |
+| `.app-bg` | Page background (white light / radial blobs dark) |
+| `.message-appear` | fadeInUp, 0.2s ease-out |
+| `.loading-dot` | 3-dot loader (brand colors, 1.4s) |
+| `.animate-progress-bar` | 0→100% fill, 2.5s ease-in-out |
+| `.scrollbar-autohide` | Thin scrollbar, hidden until hover |
+
+---
+
+## 5. Agent workflow when building UI
+
+1. Open the Design System page (Foundations tab) → confirm token you need exists; if not, add a CSS var in `src/index.css` first.
+2. Layouts tab → identify which panel the feature slots into.
+3. Component Library tab → find an existing component. **Compose, don't build.**
+4. If and only if no existing component can do the job:
+   - Build the new component in `src/components/shared.tsx` (not inline in a page).
+   - Add a new entry to the Review Queue in `DesignSystemPage.tsx` → `ReviewTab` with `name`, `builtFor`, `reason`, `closestExisting`, and a live `preview`.
+5. Re-read the 11 Principles (§3). Verify none are violated.
+6. Run `npm run dev` → open `/` → click through to Design System → visually confirm the component appears and renders in both light and dark mode.
+
+---
+
+## 6. Reusing this as a skill in another project
+
+Everything needed to port this system:
+- Copy `src/index.css` (tokens + utilities).
+- Copy `tailwind.config.js` (token → Tailwind mapping).
+- Copy `src/components/shared.tsx` (primitives).
+- Copy `src/components/DesignSystemPage.tsx` (reference surface).
+- Rewrite section §2.7 (feature components) for the new app.
+- Keep §3 (Principles) verbatim.

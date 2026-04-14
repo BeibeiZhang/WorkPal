@@ -12,6 +12,8 @@ AI workplace assistant desktop app prototype.
 
 All design tokens, color variables, typography, spacing, and component-to-code mappings are documented in [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md). When implementing or modifying UI from Figma designs, always reference this file to ensure 100% alignment with the Figma component library.
 
+The design system is also published as a personal Claude Code Skill at `~/.claude/skills/workpal-design-system/`. When `DESIGN_SYSTEM.md`, `src/index.css`, `tailwind.config.js`, or `src/components/shared.tsx` change here, copy the updated file into the Skill's `assets/` (or re-copy `DESIGN_SYSTEM.md` at the Skill root) to keep them in sync.
+
 Key rules:
 - Use CSS variables from `src/index.css` for all colors (supports light/dark mode)
 - Use Tailwind shortcuts: `text-text-primary`, `bg-bg-hover`, `border-stroke-outline`
