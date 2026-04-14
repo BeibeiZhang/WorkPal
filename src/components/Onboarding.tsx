@@ -133,18 +133,13 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
           chatOnly
           voiceAsSend
           forceSendActive={canProceed}
-          placeholder={canProceed ? 'Want to add anything in your own words? Or just hit send' : 'Describe what matters in your own words'}
+          placeholder={canProceed ? 'Want to add anything in your own words? Or just hit send' : 'Type your own words here...'}
         />
       }
     >
       {/* Scenario question — Body/Emphasized: 16px/32px/700/-0.43px */}
       <p className="text-base font-bold leading-[32px] tracking-[-0.43px] text-text-primary">
         Think about the teammates you've admired most in your career — what qualities inspired you the most?
-      </p>
-
-      {/* Subtitle — Body/Regular: 16px/32px/400/-0.43px */}
-      <p className="text-base leading-[32px] tracking-[-0.43px] text-text-primary mt-3">
-        All qualities help shape your agent. Pick your <strong>top 3</strong> for extra weight — or describe what matters in your own words.
       </p>
 
       {/* Drop zone header */}
@@ -187,6 +182,11 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
       >
         {available.map(t => renderChip(t, 'available'))}
       </div>
+
+      {/* Helper detail text — Detail/Regular: 14px/22px/400/0px */}
+      <p className="mt-4 text-sm leading-[22px] tracking-[0px] text-text-primary">
+        All qualities help shape your agent — your top 3 just carry extra weight. Can't find the right word? Describe it in your own words below.
+      </p>
     </PageLayout>
   );
 }
