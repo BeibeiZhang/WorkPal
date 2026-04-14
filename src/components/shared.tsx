@@ -4,7 +4,7 @@
  * Single source of truth — used by both app pages and the Design System page.
  * Update a component here → it updates everywhere in the app.
  */
-import { AlertTriangle, BadgeCheck, Check, Clock, Eye, Play, Send, Smile, Timer, User, Sparkles, XCircle, type LucideIcon } from 'lucide-react';
+import { AlertTriangle, BadgeCheck, Check, Clock, Eye, FileText, Mail, Ticket, Play, Send, Smile, Timer, User, Sparkles, XCircle, type LucideIcon } from 'lucide-react';
 import { type ReactNode, useRef, useState, useLayoutEffect } from 'react';
 
 /* ─── 1. SectionTitle ─── */
@@ -31,7 +31,7 @@ export function SectionTitle({
 /* ─── 2. ProgressBar ─── */
 export function ProgressBar({
   value,
-  color = '#3171ff',
+  color = '#142740',
   height = 6,
   showLabel = false,
 }: {
@@ -456,11 +456,15 @@ export function InsightCard({
   );
 }
 
-/* ─── 12. AreaChart ─── */
+/* ─── 12. AreaChart ───
+ * Smooth (Catmull-Rom → cubic Bezier) area chart. Measures the actual container
+ * width with ResizeObserver and uses that as the SVG viewBox — so the chart
+ * fills the card edge-to-edge without stretching circles or text.
+ */
 export function AreaChart({
   data,
   color = '#3171ff',
-  height = 100,
+  height = 140,
   gradientId,
 }: {
   data: { label: string; value: number }[];
@@ -468,41 +472,73 @@ export function AreaChart({
   height?: number;
   gradientId?: string;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(600);
+
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    setWidth(el.clientWidth || 600);
+    const ro = new ResizeObserver(entries => {
+      for (const e of entries) {
+        const cw = Math.round(e.contentRect.width);
+        if (cw > 0) setWidth(cw);
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const max = Math.max(...data.map(d => d.value), 1);
-  const w = 600;
-  const h = 80;
-  const padX = 40;
-  const padY = 8;
-  const stepX = (w - padX * 2) / (data.length - 1);
+  const labelSpace = 28;                     // reserved y for x-axis labels
+  const plotH = height - labelSpace;
+  const padX = 14;                           // side gutter so endpoint dots aren't clipped
+  const padY = 10;
+  const stepX = (width - padX * 2) / Math.max(1, data.length - 1);
   const gId = gradientId || `areaGrad-${Math.random().toString(36).slice(2, 8)}`;
 
   const points = data.map((d, i) => ({
     x: padX + i * stepX,
-    y: padY + (h - padY * 2) * (1 - d.value / max),
+    y: padY + (plotH - padY * 2) * (1 - d.value / max),
   }));
 
-  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
-  const areaPath = `${linePath} L${points[points.length - 1].x},${h} L${points[0].x},${h} Z`;
+  // Catmull-Rom-to-Bezier smoothing (tension 0.5 → silky flow).
+  const tension = 0.5;
+  let linePath = `M${points[0].x},${points[0].y}`;
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i - 1] ?? points[i];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[i + 2] ?? points[i + 1];
+    const c1x = p1.x + ((p2.x - p0.x) / 6) * tension * 2;
+    const c1y = p1.y + ((p2.y - p0.y) / 6) * tension * 2;
+    const c2x = p2.x - ((p3.x - p1.x) / 6) * tension * 2;
+    const c2y = p2.y - ((p3.y - p1.y) / 6) * tension * 2;
+    linePath += ` C${c1x.toFixed(2)},${c1y.toFixed(2)} ${c2x.toFixed(2)},${c2y.toFixed(2)} ${p2.x.toFixed(2)},${p2.y.toFixed(2)}`;
+  }
+  const areaPath = `${linePath} L${points[points.length - 1].x},${plotH} L${points[0].x},${plotH} Z`;
 
   return (
-    <svg viewBox={`0 0 ${w} ${h + 20}`} className="w-full" style={{ height }}>
-      <defs>
-        <linearGradient id={gId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity={0.2} />
-          <stop offset="100%" stopColor={color} stopOpacity={0} />
-        </linearGradient>
-      </defs>
-      <path d={areaPath} fill={`url(#${gId})`} />
-      <path d={linePath} fill="none" stroke={color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
-      {points.map((p, i) => (
-        <g key={i}>
-          <circle cx={p.x} cy={p.y} r={3} fill={color} />
-          <text x={p.x} y={h + 16} textAnchor="middle" fill="var(--color-text-primary)" fontSize={14} fontFamily="Inter, sans-serif">
-            {data[i].label}
-          </text>
-        </g>
-      ))}
-    </svg>
+    <div ref={containerRef} className="w-full" style={{ height }}>
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="block">
+        <defs>
+          <linearGradient id={gId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity={0.35} />
+            <stop offset="100%" stopColor={color} stopOpacity={0.02} />
+          </linearGradient>
+        </defs>
+        <path d={areaPath} fill={`url(#${gId})`} />
+        <path d={linePath} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+        {points.map((p, i) => (
+          <g key={i}>
+            <circle cx={p.x} cy={p.y} r={3} fill={color} />
+            <text x={p.x} y={plotH + 18} textAnchor="middle" fill="var(--color-text-primary)" fontSize={13} fontFamily="Inter, sans-serif">
+              {data[i].label}
+            </text>
+          </g>
+        ))}
+      </svg>
+    </div>
   );
 }
 
@@ -559,7 +595,64 @@ export function TaskProgressCard({
   );
 }
 
-/* ─── 14. ReviewItemCard ─── */
+/* ─── 13b. HealthDimensionRow ───
+ * Lucide icon + label/description on the left, auto-colored status pill on the right.
+ * Tag color + icon derive from completion ratio:
+ *   ≥100% → in-progress (light blue) + Check      // "done"
+ *   ≥50%  → pending     (orange)     + AlertTriangle
+ *   <50%  → failed      (red)        + XCircle
+ * Items with no `target` (e.g. Workload) are treated as done.
+ */
+export function HealthDimensionRow({
+  icon: Icon,
+  label,
+  desc,
+  value,
+  target,
+  unit,
+  status,
+}: {
+  icon: LucideIcon;
+  label: string;
+  desc: string;
+  value: number;
+  target?: number | null;
+  unit: string;
+  status?: string;
+}) {
+  const pct = target ? value / target : 1;
+  const tagProps =
+    pct >= 1   ? { variant: 'in-progress' as const, icon: Check }
+    : pct >= 0.5 ? { variant: 'pending'     as const, icon: AlertTriangle }
+    :              { variant: 'failed'      as const, icon: XCircle };
+  return (
+    <div className="bg-bg-page rounded-xl border border-stroke-outline px-4 py-3 flex items-center gap-3.5 dark:bg-[rgba(226,243,255,0.05)]">
+      <Icon size={22} strokeWidth={1.75} className="text-text-primary shrink-0 icon-theme" />
+      <div className="flex-1 min-w-0">
+        <div className="text-[14px] font-bold text-text-primary">{label}</div>
+        <div className="text-[14px] text-text-primary mt-0.5">{desc}</div>
+      </div>
+      <StatusTag
+        variant={tagProps.variant}
+        icon={tagProps.icon}
+        size="sm"
+        bold
+        label={target ? `${value}/${target}${unit}` : `${value} ${unit} · ${status ?? ''}`}
+      />
+    </div>
+  );
+}
+
+/* ─── 14. ReviewItemCard ───
+ * Leading icon is auto-derived from `type` (Document → FileText, Tickets → Ticket,
+ * Email → Mail). Override with the explicit `icon` prop for other content types.
+ */
+const REVIEW_TYPE_ICONS: Record<string, LucideIcon> = {
+  Document: FileText,
+  Tickets: Ticket,
+  Email: Mail,
+};
+
 export function ReviewItemCard({
   title,
   source,
@@ -568,6 +661,7 @@ export function ReviewItemCard({
   humanTime,
   done = false,
   onToggle,
+  icon,
 }: {
   title: string;
   source: string;
@@ -576,9 +670,12 @@ export function ReviewItemCard({
   humanTime: string;
   done?: boolean;
   onToggle?: () => void;
+  icon?: LucideIcon;
 }) {
+  const Icon = icon ?? REVIEW_TYPE_ICONS[type] ?? FileText;
   return (
     <div className={`bg-bg-page rounded-2xl border border-stroke-outline px-5 py-4 flex flex-col md:flex-row md:items-center gap-3 md:gap-4 transition-all dark:bg-[rgba(226,243,255,0.05)] ${done ? 'opacity-50' : ''}`}>
+      <Icon size={22} strokeWidth={1.75} className="text-text-primary shrink-0 icon-theme self-start md:self-center" />
       <div className="flex-1 min-w-0">
         <div className={`text-[14px] font-bold text-text-primary ${done ? 'line-through' : ''}`}>
           {title}

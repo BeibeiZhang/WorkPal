@@ -1,12 +1,15 @@
 import { useState, useCallback } from 'react';
 import {
-  Sparkles, ChevronRight, Check,
+  Sparkles, ChevronRight,
   Brain, Volume2, Briefcase, Home, Smile,
+  Moon, Zap, Gauge,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import {
   SectionTitle, LabeledBar, CircularProgress,
   Tag, SolutionRow, SummaryFooter, PrimaryButton, TertiaryButton,
   MetricCard, InsightCard, AreaChart, TaskProgressCard, ReviewItemCard,
+  HealthDimensionRow,
 } from './shared';
 
 /* ═══════════════════════════════════════════════════════════════
@@ -39,11 +42,20 @@ const IN_PROGRESS = [
   { title: 'Researching competitor onboarding flows', progress: 35, eta: '~20 min', steps: 'Scanning 4 competitor apps → Extracting screenshots → Compiling' },
 ];
 
-const HEALTH_DIMENSIONS = [
-  { emoji: '🧠', label: 'Focus Time', value: 2, target: 2, unit: 'h', status: 'on-track', desc: '9–11am blocked & protected', met: true },
-  { emoji: '👶', label: 'Family Time', value: 2, target: 2, unit: 'h', status: 'on-track', desc: '陪孩子 + 桌游时间已安排', met: true },
-  { emoji: '😴', label: 'Sleep', value: 7, target: 7, unit: 'h', status: 'on-track', desc: 'Last night: 7h 12min — well rested', met: true },
-  { emoji: '⚡', label: 'Workload', value: 3, target: null as number | null, unit: 'tasks', status: 'balanced', desc: 'Manageable pace today', met: true },
+const HEALTH_DIMENSIONS: Array<{
+  icon: LucideIcon;
+  label: string;
+  value: number;
+  target: number | null;
+  unit: string;
+  status: string;
+  desc: string;
+  met: boolean;
+}> = [
+  { icon: Brain, label: 'Focus Time', value: 2, target: 2, unit: 'h', status: 'on-track', desc: '9–11am blocked & protected', met: true },
+  { icon: Home, label: 'Family Time', value: 2, target: 2, unit: 'h', status: 'on-track', desc: '陪孩子 + 桌游时间已安排', met: true },
+  { icon: Moon, label: 'Sleep', value: 7, target: 7, unit: 'h', status: 'on-track', desc: 'Last night: 7h 12min — well rested', met: true },
+  { icon: Zap, label: 'Workload', value: 3, target: null, unit: 'tasks', status: 'balanced', desc: 'Manageable pace today', met: true },
 ];
 
 const STRESS_LEVEL = 48;
@@ -213,21 +225,16 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
               {/* Dimensions */}
               <div className="flex flex-col gap-2">
                 {HEALTH_DIMENSIONS.map((d, i) => (
-                  <div key={i} className="bg-bg-page rounded-xl border border-stroke-outline px-4 py-3 flex items-center gap-3.5 dark:bg-[rgba(226,243,255,0.05)]">
-                    <span className="text-[22px] shrink-0">{d.emoji}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[14px] font-bold text-text-primary">{d.label}</span>
-                        {d.target ? (
-                          <Tag bold>{d.value}/{d.target}{d.unit}</Tag>
-                        ) : (
-                          <Tag bold>{d.value} {d.unit} · {d.status}</Tag>
-                        )}
-                      </div>
-                      <div className="text-[14px] text-text-primary mt-0.5">{d.desc}</div>
-                    </div>
-                    {d.met && <Check size={16} className="text-text-primary shrink-0" />}
-                  </div>
+                  <HealthDimensionRow
+                    key={i}
+                    icon={d.icon}
+                    label={d.label}
+                    desc={d.desc}
+                    value={d.value}
+                    target={d.target}
+                    unit={d.unit}
+                    status={d.status}
+                  />
                 ))}
 
                 {/* Stress Index — Clickable */}
@@ -235,7 +242,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
                   onClick={() => setShowStressDetail(!showStressDetail)}
                   className="rounded-xl px-4 py-3 flex items-center gap-3.5 text-left transition-colors bg-bg-hover border border-stroke-outline"
                 >
-                  <span className="text-[22px] shrink-0">🧘</span>
+                  <Gauge size={22} strokeWidth={1.75} className="text-text-primary shrink-0 icon-theme" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-[14px] font-bold text-text-primary">Stress Level</span>

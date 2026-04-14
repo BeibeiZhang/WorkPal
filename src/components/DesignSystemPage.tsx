@@ -4,13 +4,14 @@ import {
   ChevronRight, Code2, FileCode2, FileText, FolderOpen, FolderPlus,
   MessageCircle, MoreVertical, PanelRight, Palette, Pen, Star, X,
   MessageSquare, CheckSquare, AtSign, Folder, GitBranch, Mic, Activity,
+  Brain, Moon, Home, Zap,
 } from 'lucide-react';
 import {
   SectionTitle as SharedSectionTitle, ProgressBar, LabeledBar, CircularProgress,
   TimePill, StepIndicator, Tag, FilterChip, PrimaryButton, SecondaryButton, TertiaryButton,
   SolutionRow, SummaryFooter,
   MetricCard, InsightCard, AreaChart, TaskProgressCard, ReviewItemCard,
-  StatusTag,
+  StatusTag, HealthDimensionRow,
 } from './shared';
 import {
   iconSun, iconMoon, iconSpinner, iconMicrophone, iconVoice, iconSend,
@@ -1797,6 +1798,29 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
               <TaskProgressCard title="Analyzing Q2 metrics" progress={62} eta="~8 min" steps={['Pulling data from Sheets', 'Building charts', 'Formatting']} expanded />
             </div>
             <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'TaskProgressCard'}</code> from shared.tsx</p>
+          </div>
+
+          {/* 9b. HealthDimensionRow */}
+          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[14px] font-bold text-text-primary">HealthDimensionRow</span>
+              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
+            </div>
+            <p className="text-[13px] text-text-primary leading-[18px] mb-3">
+              Lucide icon + label/desc on the left, auto-colored status pill on the right. Color + icon derive from completion ratio (<code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>value / target</code>):
+            </p>
+            <ul className="text-[13px] text-text-primary leading-[20px] mb-3 list-disc pl-5">
+              <li><strong>≥ 100%</strong> — light blue + check (done)</li>
+              <li><strong>≥ 50%</strong> — orange + warning (half)</li>
+              <li><strong>&lt; 50%</strong> — red + x (not started / failing)</li>
+            </ul>
+            <div className="flex flex-col gap-2 p-4 rounded-xl bg-bg-hover mb-3">
+              <HealthDimensionRow icon={Brain} label="Focus Time" desc="9–11am blocked & protected" value={2} target={2} unit="h" />
+              <HealthDimensionRow icon={Moon} label="Sleep" desc="Last night: 5h — a bit short" value={5} target={7} unit="h" />
+              <HealthDimensionRow icon={Home} label="Family Time" desc="No family time yet today" value={0} target={2} unit="h" />
+              <HealthDimensionRow icon={Zap} label="Workload" desc="Manageable pace today" value={3} unit="tasks" status="balanced" />
+            </div>
+            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'HealthDimensionRow'}</code> from shared.tsx</p>
           </div>
 
           {/* 10. StepIndicator */}
