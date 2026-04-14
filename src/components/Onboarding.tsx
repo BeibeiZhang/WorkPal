@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { X } from 'lucide-react';
 import ChatInput from './ChatInput';
+import { Tag } from './shared';
 
 interface OnboardingProps {
   onComplete: (mostImportant: string[], avoid: string[], description?: string) => void;
@@ -152,7 +153,7 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
 
           {/* Subtitle — Body/Regular: 16px/32px/400/-0.43px */}
           <p className="text-base leading-[32px] tracking-[-0.43px] text-text-primary mt-3">
-            All qualities help shape your agent. Pick your <strong className="text-[var(--color-selected-text)]">top 3</strong> for extra weight — or describe what matters in your own words.
+            All qualities help shape your agent. Pick your <strong>top 3</strong> for extra weight — or describe what matters in your own words.
           </p>
 
           {/* Drop zone header */}
@@ -160,9 +161,7 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
             <p className="text-base font-bold leading-[32px] tracking-[-0.43px] text-text-primary">
               Extra Weight — Your Top 3
             </p>
-            <span className="text-[14px] text-text-primary bg-bg-hover px-2 py-0.5 rounded-md">
-              {important.length}/3
-            </span>
+            <Tag>{important.length}/3</Tag>
           </div>
 
           {/* Drop zone */}

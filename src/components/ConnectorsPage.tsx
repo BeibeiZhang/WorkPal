@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Search, Plus, ChevronDown, Globe } from 'lucide-react';
 import { iconAsana, iconGmail, iconZoom, iconDoc20, iconSheet } from '../assets';
-import { FilterChip } from './shared';
+import { FilterChip, StatusTag } from './shared';
 
 /* ─── Connector data ─── */
 interface Connector {
@@ -97,12 +97,7 @@ function ConnectorCard({ connector }: { connector: Connector }) {
         {connector.name}
       </span>
       {connector.connected ? (
-        <span
-          className="text-[11px] font-semibold px-2 py-0.5 rounded"
-          style={{ background: 'rgba(2,137,1,0.1)', color: '#028901' }}
-        >
-          Connected
-        </span>
+        <StatusTag variant="success" label="Connected" size="sm" showIcon={false} />
       ) : (
         <button className="text-[11px] px-3 py-1 rounded-full border border-stroke-outline text-text-primary hover:bg-bg-hover transition-colors">
           Connect

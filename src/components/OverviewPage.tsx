@@ -219,13 +219,9 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
                       <div className="flex items-center gap-2">
                         <span className="text-[14px] font-bold text-text-primary">{d.label}</span>
                         {d.target ? (
-                          <span className="text-[14px] font-bold px-2 py-[1px] rounded-lg bg-bg-hover text-text-primary">
-                            {d.value}/{d.target}{d.unit}
-                          </span>
+                          <Tag bold>{d.value}/{d.target}{d.unit}</Tag>
                         ) : (
-                          <span className="text-[14px] font-bold px-2 py-[1px] rounded-lg bg-bg-hover text-text-primary">
-                            {d.value} {d.unit} · {d.status}
-                          </span>
+                          <Tag bold>{d.value} {d.unit} · {d.status}</Tag>
                         )}
                       </div>
                       <div className="text-[14px] text-text-primary mt-0.5">{d.desc}</div>
@@ -243,9 +239,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-[14px] font-bold text-text-primary">Stress Level</span>
-                      <span className="text-[14px] font-bold px-2 py-[1px] rounded-lg bg-bg-hover text-text-primary">
-                        {STRESS_LEVEL}/100 · {STRESS_LEVEL > 60 ? 'Moderate' : 'Low'}
-                      </span>
+                      <Tag bold>{STRESS_LEVEL}/100 · {STRESS_LEVEL > 60 ? 'Moderate' : 'Low'}</Tag>
                       <span className="text-[14px] text-text-primary">↓16 vs last week</span>
                     </div>
                     <div className="text-[14px] text-text-primary mt-0.5">

@@ -10,6 +10,7 @@ import {
   TimePill, StepIndicator, Tag, FilterChip, PrimaryButton, SecondaryButton,
   SolutionRow, SummaryFooter,
   MetricCard, InsightCard, AreaChart, TaskProgressCard, ReviewItemCard,
+  StatusTag,
 } from './shared';
 import {
   iconSun, iconMoon, iconSpinner, iconMicrophone, iconVoice, iconSend,
@@ -41,8 +42,14 @@ const COLORS = [
 ];
 
 const SPECIAL_COLORS = [
-  { name: 'Status Tag BG', value: 'rgba(2,137,1,0.1)', preview: 'rgba(2,137,1,0.1)', usage: 'Success / connected tag background', examples: '"Connected", "Sent", "Done" status badges in message cards' },
-  { name: 'Status Tag Text', value: '#028901', preview: '#028901', usage: 'Success / connected tag label', examples: 'StatusTag text in meeting cards, ticket cards, task "Done" badges' },
+  { name: 'StatusTag · success bg', value: 'rgba(2,137,1,0.1)', preview: 'rgba(2,137,1,0.1)', usage: 'StatusTag success variant background', examples: '"Connected", "Sent", "Done", "Saved" status badges' },
+  { name: 'StatusTag · success text', value: '#028901', preview: '#028901', usage: 'StatusTag success variant label', examples: 'Success StatusTag text in message cards, task rows, connector list' },
+  { name: 'StatusTag · pending bg / text', value: 'rgba(245,158,11,0.15) · #B8541A', preview: '#B8541A', usage: 'StatusTag pending variant', examples: '"To Do", "Pending" status badges' },
+  { name: 'StatusTag · in-progress bg / text', value: 'rgba(49,113,255,0.1) · #3171FF', preview: '#3171FF', usage: 'StatusTag in-progress variant', examples: '"In Progress" task status badges' },
+  { name: 'StatusTag · submitted bg / text', value: 'rgba(118,82,185,0.15) · #6B54E6', preview: '#6B54E6', usage: 'StatusTag submitted variant', examples: '"Submitted" review/approval badges' },
+  { name: 'StatusTag · in-review bg / text', value: 'rgba(234,179,8,0.18) · #A87725', preview: '#A87725', usage: 'StatusTag in-review variant', examples: '"In Review" approval-pending badges' },
+  { name: 'StatusTag · failed bg / text', value: 'rgba(220,38,38,0.12) · #C93838', preview: '#C93838', usage: 'StatusTag failed variant', examples: '"Failed" error/rejection badges' },
+  { name: 'StatusTag · expired bg / text', value: 'rgba(107,114,128,0.15) · #6B7280', preview: '#6B7280', usage: 'StatusTag expired variant', examples: '"Expired" stale/timed-out badges' },
   { name: 'Link / @Mention', value: '#3171ff', preview: '#3171ff', usage: 'Inline links and @mentions', examples: '@assignee names in tasks, "In Progress" badges, callout highlights' },
   { name: 'Selected Chip BG', value: 'var(--color-selected-bg)', preview: 'var(--color-selected-bg)', usage: 'Active chip / filter background', examples: 'Active filter chips on Tasks page, Design System nav chips' },
   { name: 'Agent Profile BG', value: '#E5E9F1', preview: '#E5E9F1', usage: 'Agent avatar circle background', examples: 'AI assistant avatar in chat messages' },
@@ -95,11 +102,20 @@ function MiniCardHeader({ icon, title, rightElement, borderBottom = false }: {
   );
 }
 
+/** Compact StatusTag wrapper for mini-card previews. Maps common labels to
+ *  the shared StatusTag variant — keeps demos aligned with the app's
+ *  design system pill style (rounded-full, no icon for tight card headers). */
 function MiniStatusTag({ label }: { label: string }) {
-  return (
-    <span className="text-[11px] font-semibold whitespace-nowrap px-2 py-0.5 rounded shrink-0"
-      style={{ background: 'rgba(2, 137, 1, 0.1)', color: '#028901' }}>{label}</span>
-  );
+  const k = label.trim().toLowerCase();
+  const variant: import('./shared').StatusVariant =
+    k === 'pending' ? 'pending'
+    : k === 'in progress' || k === 'in-progress' ? 'in-progress'
+    : k === 'submitted' ? 'submitted'
+    : k === 'in review' || k === 'in-review' ? 'in-review'
+    : k === 'failed' ? 'failed'
+    : k === 'expired' ? 'expired'
+    : 'success'; // Sent / Done / Saved / Connected
+  return <StatusTag variant={variant} label={label} size="sm" showIcon={false} />;
 }
 
 function MiniGradientButton({ label }: { label: string }) {
@@ -720,7 +736,7 @@ function ComponentShowcase() {
                 </div>
                 <span className="flex-1 text-[13px] text-text-primary font-medium">{app.name}</span>
                 {app.connected ? (
-                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded" style={{ background: 'rgba(2,137,1,0.1)', color: '#028901' }}>Connected</span>
+                  <StatusTag variant="success" label="Connected" size="sm" showIcon={false} />
                 ) : (
                   <button className="text-[11px] px-3 py-1 rounded-full border border-stroke-outline text-text-primary hover:bg-bg-hover">Connect</button>
                 )}
@@ -935,20 +951,146 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
           </div>
         </div>
 
-        {/* 5.8 StatusTag */}
-        <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
-          <div className="flex items-center gap-2 mb-3">
+        {/* 5.8 Tags — single source of truth for every pill in the app */}
+        <div id="ds-tags" className="mb-6 rounded-2xl border border-stroke-outline p-5 scroll-mt-4" style={{ background: 'var(--color-bg-page)' }}>
+          <div className="flex items-center gap-2 mb-2">
             <span className="text-[16px]">🏷️</span>
-            <span className="text-[16px] font-bold text-text-primary">StatusTag Colors</span>
+            <span className="text-[16px] font-bold text-text-primary">Tags</span>
+            <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
           </div>
-          <p className="text-[14px] text-text-primary leading-[22px] mb-3">
-            StatusTag always uses design system green. This is the only place this green appears.
+          <p className="text-[14px] text-text-primary leading-[22px] mb-4">
+            Every pill/badge in the app comes from one of the three shared components below.
+            Editing them in <code className="text-[13px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>src/components/shared.tsx</code> propagates instantly
+            to every page that uses them (Overview metrics, Tasks, Message Cards, Connectors, Onboarding, Library, etc.).
+            Never create an inline pill — extend one of these instead.
           </p>
-          <div className="flex items-center gap-3">
-            <span className="text-[14px] font-semibold px-3 py-1 rounded" style={{ background: 'rgba(2,137,1,0.1)', color: '#028901' }}>Connected</span>
-            <span className="text-[14px] font-semibold px-3 py-1 rounded" style={{ background: 'rgba(2,137,1,0.1)', color: '#028901' }}>Sent</span>
-            <span className="text-[14px] font-semibold px-3 py-1 rounded" style={{ background: 'rgba(2,137,1,0.1)', color: '#028901' }}>Done</span>
-            <code className="text-[13px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>bg: rgba(2,137,1,0.1) · color: #028901</code>
+
+          {/* ---- StatusTag ---- */}
+          <div className="rounded-xl border border-stroke-outline p-4 mb-4" style={{ background: 'var(--color-bg-page)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[14px] font-bold text-text-primary">StatusTag</span>
+              <span className="text-[11px] text-text-primary">— semantic status pill (7 variants)</span>
+            </div>
+            <p className="text-[13px] text-text-primary leading-[20px] mb-3">
+              Props: <code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>variant</code>
+              {' · '}
+              <code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>label</code>
+              {' · '}
+              <code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>showIcon?</code>
+              {' · '}
+              <code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>size?</code>
+            </p>
+
+            <div className="mb-3">
+              <div className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.5px] mb-2">With icon · size="md" (default)</div>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <StatusTag variant="pending"     label="Pending" />
+                <StatusTag variant="in-progress" label="In progress" />
+                <StatusTag variant="submitted"   label="Submitted" />
+                <StatusTag variant="in-review"   label="In review" />
+                <StatusTag variant="success"     label="Success" />
+                <StatusTag variant="failed"      label="Failed" />
+                <StatusTag variant="expired"     label="Expired" />
+              </div>
+            </div>
+
+            <div className="mb-3">
+              <div className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.5px] mb-2">No icon — compact contexts (card headers)</div>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <StatusTag variant="pending"     label="Pending"     showIcon={false} />
+                <StatusTag variant="in-progress" label="In progress" showIcon={false} />
+                <StatusTag variant="submitted"   label="Submitted"   showIcon={false} />
+                <StatusTag variant="in-review"   label="In review"   showIcon={false} />
+                <StatusTag variant="success"     label="Sent"        showIcon={false} />
+                <StatusTag variant="failed"      label="Failed"      showIcon={false} />
+                <StatusTag variant="expired"     label="Expired"     showIcon={false} />
+              </div>
+            </div>
+
+            <div>
+              <div className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.5px] mb-2">size="sm" — very tight spots (connector rows, inline metadata)</div>
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusTag variant="pending"     label="Pending"     size="sm" />
+                <StatusTag variant="in-progress" label="In progress" size="sm" />
+                <StatusTag variant="success"     label="Connected"   size="sm" showIcon={false} />
+                <StatusTag variant="failed"      label="Failed"      size="sm" />
+                <StatusTag variant="expired"     label="Expired"     size="sm" />
+              </div>
+            </div>
+
+            <div className="mt-3 text-[12px] text-text-primary leading-[18px] pt-3 border-t border-stroke-outline">
+              <strong>Used by:</strong> MessageCard (Sent / Saved / In progress), TaskScreen (To Do / In Progress / Done), ConnectorsPage (Connected), DesignSystem MiniStatusTag
+            </div>
+          </div>
+
+          {/* ---- Tag ---- */}
+          <div className="rounded-xl border border-stroke-outline p-4 mb-4" style={{ background: 'var(--color-bg-page)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[14px] font-bold text-text-primary">Tag</span>
+              <span className="text-[11px] text-text-primary">— neutral display pill (3 variants)</span>
+            </div>
+            <p className="text-[13px] text-text-primary leading-[20px] mb-3">
+              Props: <code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>children</code>
+              {' · '}
+              <code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>bold?</code>
+              {' · '}
+              <code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>outline?</code>
+            </p>
+
+            <div className="mb-3">
+              <div className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.5px] mb-2">Filled (default) — for page backgrounds</div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Tag>😊 Relaxed evenings</Tag>
+                <Tag>🎲 Board game night</Tag>
+                <Tag>📚 Reading</Tag>
+                <Tag>2/3</Tag>
+              </div>
+            </div>
+
+            <div className="mb-3">
+              <div className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.5px] mb-2">Bold — metric / progress labels</div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Tag bold>2/2h</Tag>
+                <Tag bold>7/7h</Tag>
+                <Tag bold>3 tasks · balanced</Tag>
+                <Tag bold>48/100 · Low</Tag>
+              </div>
+            </div>
+
+            <div>
+              <div className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.5px] mb-2">Outline — for use inside a tinted card (e.g. SolutionRow)</div>
+              <div className="flex flex-wrap items-center gap-2 p-3 rounded-lg" style={{ background: 'var(--color-bg-hover)' }}>
+                <Tag outline>针对：AI</Tag>
+                <Tag outline>针对：Deadline</Tag>
+                <Tag outline>针对：跨团队</Tag>
+              </div>
+            </div>
+
+            <div className="mt-3 text-[12px] text-text-primary leading-[18px] pt-3 border-t border-stroke-outline">
+              <strong>Used by:</strong> OverviewPage metric badges & impact tags, Onboarding "n/3" counter, ReviewItemCard type label, SolutionRow category tag
+            </div>
+          </div>
+
+          {/* ---- TimePill ---- */}
+          <div className="rounded-xl border border-stroke-outline p-4" style={{ background: 'var(--color-bg-page)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[14px] font-bold text-text-primary">TimePill</span>
+              <span className="text-[11px] text-text-primary">— neutral pill with user icon + time</span>
+            </div>
+            <p className="text-[13px] text-text-primary leading-[20px] mb-3">
+              Props: <code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>time</code>
+              {' — use for review-time estimates and similar effort metadata.'}
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <TimePill time="~3 min" />
+              <TimePill time="~5 min" />
+              <TimePill time="~8 min" />
+              <TimePill time="~16 min" />
+            </div>
+
+            <div className="mt-3 text-[12px] text-text-primary leading-[18px] pt-3 border-t border-stroke-outline">
+              <strong>Used by:</strong> ReviewItemCard (review time per item), Overview Needs Review rows
+            </div>
           </div>
         </div>
 
@@ -1264,9 +1406,10 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
           {/* Status Tag */}
           <div className="flex flex-col gap-3">
             <h3 className="text-[15px] font-semibold text-text-primary">Status Tag</h3>
-            <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-[13px] font-medium" style={{ background: 'rgba(2,137,1,0.1)', color: '#028901' }}>
-              Saved
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusTag variant="in-progress" label="In progress" />
+              <StatusTag variant="success" label="Saved" />
+            </div>
           </div>
 
           {/* Loading Dots */}
@@ -1587,22 +1730,7 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
             <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'ReviewItemCard'}</code> from shared.tsx</p>
           </div>
 
-          {/* 7. TimePill */}
-          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[14px] font-bold text-text-primary">TimePill</span>
-              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
-            </div>
-            <p className="text-[13px] text-text-primary leading-[18px] mb-3">Small bordered pill with user icon + time estimate.</p>
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-bg-hover mb-3">
-              <TimePill time="~5 min" />
-              <TimePill time="~8 min" />
-              <TimePill time="~3 min" />
-            </div>
-            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'TimePill'}</code> from shared.tsx</p>
-          </div>
-
-          {/* 8. Greeting Banner — page-specific, not shared */}
+          {/* Greeting Banner — page-specific, not shared */}
           <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[14px] font-bold text-text-primary">Greeting Banner</span>
@@ -1684,24 +1812,7 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
             <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'MetricCard'}</code> from shared.tsx</p>
           </div>
 
-          {/* 13. Tag */}
-          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[14px] font-bold text-text-primary">Tag</span>
-              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
-            </div>
-            <p className="text-[13px] text-text-primary leading-[18px] mb-3">Non-interactive display-only label pill.</p>
-            <div className="flex flex-wrap gap-1.5 p-4 rounded-xl bg-bg-hover mb-3">
-              <Tag>😊 Relaxed evenings</Tag>
-              <Tag>🎲 Board game night</Tag>
-              <Tag>👶 Co-bedtime</Tag>
-              <Tag>🎮 Gaming time</Tag>
-              <Tag>📚 Reading</Tag>
-            </div>
-            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'Tag'}</code> from shared.tsx</p>
-          </div>
-
-          {/* 14. SolutionRow */}
+          {/* SolutionRow */}
           <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[14px] font-bold text-text-primary">SolutionRow</span>

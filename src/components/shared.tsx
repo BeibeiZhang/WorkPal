@@ -4,7 +4,7 @@
  * Single source of truth — used by both app pages and the Design System page.
  * Update a component here → it updates everywhere in the app.
  */
-import { Check, Clock, Eye, Play, Timer, User, Sparkles } from 'lucide-react';
+import { AlertTriangle, BadgeCheck, Check, Clock, Eye, Play, Send, Smile, Timer, User, Sparkles, XCircle, type LucideIcon } from 'lucide-react';
 import { type ReactNode, useRef, useState, useLayoutEffect } from 'react';
 
 /* ─── 1. SectionTitle ─── */
@@ -143,14 +143,12 @@ export function CircularProgress({
   );
 }
 
-/* ─── 5. TimePill ─── */
+/* ─── 5. TimePill ───
+ * Thin alias — renders StatusTag (neutral, sm) with a User icon.
+ * Exists purely for readability at call sites ("time estimate" semantics).
+ */
 export function TimePill({ time }: { time: string }) {
-  return (
-    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-bg-hover border border-stroke-outline shrink-0">
-      <User size={12} className="text-text-primary" />
-      <span className="text-[14px] text-text-primary">{time}</span>
-    </div>
-  );
+  return <StatusTag variant="neutral" label={time} size="sm" icon={User} />;
 }
 
 /* ─── 6. StepIndicator ─── */
@@ -168,12 +166,98 @@ export function StepIndicator({ status }: { status: 'done' | 'in-progress' | 'pe
   return <div className="w-3.5 h-3.5 rounded-full border-2 shrink-0" style={{ borderColor: 'var(--color-stroke-outline)' }} />;
 }
 
-/* ─── 7. Tag ─── */
-export function Tag({ children }: { children: ReactNode }) {
+/* ─── 7a. StatusTag ───
+ * THE canonical pill component. Every tag/badge/pill in the app renders through this.
+ *   - `variant`  — semantic color + default icon (7 colored + `neutral`)
+ *   - `size`     — "sm" (12px) for tight spots, "md" (14px) everywhere else
+ *   - `showIcon` — hide the default icon in compact contexts
+ *   - `icon`     — override the variant's default icon (e.g. User for TimePill)
+ *   - `bold`     — font-bold instead of font-semibold (metric/progress labels)
+ *   - `outline`  — bg-bg-page + border instead of variant bg (use inside tinted cards)
+ *
+ * Thin aliases: <Tag>, <TimePill> — read below, they just configure StatusTag.
+ */
+export type StatusVariant =
+  | 'pending'
+  | 'in-progress'
+  | 'submitted'
+  | 'in-review'
+  | 'success'
+  | 'failed'
+  | 'expired'
+  | 'neutral';
+
+const STATUS_STYLES: Record<StatusVariant, { bg: string; color: string; icon: LucideIcon }> = {
+  'pending':     { bg: 'rgba(245,158,11,0.15)',  color: '#B8541A', icon: AlertTriangle },
+  'in-progress': { bg: 'rgba(49,113,255,0.1)',   color: '#3171FF', icon: Clock },
+  'submitted':   { bg: 'rgba(118,82,185,0.15)',  color: '#6B54E6', icon: Send },
+  'in-review':   { bg: 'rgba(234,179,8,0.18)',   color: '#A87725', icon: Smile },
+  'success':     { bg: 'rgba(2,137,1,0.1)',      color: '#028901', icon: BadgeCheck },
+  'failed':      { bg: 'rgba(220,38,38,0.12)',   color: '#C93838', icon: XCircle },
+  'expired':     { bg: 'rgba(107,114,128,0.15)', color: '#6B7280', icon: Clock },
+  'neutral':     { bg: 'var(--color-bg-hover)',  color: 'var(--color-text-primary)', icon: Clock },
+};
+
+export function StatusTag({
+  variant,
+  label,
+  showIcon = true,
+  size = 'md',
+  icon,
+  bold = false,
+  outline = false,
+}: {
+  variant: StatusVariant;
+  label: ReactNode;
+  showIcon?: boolean;
+  size?: 'sm' | 'md';
+  icon?: LucideIcon;
+  bold?: boolean;
+  outline?: boolean;
+}) {
+  const s = STATUS_STYLES[variant];
+  const Icon = icon ?? s.icon;
+  const isSmall = size === 'sm';
+  const surface = outline
+    ? { background: 'var(--color-bg-page)', color: s.color, border: '1px solid var(--color-stroke-outline)' }
+    : { background: s.bg, color: s.color };
   return (
-    <span className="text-[14px] text-text-primary bg-bg-hover px-2 py-0.5 rounded-lg">
-      {children}
+    <span
+      className={`inline-flex items-center whitespace-nowrap shrink-0 rounded-full tracking-[-0.3px] ${
+        bold ? 'font-bold' : 'font-semibold'
+      } ${
+        isSmall ? 'gap-1 px-2 py-0.5 text-[12px]' : 'gap-1.5 px-3 py-1 text-[14px] leading-[22px]'
+      }`}
+      style={surface}
+    >
+      {showIcon && <Icon size={isSmall ? 12 : 14} strokeWidth={2} />}
+      {label}
     </span>
+  );
+}
+
+/* ─── 7. Tag ───
+ * Thin alias — neutral StatusTag at size="sm", no icon. Supports bold/outline.
+ * Use for inline labels: emoji chips, metric badges, "n/3" counters, type labels.
+ */
+export function Tag({
+  children,
+  bold = false,
+  outline = false,
+}: {
+  children: ReactNode;
+  bold?: boolean;
+  outline?: boolean;
+}) {
+  return (
+    <StatusTag
+      variant="neutral"
+      label={children}
+      size="sm"
+      showIcon={false}
+      bold={bold}
+      outline={outline}
+    />
   );
 }
 
@@ -281,7 +365,7 @@ export function SolutionRow({
         <span className="text-[14px] font-bold text-text-primary">{title}</span>
         <span className="text-[14px] text-text-primary"> — {desc}</span>
       </div>
-      <span className="text-[14px] text-text-primary bg-bg-hover px-1.5 py-0.5 rounded-md whitespace-nowrap border border-stroke-outline">{tag}</span>
+      <Tag outline>{tag}</Tag>
     </div>
   );
 }
@@ -472,7 +556,7 @@ export function ReviewItemCard({
         <div className="text-[14px] text-text-primary mt-1 flex items-center gap-2 flex-wrap">
           <span>{source}</span>
           <span>·</span>
-          <span className="bg-bg-hover px-2 rounded">{type}</span>
+          <Tag>{type}</Tag>
           <span>·</span>
           <span>{time}</span>
         </div>
