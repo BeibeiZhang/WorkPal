@@ -1,68 +1,17 @@
-import { useState, useEffect, useSyncExternalStore } from 'react';
+import { useState, useEffect } from 'react';
 import { Project } from './Sidebar';
 import ChatInput from './ChatInput';
 import {
-  ChevronDown, ChevronRight, Star, MoreVertical, Plus, PanelRight, X,
+  ChevronDown, ChevronRight, Star, MoreVertical, PanelRight,
   FileCode2, MessageCircle, CheckSquare, Code2, Pen, File,
   MonitorPlay, Presentation,
 } from 'lucide-react';
-import { FilterChip } from './shared';
-
-/** Breakpoint: right panel hides when viewport < this */
-const PANEL_BREAKPOINT = 700;
-const subscribeResize = (cb: () => void) => { window.addEventListener('resize', cb); return () => window.removeEventListener('resize', cb); };
-const getIsNarrow = () => window.innerWidth < PANEL_BREAKPOINT;
+import { FilterChip, PageLayout, SearchBox, SideCard, SidePanelHeader, SplitView } from './shared';
 
 interface ProjectPageProps {
   project: Project;
   sidebarOpen: boolean;
   onToggleSidebar?: () => void;
-}
-
-/* ── Right-column collapsible card ── */
-function SideCard({
-  title,
-  icon,
-  hasAdd = false,
-  defaultOpen = false,
-  children,
-}: {
-  title: string;
-  icon?: React.ReactNode;
-  hasAdd?: boolean;
-  defaultOpen?: boolean;
-  children: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div className="border border-stroke-outline rounded-2xl overflow-hidden bg-white dark:bg-[#1a1f2e]">
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-2.5 w-full px-5 py-4 text-left hover:bg-bg-hover transition-colors"
-      >
-        <span className="flex-1 text-[15px] font-semibold text-text-primary">{title}</span>
-        {icon && (
-          <span className="text-text-primary" onClick={e => e.stopPropagation()}>
-            {icon}
-          </span>
-        )}
-        {hasAdd && (
-          <span className="text-text-primary" onClick={e => e.stopPropagation()}>
-            <Plus size={18} />
-          </span>
-        )}
-        <ChevronDown
-          size={16}
-          className={`text-text-primary transition-transform ${open ? '' : '-rotate-90'}`}
-        />
-      </button>
-      {open && (
-        <div className="px-5 pb-5 text-[14px] leading-relaxed text-text-secondary">
-          {children}
-        </div>
-      )}
-    </div>
-  );
 }
 
 /* ── Demo data ── */
@@ -264,7 +213,7 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
   const [selectedOutputId, setSelectedOutputId] = useState<string>(content.defaultSelectedOutputId);
   const [outputOpen, setOutputOpen] = useState(true);
   const [recentsOpen, setRecentsOpen] = useState(true);
-  const isNarrow = useSyncExternalStore(subscribeResize, getIsNarrow);
+  const [search, setSearch] = useState('');
   const [infoPanelOpen, setInfoPanelOpen] = useState(true);
 
   // Reset selected output when switching projects
@@ -272,73 +221,128 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
     setSelectedOutputId(content.defaultSelectedOutputId);
     setRecentsFilter('All');
     setOutputFilter('All');
+    setSearch('');
   }, [project.id, content.defaultSelectedOutputId]);
 
-  // Switch to overlay mode when going narrow, keep panel state when going wide
-  useEffect(() => {
-    if (isNarrow) setInfoPanelOpen(false);
-  }, [isNarrow]);
+  const q = search.trim().toLowerCase();
+  const matchesSearch = (text: string) => !q || text.toLowerCase().includes(q);
 
-  const filteredRecents = recentsFilter === 'All'
-    ? content.recents
-    : content.recents.filter(r => r.type === recentsFilter);
+  const filteredRecents = content.recents.filter(r => {
+    if (recentsFilter !== 'All' && r.type !== recentsFilter) return false;
+    return matchesSearch(r.title) || matchesSearch(r.description) || matchesSearch(r.outputTag ?? '');
+  });
 
-  const filteredOutputs = outputFilter === 'All'
-    ? content.outputs
-    : content.outputs.filter(o => o.type === outputFilter);
-
-  const showPanel = infoPanelOpen;
+  const filteredOutputs = content.outputs.filter(o => {
+    if (outputFilter !== 'All' && o.type !== outputFilter) return false;
+    return matchesSearch(o.name);
+  });
 
   return (
-    <div className="flex flex-col h-full flex-1 min-w-0 app-bg relative">
-      {/* Header bar */}
-      <div className="flex items-center justify-between px-4 h-12 shrink-0">
-        <div>
-          {!sidebarOpen && (
-            <button
-              onClick={onToggleSidebar}
-              className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-primary"
-            >
-              <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
-                <rect width="22" height="2" rx="1" fill="currentColor" />
-                <rect width="15" height="2" rx="1" y="7" fill="currentColor" />
-              </svg>
-            </button>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setInfoPanelOpen(o => !o)}
-            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-primary"
+    <SplitView
+      sideOpen={infoPanelOpen}
+      onCloseSide={() => setInfoPanelOpen(false)}
+      sideWidth={280}
+      bgClass="app-bg"
+      side={({ overlay }) => (
+        <div className={`flex flex-col h-full ${overlay ? 'app-bg' : ''}`}>
+          <SidePanelHeader
+            onClose={() => setInfoPanelOpen(false)}
+            closeIcon="panel-right"
+            closeLabel="Collapse panel"
+            className={overlay ? 'px-5' : 'pr-6 pl-0'}
+          />
+          <div
+            className={
+              overlay
+                ? 'flex-1 min-h-0 overflow-y-auto px-5 pb-8 scrollbar-autohide'
+                : 'flex-1 min-h-0 overflow-y-auto pr-6 pb-8 scrollbar-autohide'
+            }
           >
-            <PanelRight size={20} />
-          </button>
-        </div>
-      </div>
-
-      {/* Two-column layout */}
-      <div className="flex-1 flex min-h-0">
-
-        {/* ════ Left column ════ */}
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Scrollable content area */}
-          <div className="flex-1 overflow-y-auto px-8 pb-4 scrollbar-autohide scrollbar-offset" style={{ minWidth: 0 }}>
-            <div className="flex flex-col gap-6 max-w-[863px] mx-auto">
-
-              {/* Project title row */}
-              <div className="flex items-center justify-between">
-                <h1 className="text-[40px] font-bold text-text-primary leading-[48px] tracking-[-0.5px]">
-                  {project.name}
-                </h1>
-                <div className="flex items-center gap-6 shrink-0">
-                  <button className="flex items-center justify-center text-text-primary transition-colors">
-                    <Star size={16} />
-                  </button>
-                  <button className="flex items-center justify-center text-text-primary transition-colors">
-                    <MoreVertical size={18} />
-                  </button>
-                </div>
+            <div className="flex flex-col gap-4">
+            {/* Instructions */}
+            <SideCard title="Instructions" icon={<Pen size={14} />} defaultOpen>
+              <div className="flex flex-col gap-2">
+                <p className="text-[14px] text-text-primary leading-relaxed">
+                  <strong>Project Name: </strong>{project.name}
+                </p>
+                <p className="text-[14px] text-text-primary leading-relaxed">
+                  <strong>Project Objective: </strong>{content.objective}
+                </p>
               </div>
+            </SideCard>
+
+            {/* Scheduled */}
+            <SideCard title="Scheduled" hasAdd defaultOpen={false}>
+              <p className="text-text-secondary/60 italic text-[13px]">Set up recurring tasks for this project.</p>
+            </SideCard>
+
+            {/* Files */}
+            <SideCard title="Files" defaultOpen>
+              <div className="flex flex-col gap-1">
+                {content.files.map(file => (
+                  <button
+                    key={file.name}
+                    className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-bg-hover transition-colors"
+                  >
+                    <File size={16} className="text-text-primary shrink-0" />
+                    <span className="text-[14px] text-text-primary">{file.name}</span>
+                  </button>
+                ))}
+              </div>
+            </SideCard>
+
+            {/* Context */}
+            <SideCard title="Context" defaultOpen>
+              <div className="flex flex-col gap-1">
+                <button className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-bg-hover transition-colors group">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-primary shrink-0">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                  </svg>
+                  <span className="text-[14px] text-text-primary flex-1 text-left">{content.contextLabel}</span>
+                  <ChevronRight size={14} className="text-text-primary shrink-0" />
+                </button>
+              </div>
+            </SideCard>
+          </div>
+          </div>
+        </div>
+      )}
+    >
+      <PageLayout
+        title={project.name}
+        sidebarOpen={sidebarOpen}
+        onToggleSidebar={onToggleSidebar}
+        maxWidth="reading"
+        headerRight={
+          <>
+            <button className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-primary" aria-label="Star">
+              <Star size={18} />
+            </button>
+            <button className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-primary" aria-label="More">
+              <MoreVertical size={20} />
+            </button>
+            {!infoPanelOpen && (
+              <button
+                onClick={() => setInfoPanelOpen(true)}
+                aria-label="Open info panel"
+                className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-primary"
+              >
+                <PanelRight size={20} />
+              </button>
+            )}
+          </>
+        }
+        rightSlot={
+          <SearchBox value={search} onChange={setSearch} placeholder="Search this project" width={200} />
+        }
+        footer={
+          <ChatInput
+            onSend={() => {}}
+            placeholder="What would you like to work on in this project?"
+          />
+        }
+      >
+            <div className="flex flex-col gap-6">
 
               {/* Output section */}
               <div className="flex flex-col gap-4">
@@ -460,94 +464,7 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
                 )}
               </div>
             </div>
-          </div>
-
-          {/* Bottom input area — pinned to bottom */}
-          <div className="px-8 pb-6 pt-2 max-w-[863px] mx-auto w-full">
-            <ChatInput
-              onSend={() => {}}
-              placeholder="What would you like to work on in this project?"
-            />
-          </div>
-        </div>
-
-        {/* ════ Right column ════ */}
-        {/* Narrow: slide-over overlay panel */}
-        {isNarrow && infoPanelOpen && (
-          <div
-            className="fixed inset-0 z-20 bg-black/30"
-            onClick={() => setInfoPanelOpen(false)}
-          />
-        )}
-        {showPanel && (
-          <div
-            className={
-              isNarrow
-                ? 'fixed inset-0 z-30 overflow-y-auto pb-8 pt-4 px-5 scrollbar-autohide app-bg'
-                : 'w-[280px] shrink-0 overflow-y-auto pb-8 pt-2 pr-6 scrollbar-autohide'
-            }
-          >
-            {/* Close button in overlay mode */}
-            {isNarrow && (
-              <div className="flex justify-end mb-2">
-                <button
-                  onClick={() => setInfoPanelOpen(false)}
-                  className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-primary"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-            )}
-            <div className="flex flex-col gap-4">
-
-              {/* Instructions */}
-              <SideCard title="Instructions" icon={<Pen size={14} />} defaultOpen>
-                <div className="flex flex-col gap-2">
-                  <p className="text-[14px] text-text-primary leading-relaxed">
-                    <strong>Project Name: </strong>{project.name}
-                  </p>
-                  <p className="text-[14px] text-text-primary leading-relaxed">
-                    <strong>Project Objective: </strong>{content.objective}
-                  </p>
-                </div>
-              </SideCard>
-
-              {/* Scheduled */}
-              <SideCard title="Scheduled" hasAdd defaultOpen={false}>
-                <p className="text-text-secondary/60 italic text-[13px]">Set up recurring tasks for this project.</p>
-              </SideCard>
-
-              {/* Files */}
-              <SideCard title="Files" defaultOpen>
-                <div className="flex flex-col gap-1">
-                  {content.files.map(file => (
-                    <button
-                      key={file.name}
-                      className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-bg-hover transition-colors"
-                    >
-                      <File size={16} className="text-text-primary shrink-0" />
-                      <span className="text-[14px] text-text-primary">{file.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </SideCard>
-
-              {/* Context */}
-              <SideCard title="Context" defaultOpen>
-                <div className="flex flex-col gap-1">
-                  <button className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-bg-hover transition-colors group">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-primary shrink-0">
-                      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                    </svg>
-                    <span className="text-[14px] text-text-primary flex-1 text-left">{content.contextLabel}</span>
-                    <ChevronRight size={14} className="text-text-primary shrink-0" />
-                  </button>
-                </div>
-              </SideCard>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+      </PageLayout>
+    </SplitView>
   );
 }

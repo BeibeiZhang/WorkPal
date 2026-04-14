@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Search, Plus, ChevronDown, Globe } from 'lucide-react';
+import { Plus, ChevronDown, Globe } from 'lucide-react';
 import { iconAsana, iconGmail, iconZoom, iconDoc20, iconSheet } from '../assets';
-import { FilterChip, StatusTag, SecondaryButton } from './shared';
+import { FilterChip, StatusTag, SecondaryButton, PageLayout, SearchBox } from './shared';
 
 /* ─── Connector data ─── */
 interface Connector {
@@ -128,36 +128,13 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: Connect
     search ? items.filter(c => c.name.toLowerCase().includes(search.toLowerCase())) : items;
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 h-full" style={{ background: 'var(--color-bg-page)' }}>
-
-      {/* Header bar — toggle only */}
-      <div className="flex items-center gap-4 px-4 h-12 shrink-0">
-        {!sidebarOpen && (
-          <button
-            onClick={onToggleSidebar}
-            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors shrink-0 text-text-primary"
-          >
-            <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
-              <rect width="22" height="2" rx="1" fill="currentColor"/>
-              <rect width="15" height="2" rx="1" y="7" fill="currentColor"/>
-            </svg>
-          </button>
-        )}
-      </div>
-
-      {/* Page title — Agent Design style */}
-      <div className="px-8 pb-2 shrink-0">
-        <h1
-          className="text-[40px] font-bold text-text-primary leading-[48px] tracking-[-0.5px]"
-          style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
-        >
-          Connectors
-        </h1>
-      </div>
-
-      {/* Tabs + Search row */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between px-8 pt-4 gap-3 shrink-0">
-        <div className="flex items-center gap-2">
+    <PageLayout
+      title="Connectors"
+      sidebarOpen={sidebarOpen}
+      onToggleSidebar={onToggleSidebar}
+      rightSlot={<SearchBox value={search} onChange={setSearch} placeholder="Search" width={200} />}
+      filters={
+        <div className="flex items-center gap-2 flex-nowrap sm:flex-wrap overflow-x-auto sm:overflow-visible scrollbar-autohide -mx-4 sm:mx-0 px-4 sm:px-0">
           {tabs.map(tab => (
             <FilterChip
               key={tab.id}
@@ -167,27 +144,8 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: Connect
             />
           ))}
         </div>
-
-        {/* Search */}
-        <div
-          className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[14px] w-full md:w-[200px]"
-          style={{ background: 'var(--color-bg-hover)' }}
-        >
-          <Search size={16} className="shrink-0 text-text-primary" />
-          <input
-            type="text"
-            placeholder="Search"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="flex-1 bg-transparent outline-none text-[14px] text-text-primary placeholder-text-secondary"
-          />
-        </div>
-      </div>
-
-
-      {/* Content area */}
-      <div className="flex-1 overflow-y-auto px-8 py-6">
-
+      }
+    >
         {/* ── Apps tab ── */}
         {activeTab === 'apps' && (
           <>
@@ -268,7 +226,6 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: Connect
             </SecondaryButton>
           </div>
         )}
-      </div>
-    </div>
+    </PageLayout>
   );
 }

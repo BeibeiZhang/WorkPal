@@ -4,8 +4,430 @@
  * Single source of truth — used by both app pages and the Design System page.
  * Update a component here → it updates everywhere in the app.
  */
-import { AlertTriangle, BadgeCheck, Check, Clock, Eye, FileText, Mail, Ticket, Play, Send, Smile, Timer, User, Sparkles, XCircle, type LucideIcon } from 'lucide-react';
-import { type ReactNode, useRef, useState, useLayoutEffect } from 'react';
+import { AlertTriangle, ArrowLeft, BadgeCheck, Check, ChevronDown, Clock, Eye, FileText, Mail, PanelRight, Ticket, Play, Plus, Search, Send, Smile, Timer, User, Sparkles, X, XCircle, type LucideIcon } from 'lucide-react';
+import { type ReactNode, useEffect, useRef, useState, useLayoutEffect } from 'react';
+
+/* ─── 0a. HeaderBar ───
+ * Canonical top toolbar. Renders the sidebar-toggle button (when the sidebar
+ * is closed) and an optional right-side slot. Used by every top-level shell:
+ * `PageLayout` (internally) and `ChatPanel` (directly, because it has no
+ * page title so it doesn't use PageLayout).
+ *
+ *   - sidebarOpen: hides the menu toggle when sidebar is already open.
+ *   - onToggleSidebar: required for the menu toggle to render.
+ *   - headerRight: content aligned to the right (e.g. SidePanel toggle).
+ */
+export function HeaderBar({
+  sidebarOpen = true,
+  onToggleSidebar,
+  headerRight,
+}: {
+  sidebarOpen?: boolean;
+  onToggleSidebar?: () => void;
+  headerRight?: ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-4 px-4 h-12 shrink-0">
+      {!sidebarOpen && onToggleSidebar && (
+        <button
+          onClick={onToggleSidebar}
+          aria-label="Toggle sidebar"
+          className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors shrink-0 text-text-primary"
+        >
+          <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
+            <rect width="22" height="2" rx="1" fill="currentColor" />
+            <rect width="15" height="2" rx="1" y="7" fill="currentColor" />
+          </svg>
+        </button>
+      )}
+      {headerRight && <div className="ml-auto flex items-center gap-2">{headerRight}</div>}
+    </div>
+  );
+}
+
+/* ─── 0. PageLayout ───
+ * Canonical page shell — every top-level app page renders through this.
+ * Enforces uniform vertical rhythm and horizontal padding across the whole app.
+ * Edit the spec here → every page updates.
+ *
+ * Slots:
+ *   - title      — page H1 (required)
+ *   - rightSlot  — search / actions on the same row as the title (optional)
+ *   - filters    — filter pills / tabs row below the title (optional)
+ *   - children   — main content
+ *
+ * Spec (change here to update every page):
+ *   - Toggle bar        h-12 (48px)
+ *   - Horizontal pad    px-4 sm:px-8 (16 → 32)
+ *   - H1                text-[40px] / leading-[48px] / font-bold / tracking-[-0.5px]
+ *   - Title → filters   mt-6 (24px)
+ *   - Title/filters → content   mt-8 (32px)
+ *   - Bottom pad        pb-10 (40px)
+ *   - maxWidth          'full' (no limit)  |  'reading' (863px, centered)
+ *
+ * Special pages that DO NOT use PageLayout:
+ *   - ChatPanel — conversation container (no page title, input at bottom)
+ */
+export function PageLayout({
+  title,
+  rightSlot,
+  filters,
+  maxWidth = 'full',
+  sidebarOpen = true,
+  onToggleSidebar,
+  headerRight,
+  footer,
+  scrollContainerId,
+  bgClass,
+  children,
+}: {
+  title: ReactNode;
+  /** Right-aligned content in the title row (SearchBox, actions). */
+  rightSlot?: ReactNode;
+  /** Filter chip row rendered below the title. */
+  filters?: ReactNode;
+  /** `'full'` = page-wide content. `'reading'` = capped at 863px, centered. */
+  maxWidth?: 'full' | 'reading';
+  sidebarOpen?: boolean;
+  onToggleSidebar?: () => void;
+  /** Right-aligned content in the top toggle bar (e.g. panel toggle). */
+  headerRight?: ReactNode;
+  /** Pinned element at the bottom of the column, outside the scroll region
+   *  (e.g. ChatInput). Honors the `maxWidth` prop. */
+  footer?: ReactNode;
+  /** Optional `id` attribute on the scrollable body. Needed when callers
+   *  scroll to anchors via `element.scrollIntoView()` and the scroll
+   *  context isn't `window`. */
+  scrollContainerId?: string;
+  /** Optional background utility class (e.g. `"app-bg"`).
+   *  When omitted, uses `var(--color-bg-page)`. */
+  bgClass?: string;
+  children: ReactNode;
+}) {
+  const widthClass = maxWidth === 'reading' ? 'max-w-[863px] mx-auto w-full' : '';
+  return (
+    <div
+      className={`flex-1 flex flex-col min-w-0 h-full ${bgClass ?? ''}`}
+      style={bgClass ? undefined : { background: 'var(--color-bg-page)' }}
+    >
+      <HeaderBar sidebarOpen={sidebarOpen} onToggleSidebar={onToggleSidebar} headerRight={headerRight} />
+
+      {/* Scrollable body */}
+      <div id={scrollContainerId} className="flex-1 overflow-y-auto min-h-0 scrollbar-autohide">
+        <div className={`px-4 sm:px-8 pb-10 ${widthClass}`}>
+          {/* Title row — wraps rightSlot to next line when space is tight */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+            <h1
+              className="flex-1 min-w-[240px] text-[40px] font-bold text-text-primary leading-[48px] tracking-[-0.5px]"
+              style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
+            >
+              {title}
+            </h1>
+            {rightSlot && <div className="shrink-0">{rightSlot}</div>}
+          </div>
+
+          {filters && <div className="mt-6">{filters}</div>}
+
+          <div className="mt-8">{children}</div>
+        </div>
+      </div>
+
+      {/* Pinned footer (outside scroll) */}
+      {footer && (
+        <div className="shrink-0 px-4 sm:px-8 pb-6 pt-2">
+          <div className={widthClass}>{footer}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── 0b. SearchBox ───
+ * Responsive search field, designed to sit in PageLayout's rightSlot.
+ *
+ *   Desktop (md+):  always shows a pill with Search icon + input.
+ *   Mobile (< md):  shows only the icon. Tapping it opens a full-width
+ *                    search bar that replaces the toggle bar, autofocuses
+ *                    the input (keyboard appears), and offers a back/clear
+ *                    button. Tapping back closes and clears the query.
+ */
+export function SearchBox({
+  value,
+  onChange,
+  placeholder = 'Search',
+  width = 260,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  width?: number;
+}) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (mobileOpen) inputRef.current?.focus();
+  }, [mobileOpen]);
+
+  const closeMobile = () => {
+    setMobileOpen(false);
+    onChange('');
+  };
+
+  return (
+    <>
+      {/* Desktop: always-expanded pill */}
+      <div
+        className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full"
+        style={{ background: 'var(--color-bg-hover)', width }}
+      >
+        <Search size={16} className="shrink-0 text-text-primary" />
+        <input
+          type="text"
+          placeholder={placeholder}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          className="flex-1 min-w-0 bg-transparent outline-none text-[14px] text-text-primary placeholder-text-secondary"
+        />
+      </div>
+
+      {/* Mobile collapsed: icon button only */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        aria-label="Search"
+        className="md:hidden w-10 h-10 flex items-center justify-center rounded-full hover:bg-bg-hover transition-colors text-text-primary"
+      >
+        <Search size={20} />
+      </button>
+
+      {/* Mobile expanded: full-width overlay replacing the top bar */}
+      {mobileOpen && (
+        <div
+          className="md:hidden fixed inset-x-0 top-0 z-50 flex items-center gap-2 px-3 h-12 border-b border-stroke-outline"
+          style={{ background: 'var(--color-bg-page)' }}
+        >
+          <button
+            onClick={closeMobile}
+            aria-label="Close search"
+            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-bg-hover transition-colors text-text-primary shrink-0"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <div
+            className="flex-1 flex items-center gap-2 px-3 py-1.5 rounded-full"
+            style={{ background: 'var(--color-bg-hover)' }}
+          >
+            <Search size={16} className="shrink-0 text-text-primary" />
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder={placeholder}
+              value={value}
+              onChange={e => onChange(e.target.value)}
+              className="flex-1 min-w-0 bg-transparent outline-none text-[16px] text-text-primary placeholder-text-secondary"
+            />
+            {value && (
+              <button
+                onClick={() => onChange('')}
+                aria-label="Clear"
+                className="shrink-0 w-5 h-5 flex items-center justify-center rounded-full hover:bg-stroke-outline text-text-primary"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+/* ─── 0b2. SplitView ───
+ * Canonical two-column shell for pages that pair main content with a side panel.
+ * Handles the inline ↔ overlay transition based on container (not viewport) width:
+ *
+ *   When container ≥ sideWidth + mainMinWidth  → side is rendered inline (flex row)
+ *   When container <  sideWidth + mainMinWidth → side is rendered as full-area
+ *                                                 overlay (absolute inset-0 z-30)
+ *
+ * The measurement uses ResizeObserver on SplitView's own element, so it's
+ * agnostic of sidebar width, collapsed state, or viewport size.
+ *
+ * Used by: ProjectPage + side panel, ChatPanel + TaskContextPanel,
+ *          ChatPanel + DetailPanel.
+ *
+ * Callers typically render the panel as a self-contained element with its
+ * own scroll and background. When the panel needs different sizing inline vs
+ * overlay, pass a render-prop for `side`:
+ *
+ *   <SplitView side={({ overlay }) => <Panel fullScreen={overlay} />}>...</SplitView>
+ */
+export function SplitView({
+  children,
+  side,
+  sideOpen,
+  onCloseSide,
+  sideWidth,
+  mainMinWidth = 360,
+  bgClass,
+}: {
+  children: ReactNode;
+  side: ReactNode | ((state: { overlay: boolean }) => ReactNode);
+  sideOpen: boolean;
+  onCloseSide?: () => void;
+  sideWidth: number;
+  /** Minimum width reserved for the main column before we switch to overlay mode. */
+  mainMinWidth?: number;
+  /** Optional background class applied to the outer shell (e.g. 'app-bg'). */
+  bgClass?: string;
+}) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [canFit, setCanFit] = useState(true);
+
+  useLayoutEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const update = (w: number) => setCanFit(w >= sideWidth + mainMinWidth);
+    update(el.getBoundingClientRect().width);
+    const ro = new ResizeObserver(entries => update(entries[0].contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [sideWidth, mainMinWidth]);
+
+  const renderSide = typeof side === 'function' ? side : () => side;
+  const inline = sideOpen && canFit;
+  const overlay = sideOpen && !canFit;
+
+  return (
+    <div
+      ref={rootRef}
+      className={`flex flex-1 h-full min-w-0 relative ${bgClass ?? ''}`}
+    >
+      {children}
+      {inline && (
+        <div className="shrink-0 h-full" style={{ width: sideWidth }}>
+          {renderSide({ overlay: false })}
+        </div>
+      )}
+      {overlay && (
+        <div className="absolute inset-0 z-30 flex">
+          {renderSide({ overlay: true })}
+        </div>
+      )}
+      {/* Invisible tap-to-close backdrop when overlay is active and the side
+          panel doesn't fill the whole overlay area (rare but safe). */}
+      {overlay && onCloseSide && (
+        <div
+          className="absolute inset-0 z-20"
+          onClick={onCloseSide}
+          aria-hidden
+        />
+      )}
+    </div>
+  );
+}
+
+/* ─── 0c2. SidePanelHeader ───
+ * Canonical header row for any side panel (TaskContextPanel, DetailPanel,
+ * ProjectPage overlay). Unifies close-button size (40px rounded-xl), hover,
+ * and typography. Body stays panel-specific so each panel keeps freedom
+ * (DetailPanel's absolute popover, TaskContextPanel's SideCard stack).
+ *
+ *   - title (optional): bold, truncates, takes remaining row width.
+ *   - onClose (optional): renders a trailing close button with the chosen icon.
+ *   - closeIcon: 'x' (dismiss) | 'panel-right' (collapse toggle).
+ *   - Children slot between title and close (e.g. extra header actions).
+ *   - className controls horizontal padding so each panel keeps its own inset.
+ */
+export function SidePanelHeader({
+  title,
+  onClose,
+  closeIcon = 'x',
+  closeLabel = 'Close',
+  className = 'px-3',
+  children,
+}: {
+  title?: ReactNode;
+  onClose?: () => void;
+  closeIcon?: 'x' | 'panel-right';
+  closeLabel?: string;
+  className?: string;
+  children?: ReactNode;
+}) {
+  const Icon = closeIcon === 'panel-right' ? PanelRight : X;
+  return (
+    <div className={`flex items-center gap-3 h-16 shrink-0 ${className}`}>
+      {title ? (
+        <p className="flex-1 min-w-0 font-bold text-base leading-[22px] text-text-primary truncate">
+          {title}
+        </p>
+      ) : (
+        <div className="flex-1" />
+      )}
+      {children}
+      {onClose && (
+        <button
+          onClick={onClose}
+          aria-label={closeLabel}
+          className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors shrink-0 text-text-primary"
+        >
+          <Icon size={20} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ─── 0d. SideCard ───
+ * Collapsible card used inside right-column side panels.
+ *   - Border + rounded-2xl + page-bg surface (works in light/dark)
+ *   - Header: title (left) + optional icon slot + optional Plus affordance + chevron
+ *   - Clicking the whole header toggles open/closed
+ *   - Icon/Plus slots stop propagation so they remain independently clickable
+ *
+ * Used by: ProjectPage side panel (Instructions/Scheduled/Files/Context),
+ *          TaskContextPanel (Progress/Folder/Context/Tools active).
+ */
+export function SideCard({
+  title,
+  icon,
+  hasAdd = false,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  icon?: ReactNode;
+  hasAdd?: boolean;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border border-stroke-outline rounded-2xl overflow-hidden bg-white dark:bg-[#1a1f2e] shrink-0">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-2.5 w-full px-5 py-4 text-left hover:bg-bg-hover transition-colors"
+      >
+        <span className="flex-1 text-[15px] font-semibold text-text-primary">{title}</span>
+        {icon && (
+          <span className="text-text-primary" onClick={e => e.stopPropagation()}>
+            {icon}
+          </span>
+        )}
+        {hasAdd && (
+          <span className="text-text-primary" onClick={e => e.stopPropagation()}>
+            <Plus size={18} />
+          </span>
+        )}
+        <ChevronDown
+          size={16}
+          className={`text-text-primary transition-transform ${open ? '' : '-rotate-90'}`}
+        />
+      </button>
+      {open && <div className="px-5 pb-5">{children}</div>}
+    </div>
+  );
+}
 
 /* ─── 1. SectionTitle ─── */
 export function SectionTitle({
@@ -172,7 +594,6 @@ export function StepIndicator({ status }: { status: 'done' | 'in-progress' | 'pe
  *   - `size`     — "sm" (12px) for tight spots, "md" (14px) everywhere else
  *   - `showIcon` — hide the default icon in compact contexts
  *   - `icon`     — override the variant's default icon (e.g. User for TimePill)
- *   - `bold`     — font-bold instead of font-semibold (metric/progress labels)
  *   - `outline`  — bg-bg-page + border instead of variant bg (use inside tinted cards)
  *
  * Thin aliases: <Tag>, <TimePill> — read below, they just configure StatusTag.
@@ -204,7 +625,6 @@ export function StatusTag({
   showIcon = true,
   size = 'md',
   icon,
-  bold = false,
   outline = false,
 }: {
   variant: StatusVariant;
@@ -212,7 +632,6 @@ export function StatusTag({
   showIcon?: boolean;
   size?: 'sm' | 'md';
   icon?: LucideIcon;
-  bold?: boolean;
   outline?: boolean;
 }) {
   const s = STATUS_STYLES[variant];
@@ -223,9 +642,7 @@ export function StatusTag({
     : { background: s.bg, color: s.color };
   return (
     <span
-      className={`inline-flex items-center whitespace-nowrap shrink-0 rounded-full tracking-[-0.3px] ${
-        bold ? 'font-bold' : 'font-semibold'
-      } ${
+      className={`inline-flex items-center whitespace-nowrap shrink-0 rounded-[4px] tracking-[-0.3px] font-normal ${
         isSmall ? 'gap-1 px-2 py-0.5 text-[12px]' : 'gap-1.5 px-3 py-1 text-[14px] leading-[22px]'
       }`}
       style={surface}
@@ -237,16 +654,14 @@ export function StatusTag({
 }
 
 /* ─── 7. Tag ───
- * Thin alias — neutral StatusTag at size="sm", no icon. Supports bold/outline.
+ * Thin alias — neutral StatusTag at size="sm", no icon. Supports outline.
  * Use for inline labels: emoji chips, metric badges, "n/3" counters, type labels.
  */
 export function Tag({
   children,
-  bold = false,
   outline = false,
 }: {
   children: ReactNode;
-  bold?: boolean;
   outline?: boolean;
 }) {
   return (
@@ -255,7 +670,6 @@ export function Tag({
       label={children}
       size="sm"
       showIcon={false}
-      bold={bold}
       outline={outline}
     />
   );
@@ -636,7 +1050,6 @@ export function HealthDimensionRow({
         variant={tagProps.variant}
         icon={tagProps.icon}
         size="sm"
-        bold
         label={target ? `${value}/${target}${unit}` : `${value} ${unit} · ${status ?? ''}`}
       />
     </div>

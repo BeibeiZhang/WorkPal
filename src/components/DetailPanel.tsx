@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { X } from 'lucide-react';
 import { iconShorter, iconExtend, iconFormal, iconTranslate } from '../assets';
+import { SidePanelHeader } from './shared';
 
 interface DetailPanelProps {
   title: string;
@@ -28,18 +28,7 @@ export default function DetailPanel({ title, content, onClose, fullScreen = fals
       }}
     >
       {/* Header */}
-      <div className="flex items-center gap-4 h-16 pl-10 pr-[32px] shrink-0">
-        <p className="flex-1 font-bold text-base leading-[22px] text-text-primary truncate">
-          {title}
-        </p>
-        <button
-          onClick={onClose}
-          aria-label="Close"
-          className="w-11 h-11 flex items-center justify-center shrink-0 hover:bg-bg-hover rounded-full transition-colors text-text-primary"
-        >
-          <X size={20} />
-        </button>
-      </div>
+      <SidePanelHeader title={title} onClose={onClose} className="pl-10 pr-[32px]" />
 
       {/* Document content */}
       <div className="flex-1 overflow-y-auto pl-10 pr-[32px] relative">

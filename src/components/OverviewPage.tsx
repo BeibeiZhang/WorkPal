@@ -9,7 +9,7 @@ import {
   SectionTitle, LabeledBar, CircularProgress,
   Tag, SolutionRow, SummaryFooter, PrimaryButton, TertiaryButton,
   MetricCard, InsightCard, AreaChart, TaskProgressCard, ReviewItemCard,
-  HealthDimensionRow,
+  HealthDimensionRow, PageLayout,
 } from './shared';
 
 /* ═══════════════════════════════════════════════════════════════
@@ -138,36 +138,12 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
   const overallScore = Math.round((metCount / totalDimensions) * 100);
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 h-full app-bg">
-      {/* Header bar */}
-      <div className="flex items-center gap-4 px-4 h-12 shrink-0">
-        {!sidebarOpen && (
-          <button
-            onClick={onToggleSidebar}
-            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors shrink-0"
-            style={{ color: 'var(--color-icon-primary)' }}
-          >
-            <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
-              <rect width="22" height="2" rx="1" fill="currentColor" />
-              <rect width="15" height="2" rx="1" y="7" fill="currentColor" />
-            </svg>
-          </button>
-        )}
-      </div>
-
-      {/* Page title */}
-      <div className="px-8 pb-2 shrink-0">
-        <h1
-          className="text-[40px] font-bold leading-[48px] tracking-[-0.5px] text-text-primary"
-          style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
-        >
-          Overview
-        </h1>
-      </div>
-
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto min-h-0 px-8 pb-10 scrollbar-autohide">
-
+    <PageLayout
+      title="Overview"
+      sidebarOpen={sidebarOpen}
+      onToggleSidebar={onToggleSidebar}
+      bgClass="app-bg"
+    >
           {/* ━━━ 1. GREETING ━━━ */}
           <div className="rounded-2xl p-6 md:p-8 mb-6 relative overflow-hidden bg-bg-hover">
             <div className="flex flex-col md:flex-row gap-4 md:gap-6 relative">
@@ -246,7 +222,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-[14px] font-bold text-text-primary">Stress Level</span>
-                      <Tag bold>{STRESS_LEVEL}/100 · {STRESS_LEVEL > 60 ? 'Moderate' : 'Low'}</Tag>
+                      <Tag>{STRESS_LEVEL}/100 · {STRESS_LEVEL > 60 ? 'Moderate' : 'Low'}</Tag>
                       <span className="text-[14px] text-text-primary">↓16 vs last week</span>
                     </div>
                     <div className="text-[14px] text-text-primary mt-0.5">
@@ -424,7 +400,6 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
               <AreaChart data={WEEKLY_ENERGY} color="#3171ff" gradientId="energyGrad" />
             </div>
           </div>
-      </div>
-    </div>
+    </PageLayout>
   );
 }
