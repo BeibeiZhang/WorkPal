@@ -23,6 +23,57 @@
   --color-outer-border: #f5f5f7;
   --color-selected-bg: rgba(49,113,255,0.1);
   --color-selected-text: #3171ff;
+
+  /* Status / semantic accents — used for tags, badges, callouts */
+  --color-accent-blue: #3171ff;
+  --color-accent-green: #028901;
+  --color-accent-green-bg: rgba(2,137,1,0.1);
+  --color-accent-red: #C93838;
+  --color-accent-amber: #A87725;
+  --color-accent-orange: #B8541A;
+  --color-accent-violet: #6B54E6;
+  --color-accent-neutral: #6B7280;
+
+  /* Brand gradient stops — single source of truth */
+  --brand-grad-start: #7652B9;
+  --brand-grad-mid:   #B46470;
+  --brand-grad-end:   #CA9D8C;
+
+  /* Typography scale — 5 canonical styles. Edit here to update app-wide. */
+  --font-title-size: 40px;
+  --font-title-lh: 48px;
+  --font-title-weight: 700;
+  --font-title-tracking: -0.5px;
+
+  --font-body-size: 16px;
+  --font-body-lh: 32px;
+  --font-body-weight: 400;
+  --font-body-emphasized-weight: 700;
+  --font-body-tracking: -0.43px;
+
+  --font-detail-size: 14px;
+  --font-detail-lh: 22px;
+  --font-detail-weight: 400;
+  --font-detail-emphasized-weight: 700;
+  --font-detail-tracking: 0px;
+
+  /* Spacing scale — mirrors Tailwind scale; expose for docs/live wiring */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* Radius scale */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 9999px;
+  --radius-shell: 40px;
+
   --toolbar-btn-h: 39px;
   --mode-btn-unselected-w: 54px;
   --toolbar-icon-size: 24px;
@@ -313,6 +364,42 @@ html, body, #root {
     height: 7px;
     border-width: 0 1.5px 1.5px 0;
   }
+}
+
+/* ═══════════════════════════════════════════════════
+   Typography utility classes — 5 canonical styles.
+   Edit the CSS variables in :root above to propagate
+   app-wide. Always prefer these over inline text-[Xpx].
+   ═══════════════════════════════════════════════════ */
+.type-title {
+  font-size: var(--font-title-size);
+  line-height: var(--font-title-lh);
+  font-weight: var(--font-title-weight);
+  letter-spacing: var(--font-title-tracking);
+}
+.type-body {
+  font-size: var(--font-body-size);
+  line-height: var(--font-body-lh);
+  font-weight: var(--font-body-weight);
+  letter-spacing: var(--font-body-tracking);
+}
+.type-body-emphasized {
+  font-size: var(--font-body-size);
+  line-height: var(--font-body-lh);
+  font-weight: var(--font-body-emphasized-weight);
+  letter-spacing: var(--font-body-tracking);
+}
+.type-detail {
+  font-size: var(--font-detail-size);
+  line-height: var(--font-detail-lh);
+  font-weight: var(--font-detail-weight);
+  letter-spacing: var(--font-detail-tracking);
+}
+.type-detail-emphasized {
+  font-size: var(--font-detail-size);
+  line-height: var(--font-detail-lh);
+  font-weight: var(--font-detail-emphasized-weight);
+  letter-spacing: var(--font-detail-tracking);
 }
 
 /* Selected chip — uses mode-aware tokens, Figma node 142:16529 / 142:16548 */
