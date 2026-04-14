@@ -783,10 +783,9 @@ function SectionTitle({ children, id }: { children: React.ReactNode; id?: string
   );
 }
 
-type TabId = 'all' | 'foundations' | 'principles' | 'layouts' | 'components' | 'review';
+type TabId = 'foundations' | 'principles' | 'layouts' | 'components' | 'review';
 
 const TABS: { id: TabId; label: string; hint: string }[] = [
-  { id: 'all',         label: 'All',                         hint: 'Everything in one scroll — foundations, principles, layouts, components, and review queue' },
   { id: 'foundations', label: 'Foundations',                 hint: 'Color, typography, spacing, radius, and icons — the single source of truth everything else builds on' },
   { id: 'principles',  label: 'Principles & Requirements',   hint: 'Rules and guidelines I follow when building' },
   { id: 'layouts',     label: 'Layout Templates',            hint: 'Layout shells we use across the app' },
@@ -800,7 +799,7 @@ function SearchBoxDemo() {
 }
 
 export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: DesignSystemPageProps) {
-  const [activeTab, setActiveTab] = useState<TabId>('all');
+  const [activeTab, setActiveTab] = useState<TabId>('foundations');
 
   const activeTabMeta = useMemo(
     () => TABS.find(t => t.id === activeTab) ?? TABS[0],
@@ -841,1188 +840,14 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
         {/* Tab hint */}
         <p className="text-[13px] text-text-secondary leading-[20px] -mt-4 mb-6">{activeTabMeta.hint}</p>
 
-        {(activeTab === 'foundations' || activeTab === 'all') && <FoundationsTab />}
+        {activeTab === 'foundations' && <FoundationsTab />}
 
-        {(activeTab === 'principles' || activeTab === 'all') && (<>
-        {/* ━━━ DESIGN PRINCIPLES ━━━ */}
-        <SectionTitle id="ds-principles">Design Principles</SectionTitle>
+        {activeTab === 'principles' && <PrinciplesTab />}
 
-        {/* 5.0 Page Layout Template */}
-        <div id="ds-page-layout" className="mb-6 rounded-2xl border border-stroke-outline p-5 scroll-mt-4" style={{ background: 'var(--color-bg-page)' }}>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-[16px]">📐</span>
-            <span className="text-[16px] font-bold text-text-primary">Page Layout Template — shared.tsx · PageLayout</span>
-          </div>
-          <p className="text-[14px] text-text-primary leading-[22px] mb-4">
-            Every top-level app page renders through <code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>&lt;PageLayout&gt;</code>.
-            This enforces uniform vertical rhythm and horizontal padding across the entire app — edit the component once, every page updates.
-            Zero per-page CSS for headers, paddings, or title sizes.
-          </p>
 
-          {/* Visual diagram */}
-          <div className="rounded-lg border border-stroke-outline overflow-hidden mb-4" style={{ background: 'var(--color-bg-hover)' }}>
-            <div className="p-6">
-              {/* Toggle bar */}
-              <div className="relative rounded border border-dashed border-stroke-outline flex items-center px-3" style={{ height: 48, background: 'var(--color-bg-page)' }}>
-                <div className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'var(--color-bg-hover)' }}>
-                  <svg width="14" height="10" viewBox="0 0 22 16" fill="none"><rect width="22" height="2" rx="1" fill="currentColor" /><rect width="15" height="2" rx="1" y="7" fill="currentColor" /></svg>
-                </div>
-                <span className="ml-3 text-[11px] font-mono text-text-secondary">Toggle bar · h-12 (48px) · px-4</span>
-              </div>
-
-              <div className="text-[11px] font-mono text-text-secondary text-center py-1">↕ (no gap — body scrolls from here)</div>
-
-              {/* Title row */}
-              <div className="relative rounded border border-dashed border-stroke-outline flex items-center gap-3 px-4 py-3" style={{ background: 'var(--color-bg-page)' }}>
-                <div className="flex-1 text-[18px] font-bold text-text-primary leading-[22px]">Page Title</div>
-                <div className="shrink-0 px-2 py-1 rounded text-[10px] font-mono text-text-secondary" style={{ background: 'var(--color-bg-hover)' }}>rightSlot?</div>
-              </div>
-              <div className="text-[11px] font-mono text-text-secondary pl-1 pt-1">H1 · text-[40px] / leading-[48px] / font-bold · tracking-[-0.5px]</div>
-
-              <div className="text-[11px] font-mono text-text-secondary text-center py-2">↕ mt-6 (24px)</div>
-
-              {/* Filters */}
-              <div className="relative rounded border border-dashed border-stroke-outline flex items-center gap-2 px-3 py-3" style={{ background: 'var(--color-bg-page)' }}>
-                <div className="px-3 py-1 rounded-full text-[11px] text-text-primary border border-stroke-outline">Filter A</div>
-                <div className="px-3 py-1 rounded-full text-[11px] text-text-primary border border-stroke-outline">Filter B</div>
-                <div className="flex-1" />
-                <div className="shrink-0 px-2 py-1 rounded text-[10px] font-mono text-text-secondary" style={{ background: 'var(--color-bg-hover)' }}>filters? (optional)</div>
-              </div>
-
-              <div className="text-[11px] font-mono text-text-secondary text-center py-2">↕ mt-8 (32px)</div>
-
-              {/* Content */}
-              <div className="relative rounded border border-dashed border-stroke-outline flex items-center justify-center" style={{ background: 'var(--color-bg-page)', height: 140 }}>
-                <span className="text-[12px] font-mono text-text-secondary">children · maxWidth: 'full' | 'reading' (863px)</span>
-              </div>
-
-              <div className="text-[11px] font-mono text-text-secondary text-center py-2">↕ pb-10 (40px)</div>
-            </div>
-          </div>
-
-          {/* Spec table */}
-          <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-[13px] text-text-primary mb-4">
-            <div><strong>Toggle bar height:</strong> 48px (<code className="font-mono text-[12px]">h-12</code>)</div>
-            <div><strong>Horizontal padding:</strong> <code className="font-mono text-[12px]">px-4 sm:px-8</code></div>
-            <div><strong>H1:</strong> <code className="font-mono text-[12px]">text-[40px] / leading-[48px] / font-bold</code></div>
-            <div><strong>Title → filters:</strong> 24px (<code className="font-mono text-[12px]">mt-6</code>)</div>
-            <div><strong>Title/filters → content:</strong> 32px (<code className="font-mono text-[12px]">mt-8</code>)</div>
-            <div><strong>Bottom padding:</strong> 40px (<code className="font-mono text-[12px]">pb-10</code>)</div>
-            <div><strong>maxWidth 'full':</strong> no limit (dashboards, listings)</div>
-            <div><strong>maxWidth 'reading':</strong> 863px (articles, forms)</div>
-          </div>
-
-          {/* Usage */}
-          <div className="rounded-lg border border-stroke-outline p-3 mb-4" style={{ background: 'var(--color-bg-hover)' }}>
-            <div className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.5px] mb-2">Usage</div>
-            <pre className="text-[12px] font-mono text-text-primary overflow-x-auto leading-[18px]">{`<PageLayout
-  title="Library"
-  rightSlot={<SearchBox value={q} onChange={setQ} />}   // optional
-  filters={<FilterPills />}                              // optional
-  maxWidth="full"                                        // 'full' | 'reading'
-  sidebarOpen={sidebarOpen}
-  onToggleSidebar={onToggleSidebar}
->
-  {/* page content */}
-</PageLayout>`}</pre>
-          </div>
-
-          {/* SearchBox demo */}
-          <div className="rounded-lg border border-stroke-outline p-3 mb-4" style={{ background: 'var(--color-bg-hover)' }}>
-            <div className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.5px] mb-2">SearchBox — shared.tsx (recommended for rightSlot)</div>
-            <p className="text-[13px] text-text-primary leading-[20px] mb-3">
-              <strong>Desktop:</strong> always-expanded pill with icon + input.{' '}
-              <strong>Mobile (&lt; md):</strong> shows icon only. Tap → full-width search bar replaces the top bar, input autofocuses, keyboard appears. Back arrow clears and closes.
-            </p>
-            <div className="flex items-center gap-3 p-3 rounded-lg border border-stroke-outline" style={{ background: 'var(--color-bg-page)' }}>
-              <span className="text-[12px] font-mono text-text-secondary">Live:</span>
-              <SearchBoxDemo />
-              <span className="text-[11px] text-text-secondary ml-auto">Shrink viewport &lt; 768px to see the mobile behavior.</span>
-            </div>
-          </div>
-
-          {/* Pages that use it */}
-          <div className="mb-3">
-            <div className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.5px] mb-2">Used by (8 pages)</div>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-[13px] text-text-primary">
-              <div>• OverviewPage <span className="text-text-secondary">— full · no filters</span></div>
-              <div>• LibraryPage <span className="text-text-secondary">— full · filters + search</span></div>
-              <div>• ConnectorsPage <span className="text-text-secondary">— full · filters + search</span></div>
-              <div>• DesignSystemPage <span className="text-text-secondary">— full · filters</span></div>
-              <div>• ComingSoonPage <span className="text-text-secondary">— full · no filters</span></div>
-              <div>• Onboarding <span className="text-text-secondary">— reading (863px)</span></div>
-              <div>• ProjectPage <span className="text-text-secondary">— reading · rightSlot</span></div>
-            </div>
-          </div>
-
-          {/* Special pages */}
-          <div className="rounded-lg border p-3" style={{ background: 'rgba(220,38,38,0.04)', borderColor: 'rgba(220,38,38,0.2)' }}>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.5px] mb-2" style={{ color: '#C93838' }}>⚠ Pages that do NOT use PageLayout</div>
-            <div className="text-[13px] text-text-primary leading-[20px]">
-              <strong>ChatPanel</strong> — conversation container. No page title, messages scroll top-to-bottom with input docked at the bottom. Structurally different from title-led pages; keep standalone.
-            </div>
-          </div>
-        </div>
-
-        {/* 5.1 Button system (3 tiers) */}
-        <div id="ds-buttons" className="mb-6 rounded-2xl border border-stroke-outline p-5 scroll-mt-4" style={{ background: 'var(--color-bg-page)' }}>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-[16px]">1️⃣</span>
-            <span className="text-[16px] font-bold text-text-primary">Button system (3 tiers) — shared.tsx</span>
-          </div>
-          <p className="text-[14px] text-text-primary leading-[22px] mb-4">
-            Three levels of visual weight. Only <strong>ONE</strong> Primary per page/view.
-            Use Secondary for strong-but-not-hero actions; Tertiary for cancel / dismiss / low-weight options.
-            Primary and Secondary share the same lift-shadow on hover; Tertiary picks up a subtle gradient-tinted border.
-          </p>
-
-          {/* Tier 1 — Primary */}
-          <div className="mb-3 pt-3 border-t border-stroke-outline">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-[12px] font-bold text-text-primary uppercase tracking-[0.5px]">Tier 1 · PrimaryButton</span>
-              <span className="text-[12px] text-text-primary">— gradient · hero CTA · max one per view</span>
-            </div>
-            <div className="flex flex-wrap gap-3 items-center">
-              <PrimaryButton>Primary Action</PrimaryButton>
-              <PrimaryButton disabled>Disabled</PrimaryButton>
-            </div>
-          </div>
-
-          {/* Tier 2 — Secondary (new) */}
-          <div className="mb-3 pt-3 border-t border-stroke-outline">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-[12px] font-bold text-text-primary uppercase tracking-[0.5px]">Tier 2 · SecondaryButton</span>
-              <span className="text-[12px] text-text-primary">— solid inverted surface (auto flips in dark mode) · lift-shadow on hover</span>
-            </div>
-            <div className="flex flex-wrap gap-3 items-center">
-              <SecondaryButton>Secondary</SecondaryButton>
-              <SecondaryButton disabled>Disabled</SecondaryButton>
-            </div>
-          </div>
-
-          {/* Tier 3 — Tertiary */}
-          <div className="mb-2 pt-3 border-t border-stroke-outline">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-[12px] font-bold text-text-primary uppercase tracking-[0.5px]">Tier 3 · TertiaryButton</span>
-              <span className="text-[12px] text-text-primary">— outlined · subtle gradient-tinted border on hover · cancel / dismiss</span>
-            </div>
-            <div className="flex flex-wrap gap-3 items-center">
-              <TertiaryButton>Tertiary</TertiaryButton>
-              <TertiaryButton disabled>Disabled</TertiaryButton>
-            </div>
-          </div>
-
-          <p className="text-[13px] text-text-primary mt-4 leading-[18px] pt-3 border-t border-stroke-outline">
-            All three share the same props: <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>children</code>, <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>onClick</code>, <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>disabled</code>, <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>fullWidth</code>, <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>className</code>.
-          </p>
-        </div>
-
-        {/* 5.2 Brand Color Budget */}
-        <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-[16px]">🎨</span>
-            <span className="text-[16px] font-bold text-text-primary">Brand Color Budget — 1–2% Max</span>
-          </div>
-          <p className="text-[14px] text-text-primary leading-[22px] mb-4">
-            Brand gradient (<code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>#7652B9 → #B46470 → #CA9D8C</code>) must occupy ≤ 1–2% of any page.
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-xl border border-stroke-outline p-3">
-              <div className="text-[14px] font-bold text-text-primary mb-2">✅ Allowed</div>
-              <ul className="text-[14px] text-text-primary leading-[22px] list-disc pl-4 space-y-1">
-                <li>One <code className="text-[13px] px-1 rounded" style={{ background: 'var(--color-bg-hover)' }}>.gradient-btn</code> per page</li>
-                <li>Active nav indicator</li>
-                <li>Urgent accent bar (4px)</li>
-                <li>Hero gradient text</li>
-                <li>Loading dots</li>
-              </ul>
-            </div>
-            <div className="rounded-xl border border-stroke-outline p-3">
-              <div className="text-[14px] font-bold text-text-primary mb-2">🚫 Not Allowed</div>
-              <ul className="text-[14px] text-text-primary leading-[22px] list-disc pl-4 space-y-1">
-                <li>Text colors</li>
-                <li>Icon colors</li>
-                <li>Progress bars, badges, tags</li>
-                <li>Multiple buttons per page</li>
-                <li>Data visualizations</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* 5.3 Default Text & Icon Colors */}
-        <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-[16px]">🔤</span>
-            <span className="text-[16px] font-bold text-text-primary">Default Text & Icon Colors</span>
-          </div>
-          <p className="text-[14px] text-text-primary leading-[22px] mb-3">
-            All text and icons use system defaults. Never hardcode hex colors.
-          </p>
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl" style={{ background: 'var(--color-bg-hover)' }}>
-              <div className="w-4 h-4 rounded-full" style={{ background: 'var(--color-text-primary)' }} />
-              <code className="text-[13px] font-mono" style={{ color: '#3171ff' }}>text-text-primary</code>
-              <span className="text-[14px] text-text-primary flex-1">— Headings, body, labels, icons</span>
-            </div>
-            <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl" style={{ background: 'var(--color-bg-hover)' }}>
-              <div className="w-4 h-4 rounded-full" style={{ background: 'var(--color-text-secondary)' }} />
-              <code className="text-[13px] font-mono" style={{ color: '#3171ff' }}>text-text-secondary</code>
-              <span className="text-[14px] text-text-primary flex-1">— Descriptions, captions, helper text</span>
-            </div>
-            <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl" style={{ background: 'var(--color-bg-hover)' }}>
-              <div className="w-4 h-4 rounded-full" style={{ background: 'var(--color-text-tertiary)' }} />
-              <code className="text-[13px] font-mono" style={{ color: '#3171ff' }}>text-text-tertiary</code>
-              <span className="text-[14px] text-text-primary flex-1">— Disabled, muted metadata</span>
-            </div>
-          </div>
-        </div>
-
-        {/* 5.4 Callout Color */}
-        <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-[16px]">💙</span>
-            <span className="text-[16px] font-bold text-text-primary">Callout & Highlight Color — Blue #3171ff</span>
-          </div>
-          <p className="text-[14px] text-text-primary leading-[22px] mb-3">
-            For emphasis, selection, progress, and callouts — use blue, NOT the brand gradient.
-          </p>
-          <div className="flex flex-wrap gap-3 items-center">
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full border-transparent" style={{ background: 'var(--color-selected-bg)', color: 'var(--color-selected-text)' }}>
-              <span className="text-[14px]">Selected Chip</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-32 h-2 rounded-full" style={{ background: '#3171ff' }} />
-              <span className="text-[14px] text-text-primary">Progress bar</span>
-            </div>
-            <span className="text-[14px]" style={{ color: '#3171ff' }}>@mention link</span>
-          </div>
-        </div>
-
-        {/* 5.5 FilterChip (shared) */}
-        <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-[16px]">🔘</span>
-            <span className="text-[16px] font-bold text-text-primary">FilterChip (shared)</span>
-          </div>
-          <p className="text-[14px] text-text-primary leading-[22px] mb-3">
-            Master filter chip used across Library, Tasks, Projects, Connectors. Supports optional <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>icon</code> and <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>count</code>.
-          </p>
-          <div className="flex flex-wrap gap-3 items-center">
-            <FilterChip label="All" active count={9} />
-            <FilterChip label="Reports" icon={<FileText size={14} className="icon-theme" />} count={2} />
-            <FilterChip label="Documents" />
-            <FilterChip label="Active" active />
-          </div>
-        </div>
-
-        {/* 5.8 Tags — single source of truth for every pill in the app */}
-        <div id="ds-tags" className="mb-6 rounded-2xl border border-stroke-outline p-5 scroll-mt-4" style={{ background: 'var(--color-bg-page)' }}>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-[16px]">🏷️</span>
-            <span className="text-[16px] font-bold text-text-primary">Tags</span>
-            <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
-          </div>
-          <p className="text-[14px] text-text-primary leading-[22px] mb-4">
-            Every pill/badge in the app comes from one of the three shared components below.
-            Editing them in <code className="text-[13px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>src/components/shared.tsx</code> propagates instantly
-            to every page that uses them (Overview metrics, Tasks, Message Cards, Connectors, Onboarding, Library, etc.).
-            Never create an inline pill — extend one of these instead.
-          </p>
-
-          {/* ---- StatusTag ---- */}
-          <div className="rounded-xl border border-stroke-outline p-4 mb-4" style={{ background: 'var(--color-bg-page)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[14px] font-bold text-text-primary">StatusTag</span>
-              <span className="text-[11px] text-text-primary">— semantic status pill (7 variants)</span>
-            </div>
-            <p className="text-[13px] text-text-primary leading-[20px] mb-3">
-              Props: <code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>variant</code>
-              {' · '}
-              <code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>label</code>
-              {' · '}
-              <code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>showIcon?</code>
-              {' · '}
-              <code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>size?</code>
-            </p>
-
-            <div className="mb-3">
-              <div className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.5px] mb-2">With icon · size="md" (default)</div>
-              <div className="flex flex-wrap items-center gap-2.5">
-                <StatusTag variant="pending"     label="Pending" />
-                <StatusTag variant="in-progress" label="In progress" />
-                <StatusTag variant="submitted"   label="Submitted" />
-                <StatusTag variant="in-review"   label="In review" />
-                <StatusTag variant="success"     label="Success" />
-                <StatusTag variant="failed"      label="Failed" />
-                <StatusTag variant="expired"     label="Expired" />
-              </div>
-            </div>
-
-            <div className="mb-3">
-              <div className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.5px] mb-2">No icon — compact contexts (card headers)</div>
-              <div className="flex flex-wrap items-center gap-2.5">
-                <StatusTag variant="pending"     label="Pending"     showIcon={false} />
-                <StatusTag variant="in-progress" label="In progress" showIcon={false} />
-                <StatusTag variant="submitted"   label="Submitted"   showIcon={false} />
-                <StatusTag variant="in-review"   label="In review"   showIcon={false} />
-                <StatusTag variant="success"     label="Sent"        showIcon={false} />
-                <StatusTag variant="failed"      label="Failed"      showIcon={false} />
-                <StatusTag variant="expired"     label="Expired"     showIcon={false} />
-              </div>
-            </div>
-
-            <div>
-              <div className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.5px] mb-2">size="sm" — very tight spots (connector rows, inline metadata)</div>
-              <div className="flex flex-wrap items-center gap-2">
-                <StatusTag variant="pending"     label="Pending"     size="sm" />
-                <StatusTag variant="in-progress" label="In progress" size="sm" />
-                <StatusTag variant="success"     label="Connected"   size="sm" showIcon={false} />
-                <StatusTag variant="failed"      label="Failed"      size="sm" />
-                <StatusTag variant="expired"     label="Expired"     size="sm" />
-              </div>
-            </div>
-
-            <div className="mt-3 text-[12px] text-text-primary leading-[18px] pt-3 border-t border-stroke-outline">
-              <strong>Used by:</strong> MessageCard (Sent / Saved / In progress), ConnectorsPage (Connected), DesignSystem MiniStatusTag
-            </div>
-          </div>
-
-          {/* ---- Tag ---- */}
-          <div className="rounded-xl border border-stroke-outline p-4 mb-4" style={{ background: 'var(--color-bg-page)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[14px] font-bold text-text-primary">Tag</span>
-              <span className="text-[11px] text-text-primary">— neutral display pill (3 variants)</span>
-            </div>
-            <p className="text-[13px] text-text-primary leading-[20px] mb-3">
-              Props: <code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>children</code>
-              {' · '}
-              <code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>outline?</code>
-            </p>
-
-            <div className="mb-3">
-              <div className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.5px] mb-2">Filled (default) — for page backgrounds</div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Tag>😊 Relaxed evenings</Tag>
-                <Tag>🎲 Board game night</Tag>
-                <Tag>📚 Reading</Tag>
-                <Tag>2/3</Tag>
-                <Tag>2/2h</Tag>
-                <Tag>48/100 · Low</Tag>
-              </div>
-            </div>
-
-            <div>
-              <div className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.5px] mb-2">Outline — for use inside a tinted card (e.g. SolutionRow)</div>
-              <div className="flex flex-wrap items-center gap-2 p-3 rounded-lg" style={{ background: 'var(--color-bg-hover)' }}>
-                <Tag outline>针对：AI</Tag>
-                <Tag outline>针对：Deadline</Tag>
-                <Tag outline>针对：跨团队</Tag>
-              </div>
-            </div>
-
-            <div className="mt-3 text-[12px] text-text-primary leading-[18px] pt-3 border-t border-stroke-outline">
-              <strong>Used by:</strong> OverviewPage metric badges & impact tags, Onboarding "n/3" counter, ReviewItemCard type label, SolutionRow category tag
-            </div>
-          </div>
-
-          {/* ---- TimePill ---- */}
-          <div className="rounded-xl border border-stroke-outline p-4" style={{ background: 'var(--color-bg-page)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[14px] font-bold text-text-primary">TimePill</span>
-              <span className="text-[11px] text-text-primary">— neutral pill with user icon + time</span>
-            </div>
-            <p className="text-[13px] text-text-primary leading-[20px] mb-3">
-              Props: <code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>time</code>
-              {' — use for review-time estimates and similar effort metadata.'}
-            </p>
-            <div className="flex flex-wrap items-center gap-2">
-              <TimePill time="~3 min" />
-              <TimePill time="~5 min" />
-              <TimePill time="~8 min" />
-              <TimePill time="~16 min" />
-            </div>
-
-            <div className="mt-3 text-[12px] text-text-primary leading-[18px] pt-3 border-t border-stroke-outline">
-              <strong>Used by:</strong> ReviewItemCard (review time per item), Overview Needs Review rows
-            </div>
-          </div>
-        </div>
-
-        {/* 5.8 Shared-First Development */}
-        <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-[16px]">🧩</span>
-            <span className="text-[16px] font-bold text-text-primary">Shared-First Development</span>
-          </div>
-          <p className="text-[14px] text-text-primary leading-[22px] mb-4">
-            Always build reusable UI in <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>shared.tsx</code> first. App pages import from shared — never duplicate component code inline.
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-xl border border-stroke-outline p-3">
-              <div className="text-[14px] font-bold text-text-primary mb-2">✅ Workflow</div>
-              <ol className="text-[14px] text-text-primary leading-[22px] list-decimal pl-4 space-y-1">
-                <li>Define component in <code className="text-[13px] px-1 rounded" style={{ background: 'var(--color-bg-hover)' }}>shared.tsx</code></li>
-                <li>Import into app pages</li>
-                <li>Monitor on Design System page</li>
-                <li>Update once → updates everywhere</li>
-              </ol>
-            </div>
-            <div className="rounded-xl border border-stroke-outline p-3">
-              <div className="text-[14px] font-bold text-text-primary mb-2">🚫 Avoid</div>
-              <ul className="text-[14px] text-text-primary leading-[22px] list-disc pl-4 space-y-1">
-                <li>Inline one-off components in pages</li>
-                <li>Copy-pasting component code</li>
-                <li>Styling variants outside shared file</li>
-                <li>Skipping Design System registration</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* Brand Gradient */}
-        <SectionTitle id="ds-colors">Brand Gradient</SectionTitle>
-        <div className="flex flex-wrap gap-4">
-          <div className="flex flex-col gap-2">
-            <div className="gradient-btn rounded-xl" style={{ width: 200, height: 60 }} />
-            <p className="text-text-primary text-[13px]">#7652B9 → #B46470 → #CA9D8C</p>
-          </div>
-          <div className="flex flex-col gap-2 items-start">
-            <span className="gradient-text text-[24px] font-bold">Gradient Text</span>
-            <p className="text-text-primary text-[13px]">.gradient-text (31.6deg)</p>
-          </div>
-        </div>
-
-        {/* Colors */}
-        <SectionTitle id="ds-color-tokens">Color Tokens</SectionTitle>
-        <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
-          {COLORS.map(c => (
-            <div key={c.var} className="flex rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-stroke-outline)', minHeight: 96 }}>
-              <div className="w-1/3 shrink-0" style={{ background: `var(${c.var})` }} />
-              <div className="w-2/3 min-w-0 p-3 flex flex-col justify-center gap-1">
-                <p className="text-text-primary font-semibold text-[13px] truncate">{c.name}</p>
-                <p className="text-text-primary text-[12px] leading-[16px]">{c.usage}</p>
-                <p className="text-text-secondary text-[11px] leading-[15px]">e.g. {c.examples}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <h3 className="text-[15px] font-semibold text-text-primary mt-6 mb-3">Special Colors</h3>
-        <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
-          {SPECIAL_COLORS.map(c => (
-            <div key={c.name} className="flex rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-stroke-outline)', minHeight: 96 }}>
-              <div className="w-1/3 shrink-0" style={{ background: c.preview }} />
-              <div className="w-2/3 min-w-0 p-3 flex flex-col justify-center gap-1">
-                <p className="text-text-primary font-semibold text-[13px] truncate">{c.name}</p>
-                <p className="text-text-primary text-[12px] leading-[16px]">{c.usage}</p>
-                <p className="text-text-secondary text-[11px] leading-[15px]">e.g. {c.examples}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Typography */}
-        <SectionTitle id="ds-typography">Typography</SectionTitle>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                {['Style', 'Font', 'Size', 'Weight', 'Line Height', 'Spacing'].map(h => (
-                  <th key={h} className="text-text-primary font-semibold text-[13px] py-2 px-4">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {TYPOGRAPHY.map((t, i) => (
-                <tr key={t.style} style={{ background: i % 2 === 0 ? 'var(--color-bg-hover)' : 'transparent' }}>
-                  <td className="text-text-primary font-medium text-[13px] py-3 px-4">{t.style}</td>
-                  <td className="text-text-primary text-[13px] py-3 px-4">{t.font}</td>
-                  <td className="text-text-primary text-[13px] py-3 px-4">{t.size}</td>
-                  <td className="text-text-primary text-[13px] py-3 px-4">{t.weight}</td>
-                  <td className="text-text-primary text-[13px] py-3 px-4">{t.lineHeight}</td>
-                  <td className="text-text-primary text-[13px] py-3 px-4">{t.spacing}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Spacing & Radii */}
-        <SectionTitle id="ds-spacing">Spacing & Border Radius</SectionTitle>
-        <div className="flex flex-wrap gap-8">
-          <div>
-            <h3 className="text-[15px] font-semibold text-text-primary mb-3">Spacing</h3>
-            <div className="flex flex-col gap-2">
-              {SPACING.map(s => (
-                <div key={s.token} className="flex items-center gap-4">
-                  <div className="rounded" style={{ width: parseInt(s.value), height: 16, background: '#3171ff', minWidth: 4 }} />
-                  <span className="text-text-primary text-[13px] font-medium w-20">{s.value}</span>
-                  <span className="text-text-primary text-[12px]">{s.tw}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div>
-            <h3 className="text-[15px] font-semibold text-text-primary mb-3">Border Radius</h3>
-            <div className="flex flex-wrap gap-4">
-              {RADII.map(r => (
-                <div key={r.token} className="flex flex-col items-center gap-2">
-                  <div style={{ width: 48, height: 48, borderRadius: r.value === '1000px' || r.value === '100px' ? '50%' : r.value, border: '2px solid var(--color-stroke-outline)', background: 'var(--color-bg-hover)' }} />
-                  <span className="text-text-primary text-[12px] font-medium">{r.value}</span>
-                  <span className="text-text-primary text-[11px]">{r.tw}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Icon Library */}
-        <SectionTitle id="ds-icons">Icon Library</SectionTitle>
-        <p className="text-text-primary text-[14px] leading-[20px] mb-4">
-          All icons used across the app, organized by category. Custom SVG assets are from Figma; Lucide icons are from <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>lucide-react</code>.
-        </p>
-
-        {/* Custom SVG Icons */}
-        <h3 className="text-[15px] font-semibold text-text-primary mb-3">Custom SVG Assets</h3>
-        {([
-          { label: 'App Icons', desc: 'Third-party app logos used in sidebar & cards', items: [
-            { name: 'Asana', src: iconAsana, file: 'asana.svg' },
-            { name: 'Google Docs', src: iconDoc20, file: 'doc20.svg' },
-            { name: 'Google Sheets', src: iconSheet, file: 'sheet.svg' },
-            { name: 'Gmail', src: iconGmail, file: 'gmail.svg' },
-            { name: 'Zoom', src: iconZoom, file: 'zoom.svg' },
-            { name: 'Apps', src: iconApps, file: 'apps.svg' },
-          ]},
-          { label: 'UI Chrome', desc: 'Theme toggle, navigation, editing', items: [
-            { name: 'Sun', src: iconSun, file: 'sun.svg' },
-            { name: 'Moon', src: iconMoon, file: 'moon.svg' },
-            { name: 'Chevron Down', src: iconChevronDown, file: 'chevron-down.svg' },
-            { name: 'Edit New', src: iconEditNew, file: 'edit-new.svg' },
-            { name: 'Spinner', src: iconSpinner, file: 'spinner.svg' },
-            { name: 'Back Arrow', src: iconBackArrow, file: 'back-arrow.svg' },
-          ]},
-          { label: 'Input Toolbar', desc: 'Chat input action buttons', items: [
-            { name: 'Add (@)', src: iconAdd, file: 'add.svg' },
-            { name: 'Photo', src: iconPhoto, file: 'photo.svg' },
-            { name: 'Camera', src: iconCamera, file: 'camera.svg' },
-            { name: 'Upload', src: iconUpload, file: 'upload.svg' },
-            { name: 'Microphone', src: iconMicrophone, file: 'microphone.svg' },
-            { name: 'Voice', src: iconVoice, file: 'voice.svg' },
-            { name: 'Send', src: iconSend, file: 'send.svg' },
-            { name: 'Send Active', src: iconSendActive, file: 'send-active.svg' },
-          ]},
-          { label: 'Feedback Bar', desc: 'Message action icons (16px)', items: [
-            { name: 'Copy', src: iconCopy, file: 'copy.svg' },
-            { name: 'Share', src: iconShare, file: 'share.svg' },
-            { name: 'Thumbs Up', src: iconThumbsUp, file: 'thumbs-up.svg' },
-            { name: 'Refresh', src: iconRefresh, file: 'refresh.svg' },
-          ]},
-          { label: 'Quick Chip Icons', desc: 'Chip / quick-action icons (16px)', items: [
-            { name: 'Goals', src: iconGoals, file: 'goals.svg' },
-            { name: 'Doc 16', src: iconDoc16, file: 'doc16.svg' },
-            { name: 'Bar Chart', src: iconBarChart, file: 'bar-chart.svg' },
-            { name: 'Doc List', src: iconDocList, file: 'doc-list.svg' },
-          ]},
-          { label: 'Detail Panel', desc: 'Text editing action icons', items: [
-            { name: 'Shorter', src: iconShorter, file: 'shorter.svg' },
-            { name: 'Extend', src: iconExtend, file: 'extend.svg' },
-            { name: 'Formal', src: iconFormal, file: 'formal.svg' },
-            { name: 'Translate', src: iconTranslate, file: 'translate.svg' },
-          ]},
-          { label: 'Card / Schedule', desc: 'Calendar & meeting card icons', items: [
-            { name: 'Calendar', src: iconCalendar, file: 'calendar.svg' },
-            { name: 'Users', src: iconUsers, file: 'users.svg' },
-            { name: 'Pin', src: iconPin, file: 'pin.svg' },
-            { name: 'Clock', src: iconClock, file: 'clock.svg' },
-          ]},
-        ] as { label: string; desc: string; items: { name: string; src: string; file: string }[] }[]).map(group => (
-          <div key={group.label} className="mb-5">
-            <div className="flex items-baseline gap-2 mb-2">
-              <span className="text-text-primary font-medium text-[13px]">{group.label}</span>
-              <span className="text-text-primary text-[12px]">{group.desc}</span>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              {group.items.map(icon => (
-                <div key={icon.file} className="flex flex-col items-center gap-1.5 p-3 rounded-xl w-[90px]" style={{ border: '1px solid var(--color-stroke-outline)' }}>
-                  <div className="w-8 h-8 flex items-center justify-center">
-                    <img src={icon.src} alt={icon.name} className="max-w-[24px] max-h-[24px] object-contain icon-theme" />
-                  </div>
-                  <span className="text-text-primary text-[11px] text-center leading-tight">{icon.name}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-
-        {/* Inline SVG Icons (ChatInput) */}
-        <h3 className="text-[15px] font-semibold text-text-primary mt-6 mb-3">Inline SVG Icons (ChatInput)</h3>
-        <p className="text-text-primary text-[13px] leading-[18px] mb-3">
-          Mode selector, input field, and toolbar inline SVGs rendered directly in <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>ChatInput.tsx</code>.
-        </p>
-        <div className="flex flex-wrap gap-3">
-          {([
-            { name: 'Chat', Icon: MessageSquare },
-            { name: 'Tasks', Icon: CheckSquare },
-            { name: 'Code', Icon: Code2 },
-            { name: 'Mic (stroke)', Icon: Mic },
-            { name: 'Voice (stroke)', Icon: Activity },
-            { name: 'Mention (@)', Icon: AtSign },
-            { name: 'Folder', Icon: Folder },
-            { name: 'Git Branch', Icon: GitBranch },
-          ] as { name: string; Icon: React.FC<{ size?: number; className?: string }> }[]).map(({ name, Icon }) => (
-            <div key={name} className="flex flex-col items-center gap-1.5 p-3 rounded-xl w-[90px]" style={{ border: '1px solid var(--color-stroke-outline)' }}>
-              <div className="w-8 h-8 flex items-center justify-center">
-                <Icon size={20} className="text-text-primary" />
-              </div>
-              <span className="text-text-primary text-[11px] text-center leading-tight">{name}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Lucide React Icons */}
-        <h3 className="text-[15px] font-semibold text-text-primary mt-6 mb-3">Lucide React Icons</h3>
-        <p className="text-text-primary text-[13px] leading-[18px] mb-3">
-          From <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>lucide-react</code> package. Rendered as inline SVG at 20px.
-        </p>
-        <div className="flex flex-wrap gap-3">
-          {([
-            { name: 'BookOpen', Icon: BookOpen },
-            { name: 'ChevronDown', Icon: ChevronDown },
-            { name: 'ChevronRight', Icon: ChevronRight },
-            { name: 'Code2', Icon: Code2 },
-            { name: 'FileCode2', Icon: FileCode2 },
-            { name: 'FileText', Icon: FileText },
-            { name: 'FolderOpen', Icon: FolderOpen },
-            { name: 'FolderPlus', Icon: FolderPlus },
-            { name: 'LayoutDashboard', Icon: LayoutDashboard },
-            { name: 'Link', Icon: Link },
-            { name: 'Menu', Icon: Menu },
-            { name: 'MessageCircle', Icon: MessageCircle },
-            { name: 'MoreVertical', Icon: MoreVertical },
-            { name: 'Palette', Icon: Palette },
-            { name: 'PanelRight', Icon: PanelRight },
-            { name: 'Pen', Icon: Pen },
-            { name: 'Plus', Icon: Plus },
-            { name: 'Search', Icon: Search },
-            { name: 'Star', Icon: Star },
-            { name: 'X', Icon: X },
-          ] as { name: string; Icon: React.FC<{ size?: number; className?: string }> }[]).map(({ name, Icon }) => (
-            <div key={name} className="flex flex-col items-center gap-1.5 p-3 rounded-xl w-[90px]" style={{ border: '1px solid var(--color-stroke-outline)' }}>
-              <div className="w-8 h-8 flex items-center justify-center">
-                <Icon size={20} className="text-text-primary" />
-              </div>
-              <span className="text-text-primary text-[11px] text-center leading-tight">{name}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Components */}
-        <SectionTitle id="ds-components">Components</SectionTitle>
-        <ComponentShowcase />
-
-        {/* CSS Utility Classes */}
-        <SectionTitle id="ds-css">CSS Utility Classes</SectionTitle>
-        <div className="flex flex-col gap-2">
-          {CSS_UTILITIES.map(u => (
-            <div key={u.cls} className="flex items-start gap-4 py-2" style={{ borderBottom: '1px solid var(--color-stroke-outline)' }}>
-              <code className="text-[13px] font-mono shrink-0 px-2 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff', minWidth: 200 }}>
-                {u.cls}
-              </code>
-              <span className="text-text-primary text-[13px]">{u.desc}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Live Samples */}
-        <SectionTitle id="ds-samples">Live Samples</SectionTitle>
-        <div className="flex flex-wrap gap-6 items-start">
-          {/* Chips */}
-          <div className="flex flex-col gap-3">
-            <h3 className="text-[15px] font-semibold text-text-primary">Chips</h3>
-            <div className="flex flex-wrap gap-2">
-              <span className="chip-gradient-hover rounded-full border px-3 py-1 text-text-primary cursor-pointer" style={{ borderColor: 'var(--color-stroke-outline)' }}>
-                Default Chip
-              </span>
-              <span className="rounded-full px-3 py-1 cursor-pointer" style={{ background: 'var(--color-selected-bg)', color: 'var(--color-selected-text)' }}>
-                Selected Chip
-              </span>
-            </div>
-          </div>
-
-          {/* Buttons */}
-          <div className="flex flex-col gap-3">
-            <h3 className="text-[15px] font-semibold text-text-primary">Gradient Button</h3>
-            <button className="gradient-btn text-white font-medium rounded-[4px] px-6 py-3 text-[14px]">
-              Action Button
-            </button>
-          </div>
-
-          {/* Status Tag */}
-          <div className="flex flex-col gap-3">
-            <h3 className="text-[15px] font-semibold text-text-primary">Status Tag</h3>
-            <div className="flex flex-wrap items-center gap-2">
-              <StatusTag variant="in-progress" label="In progress" />
-              <StatusTag variant="success" label="Saved" />
-            </div>
-          </div>
-
-          {/* Loading Dots */}
-          <div className="flex flex-col gap-3">
-            <h3 className="text-[15px] font-semibold text-text-primary">Loading Dots</h3>
-            <div className="flex items-center gap-1.5">
-              <span className="loading-dot" />
-              <span className="loading-dot" />
-              <span className="loading-dot" />
-            </div>
-          </div>
-
-          {/* Progress Bar */}
-          <div className="flex flex-col gap-3 w-48">
-            <h3 className="text-[15px] font-semibold text-text-primary">Progress Bar</h3>
-            <div className="w-full rounded-full overflow-hidden" style={{ height: 3, background: 'var(--color-bg-hover)' }}>
-              <div className="h-full rounded-full animate-progress-bar" style={{ background: 'linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%)' }} />
-            </div>
-          </div>
-        </div>
-
-        {/* Dark Mode */}
-        <SectionTitle id="ds-dark">Dark Mode</SectionTitle>
-        <p className="text-text-primary text-[14px] leading-[20px]">
-          Dark mode is toggled via the <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>.dark</code> class on <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>&lt;html&gt;</code>. All components use CSS variables that automatically switch. Monochrome icons use the <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>.icon-theme</code> class for auto-inversion. Gradient elements (avatars, spinner, buttons) do NOT use <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>.icon-theme</code>.
-        </p>
-
-        {/* Figma vs Code Diff */}
-        <SectionTitle id="ds-diff">Figma vs Code Diff</SectionTitle>
-        <p className="text-text-primary text-[14px] leading-[20px] mb-4">
-          Comparison between Figma design system variables (WorkPal library, <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>L&DMode</code> collection) and the current code implementation.
-        </p>
-
-        {/* Figma tokens missing from code */}
-        <h3 className="text-[15px] font-semibold text-text-primary mb-3">Figma Tokens Not Implemented as CSS Variables</h3>
-        <p className="text-text-primary text-[13px] leading-[18px] mb-3">These Figma variables exist in the WorkPal library but are either hardcoded inline or missing in code.</p>
-        <div className="overflow-x-auto mb-6">
-          <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                {['Figma Variable', 'Status in Code', 'Notes'].map(h => (
-                  <th key={h} className="text-text-primary font-semibold text-[13px] py-2 px-4">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                { figma: 'Color/Background/Card', status: 'Missing', note: 'No CSS variable; cards use bg-bg-page or inline styles' },
-                { figma: 'Color/Background/Detail', status: 'Missing', note: 'No CSS variable; not referenced in components' },
-                { figma: 'Color/Text/Callout', status: 'Hardcoded', note: 'Used inline as #3171ff (links, @mentions, selected chips)' },
-                { figma: 'Color/Text/Button', status: 'Hardcoded', note: 'Gradient buttons use text-white directly' },
-                { figma: 'Color/Stroke/Dot', status: 'Missing', note: 'No CSS variable; not referenced in components' },
-                { figma: 'Font/Detail/Letter spacing', status: 'Hardcoded', note: 'Used inline as letterSpacing: 0px in Detail style' },
-              ].map((row, i) => (
-                <tr key={row.figma} style={{ background: i % 2 === 0 ? 'var(--color-bg-hover)' : 'transparent' }}>
-                  <td className="text-text-primary font-medium text-[13px] py-3 px-4 font-mono">{row.figma}</td>
-                  <td className="py-3 px-4">
-                    <span className="text-[12px] font-semibold px-2 py-0.5 rounded" style={{
-                      background: row.status === 'Missing' ? 'rgba(220,38,38,0.1)' : 'rgba(234,179,8,0.15)',
-                      color: row.status === 'Missing' ? '#dc2626' : '#a16207',
-                    }}>{row.status}</span>
-                  </td>
-                  <td className="text-text-primary text-[13px] py-3 px-4">{row.note}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Code tokens not in Figma */}
-        <h3 className="text-[15px] font-semibold text-text-primary mb-3">Code Tokens Not in Figma Variables</h3>
-        <p className="text-text-primary text-[13px] leading-[18px] mb-3">These CSS variables exist in code but have no corresponding Figma variable in the WorkPal library.</p>
-        <div className="overflow-x-auto mb-6">
-          <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                {['CSS Variable', 'Light Value', 'Dark Value', 'Notes'].map(h => (
-                  <th key={h} className="text-text-primary font-semibold text-[13px] py-2 px-4">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                { css: '--color-text-tertiary', light: 'rgba(20,39,64,0.4)', dark: 'rgba(226,243,255,0.4)', note: 'No Figma variable; used for placeholder text & subtle labels' },
-                { css: '--color-icon-primary', light: '#142740', dark: '#FFFFFF', note: 'Merged with text/primary — same value in both light and dark modes' },
-                { css: '--color-outer-bg', light: '#f5f5f7', dark: '#001424', note: 'No Figma variable; outer shell background behind the app frame' },
-                { css: '--color-outer-border', light: '#f5f5f7', dark: '#001424', note: 'No Figma variable; outer shell border color' },
-              ].map((row, i) => (
-                <tr key={row.css} style={{ background: i % 2 === 0 ? 'var(--color-bg-hover)' : 'transparent' }}>
-                  <td className="text-text-primary font-medium text-[13px] py-3 px-4 font-mono">{row.css}</td>
-                  <td className="text-text-primary text-[13px] py-3 px-4 font-mono">{row.light}</td>
-                  <td className="text-text-primary text-[13px] py-3 px-4 font-mono">{row.dark}</td>
-                  <td className="text-text-primary text-[13px] py-3 px-4">{row.note}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Value discrepancies */}
-        <h3 className="text-[15px] font-semibold text-text-primary mb-3">Value Discrepancies</h3>
-        <p className="text-text-primary text-[13px] leading-[18px] mb-3">Tokens that exist in both Figma and code but may differ in value or naming.</p>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                {['Token', 'Discrepancy'].map(h => (
-                  <th key={h} className="text-text-primary font-semibold text-[13px] py-2 px-4">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                { token: 'Sidebar BG (dark)', desc: 'Code uses #0d2136; Figma "Color/Background/Web Menu" dark mode may use rgba(226,243,255,0.1) — same as bg-hover' },
-                { token: 'StatusTag color', desc: 'DesignSystemPage MiniStatusTag uses #00c7be (teal) while the main app & DESIGN_SYSTEM.md use #028901 (green)' },
-                { token: 'Body/Emphasized line-height', desc: 'DESIGN_SYSTEM.md says 32px; typical Figma body emphasized is 22px — verify in Figma source' },
-              ].map((row, i) => (
-                <tr key={row.token} style={{ background: i % 2 === 0 ? 'var(--color-bg-hover)' : 'transparent' }}>
-                  <td className="text-text-primary font-medium text-[13px] py-3 px-4 whitespace-nowrap">{row.token}</td>
-                  <td className="text-text-primary text-[13px] py-3 px-4">{row.desc}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Responsive Rules */}
-        <SectionTitle id="ds-responsive">Responsive Rules (Mobile vs Desktop)</SectionTitle>
-        <p className="text-text-primary text-[14px] leading-[20px] mb-4">
-          The app uses a <strong className="text-text-primary">mobile-first</strong> approach. Base styles target mobile ({'<'}768px), and desktop overrides kick in at the <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>md:</code> breakpoint (768px+) via Tailwind and <code className="px-1.5 py-0.5 rounded text-[13px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>@media (min-width: 768px)</code>.
-        </p>
-
-        {/* Global overrides */}
-        <h3 className="text-[15px] font-semibold text-text-primary mb-3">Global CSS Overrides (index.css)</h3>
-        <div className="overflow-x-auto mb-6">
-          <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                {['Property', 'Mobile (< 768px)', 'Desktop (≥ 768px)'].map(h => (
-                  <th key={h} className="text-text-primary font-semibold text-[13px] py-2 px-4">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                { prop: 'Root font-size', mobile: '16px', desktop: '14px' },
-                { prop: '--toolbar-btn-h', mobile: '39px', desktop: '26px' },
-                { prop: '--mode-btn-unselected-w', mobile: '54px', desktop: '26px' },
-                { prop: '--toolbar-icon-size', mobile: '24px', desktop: '16px' },
-                { prop: '--input-btn-size', mobile: '36px', desktop: '24px' },
-                { prop: '.toolbar-icon-scale', mobile: 'scale(1.5)', desktop: 'scale(1)' },
-              ].map((row, i) => (
-                <tr key={row.prop} style={{ background: i % 2 === 0 ? 'var(--color-bg-hover)' : 'transparent' }}>
-                  <td className="text-text-primary font-medium text-[13px] py-3 px-4 font-mono">{row.prop}</td>
-                  <td className="text-text-primary text-[13px] py-3 px-4 font-mono">{row.mobile}</td>
-                  <td className="text-text-primary text-[13px] py-3 px-4 font-mono">{row.desktop}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Component-level patterns */}
-        <h3 className="text-[15px] font-semibold text-text-primary mb-3">Component-Level Tailwind Patterns</h3>
-        <p className="text-text-primary text-[13px] leading-[18px] mb-3">Common <code className="px-1 py-0.5 rounded text-[12px]" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>md:</code> responsive patterns used across components.</p>
-        <div className="overflow-x-auto mb-6">
-          <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                {['Category', 'Mobile', 'Desktop (md:)', 'Example Component'].map(h => (
-                  <th key={h} className="text-text-primary font-semibold text-[13px] py-2 px-4">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                { cat: 'Icon sizes', mobile: '24px', desktop: '16px', comp: 'ChatInput toolbar icons' },
-                { cat: 'Gaps', mobile: 'gap-4 (16px)', desktop: 'gap-2 (8px)', comp: 'ChatInput icon row' },
-                { cat: 'Padding', mobile: 'px-6 py-3', desktop: 'px-4 py-2', comp: 'ChatInput wrapper' },
-                { cat: 'Text size', mobile: 'text-[18px]', desktop: 'text-xs (12px)', comp: 'Mode selector labels' },
-                { cat: 'Width', mobile: 'w-72 (288px)', desktop: 'w-48 (192px)', comp: 'Dropdown menus' },
-                { cat: 'Max-width', mobile: 'max-w-[270px]', desktop: 'max-w-[180px]', comp: 'Chip containers' },
-                { cat: 'Border radius', mobile: 'rounded-2xl', desktop: 'rounded-xl', comp: 'Quick chip row' },
-                { cat: 'Margin', mobile: 'mb-3', desktop: 'mb-2', comp: 'Chip section spacing' },
-                { cat: 'Layout direction', mobile: 'flex-col', desktop: 'flex-row', comp: 'ConnectorsPage filter bar' },
-                { cat: 'Grid columns', mobile: 'grid-cols-1', desktop: 'grid-cols-2', comp: 'ConnectorsPage cards' },
-              ].map((row, i) => (
-                <tr key={row.cat} style={{ background: i % 2 === 0 ? 'var(--color-bg-hover)' : 'transparent' }}>
-                  <td className="text-text-primary font-medium text-[13px] py-3 px-4">{row.cat}</td>
-                  <td className="text-text-primary text-[13px] py-3 px-4 font-mono">{row.mobile}</td>
-                  <td className="text-text-primary text-[13px] py-3 px-4 font-mono">{row.desktop}</td>
-                  <td className="text-text-primary text-[13px] py-3 px-4">{row.comp}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Design principles */}
-        <h3 className="text-[15px] font-semibold text-text-primary mb-3">Design Principles</h3>
-        <div className="flex flex-col gap-2">
-          {[
-            { label: 'Touch targets', desc: 'Mobile uses larger tap targets (39px buttons, 24px icons) for finger interaction; desktop shrinks to mouse-friendly sizes (26px buttons, 16px icons).' },
-            { label: 'Font scaling', desc: 'Root font-size is 16px on mobile for readability, 14px on desktop where screens are larger. All text inherits via font-size: inherit.' },
-            { label: 'Layout stacking', desc: 'Multi-column layouts (flex-row, grid-cols-2) on desktop collapse to single-column (flex-col, grid-cols-1) on mobile.' },
-            { label: 'Spacing compression', desc: 'Padding and gaps are 1.5× larger on mobile (e.g., gap-4 → gap-2, px-6 → px-4) for comfortable touch spacing.' },
-            { label: 'Width constraints', desc: 'Dropdowns and chip containers are wider on mobile (w-72) for full-width usability, narrower on desktop (w-48).' },
-          ].map(item => (
-            <div key={item.label} className="flex items-start gap-3 py-2" style={{ borderBottom: '1px solid var(--color-stroke-outline)' }}>
-              <span className="text-text-primary font-medium text-[13px] shrink-0 w-40">{item.label}</span>
-              <span className="text-text-primary text-[13px]">{item.desc}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Needs Review — custom patterns not yet in the design system */}
-        <SectionTitle id="ds-review">Needs Review</SectionTitle>
-        <p className="text-text-primary text-[14px] leading-[20px] mb-4">
-          These UI patterns are used in the app but are <strong>not yet part of the design system</strong>. Each card shows a live sample, description, and the closest existing component. Review to decide: promote to design system, or replace with an existing pattern.
-        </p>
-
-        <div className="flex flex-col gap-4">
-          {/* === All samples below use shared components from shared.tsx === */}
-          {/* Update a component in shared.tsx → it updates here AND in the app */}
-
-          {/* 1. Circular Score Ring */}
-          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[14px] font-bold text-text-primary">CircularProgress</span>
-              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
-            </div>
-            <p className="text-[13px] text-text-primary leading-[18px] mb-3">SVG circle with stroke-dasharray progress + centered text overlay.</p>
-            <div className="flex items-center gap-6 p-4 rounded-xl bg-bg-hover mb-3">
-              <CircularProgress value={100} color="#3171ff">
-                <span className="text-[16px] font-bold text-text-primary">4/4</span>
-                <span className="text-[10px] text-text-primary">goals</span>
-              </CircularProgress>
-              <CircularProgress value={65} color="#3171ff">
-                <span className="text-[16px] font-bold text-text-primary">65%</span>
-              </CircularProgress>
-              <CircularProgress value={50} color="#F59E0B">
-                <span className="text-[16px] font-bold text-text-primary">50%</span>
-              </CircularProgress>
-              <CircularProgress value={30} color="#EF4444">
-                <span className="text-[16px] font-bold text-text-primary">30%</span>
-              </CircularProgress>
-            </div>
-            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'CircularProgress'}</code> from shared.tsx</p>
-          </div>
-
-          {/* 2. AreaChart */}
-          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[14px] font-bold text-text-primary">AreaChart</span>
-              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
-            </div>
-            <p className="text-[13px] text-text-primary leading-[18px] mb-3">SVG area chart with gradient fill, data points, and labels.</p>
-            <div className="p-4 rounded-xl bg-bg-hover mb-3">
-              <AreaChart data={[{ label: 'M', value: 85 }, { label: 'T', value: 72 }, { label: 'W', value: 65 }, { label: 'T', value: 78 }, { label: 'F', value: 60 }, { label: 'S', value: 90 }]} color="#3171ff" height={70} gradientId="dsAreaGrad" />
-            </div>
-            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'AreaChart'}</code> from shared.tsx</p>
-          </div>
-
-          {/* 3. ProgressBar */}
-          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[14px] font-bold text-text-primary">ProgressBar</span>
-              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
-            </div>
-            <p className="text-[13px] text-text-primary leading-[18px] mb-3">Determinate progress bar with configurable color and optional label.</p>
-            <div className="flex flex-col gap-3 p-4 rounded-xl bg-bg-hover mb-3">
-              <ProgressBar value={62} showLabel />
-              <ProgressBar value={35} showLabel />
-            </div>
-            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'ProgressBar'}</code> from shared.tsx</p>
-          </div>
-
-          {/* 4. LabeledBar */}
-          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[14px] font-bold text-text-primary">LabeledBar</span>
-              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
-            </div>
-            <p className="text-[13px] text-text-primary leading-[18px] mb-3">Thin bar with label + percentage, custom color per category.</p>
-            <div className="p-4 rounded-xl bg-bg-hover mb-3">
-              <LabeledBar label="Deadline pressure" pct={35} color="#EF4444" />
-              <LabeledBar label="Keeping up with AI" pct={28} color="#F59E0B" />
-              <LabeledBar label="Cross-team alignment" pct={22} color="#7652B9" />
-            </div>
-            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'LabeledBar'}</code> from shared.tsx</p>
-          </div>
-
-          {/* 5. SectionTitle */}
-          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[14px] font-bold text-text-primary">SectionTitle</span>
-              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
-            </div>
-            <p className="text-[13px] text-text-primary leading-[18px] mb-3">Emoji + bold title + optional count badge.</p>
-            <div className="flex flex-col gap-1 p-4 rounded-xl bg-bg-hover mb-3">
-              <SharedSectionTitle emoji="👀" title="Needs Your Eyes" count={3} />
-              <SharedSectionTitle emoji="⚡" title="Maya is Working On" />
-            </div>
-            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'SectionTitle'}</code> from shared.tsx</p>
-          </div>
-
-          {/* 6. ReviewItemCard */}
-          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[14px] font-bold text-text-primary">ReviewItemCard</span>
-              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
-            </div>
-            <p className="text-[13px] text-text-primary leading-[18px] mb-3">Card with optional urgent accent bar, metadata, time pill, and action button.</p>
-            <div className="flex flex-col gap-2 p-4 rounded-xl bg-bg-hover mb-3">
-              <ReviewItemCard title="UX meeting summary — 6 action items" source="Zoom → Docs" type="Document" time="3 min ago" humanTime="~5 min" />
-              <ReviewItemCard title="Weekly stakeholder email draft" source="Gmail" type="Email" time="2h ago" humanTime="~3 min" />
-            </div>
-            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'ReviewItemCard'}</code> from shared.tsx</p>
-          </div>
-
-          {/* Greeting Banner — page-specific, not shared */}
-          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[14px] font-bold text-text-primary">Greeting Banner</span>
-              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">OverviewPage</span>
-            </div>
-            <p className="text-[13px] text-text-primary leading-[18px] mb-3">Page-specific — full-width card with avatar, title, body, TTS button.</p>
-            <div className="p-4 rounded-xl bg-bg-hover mb-3">
-              <div className="flex gap-4 items-start">
-                <div className="w-[48px] h-[48px] rounded-xl bg-bg-page shrink-0 overflow-hidden">
-                  <img src={avatarBlackWoman} alt="" className="w-full h-full object-cover" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[11px] font-bold text-text-primary tracking-[0.5px] mb-0.5">MAYA · MORNING BRIEFING</div>
-                  <div className="text-[13px] font-bold text-text-primary mb-1">Good morning! Today is a steady day</div>
-                  <div className="text-[12px] text-text-primary leading-[18px]">Your schedule is clear and focus time is protected.</div>
-                  <button className="mt-2 px-3 py-1 rounded-[4px] gradient-btn text-white text-[11px] font-semibold">Listen</button>
-                </div>
-              </div>
-            </div>
-            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Status:</strong> One-off for Overview page. Not extracted to shared.tsx.</p>
-          </div>
-
-          {/* 9. TaskProgressCard */}
-          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[14px] font-bold text-text-primary">TaskProgressCard</span>
-              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
-            </div>
-            <p className="text-[13px] text-text-primary leading-[18px] mb-3">Clickable card with progress bar, expands to show step list.</p>
-            <div className="p-4 rounded-xl bg-bg-hover mb-3">
-              <TaskProgressCard title="Analyzing Q2 metrics" progress={62} eta="~8 min" steps={['Pulling data from Sheets', 'Building charts', 'Formatting']} expanded />
-            </div>
-            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'TaskProgressCard'}</code> from shared.tsx</p>
-          </div>
-
-          {/* 9b. HealthDimensionRow */}
-          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[14px] font-bold text-text-primary">HealthDimensionRow</span>
-              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
-            </div>
-            <p className="text-[13px] text-text-primary leading-[18px] mb-3">
-              Lucide icon + label/desc on the left, auto-colored status pill on the right. Color + icon derive from completion ratio (<code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>value / target</code>):
-            </p>
-            <ul className="text-[13px] text-text-primary leading-[20px] mb-3 list-disc pl-5">
-              <li><strong>≥ 100%</strong> — light blue + check (done)</li>
-              <li><strong>≥ 50%</strong> — orange + warning (half)</li>
-              <li><strong>&lt; 50%</strong> — red + x (not started / failing)</li>
-            </ul>
-            <div className="flex flex-col gap-2 p-4 rounded-xl bg-bg-hover mb-3">
-              <HealthDimensionRow icon={Brain} label="Focus Time" desc="9–11am blocked & protected" value={2} target={2} unit="h" />
-              <HealthDimensionRow icon={Moon} label="Sleep" desc="Last night: 5h — a bit short" value={5} target={7} unit="h" />
-              <HealthDimensionRow icon={Home} label="Family Time" desc="No family time yet today" value={0} target={2} unit="h" />
-              <HealthDimensionRow icon={Zap} label="Workload" desc="Manageable pace today" value={3} unit="tasks" status="balanced" />
-            </div>
-            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'HealthDimensionRow'}</code> from shared.tsx</p>
-          </div>
-
-          {/* 10. StepIndicator */}
-          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[14px] font-bold text-text-primary">StepIndicator</span>
-              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
-            </div>
-            <p className="text-[13px] text-text-primary leading-[18px] mb-3">Three states: done (checkmark), in-progress (filled dot), pending (empty circle).</p>
-            <div className="flex items-center gap-6 p-4 rounded-xl bg-bg-hover mb-3">
-              <div className="flex items-center gap-2"><StepIndicator status="done" /><span className="text-[12px] text-text-primary">Done</span></div>
-              <div className="flex items-center gap-2"><StepIndicator status="in-progress" /><span className="text-[12px] text-text-primary">In Progress</span></div>
-              <div className="flex items-center gap-2"><StepIndicator status="pending" /><span className="text-[12px] text-text-primary">Pending</span></div>
-            </div>
-            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'StepIndicator'}</code> from shared.tsx</p>
-          </div>
-
-          {/* 11. InsightCard */}
-          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[14px] font-bold text-text-primary">InsightCard</span>
-              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
-            </div>
-            <p className="text-[13px] text-text-primary leading-[18px] mb-3">Callout card with sparkle icon, body text, and action buttons.</p>
-            <div className="p-4 rounded-xl bg-bg-hover mb-3">
-              <InsightCard body="Your focus time dropped 40% this week. Want me to protect morning blocks?" actions={[{ label: 'Yes, protect mornings', primary: true }, { label: 'Show data' }]} />
-            </div>
-            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'InsightCard'}</code> from shared.tsx</p>
-          </div>
-
-          {/* 12. MetricCard */}
-          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[14px] font-bold text-text-primary">MetricCard</span>
-              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
-            </div>
-            <p className="text-[13px] text-text-primary leading-[18px] mb-3">Large centered number with title and subtitle.</p>
-            <div className="flex gap-3 p-4 rounded-xl bg-bg-hover mb-3">
-              <div className="flex-1 bg-bg-page rounded-xl border border-stroke-outline p-3">
-                <MetricCard title="Emotional value" value="10" subtitle="/10" />
-              </div>
-              <div className="flex-1 bg-bg-page rounded-xl border border-stroke-outline p-3">
-                <MetricCard title="Time gained" value="+2h" subtitle="this week" />
-              </div>
-            </div>
-            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'MetricCard'}</code> from shared.tsx</p>
-          </div>
-
-          {/* SolutionRow */}
-          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[14px] font-bold text-text-primary">SolutionRow</span>
-              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
-            </div>
-            <p className="text-[13px] text-text-primary leading-[18px] mb-3">Row with emoji, title + description, and right-aligned category tag.</p>
-            <div className="p-4 rounded-xl bg-bg-hover mb-3">
-              <SolutionRow icon="🎧" title="AI趋势速报" desc="每天3分钟音频" tag="针对：AI" />
-              <SolutionRow icon="🧘" title="Focus Block" desc="自动拦截非紧急会议" tag="针对：Deadline" />
-            </div>
-            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'SolutionRow'}</code> from shared.tsx</p>
-          </div>
-
-          {/* 15. SummaryFooter */}
-          <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[14px] font-bold text-text-primary">SummaryFooter</span>
-              <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
-            </div>
-            <p className="text-[13px] text-text-primary leading-[18px] mb-3">Right-aligned row with clock icon + summary text.</p>
-            <div className="p-4 rounded-xl bg-bg-hover mb-3">
-              <SummaryFooter>Total review time: <strong>~16 min</strong> for 3 items</SummaryFooter>
-            </div>
-            <p className="text-[13px] text-text-secondary leading-[18px]"><strong className="text-text-primary">Import:</strong> <code className="text-[12px] font-mono" style={{ color: '#3171ff' }}>{'SummaryFooter'}</code> from shared.tsx</p>
-          </div>
-
-        </div>
-        </>)}
-
-        {(activeTab === 'layouts'    || activeTab === 'all') && <LayoutsTab />}
-        {(activeTab === 'components' || activeTab === 'all') && <ComponentsTab />}
-        {(activeTab === 'review'     || activeTab === 'all') && <ReviewTab />}
+        {activeTab === 'layouts'    && <LayoutsTab />}
+        {activeTab === 'components' && <ComponentsTab />}
+        {activeTab === 'review'     && <ReviewTab />}
     </PageLayout>
   );
 }
@@ -2223,6 +1048,140 @@ const ICON_GROUPS: { group: string; blurb: string; icons: IconEntry[] }[] = [
 
 // Flat helper for the size & color showcase at the top.
 const SHOWCASE_ICON = Search;
+
+// ---------- Principles tab ----------
+// Text-only rules. Components, tokens, and layouts live in their own tabs —
+// never duplicate them here. This tab answers "what are the rules" only.
+
+const PRINCIPLES: { n: number; title: string; rule: string; why?: string; refTab?: string }[] = [
+  {
+    n: 1,
+    title: 'Shared-first',
+    rule: 'Build reusable UI in src/components/shared.tsx, then import into pages. Never copy component code inline.',
+    why: 'One source of truth means token changes propagate everywhere automatically.',
+    refTab: 'Component Library',
+  },
+  {
+    n: 2,
+    title: 'Tokens-first',
+    rule: 'Use CSS variables and utility classes for every color, size, and spacing. Never hardcode hex, px font sizes, or arbitrary spacing values.',
+    why: 'Tokens are the only way light/dark mode and future rebrands stay coherent.',
+    refTab: 'Design Foundations',
+  },
+  {
+    n: 3,
+    title: 'One Primary button per view',
+    rule: 'Use PrimaryButton (gradient CTA) at most once per view. Multiple gradient CTAs dilute the focal point.',
+    why: 'The gradient is a visual anchor — duplicating it creates ambiguity about the primary action.',
+  },
+  {
+    n: 4,
+    title: '1–2% gradient budget',
+    rule: 'The brand gradient (#7652B9 → #B46470 → #CA9D8C) is reserved for the single focal element per view: the primary CTA, a hover affordance, or a hero title.',
+    why: 'Gradient saturation breaks the hierarchy and reads as decorative rather than meaningful.',
+  },
+  {
+    n: 5,
+    title: 'Callouts are blue, not gradient',
+    rule: 'Use --color-accent-blue (#3171FF) for selected chips, links, progress, and focus rings. Never substitute the brand gradient for these signals.',
+  },
+  {
+    n: 6,
+    title: 'StatusTag success green is unique',
+    rule: 'The success green (--color-accent-green) appears only inside StatusTag variant="success". Do not repurpose it for other UI.',
+    why: 'Reserving the color keeps "success" visually unambiguous across the product.',
+  },
+  {
+    n: 7,
+    title: '5 text styles only',
+    rule: 'Use .type-title, .type-body, .type-body-emphasized, .type-detail, .type-detail-emphasized. Forbidden running-text sizes: 9, 10, 11, 12, 13, 17, 18, 24, 28, 32 px.',
+    refTab: 'Design Foundations',
+  },
+  {
+    n: 8,
+    title: 'Icons = lucide-react',
+    rule: 'All icons come from lucide-react. Never render letters or abbreviations as icon stand-ins. Never import another icon library or inline SVG.',
+    refTab: 'Design Foundations',
+  },
+  {
+    n: 9,
+    title: 'Dark-mode is automatic',
+    rule: 'All colors must come from CSS variables bound to :root / .dark. Monochrome PNG assets use .icon-theme for auto-inversion. Lucide SVGs inherit currentColor.',
+  },
+  {
+    n: 10,
+    title: 'Three-panel shell',
+    rule: 'Every feature is a slot inside NavPanel, ConversationPanel, or InspectorPanel. Do not introduce new top-level chrome.',
+    refTab: 'Layout Templates',
+  },
+  {
+    n: 11,
+    title: 'Review queue for new components',
+    rule: 'If an existing shared component cannot satisfy a need, build the new one in shared.tsx and register it in the Review Queue tab. Approved components get promoted; rejected ones revert to the closest existing primitive.',
+    refTab: 'Review Queue',
+  },
+];
+
+function PrinciplesTab() {
+  return (
+    <div>
+      {/* Intro card */}
+      <div
+        className="mb-6 rounded-2xl border p-5"
+        style={{ background: 'var(--color-bg-hover)', borderColor: 'var(--color-stroke-outline)' }}
+      >
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-[16px]">📏</span>
+          <span className="type-body-emphasized text-text-primary">The rules, and only the rules</span>
+        </div>
+        <p className="type-detail text-text-secondary">
+          These are the 11 principles that govern every WorkPal UI decision. Tokens live in
+          <span className="type-detail-emphasized text-text-primary"> Design Foundations</span>, layout shells in
+          <span className="type-detail-emphasized text-text-primary"> Layout Templates</span>, and live components in the
+          <span className="type-detail-emphasized text-text-primary"> Component Library</span> — not here.
+        </p>
+      </div>
+
+      {/* Principle list */}
+      <ol className="space-y-3">
+        {PRINCIPLES.map((p) => (
+          <li
+            key={p.n}
+            className="rounded-xl border p-5"
+            style={{ borderColor: 'var(--color-stroke-outline)', background: 'var(--color-bg-page)' }}
+          >
+            <div className="flex items-start gap-4">
+              <div
+                className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center type-detail-emphasized"
+                style={{
+                  background: 'var(--color-selected-bg)',
+                  color: 'var(--color-selected-text)',
+                }}
+              >
+                {p.n}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="type-body-emphasized text-text-primary mb-1">{p.title}</div>
+                <p className="type-body text-text-primary mb-2">{p.rule}</p>
+                {p.why && (
+                  <p className="type-detail text-text-secondary">
+                    <span className="type-detail-emphasized text-text-primary">Why: </span>
+                    {p.why}
+                  </p>
+                )}
+                {p.refTab && (
+                  <p className="type-detail text-text-tertiary mt-1">
+                    See <span className="type-detail-emphasized text-text-secondary">{p.refTab}</span> tab for examples.
+                  </p>
+                )}
+              </div>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
 
 function FoundationsTab() {
   return (
@@ -2576,6 +1535,112 @@ function LayoutsTab() {
   const [sideOpen, setSideOpen] = useState(true);
   return (
     <div>
+      {/* ─── App shell: the three-panel structure every surface plugs into ─── */}
+      <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-[16px] font-bold text-text-primary">App Shell — Three-Panel Structure</span>
+          <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">App.tsx</span>
+        </div>
+        <p className="text-[13px] text-text-primary leading-[20px] mt-2 mb-4">
+          Every WorkPal view composes into a single three-panel shell: <strong>NavPanel</strong> (global navigation), <strong>ConversationPanel</strong> (primary working surface), and <strong>InspectorPanel</strong> (contextual detail). Foundations tokens flow through all three; edit a color once and every panel updates.
+        </p>
+
+        {/* Visual diagram */}
+        <div className="rounded-xl overflow-hidden border border-stroke-outline mb-4" style={{ background: 'var(--color-bg-hover)' }}>
+          <div className="grid grid-cols-[110px_1fr_160px] h-[220px] gap-0">
+            {/* NavPanel */}
+            <div className="relative border-r border-dashed border-stroke-outline p-3 flex flex-col justify-between" style={{ background: 'var(--color-sidebar-bg)' }}>
+              <div>
+                <div className="type-detail-emphasized text-text-primary">NavPanel</div>
+                <div className="text-[10px] font-mono text-text-secondary leading-[14px] mt-1">300px / 64px collapsed</div>
+              </div>
+              <div className="flex flex-col gap-1.5" aria-hidden>
+                <div className="h-3 rounded" style={{ background: 'var(--color-bg-hover)' }} />
+                <div className="h-3 rounded" style={{ background: 'var(--color-bg-hover)' }} />
+                <div className="h-3 rounded" style={{ background: 'var(--color-selected-bg)' }} />
+                <div className="h-3 rounded" style={{ background: 'var(--color-bg-hover)' }} />
+              </div>
+            </div>
+            {/* ConversationPanel */}
+            <div className="relative p-3 flex flex-col" style={{ background: 'var(--color-bg-page)' }}>
+              <div className="flex items-center justify-between">
+                <div className="type-detail-emphasized text-text-primary">ConversationPanel</div>
+                <span className="text-[10px] font-mono text-text-secondary">flex-1</span>
+              </div>
+              <div className="text-[10px] font-mono text-text-secondary leading-[14px] mt-1 mb-3">primary working surface · max-w 863px</div>
+              <div className="flex-1 flex flex-col justify-end gap-2" aria-hidden>
+                <div className="h-5 w-2/3 rounded-lg self-start" style={{ background: 'var(--color-bg-hover)' }} />
+                <div className="h-5 w-3/4 rounded-lg self-end" style={{ background: 'var(--color-selected-bg)' }} />
+                <div className="h-8 rounded-full border border-stroke-outline" />
+              </div>
+            </div>
+            {/* InspectorPanel */}
+            <div className="relative border-l border-dashed border-stroke-outline p-3 flex flex-col justify-between" style={{ background: 'var(--color-bg-page)' }}>
+              <div>
+                <div className="flex items-center justify-between">
+                  <div className="type-detail-emphasized text-text-primary">InspectorPanel</div>
+                  <PanelRight size={14} />
+                </div>
+                <div className="text-[10px] font-mono text-text-secondary leading-[14px] mt-1">280–504px · optional</div>
+              </div>
+              <div className="flex flex-col gap-1.5" aria-hidden>
+                <div className="h-3 rounded w-full" style={{ background: 'var(--color-bg-hover)' }} />
+                <div className="h-3 rounded w-5/6" style={{ background: 'var(--color-bg-hover)' }} />
+                <div className="h-3 rounded w-2/3" style={{ background: 'var(--color-bg-hover)' }} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Panel → code mapping */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {[
+            {
+              panel: 'NavPanel',
+              role: 'Global navigation, view switching, recents, profile',
+              components: ['Sidebar', 'MiniSidebar'],
+              sizing: 'Sidebar · 300px · sidebar-bg\nMiniSidebar · 64px · collapsed',
+              widthHint: '300 / 64 px',
+            },
+            {
+              panel: 'ConversationPanel',
+              role: 'The user\u2019s primary working surface — chat, page content, forms',
+              components: ['ChatPanel', 'PageLayout (+ any page)'],
+              sizing: 'flex-1 · centered content max-w-[863px]',
+              widthHint: 'flex-1',
+            },
+            {
+              panel: 'InspectorPanel',
+              role: 'Contextual detail to the right: document, task context, side cards',
+              components: ['DetailPanel', 'TaskContextPanel', 'SplitView side'],
+              sizing: 'DetailPanel · 504px\nTaskContextPanel · 280px\nOverlays on narrow viewports',
+              widthHint: '280 / 504 px',
+            },
+          ].map(p => (
+            <div key={p.panel} className="rounded-xl border border-stroke-outline p-4" style={{ background: 'var(--color-bg-hover)' }}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="type-detail-emphasized text-text-primary">{p.panel}</span>
+                <span className="text-[10px] font-mono text-text-secondary">{p.widthHint}</span>
+              </div>
+              <p className="text-[12px] text-text-primary leading-[17px] mb-3">{p.role}</p>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.5px] text-text-secondary mb-1">Code</div>
+              <div className="flex flex-wrap gap-1 mb-3">
+                {p.components.map(c => (
+                  <code key={c} className="text-[11px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-page)', color: 'var(--color-accent-blue)' }}>{c}</code>
+                ))}
+              </div>
+              <pre className="text-[10px] font-mono text-text-secondary leading-[14px] whitespace-pre-wrap">{p.sizing}</pre>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 pt-3 border-t border-stroke-outline">
+          <p className="text-[12px] text-text-primary leading-[18px]">
+            <strong>Rule:</strong> a new feature is a <em>slot</em> in one of these three panels — never a new top-level chrome element. If you need a new panel primitive, build it in <code className="text-[11px] font-mono">shared.tsx</code> and register it under the relevant panel here.
+          </p>
+        </div>
+      </div>
+
       <LayoutCard name="PageLayout" pagesUsing={['OverviewPage', 'LibraryPage', 'ConnectorsPage', 'DesignSystemPage', 'Onboarding', 'ProjectPage', 'ComingSoonPage']}>
         <p className="text-[13px] text-text-primary leading-[20px] mb-3">
           Canonical page shell. Toggle bar + H1 + optional filters + scrollable body. Edit the spec in <code className="text-[12px] font-mono px-1 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>shared.tsx</code> once — every page updates.
@@ -3259,7 +2324,7 @@ function ComponentsTab() {
     },
     {
       name: 'Onboarding',
-      description: 'First-time drag-and-drop trait selector. Uses PageLayout (reading width) + ChatInput as the footer.',
+      description: 'First-time drag-and-drop trait selector. Uses PageLayout + ChatInput as the footer.',
       usedIn: ['App (before first chat)'],
       preview: (
         <LivePreviewFrame height={640}>
