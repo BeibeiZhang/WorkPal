@@ -18,7 +18,7 @@
   --color-stroke-outline: #E8E8E8;
   --color-stroke-toggle: #e6e8ea;
   --color-icon-primary: #142740;
-  --color-sidebar-bg: #f2f3f4;
+  --color-sidebar-bg: #FFFFFF;
   --color-outer-bg: #f5f5f7;
   --color-outer-border: #f5f5f7;
   --color-selected-bg: rgba(49,113,255,0.1);
@@ -90,7 +90,7 @@
   --color-stroke-outline: rgba(115,178,255,0.2);
   --color-stroke-toggle: rgba(115,178,255,0.2);
   --color-icon-primary: #FFFFFF;
-  --color-sidebar-bg: #0d2136;
+  --color-sidebar-bg: #001424;
   --color-outer-bg: #001424;
   --color-outer-border: #001424;
   --color-selected-bg: #3171ff;
@@ -230,15 +230,26 @@ html, body, #root {
 }
 
 .app-bg {
-  background: white;
+  background: var(--color-bg-page);
 }
 
-.dark .app-bg {
+/* Shared dark-mode gradient: applied to the outer rounded shell so the
+   sidebar and main section sit on top of one continuous gradient. */
+.app-shell-bg {
+  background: var(--color-bg-page);
+}
+
+.dark .app-shell-bg {
   background:
     radial-gradient(ellipse 464px 493px at right bottom, rgba(97,108,255,0.25) 0%, transparent 100%),
     radial-gradient(ellipse 944px 571px at 40% top, rgba(244,112,1,0.25) 0%, transparent 100%),
     radial-gradient(ellipse 469px 657px at left bottom, rgba(47,165,255,0.20) 0%, transparent 100%),
     #001424;
+}
+
+/* In dark mode, let the shell's gradient show through. */
+.dark .app-bg {
+  background: transparent;
 }
 
 .message-appear {
@@ -307,6 +318,42 @@ html, body, #root {
 }
 .animate-progress-bar {
   animation: progressFill 2.5s ease-in-out forwards;
+}
+
+/* Dark overlay layer rendered behind any panel that overlays another panel
+   due to tight-viewport collapse. Used by:
+     • Sidebar when it overlays ChatPanel on compact / mobile viewports
+     • SplitView when the inspector panel (DetailPanel / TaskContextPanel)
+       can't fit inline and overlays the ConversationPanel.
+   Slightly darker in dark mode for contrast against the already-dark shell. */
+.panel-overlay-backdrop {
+  background: rgba(0, 0, 0, 0.45);
+}
+.dark .panel-overlay-backdrop {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+/* Gradient-ring selected state — 1px brand-gradient border with a fully
+   transparent interior so the app shell gradient shows through. Used by
+   the sidebar's active nav pill. Renders the ring via a ::before pseudo
+   with mask-composite so the inside is truly transparent, not just tinted. */
+.gradient-ring {
+  position: relative;
+  background: transparent;
+}
+.gradient-ring::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
 }
 
 /* Chip gradient border on hover */
@@ -407,6 +454,16 @@ html, body, #root {
   background: var(--color-selected-bg);
   color: var(--color-selected-text);
   border: 1px solid transparent;
+}
+
+/* Bottom divider that fades out at both ends — used between stacked
+   SideCards in right-panel lists. 1px gradient line instead of a full
+   bounding box. Disable on the last sibling via `last:bg-none`. */
+.side-card-divider {
+  background-image: linear-gradient(to right, transparent 0%, var(--color-stroke-outline) 20%, var(--color-stroke-outline) 80%, transparent 100%);
+  background-repeat: no-repeat;
+  background-size: 100% 1px;
+  background-position: bottom;
 }
 
 /* Chat input textarea — keep scroll functionality but hide the visual scrollbar */

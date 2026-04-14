@@ -4,7 +4,7 @@
  * Single source of truth — used by both app pages and the Design System page.
  * Update a component here → it updates everywhere in the app.
  */
-import { AlertTriangle, ArrowLeft, BadgeCheck, Check, ChevronDown, Clock, Eye, FileText, Mail, PanelRight, Ticket, Play, Plus, Search, Send, Smile, Timer, User, Sparkles, X, XCircle, type LucideIcon } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, BadgeCheck, Check, ChevronDown, Clock, Eye, FileText, Mail, PanelLeft, PanelRight, Ticket, Play, Plus, Search, Send, Smile, Timer, User, Sparkles, X, XCircle, type LucideIcon } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState, useLayoutEffect } from 'react';
 
 /* ─── 0a. HeaderBar ───
@@ -34,10 +34,7 @@ export function HeaderBar({
           aria-label="Toggle sidebar"
           className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors shrink-0 text-text-primary"
         >
-          <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
-            <rect width="22" height="2" rx="1" fill="currentColor" />
-            <rect width="15" height="2" rx="1" y="7" fill="currentColor" />
-          </svg>
+          <PanelLeft size={20} />
         </button>
       )}
       {headerRight && <div className="ml-auto flex items-center gap-2">{headerRight}</div>}
@@ -310,18 +307,23 @@ export function SplitView({
         </div>
       )}
       {overlay && (
-        <div className="absolute inset-0 z-30 flex">
-          {renderSide({ overlay: true })}
-        </div>
-      )}
-      {/* Invisible tap-to-close backdrop when overlay is active and the side
-          panel doesn't fill the whole overlay area (rare but safe). */}
-      {overlay && onCloseSide && (
-        <div
-          className="absolute inset-0 z-20"
-          onClick={onCloseSide}
-          aria-hidden
-        />
+        <>
+          {/* Dark overlay backdrop: dims the ConversationPanel behind the
+              collapsed inspector. Tap to close. Solid-looking dim ensures no
+              bleed-through and gives the overlay a clear modal affordance in
+              both light and dark modes. */}
+          <div
+            className="absolute inset-0 z-20 panel-overlay-backdrop"
+            onClick={onCloseSide}
+            aria-hidden
+          />
+          {/* Panel docks to the right at its natural width, leaving the
+              backdrop visible on the left. Panel uses `max-w-full` so it
+              shrinks to fit very narrow viewports (true full-screen). */}
+          <div className="absolute inset-y-0 right-0 z-30 max-w-full">
+            {renderSide({ overlay: true })}
+          </div>
+        </>
       )}
     </div>
   );
@@ -403,10 +405,10 @@ export function SideCard({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border border-stroke-outline rounded-2xl overflow-hidden bg-white dark:bg-[#1a1f2e] shrink-0">
+    <div className="shrink-0 side-card-divider last:bg-none">
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-2.5 w-full px-5 py-4 text-left hover:bg-bg-hover transition-colors"
+        className="flex items-center gap-2.5 w-full px-2 py-4 text-left transition-colors"
       >
         <span className="flex-1 text-[15px] font-semibold text-text-primary">{title}</span>
         {icon && (
@@ -424,7 +426,7 @@ export function SideCard({
           className={`text-text-primary transition-transform ${open ? '' : '-rotate-90'}`}
         />
       </button>
-      {open && <div className="px-5 pb-5">{children}</div>}
+      {open && <div className="px-2 pb-5">{children}</div>}
     </div>
   );
 }
@@ -752,6 +754,55 @@ export function TertiaryButton({
     >
       {children}
     </button>
+  );
+}
+
+/* ─── 7e. ConnectorCard ───
+ * Compact row card for a connector / integration (app, API, MCP).
+ *   - Logo slot on the left (caller supplies any icon or img).
+ *   - Name takes remaining width; truncates on overflow.
+ *   - When `connected` is true, shows the green "Connected" StatusTag;
+ *     otherwise shows a Connect button that calls `onConnect`.
+ *
+ * Fill matches the Overview-card pattern: `bg-bg-page` in light mode,
+ * semi-transparent tint in dark mode so the shell gradient shows through.
+ * Used by: ConnectorsPage (Recommended / Apps / APIs grids).
+ */
+export function ConnectorCard({
+  name,
+  logo,
+  connected = false,
+  onConnect,
+  connectLabel = 'Connect',
+  connectedLabel = 'Connected',
+}: {
+  name: string;
+  logo: ReactNode;
+  connected?: boolean;
+  onConnect?: () => void;
+  connectLabel?: string;
+  connectedLabel?: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 p-3 rounded-lg border border-stroke-outline bg-bg-page dark:bg-[rgba(226,243,255,0.05)]">
+      {logo}
+      <span
+        className="flex-1 text-[13px] text-text-primary font-medium truncate"
+        style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
+      >
+        {name}
+      </span>
+      {connected ? (
+        <StatusTag variant="success" label={connectedLabel} size="sm" showIcon={false} />
+      ) : (
+        <button
+          onClick={onConnect}
+          className="text-[11px] px-3 py-1 rounded-full border border-stroke-outline text-text-primary hover:bg-bg-hover transition-colors"
+        >
+          {connectLabel}
+        </button>
+      )}
+    </div>
   );
 }
 

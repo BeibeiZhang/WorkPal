@@ -22,6 +22,7 @@ export default {
           page: 'var(--color-bg-page)',
           message: 'var(--color-bg-message)',
           hover: 'var(--color-bg-hover)',
+          sidebar: 'var(--color-sidebar-bg)',
         },
         stroke: {
           outline: 'var(--color-stroke-outline)',

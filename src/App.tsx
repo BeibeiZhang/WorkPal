@@ -268,12 +268,25 @@ function findLastIndex<T>(arr: T[], predicate: (item: T) => boolean): number {
 let msgIdCounter = 100;
 const nextId = () => String(++msgIdCounter);
 
-const MOBILE_BREAKPOINT = 768;
+// Responsive panel hierarchy (priority-based collapse):
+//   1. Detail Page — when open on narrow viewports, overlays the
+//      ConversationPanel with a dark backdrop (SplitView handles this).
+//   2. ConversationPanel — always visible (flex-1, takes remaining space).
+//   3. NavPanel — collapses first: full Sidebar → MiniSidebar rail below
+//      COMPACT_NAV_BREAKPOINT, rail hidden below MOBILE_BREAKPOINT. If the
+//      user toggles it open below COMPACT_NAV_BREAKPOINT, it overlays with
+//      a dark backdrop instead of displacing the Conversation.
+//   4. InspectorPanel — collapses second: SplitView switches to overlay
+//      mode (dark backdrop + solid panel) once its container can't fit
+//      sideWidth + mainMinWidth.
+const MOBILE_BREAKPOINT = 768;         // below: no inline nav rail at all
+const COMPACT_NAV_BREAKPOINT = 1200;   // below: force MiniSidebar rail, expanded Sidebar overlays
 const SIDEBAR_WIDTH = 336;
 const CONTEXT_PANEL_MIN = 260;
 const MAIN_CONTENT_MIN = 360;
 const subscribe = (cb: () => void) => { window.addEventListener('resize', cb); return () => window.removeEventListener('resize', cb); };
 const getIsMobile = () => window.innerWidth < MOBILE_BREAKPOINT;
+const getIsCompactNav = () => window.innerWidth < COMPACT_NAV_BREAKPOINT;
 /** Point-in-time check used on send to decide between opening the panel
  *  inline vs. showing a preview animation. Inline render fit is now handled
  *  reactively by SplitView via ResizeObserver. */
@@ -304,6 +317,7 @@ export default function App() {
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const isMobile = useSyncExternalStore(subscribe, getIsMobile);
+  const isCompactNav = useSyncExternalStore(subscribe, getIsCompactNav);
   const [contextPanelOpen, setContextPanelOpen] = useState(true);
   // 0–3 = current active step index in alcohol-delivery flow, 4 = all completed
   const [alcoholProgress, setAlcoholProgress] = useState(4);
@@ -828,45 +842,77 @@ export default function App() {
   return (
     <div className="flex h-full w-full overflow-hidden" style={{ background: 'var(--color-outer-bg)' }}>
       {/* Outer rounded container */}
-      <div className="flex-1 flex overflow-hidden m-2 rounded-[40px] shadow-2xl relative" style={{ border: `1px solid var(--color-outer-border)` }}>
-        {/* Sidebar */}
-        {sidebarOpen ? (
-          <>
-            {/* Backdrop overlay on mobile */}
-            {isMobile && (
-              <div
-                className="absolute inset-0 z-20 bg-black/30"
-                onClick={() => setSidebarOpen(false)}
-              />
-            )}
-            <div className={isMobile ? 'absolute inset-y-0 left-0 z-30' : 'contents'}>
-              <Sidebar
-                chats={chats}
-                activeChatId={activeChatId}
-                activeView={activeView}
-                activeProjectId={activeProjectId}
-                projects={projects}
-                onChatSelect={(id) => { handleChatSelect(id); if (isMobile) setSidebarOpen(false); }}
-                onNewChat={() => { handleNewChat(); if (isMobile) setSidebarOpen(false); }}
-                onNewProject={() => setNewProjectOpen(true)}
-                onProjectSelect={(id) => { handleProjectSelect(id); if (isMobile) setSidebarOpen(false); }}
-                onViewChange={(view) => { setActiveView(view); setActiveProjectId(null); if (isMobile) setSidebarOpen(false); }}
-                isDark={isDark}
-                onToggleDark={() => setIsDark(d => !d)}
-                onToggleSidebar={() => setSidebarOpen(o => !o)}
-              />
-            </div>
-          </>
-        ) : !isMobile && (
-          <MiniSidebar
-            activeView={activeView}
-            activeChatId={activeChatId}
-            onViewChange={(view) => { setActiveView(view); setActiveProjectId(null); }}
-            onChatSelect={handleChatSelect}
-            onNewChat={handleNewChat}
-            onToggleSidebar={() => setSidebarOpen(o => !o)}
-          />
-        )}
+      <div className="flex-1 flex overflow-hidden m-2 rounded-[40px] shadow-2xl relative app-shell-bg" style={{ border: `1px solid var(--color-outer-border)` }}>
+        {/* ─── NavPanel (priority 3: collapses first) ───
+            • wide  (≥ 1200px): inline expanded Sidebar when open, MiniSidebar rail when closed
+            • compact (768–1199px): MiniSidebar rail inline; expanded Sidebar overlays with dark backdrop
+            • mobile (< 768px): no inline rail; expanded Sidebar overlays with dark backdrop
+            The expanded-overlay and dismiss-on-nav behaviors apply whenever the nav is compact. */}
+        {(() => {
+          const navOverlay = sidebarOpen && isCompactNav;                    // compact OR mobile
+          const inlineSidebar = sidebarOpen && !isCompactNav;                // wide + open
+          const showMiniInline = !isMobile && !inlineSidebar;                // compact with closed sidebar, or wide with closed sidebar
+          const closeOnNav = isCompactNav;                                    // dismiss overlay after navigating
+          return (
+            <>
+              {showMiniInline && (
+                <MiniSidebar
+                  activeView={activeView}
+                  activeChatId={activeChatId}
+                  onViewChange={(view) => { setActiveView(view); setActiveProjectId(null); }}
+                  onChatSelect={handleChatSelect}
+                  onNewChat={handleNewChat}
+                  onToggleSidebar={() => setSidebarOpen(o => !o)}
+                />
+              )}
+              {inlineSidebar && (
+                <Sidebar
+                  chats={chats}
+                  activeChatId={activeChatId}
+                  activeView={activeView}
+                  activeProjectId={activeProjectId}
+                  projects={projects}
+                  onChatSelect={handleChatSelect}
+                  onNewChat={handleNewChat}
+                  onNewProject={() => setNewProjectOpen(true)}
+                  onProjectSelect={handleProjectSelect}
+                  onViewChange={(view) => { setActiveView(view); setActiveProjectId(null); }}
+                  isDark={isDark}
+                  onToggleDark={() => setIsDark(d => !d)}
+                  onToggleSidebar={() => setSidebarOpen(o => !o)}
+                />
+              )}
+              {navOverlay && (
+                <>
+                  <div
+                    className="absolute inset-0 z-20 panel-overlay-backdrop"
+                    onClick={() => setSidebarOpen(false)}
+                    aria-hidden
+                  />
+                  {/* Solid sidebar background — overrides the in-flow `dark:bg-transparent`
+                      that relies on the shell gradient, so no ConversationPanel bleed-through. */}
+                  <div className="absolute inset-y-0 left-0 z-30" style={{ background: 'var(--color-sidebar-bg)' }}>
+                    <Sidebar
+                      chats={chats}
+                      activeChatId={activeChatId}
+                      activeView={activeView}
+                      activeProjectId={activeProjectId}
+                      projects={projects}
+                      onChatSelect={(id) => { handleChatSelect(id); if (closeOnNav) setSidebarOpen(false); }}
+                      onNewChat={() => { handleNewChat(); if (closeOnNav) setSidebarOpen(false); }}
+                      onNewProject={() => setNewProjectOpen(true)}
+                      onProjectSelect={(id) => { handleProjectSelect(id); if (closeOnNav) setSidebarOpen(false); }}
+                      onViewChange={(view) => { setActiveView(view); setActiveProjectId(null); if (closeOnNav) setSidebarOpen(false); }}
+                      isDark={isDark}
+                      onToggleDark={() => setIsDark(d => !d)}
+                      onToggleSidebar={() => setSidebarOpen(o => !o)}
+                    />
+                  </div>
+                </>
+              )}
+            </>
+          );
+        })()}
 
         {/* Main Content */}
         {activeProjectId && projects.find(p => p.id === activeProjectId) ? (
