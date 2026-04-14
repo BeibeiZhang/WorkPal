@@ -11,6 +11,7 @@ import {
   StickyNote, Ticket, Mail, MoreHorizontal, Sparkles, Play, Timer, User,
   Globe, ArrowLeft, Sun,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import {
   SectionTitle as SharedSectionTitle, ProgressBar, LabeledBar, CircularProgress,
   TimePill, StepIndicator, Tag, FilterChip, PrimaryButton, SecondaryButton, TertiaryButton,
@@ -2120,7 +2121,7 @@ const RADIUS_SCALE: { token: string; css: string; usage: string }[] = [
 // actual SVG at multiple sizes and colors (no abbreviations or stubs).
 type IconEntry = {
   name: string;
-  Icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
+  Icon: LucideIcon;
   purpose: string;
   usedIn: string;
 };
