@@ -336,7 +336,7 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
           </>
         }
         rightSlot={
-          <SearchBox value={search} onChange={setSearch} placeholder="Search this project" width={200} />
+          <SearchBox value={search} onChange={setSearch} placeholder="Search this project" />
         }
         footer={
           <ChatInput

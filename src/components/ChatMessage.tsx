@@ -22,16 +22,10 @@ function renderText(text: string) {
 
 function SpeakerIcon({ playing }: { playing: boolean }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`w-[26px] h-[26px] md:w-5 md:h-5 ${playing ? 'text-text-primary' : 'opacity-40 hover:opacity-70'}`}>
+    <svg viewBox="0 0 24 24" fill={playing ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`w-[25px] h-[25px] md:w-5 md:h-5 ${playing ? 'text-[#3171FF]' : 'opacity-40 hover:opacity-70'}`}>
       <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-      {playing ? (
-        <>
-          <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-          <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-        </>
-      ) : (
-        <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-      )}
+      <path d="M15.54 8.46a5 5 0 0 1 0 7.07" fill="none" className={playing ? 'speaker-wave-inner' : ''} />
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14" fill="none" className={playing ? 'speaker-wave-outer' : ''} />
     </svg>
   );
 }
@@ -82,7 +76,7 @@ function FeedbackBar({ text }: { text: string }) {
           <img
             src={src}
             alt={label}
-            className={`w-6 h-6 md:w-4 md:h-4 object-contain opacity-40 hover:opacity-70 icon-theme ${flip ? 'scale-y-[-1]' : ''}`}
+            className={`w-5 h-5 md:w-4 md:h-4 object-contain opacity-40 hover:opacity-70 icon-theme ${flip ? 'scale-y-[-1]' : ''}`}
           />
         </button>
       ))}

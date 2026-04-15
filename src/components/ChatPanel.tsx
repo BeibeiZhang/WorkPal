@@ -23,6 +23,8 @@ interface ChatPanelProps {
   isAiResponding?: boolean;
   draftValue?: string;
   forceMode?: 'Chat' | 'Tasks' | 'Code';
+  /** Mobile-only: shown as a "+" button in the header's right group. */
+  onNewChat?: () => void;
 }
 
 const WELCOME_CHIPS = ['Create performance goals', 'Analyze doc(s)', 'Visualize data'];
@@ -144,6 +146,7 @@ export default function ChatPanel({
   isAiResponding,
   draftValue,
   forceMode,
+  onNewChat,
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -173,6 +176,7 @@ export default function ChatPanel({
         sidebarOpen={sidebarOpen}
         onToggleSidebar={onToggleSidebar}
         headerRight={contextToggleButton}
+        onNewChat={onNewChat}
       />
 
       {/* Messages area */}

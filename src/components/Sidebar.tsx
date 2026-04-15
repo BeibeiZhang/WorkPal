@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Chat } from '../types';
-import { LayoutDashboard, Plus, Link, BookOpen, FolderPlus, ChevronDown, Search, Palette, PanelLeft } from 'lucide-react';
+import { LayoutDashboard, SquarePen, Link, BookOpen, FolderPlus, ChevronDown, Search, Palette, PanelLeft } from 'lucide-react';
 import {
   iconSun, iconMoon, iconSpinner,
 } from '../assets';
@@ -74,7 +74,7 @@ interface MiniSidebarProps {
 export function MiniSidebar({ activeView, activeChatId, onViewChange, onNewChat, onToggleSidebar }: MiniSidebarProps) {
   const items: { id: string; label: string; Icon: typeof LayoutDashboard; onClick: () => void; active: boolean }[] = [
     { id: 'overview', label: 'Overview', Icon: LayoutDashboard, onClick: () => onViewChange?.('overview'), active: activeView === 'overview' && !activeChatId },
-    { id: 'new', label: 'New Session', Icon: Plus, onClick: onNewChat, active: false },
+    { id: 'new', label: 'New Session', Icon: SquarePen, onClick: onNewChat, active: false },
     { id: 'connectors', label: 'Connectors', Icon: Link, onClick: () => onViewChange?.('connectors'), active: activeView === 'connectors' },
     { id: 'library', label: 'Library', Icon: BookOpen, onClick: () => onViewChange?.('library'), active: activeView === 'library' },
     { id: 'design-system', label: 'Design System', Icon: Palette, onClick: () => onViewChange?.('design-system'), active: activeView === 'design-system' },
@@ -200,7 +200,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
               isNewSessionActive ? 'gradient-ring' : 'hover:bg-bg-hover'
             }`}
           >
-            <Plus size={20} className="shrink-0 text-text-primary" />
+            <SquarePen size={20} className="shrink-0 text-text-primary" />
             <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
               New Session
             </span>

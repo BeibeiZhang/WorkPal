@@ -4,7 +4,7 @@
  * Single source of truth — used by both app pages and the Design System page.
  * Update a component here → it updates everywhere in the app.
  */
-import { AlertTriangle, ArrowLeft, BadgeCheck, Check, ChevronDown, Clock, Eye, FileText, Mail, PanelLeft, PanelRight, Ticket, Play, Plus, Search, Send, Smile, Timer, User, Sparkles, X, XCircle, type LucideIcon } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, BadgeCheck, Check, ChevronDown, Clock, Eye, FileText, Mail, PanelLeft, PanelRight, Ticket, Play, Plus, Search, Send, Smile, SquarePen, Timer, User, Sparkles, X, XCircle, type LucideIcon } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState, useLayoutEffect } from 'react';
 
 /* ─── 0a. HeaderBar ───
@@ -16,16 +16,22 @@ import { type ReactNode, useEffect, useRef, useState, useLayoutEffect } from 're
  *   - sidebarOpen: hides the menu toggle when sidebar is already open.
  *   - onToggleSidebar: required for the menu toggle to render.
  *   - headerRight: content aligned to the right (e.g. SidePanel toggle).
+ *   - onNewChat: when provided, renders a "New Session" edit-compose button at
+ *     the left of the right-side group. Caller passes this only on mobile
+ *     (sidebar hidden), so no CSS-based hiding is needed here.
  */
 export function HeaderBar({
   sidebarOpen = true,
   onToggleSidebar,
   headerRight,
+  onNewChat,
 }: {
   sidebarOpen?: boolean;
   onToggleSidebar?: () => void;
   headerRight?: ReactNode;
+  onNewChat?: () => void;
 }) {
+  const hasRight = onNewChat || headerRight;
   return (
     <div className="flex items-center gap-4 px-4 h-12 shrink-0">
       {!sidebarOpen && onToggleSidebar && (
@@ -37,7 +43,20 @@ export function HeaderBar({
           <PanelLeft size={20} />
         </button>
       )}
-      {headerRight && <div className="ml-auto flex items-center gap-2">{headerRight}</div>}
+      {hasRight && (
+        <div className="ml-auto flex items-center gap-2">
+          {onNewChat && (
+            <button
+              onClick={onNewChat}
+              aria-label="New session"
+              className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-primary"
+            >
+              <SquarePen size={20} />
+            </button>
+          )}
+          {headerRight}
+        </div>
+      )}
     </div>
   );
 }
@@ -73,6 +92,7 @@ export function PageLayout({
   sidebarOpen = true,
   onToggleSidebar,
   headerRight,
+  onNewChat,
   footer,
   scrollContainerId,
   bgClass,
@@ -89,6 +109,10 @@ export function PageLayout({
   onToggleSidebar?: () => void;
   /** Right-aligned content in the top toggle bar (e.g. panel toggle). */
   headerRight?: ReactNode;
+  /** When provided, renders a New Session (compose / edit-square) button in
+   *  the header's right-side group, to the left of `headerRight`. Caller
+   *  typically passes this only on mobile, where the sidebar is hidden. */
+  onNewChat?: () => void;
   /** Pinned element at the bottom of the column, outside the scroll region
    *  (e.g. ChatInput). Honors the `maxWidth` prop. */
   footer?: ReactNode;
@@ -107,7 +131,7 @@ export function PageLayout({
       className={`flex-1 flex flex-col min-w-0 h-full ${bgClass ?? ''}`}
       style={bgClass ? undefined : { background: 'var(--color-bg-page)' }}
     >
-      <HeaderBar sidebarOpen={sidebarOpen} onToggleSidebar={onToggleSidebar} headerRight={headerRight} />
+      <HeaderBar sidebarOpen={sidebarOpen} onToggleSidebar={onToggleSidebar} headerRight={headerRight} onNewChat={onNewChat} />
 
       {/* Scrollable body */}
       <div id={scrollContainerId} className="flex-1 overflow-y-auto min-h-0 scrollbar-autohide">

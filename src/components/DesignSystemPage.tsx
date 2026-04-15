@@ -3,7 +3,7 @@ import {
   Menu, LayoutDashboard, Plus, Link, BookOpen, Search, ChevronDown,
   ChevronRight, Code2, FileCode2, FileText, FolderOpen, FolderPlus,
   MessageCircle, MoreVertical, PanelRight, Palette, Pen, Star, X,
-  MessageSquare, CheckSquare, AtSign, Folder, GitBranch, Mic, Activity,
+  MessageSquare, CheckSquare, AtSign, Folder, GitBranch, Mic, Activity, SquarePen,
   Brain, Moon, Home, Zap,
   // Additional icons referenced in the live Icon Library showcase
   AlertTriangle, Check, Clock, BadgeCheck, XCircle, Send, Smile, Eye,
@@ -64,7 +64,7 @@ const TABS: { id: TabId; label: string; hint: string }[] = [
 
 function SearchBoxDemo() {
   const [q, setQ] = useState('');
-  return <SearchBox value={q} onChange={setQ} placeholder="Search artifacts" width={220} />;
+  return <SearchBox value={q} onChange={setQ} placeholder="Search artifacts" />;
 }
 
 function SplitViewDemo() {
@@ -116,14 +116,18 @@ function PageLayoutDemo() {
 
 export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: DesignSystemPageProps) {
   const [activeTab, setActiveTab] = useState<TabId>('foundations');
+  const [search, setSearch] = useState('');
 
   const activeTabMeta = useMemo(
     () => TABS.find(t => t.id === activeTab) ?? TABS[0],
     [activeTab]
   );
 
+  const isSearching = search.trim().length > 0;
+
   const handleTabClick = (id: TabId) => {
     setActiveTab(id);
+    setSearch('');
     const scrollEl = document.getElementById('ds-scroll-container');
     if (scrollEl) scrollEl.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -135,6 +139,7 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
       onToggleSidebar={onToggleSidebar}
       scrollContainerId="ds-scroll-container"
       bgClass="app-bg"
+      rightSlot={<SearchBox value={search} onChange={setSearch} placeholder="Search design system" />}
       filters={
         <div className="flex flex-nowrap sm:flex-wrap gap-2 overflow-x-auto sm:overflow-visible scrollbar-autohide -mx-4 sm:mx-0 px-4 sm:px-0">
           {TABS.map(tab => (
@@ -142,11 +147,11 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
               key={tab.id}
               onClick={() => handleTabClick(tab.id)}
               className={`shrink-0 px-4 py-1.5 rounded-full text-[14px] transition-colors border ${
-                activeTab === tab.id
+                activeTab === tab.id && !isSearching
                   ? 'border-transparent'
                   : 'border-stroke-outline text-text-primary hover:bg-bg-hover chip-gradient-hover'
               }`}
-              style={activeTab === tab.id ? { background: 'var(--color-selected-bg)', color: 'var(--color-selected-text)' } : undefined}
+              style={activeTab === tab.id && !isSearching ? { background: 'var(--color-selected-bg)', color: 'var(--color-selected-text)' } : undefined}
             >
               {tab.label}
             </button>
@@ -154,17 +159,23 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
         </div>
       }
     >
-        {/* Tab hint */}
-        <p className="text-[13px] text-text-secondary leading-[20px] -mt-4 mb-6">{activeTabMeta.hint}</p>
+        {isSearching ? (
+          <SearchResults query={search} onPick={handleTabClick} />
+        ) : (
+          <>
+            {/* Tab hint */}
+            <p className="text-[13px] text-text-secondary leading-[20px] -mt-4 mb-6">{activeTabMeta.hint}</p>
 
-        {activeTab === 'foundations' && <FoundationsTab />}
+            {activeTab === 'foundations' && <FoundationsTab />}
 
-        {activeTab === 'principles' && <PrinciplesTab />}
+            {activeTab === 'principles' && <PrinciplesTab />}
 
 
-        {activeTab === 'layouts'    && <LayoutsTab />}
-        {activeTab === 'components' && <ComponentsTab />}
-        {activeTab === 'review'     && <ReviewTab />}
+            {activeTab === 'layouts'    && <LayoutsTab />}
+            {activeTab === 'components' && <ComponentsTab />}
+            {activeTab === 'review'     && <ReviewTab />}
+          </>
+        )}
     </PageLayout>
   );
 }
@@ -289,7 +300,8 @@ const ICON_GROUPS: { group: string; blurb: string; icons: IconEntry[] }[] = [
     group: 'Actions & Controls',
     blurb: 'User-initiated operations — creating, searching, dismissing, sending.',
     icons: [
-      { name: 'Plus',        Icon: Plus,        purpose: 'Create / add (new session, project, API)', usedIn: 'Sidebar, ConnectorsPage, shared' },
+      { name: 'SquarePen',   Icon: SquarePen,   purpose: 'New session / compose chat',               usedIn: 'Sidebar, shared (HeaderBar)' },
+      { name: 'Plus',        Icon: Plus,        purpose: 'Create / add (project, API, list item)',   usedIn: 'ConnectorsPage, shared (SideCard, ChatInput)' },
       { name: 'FolderPlus',  Icon: FolderPlus,  purpose: 'New project action',                       usedIn: 'Sidebar' },
       { name: 'Search',      Icon: Search,      purpose: 'Search affordance',                        usedIn: 'Sidebar, shared (SearchBox)' },
       { name: 'X',           Icon: X,           purpose: 'Close / dismiss / remove chip',            usedIn: 'NewProjectDialog, Onboarding, SearchBox' },
@@ -438,6 +450,225 @@ const PRINCIPLES: { n: number; title: string; rule: string; why?: string; refTab
     refTab: 'Review Queue',
   },
 ];
+
+/* ═══════════════════════════════════════════════════
+   Search index — flat list of every searchable item.
+   Derived from the same arrays the tabs render from,
+   plus a manual list for layouts / components / review
+   where items live inline in JSX. Matches on name,
+   description, or section (case-insensitive).
+   ═══════════════════════════════════════════════════ */
+type SearchEntry = {
+  tab: TabId;
+  section: string;
+  name: string;
+  description?: string;
+};
+
+const SEARCH_INDEX: SearchEntry[] = [
+  // Foundations — Colors
+  ...SURFACE_TOKENS.map<SearchEntry>(t => ({
+    tab: 'foundations',
+    section: 'Foundations · Color · Surface & Text',
+    name: t.name,
+    description: `${t.cssVar}${t.tailwind ? ' · ' + t.tailwind : ''} — ${t.usage}`,
+  })),
+  ...ACCENT_TOKENS.map<SearchEntry>(t => ({
+    tab: 'foundations',
+    section: 'Foundations · Color · Accent / Status',
+    name: t.name,
+    description: `${t.cssVar} — ${t.usage}`,
+  })),
+  ...BRAND_STOPS.map<SearchEntry>(s => ({
+    tab: 'foundations',
+    section: 'Foundations · Color · Brand Gradient',
+    name: `Brand · ${s.stop}`,
+    description: s.cssVar,
+  })),
+  // Foundations — Typography
+  ...TYPE_SCALE.map<SearchEntry>(r => ({
+    tab: 'foundations',
+    section: 'Foundations · Typography',
+    name: r.label,
+    description: `.${r.className} · ${r.size}/${r.lh}/${r.weight} — ${r.usage}`,
+  })),
+  // Foundations — Spacing
+  ...SPACING_SCALE.map<SearchEntry>(s => ({
+    tab: 'foundations',
+    section: 'Foundations · Spacing',
+    name: s.token,
+    description: `${s.css} · ${s.tailwind} — ${s.usage}`,
+  })),
+  // Foundations — Radius
+  ...RADIUS_SCALE.map<SearchEntry>(r => ({
+    tab: 'foundations',
+    section: 'Foundations · Radius',
+    name: r.token,
+    description: `${r.css} — ${r.usage}`,
+  })),
+  // Foundations — Icons
+  ...ICON_GROUPS.flatMap<SearchEntry>(g =>
+    g.icons.map(i => ({
+      tab: 'foundations' as TabId,
+      section: `Foundations · Icons · ${g.group}`,
+      name: i.name,
+      description: `${i.purpose} · used in ${i.usedIn}`,
+    })),
+  ),
+  // Principles
+  ...PRINCIPLES.map<SearchEntry>(p => ({
+    tab: 'principles',
+    section: `Principle ${p.n}`,
+    name: p.title,
+    description: p.rule,
+  })),
+  // Layouts
+  { tab: 'layouts', section: 'Layout Templates', name: 'App Shell — Three-Panel Structure', description: 'NavPanel + ConversationPanel + InspectorPanel — the shell every view composes into' },
+  { tab: 'layouts', section: 'Layout Templates', name: 'PageLayout', description: 'Toggle bar + H1 + optional filters + scrollable body — the canonical page shell' },
+  { tab: 'layouts', section: 'Layout Templates', name: 'HeaderBar', description: "Slim top bar for pages that don't use PageLayout (mainly ChatPanel)" },
+  { tab: 'layouts', section: 'Layout Templates', name: 'SplitView', description: 'Main column + collapsible side column, responsive overlay mode' },
+  { tab: 'layouts', section: 'Layout Templates', name: 'SidePanelHeader', description: 'Shared header row for side panels — close button and typography unified' },
+  { tab: 'layouts', section: 'Layout Templates', name: 'SideCard', description: 'Collapsible card for right-column panels (Instructions / Scheduled / Files / Context)' },
+  // Components — shared primitives
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'PrimaryButton · SecondaryButton · TertiaryButton', description: 'Three-tier button system. Only ONE Primary per view.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'StatusTag', description: 'Semantic status pill — 7 variants (pending, in-progress, submitted, in-review, success, failed, expired).' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'Tag', description: 'Neutral display pill (filled or outline).' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'TimePill', description: 'Neutral pill with user icon + time.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'FilterChip', description: 'Master filter chip — active, count, with icon.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'ConnectorCard', description: 'Compact row for an integration — logo + name + Connect / Connected.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'CircularProgress', description: 'SVG circle progress with centered text overlay.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'ProgressBar', description: 'Determinate progress bar with optional label.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'LabeledBar', description: 'Thin bar with label + percentage, custom color per category.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'StepIndicator', description: 'Done (check) / in-progress (filled dot) / pending (empty circle).' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'MetricCard', description: 'Large centered number with title and subtitle.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'InsightCard', description: 'Sparkle icon + body + action buttons.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'AreaChart', description: 'SVG area chart with gradient fill and data points.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'TaskProgressCard', description: 'Clickable progress card that expands to show step list.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'ReviewItemCard', description: 'Needs-review card with metadata, time pill, action button.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'HealthDimensionRow', description: 'Icon + label/desc + auto-colored status pill by value/target.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'SolutionRow', description: 'Emoji + title/desc + right-aligned category tag.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'SummaryFooter', description: 'Right-aligned row with clock icon + summary text.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'SectionTitle', description: 'Emoji + bold title + optional count badge.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'SearchBox', description: 'Responsive search input — desktop pill / mobile icon that expands on tap.' },
+  // Components — chat & messaging
+  { tab: 'components', section: 'Components · Chat & Messaging', name: 'ChatMessage', description: 'User / assistant chat bubble — markdown, chips, feedback bar.' },
+  { tab: 'components', section: 'Components · Chat & Messaging', name: 'ChatInput', description: 'Text composer with mode selector (Chat / Tasks / Code), voice input, attachments.' },
+  { tab: 'components', section: 'Components · Chat & Messaging', name: 'MessageCard — 5 variants', description: 'Meeting / research / ticket / schedule / agent cards embedded in chat messages.' },
+  // Components — navigation
+  { tab: 'components', section: 'Components · Navigation', name: 'Sidebar', description: 'Full left navigation — search, links, projects, recents, theme toggle, profile.' },
+  { tab: 'components', section: 'Components · Navigation', name: 'MiniSidebar', description: 'Icon-only collapsed rail.' },
+  // Components — side panels & dialogs
+  { tab: 'components', section: 'Components · Side Panels & Dialogs', name: 'DetailPanel', description: 'Right-hand document panel with AI transform buttons.' },
+  { tab: 'components', section: 'Components · Side Panels & Dialogs', name: 'TaskContextPanel', description: 'Progress steps + folder / context / tools for in-flight tasks.' },
+  { tab: 'components', section: 'Components · Side Panels & Dialogs', name: 'NewProjectDialog', description: 'Modal for creating a new project (name + description).' },
+  // Components — project page shared layout
+  { tab: 'components', section: 'Components · ProjectPage Shared Layout', name: 'PageLayout (ProjectPage)', description: 'Canonical page shell used by ProjectPage.' },
+  { tab: 'components', section: 'Components · ProjectPage Shared Layout', name: 'SplitView (ProjectPage)', description: 'Main + collapsible side column with responsive overlay.' },
+  { tab: 'components', section: 'Components · ProjectPage Shared Layout', name: 'SidePanelHeader (ProjectPage)', description: 'Shared header row for side panels.' },
+  { tab: 'components', section: 'Components · ProjectPage Shared Layout', name: 'SideCard (ProjectPage)', description: 'Collapsible side-panel card.' },
+  // Components — pages
+  { tab: 'components', section: 'Components · Pages', name: 'OverviewPage', description: 'Morning briefing dashboard with health ring and insights.' },
+  { tab: 'components', section: 'Components · Pages', name: 'LibraryPage', description: 'Masonry grid of AI-generated artifacts.' },
+  { tab: 'components', section: 'Components · Pages', name: 'ConnectorsPage', description: 'Connector directory (Recommended / Apps / APIs).' },
+  { tab: 'components', section: 'Components · Pages', name: 'Onboarding', description: 'First-time drag-and-drop trait selector.' },
+  { tab: 'components', section: 'Components · Pages', name: 'ComingSoonPage', description: 'Placeholder with video for planned surfaces.' },
+  // Review Queue
+  { tab: 'review', section: 'Review · Pending', name: 'ToolbarPill', description: 'ChatInput toolbar pill — rounded border, hover gradient, leading/trailing slots.' },
+  { tab: 'review', section: 'Review · Pending', name: 'ToolbarIconButton', description: 'Icon-only sibling of ToolbarPill — square, same height token.' },
+  { tab: 'review', section: 'Review · Pending', name: 'ToolbarSegmented', description: 'Connected 3-in-1 segmented pill sharing one outer border.' },
+  { tab: 'review', section: 'Review Queue', name: 'Approved (promoted to shared.tsx)', description: 'Approved components permanently promoted to shared.tsx.' },
+  { tab: 'review', section: 'Review Queue', name: 'Rejected', description: 'Rejected components — reverted to the closest existing primitive.' },
+];
+
+function SearchResults({
+  query,
+  onPick,
+}: {
+  query: string;
+  onPick: (tab: TabId) => void;
+}) {
+  const q = query.trim().toLowerCase();
+  const matches = useMemo(
+    () =>
+      SEARCH_INDEX.filter(
+        e =>
+          e.name.toLowerCase().includes(q) ||
+          (e.description ?? '').toLowerCase().includes(q) ||
+          e.section.toLowerCase().includes(q),
+      ),
+    [q],
+  );
+
+  if (matches.length === 0) {
+    return (
+      <div
+        className="rounded-2xl border border-dashed border-stroke-outline p-8 text-center"
+        style={{ background: 'var(--color-bg-page)' }}
+      >
+        <p className="text-[14px] text-text-primary mb-1">No matches for &ldquo;{query}&rdquo;</p>
+        <p className="text-[13px] text-text-secondary">
+          Try a token name (<code className="font-mono">--color-text-primary</code>), a component name (<code className="font-mono">StatusTag</code>), or a principle keyword (<code className="font-mono">gradient</code>).
+        </p>
+      </div>
+    );
+  }
+
+  // Group by tab, preserving TABS display order.
+  const grouped: { tab: TabId; entries: SearchEntry[] }[] = TABS
+    .map(t => ({ tab: t.id, entries: matches.filter(m => m.tab === t.id) }))
+    .filter(g => g.entries.length > 0);
+
+  return (
+    <div className="flex flex-col gap-5">
+      <p className="text-[13px] text-text-secondary">
+        {matches.length} result{matches.length === 1 ? '' : 's'} for{' '}
+        <strong className="text-text-primary">&ldquo;{query}&rdquo;</strong>
+      </p>
+      {grouped.map(({ tab, entries }) => {
+        const tabMeta = TABS.find(t => t.id === tab)!;
+        return (
+          <div
+            key={tab}
+            className="rounded-2xl border border-stroke-outline p-5"
+            style={{ background: 'var(--color-bg-page)' }}
+          >
+            <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+              <div className="flex items-baseline gap-2">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-text-secondary">Tab</span>
+                <span className="text-[14px] font-bold text-text-primary">{tabMeta.label}</span>
+                <span className="text-[12px] text-text-secondary">· {entries.length}</span>
+              </div>
+              <button
+                onClick={() => onPick(tab)}
+                className="text-[12px] font-medium px-3 py-1 rounded-full border border-stroke-outline hover:bg-bg-hover transition-colors text-text-primary"
+              >
+                Open tab
+              </button>
+            </div>
+            <ul className="flex flex-col gap-2">
+              {entries.map((e, i) => (
+                <li key={`${e.tab}-${e.section}-${e.name}-${i}`}>
+                  <button
+                    onClick={() => onPick(tab)}
+                    className="w-full text-left rounded-xl border border-stroke-outline hover:bg-bg-hover transition-colors p-3"
+                  >
+                    <div className="flex items-baseline gap-2 mb-0.5 flex-wrap">
+                      <span className="text-[13px] font-semibold text-text-primary">{e.name}</span>
+                      <span className="text-[11px] text-text-secondary">· {e.section}</span>
+                    </div>
+                    {e.description && (
+                      <p className="text-[12px] text-text-secondary leading-[17px]">{e.description}</p>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 function PrinciplesTab() {
   return (

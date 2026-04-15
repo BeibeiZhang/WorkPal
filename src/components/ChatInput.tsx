@@ -474,7 +474,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
           When the textarea content wraps to more than one line, the wrapper
           animates from a pill (rounded-full) into a rounded rectangle. */}
       <div
-        className={`px-4 py-4 flex items-center transition-[border-radius,background-color,box-shadow] duration-200 ease-out ${
+        className={`px-4 py-2 flex items-center transition-[border-radius,background-color,box-shadow] duration-200 ease-out ${
           isActive
             ? `input-gradient-border ${isMultiline ? 'rounded-lg' : 'rounded-full'}`
             : 'rounded-full input-gradient-hover'
