@@ -18,7 +18,8 @@ import {
   SolutionRow, SummaryFooter,
   MetricCard, InsightCard, AreaChart, TaskProgressCard, ReviewItemCard,
   StatusTag, ConnectorCard, HealthDimensionRow, SearchBox, PageLayout,
-  HeaderBar, SplitView, SidePanelHeader, SideCard,
+  HeaderBar, SplitView, SidePanelHeader, SideCard, ToolbarPill,
+  ToolbarIconButton, ToolbarSegmented, Tooltip,
 } from './shared';
 // Live imports — every "real" component that ships in the app.
 // Rendering these here (not screenshots) means a foundations change
@@ -133,6 +134,7 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
       sidebarOpen={sidebarOpen}
       onToggleSidebar={onToggleSidebar}
       scrollContainerId="ds-scroll-container"
+      bgClass="app-bg"
       filters={
         <div className="flex flex-nowrap sm:flex-wrap gap-2 overflow-x-auto sm:overflow-visible scrollbar-autohide -mx-4 sm:mx-0 px-4 sm:px-0">
           {TABS.map(tab => (
@@ -1795,10 +1797,100 @@ type ReviewItem = {
   status: ReviewStatus;
 };
 
+/** Stateful preview for ToolbarSegmented (it's a controlled component). */
+function ToolbarSegmentedPreview() {
+  const [mode, setMode] = useState<'Chat' | 'Tasks' | 'Code'>('Chat');
+  return (
+    <ToolbarSegmented<'Chat' | 'Tasks' | 'Code'>
+      value={mode}
+      onChange={setMode}
+      segments={[
+        { value: 'Chat',  icon: <MessageSquare size={16} className="shrink-0" />, label: 'Chat' },
+        { value: 'Tasks', icon: <CheckSquare  size={16} className="shrink-0" />, label: 'Tasks' },
+        { value: 'Code',  icon: <Code2        size={16} className="shrink-0" />, label: 'Code'  },
+      ]}
+    />
+  );
+}
+
 function ReviewTab() {
   const [items, setItems] = useState<ReviewItem[]>([
-    // Seed the queue empty. This array gets new entries whenever the assistant
-    // has to build a brand-new shared component instead of reusing an existing one.
+    {
+      id: 'toolbar-pill',
+      name: 'ToolbarPill',
+      builtFor: 'ChatInput toolbar row — folder picker (Tasks/Code mode), branch picker (Code mode), and Worktree checkbox (Code mode).',
+      reason: 'The same pill shell (rounded border, --toolbar-btn-h height, hover gradient, leading-icon + truncated-label + trailing-chevron) was copy-pasted 3× with near-identical className strings. Different enough from FilterChip — this one locks to the toolbar height token and needs a leading/trailing slot pattern plus a label-variant for wrapping a checkbox.',
+      closestExisting: 'FilterChip / Tag (both rounded-full, but fixed-height: Chip is 32/28, Tag is 22) — neither matches --toolbar-btn-h or offers leading/trailing slots.',
+      preview: (
+        <div className="flex flex-wrap items-center gap-2">
+          <ToolbarPill
+            leading={<Folder size={14} className="shrink-0" />}
+            trailing={<ChevronDown size={12} className="shrink-0 icon-theme" />}
+            className="max-w-[180px]"
+          >
+            ~/Projects/WorkPal
+          </ToolbarPill>
+          <ToolbarPill
+            leading={<GitBranch size={14} className="shrink-0" />}
+            trailing={<ChevronDown size={12} className="shrink-0 icon-theme" />}
+            className="max-w-[160px]"
+          >
+            main
+          </ToolbarPill>
+          <ToolbarPill
+            as="label"
+            leading={
+              <input
+                type="checkbox"
+                defaultChecked
+                className="worktree-checkbox w-3.5 h-3.5 rounded cursor-pointer"
+              />
+            }
+          >
+            Worktree
+          </ToolbarPill>
+        </div>
+      ),
+      status: 'pending',
+    },
+    {
+      id: 'toolbar-icon-button',
+      name: 'ToolbarIconButton',
+      builtFor: 'ChatInput toolbar row — the `+` attach button (and any future icon-only peer in the same row).',
+      reason: 'Sibling of ToolbarPill. Same --toolbar-btn-h height, same border/hover tokens, but a square shape (width === height === --toolbar-btn-h) with a single icon slot. Extracting it makes the "toolbar controls" family complete and locks every icon-only button to the same size and border treatment.',
+      closestExisting: 'ToolbarPill (wrong shape — pills are horizontal with a label slot) and TertiaryButton (wrong height/shape — standalone rectangular CTA, not a toolbar peer).',
+      preview: (
+        <div className="flex flex-wrap items-center gap-2">
+          <Tooltip label="Attach">
+            <ToolbarIconButton ariaLabel="Attach">
+              <Plus size={16} className="shrink-0" />
+            </ToolbarIconButton>
+          </Tooltip>
+          <Tooltip label="Mic">
+            <ToolbarIconButton ariaLabel="Mic">
+              <Mic size={16} className="shrink-0" />
+            </ToolbarIconButton>
+          </Tooltip>
+        </div>
+      ),
+      status: 'pending',
+    },
+    {
+      id: 'toolbar-segmented',
+      name: 'ToolbarSegmented',
+      builtFor: 'ChatInput mode selector — Chat / Tasks / Code. Connected 3-in-1 pill where the selected segment widens to show its label and the others stay icon-only with a Tooltip.',
+      reason: 'Third sibling in the toolbar family. A row of three ToolbarPills would give each one its own border — wrong look. This component keeps a single outer border and shares it across inner segments, preserving the connected-segment visual. Generic over the segment-value type so callers stay type-safe (e.g. `ToolbarSegmented<InputMode>`).',
+      closestExisting: 'FilterChip row (wrong: separate borders per chip, not connected) and the browser-native `<select>` (wrong: not a peer of the toolbar pills).',
+      preview: (
+        <div className="flex flex-wrap items-center gap-3">
+          <ToolbarSegmentedPreview />
+          <span className="text-[13px] text-text-secondary">
+            Click a segment — selected widens to show its label, others show tooltip on hover.
+          </span>
+        </div>
+      ),
+      status: 'pending',
+    },
   ]);
 
   const pending  = items.filter(i => i.status === 'pending');

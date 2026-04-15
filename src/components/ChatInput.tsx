@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback, KeyboardEvent } from 'react';
 import { iconGoals, iconDoc16, iconBarChart, iconAdd, iconPhoto, iconCamera, iconUpload, iconSend, iconSendActive, iconChevronDown } from '../assets';
 import { ActionChip } from '../types';
+import { ToolbarPill, ToolbarIconButton, ToolbarSegmented, Tooltip } from './shared';
 
 // Web Speech API types
 interface SpeechRecognitionEvent extends Event {
@@ -23,18 +24,6 @@ type SpeechRecognitionInstance = {
 const SpeechRecognitionCtor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
 type InputMode = 'Chat' | 'Tasks' | 'Code';
-
-/** Dark tooltip on hover — black bg, white text */
-function Tooltip({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="relative group">
-      {children}
-      <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded-md bg-[#1a1a1a] text-white text-[11px] leading-tight whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50">
-        {label}
-      </div>
-    </div>
-  );
-}
 
 const CHIP_ICONS: Record<string, string> = {
   'Create performance goals': iconGoals,
@@ -487,14 +476,15 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
       <div
         className={`px-4 py-4 flex items-center transition-[border-radius,background-color,box-shadow] duration-200 ease-out ${
           isActive
-            ? (isMultiline ? 'rounded-lg' : 'rounded-full')
+            ? `input-gradient-border ${isMultiline ? 'rounded-lg' : 'rounded-full'}`
             : 'rounded-full input-gradient-hover'
         }`}
         style={
           isActive
             ? {
                 border: '2px solid transparent',
-                background: 'linear-gradient(var(--color-bg-page), var(--color-bg-page)) padding-box, linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box',
+                backgroundColor: 'var(--color-input-bg)',
+                backgroundClip: 'padding-box',
               }
             : { border: '2px solid transparent', background: 'var(--color-bg-message)' }
         }
@@ -580,13 +570,12 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
           {/* + Attach button with border and popup */}
           <div ref={attachRef} className="relative">
             <Tooltip label="Attach">
-              <button
+              <ToolbarIconButton
+                ariaLabel="Attach"
                 onClick={() => { setShowAttachMenu(v => !v); setShowFolderMenu(false); setShowBranchMenu(false); }}
-                className="flex items-center justify-center rounded-full border border-stroke-outline hover:bg-bg-hover toolbar-gradient-hover transition-all shrink-0 cursor-pointer text-text-primary"
-                style={{ width: 'var(--toolbar-btn-h)', height: 'var(--toolbar-btn-h)' } as React.CSSProperties}
               >
                 <span className="toolbar-icon-scale"><IconImg src={iconAdd} alt="Add" size={16} /></span>
-              </button>
+              </ToolbarIconButton>
             </Tooltip>
             {showAttachMenu && (
               <div className="absolute bottom-full left-0 mb-3 md:mb-2 w-72 md:w-48 bg-bg-page border border-stroke-outline rounded-2xl md:rounded-xl shadow-lg py-3 md:py-2 z-50">
@@ -621,54 +610,37 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
           </div>
 
           {/* Mode selector — segmented pill, selected segment is blue */}
-          <div className="flex items-center rounded-full border border-stroke-outline toolbar-gradient-hover">
-            {(['Chat', 'Tasks', 'Code'] as InputMode[]).map((m, i, arr) => {
+          <ToolbarSegmented<InputMode>
+            value={mode}
+            onChange={m => { setMode(m); onModeChange?.(m); closeAllMenus(); }}
+            segments={(['Chat', 'Tasks', 'Code'] as InputMode[]).map(m => {
               const Icon = MODE_ICONS[m];
-              const isSelected = mode === m;
-              const isFirst = i === 0;
-              const isLast = i === arr.length - 1;
-              const isDisabled = chatOnly && m !== 'Chat';
-              const btn = (
-                <button
-                  key={m}
-                  onClick={() => { if (isDisabled) return; setMode(m); onModeChange?.(m); closeAllMenus(); }}
-                  className={`flex items-center justify-center gap-1 transition-all text-text-primary ${
-                    isDisabled
-                      ? 'opacity-30 cursor-not-allowed'
-                      : isSelected
-                        ? 'px-3 cursor-pointer'
-                        : 'hover:bg-bg-hover cursor-pointer'
-                  }`}
-                  style={{
-                    height: 'var(--toolbar-btn-h)',
-                    ...(!isSelected ? { width: 'var(--mode-btn-unselected-w)' } : {}),
-                    backgroundColor: isSelected ? 'var(--color-selected-bg)' : undefined,
-                    color: isSelected ? 'var(--color-selected-text)' : undefined,
-                    borderRadius: isFirst ? '9999px 0 0 9999px' : isLast ? '0 9999px 9999px 0' : '0',
-                  }}
-                >
-                  <Icon />
-                  {isSelected && <span className="text-[16px] sm:text-[14px] font-medium">{m}</span>}
-                </button>
-              );
-              return isSelected ? btn : <Tooltip key={m} label={isDisabled ? `${m} (not available)` : m}>{btn}</Tooltip>;
+              const isDisabled = !!chatOnly && m !== 'Chat';
+              return {
+                value: m,
+                icon: <Icon />,
+                label: m,
+                disabled: isDisabled,
+                disabledTooltip: isDisabled ? `${m} (not available)` : undefined,
+              };
             })}
-          </div>
+          />
 
           {/* Mode-specific options */}
           {(mode === 'Tasks' || mode === 'Code') && (
             <div ref={folderRef} className="relative">
-              <button
+              <ToolbarPill
                 onClick={() => { setShowFolderMenu(v => !v); setShowBranchMenu(false); setShowAttachMenu(false); }}
-                className="flex items-center gap-[9px] md:gap-1.5 px-[18px] md:px-3 rounded-full border border-stroke-outline text-xs text-text-primary hover:bg-bg-hover toolbar-gradient-hover transition-colors cursor-pointer max-w-[270px] md:max-w-[180px]"
-                style={{ height: 'var(--toolbar-btn-h)' } as React.CSSProperties}
+                className="max-w-[270px] md:max-w-[180px]"
+                leading={
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 w-[24px] h-[24px] md:w-[16px] md:h-[16px]">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                  </svg>
+                }
+                trailing={<img src={iconChevronDown} alt="" className="w-[18px] h-[18px] md:w-3 md:h-3 icon-theme shrink-0" />}
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 w-[21px] h-[21px] md:w-[14px] md:h-[14px]">
-                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                </svg>
-                <span className="truncate">{folder}</span>
-                <img src={iconChevronDown} alt="" className="w-[18px] h-[18px] md:w-3 md:h-3 icon-theme shrink-0" />
-              </button>
+                {folder}
+              </ToolbarPill>
               {showFolderMenu && (
                 <div className="absolute bottom-full left-0 mb-3 md:mb-2 w-[336px] md:w-56 bg-bg-page border border-stroke-outline rounded-2xl md:rounded-xl shadow-lg py-3 md:py-2 z-50">
                   {FOLDER_OPTIONS.map(f => (
@@ -692,20 +664,21 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
             <>
               {/* Branch selector */}
               <div ref={branchRef} className="relative">
-                <button
+                <ToolbarPill
                   onClick={() => { setShowBranchMenu(v => !v); setShowFolderMenu(false); setShowAttachMenu(false); }}
-                  className="flex items-center gap-[9px] md:gap-1.5 px-[18px] md:px-3 rounded-full border border-stroke-outline text-xs text-text-primary hover:bg-bg-hover toolbar-gradient-hover transition-colors cursor-pointer max-w-[240px] md:max-w-[160px]"
-                  style={{ height: 'var(--toolbar-btn-h)' } as React.CSSProperties}
+                  className="max-w-[240px] md:max-w-[160px]"
+                  leading={
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 w-[24px] h-[24px] md:w-[16px] md:h-[16px]">
+                      <line x1="6" y1="3" x2="6" y2="15" />
+                      <circle cx="18" cy="6" r="3" />
+                      <circle cx="6" cy="18" r="3" />
+                      <path d="M18 9a9 9 0 0 1-9 9" />
+                    </svg>
+                  }
+                  trailing={<img src={iconChevronDown} alt="" className="w-[18px] h-[18px] md:w-3 md:h-3 icon-theme shrink-0" />}
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 w-[21px] h-[21px] md:w-[14px] md:h-[14px]">
-                    <line x1="6" y1="3" x2="6" y2="15" />
-                    <circle cx="18" cy="6" r="3" />
-                    <circle cx="6" cy="18" r="3" />
-                    <path d="M18 9a9 9 0 0 1-9 9" />
-                  </svg>
-                  <span className="truncate">{branch}</span>
-                  <img src={iconChevronDown} alt="" className="w-[18px] h-[18px] md:w-3 md:h-3 icon-theme shrink-0" />
-                </button>
+                  {branch}
+                </ToolbarPill>
                 {showBranchMenu && (
                   <div className="absolute bottom-full left-0 mb-3 md:mb-2 w-[312px] md:w-52 bg-bg-page border border-stroke-outline rounded-2xl md:rounded-xl shadow-lg py-3 md:py-2 z-50">
                     {BRANCH_OPTIONS.map(b => (
@@ -725,15 +698,19 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
               </div>
 
               {/* Worktree checkbox */}
-              <label className="flex items-center gap-[9px] md:gap-1.5 px-[18px] md:px-3 rounded-full border border-stroke-outline text-xs text-text-primary cursor-pointer select-none hover:bg-bg-hover toolbar-gradient-hover transition-colors" style={{ height: 'var(--toolbar-btn-h)' } as React.CSSProperties}>
-                <input
-                  type="checkbox"
-                  checked={useWorktree}
-                  onChange={e => setUseWorktree(e.target.checked)}
-                  className="worktree-checkbox w-[21px] h-[21px] md:w-3.5 md:h-3.5 rounded cursor-pointer"
-                />
+              <ToolbarPill
+                as="label"
+                leading={
+                  <input
+                    type="checkbox"
+                    checked={useWorktree}
+                    onChange={e => setUseWorktree(e.target.checked)}
+                    className="worktree-checkbox w-[21px] h-[21px] md:w-3.5 md:h-3.5 rounded cursor-pointer"
+                  />
+                }
+              >
                 Worktree
-              </label>
+              </ToolbarPill>
             </>
           )}
         </div>

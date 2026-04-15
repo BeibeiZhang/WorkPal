@@ -11,9 +11,19 @@ interface MessageCardProps {
 /* ── Shared card shell ── */
 function CardShell({ children, className = 'mb-3' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`border border-stroke-outline rounded-lg overflow-hidden w-full max-w-[370px] ${className}`} style={{ background: 'var(--color-bg-page)' }}>
+    <div
+      className={`rounded-lg overflow-hidden w-full max-w-[370px] ${className}`}
+      style={{ background: 'var(--color-card-panel-bg)' }}
+    >
       {children}
     </div>
+  );
+}
+
+/* ── Soft divider: 1px line that fades to transparent at both ends ── */
+function SoftDivider() {
+  return (
+    <div className="h-px bg-gradient-to-r from-transparent via-stroke-outline to-transparent" />
   );
 }
 
@@ -25,13 +35,16 @@ function CardHeader({ icon, title, rightElement, borderBottom = false }: {
   borderBottom?: boolean;
 }) {
   return (
-    <div className={`flex items-center gap-2 px-4 h-[61px] ${borderBottom ? 'border-b border-stroke-outline' : ''}`}>
-      <div className="w-6 h-6 shrink-0 flex items-center justify-center">
-        <img src={icon} alt="" className="w-[18px] h-[18px] object-contain" />
+    <>
+      <div className="flex items-center gap-2 px-4 h-[61px]">
+        <div className="w-6 h-6 shrink-0 flex items-center justify-center">
+          <img src={icon} alt="" className="w-[18px] h-[18px] object-contain" />
+        </div>
+        <p className="font-bold text-base leading-[22px] text-text-primary flex-1 truncate">{title}</p>
+        {rightElement}
       </div>
-      <p className="font-bold text-base leading-[22px] text-text-primary flex-1 truncate">{title}</p>
-      {rightElement}
-    </div>
+      {borderBottom && <SoftDivider />}
+    </>
   );
 }
 
@@ -446,13 +459,14 @@ function AgentCardView({ card, onAction }: { card: AgentCard; onAction?: (a: str
   return (
     <CardShell>
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 h-[61px] border-b border-stroke-outline">
+      <div className="flex items-center gap-2 px-4 h-[61px]">
         {gradientIcon}
         <p className="font-bold text-base leading-[22px] text-text-primary flex-1 truncate">
           {card.title}
         </p>
         {status === 'saved' && <StatusTag label="Saved" />}
       </div>
+      <SoftDivider />
       {/* Body: Profile + intro */}
       <div className="p-4 flex flex-col gap-4">
         {/* Profile row */}

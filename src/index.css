@@ -12,17 +12,25 @@
   --color-text-primary: #142740;
   --color-text-secondary: rgba(20,39,64,0.7);
   --color-text-tertiary: rgba(20,39,64,0.4);
-  --color-bg-page: #FFFFFF;
-  --color-bg-message: #F2F3F4;
-  --color-bg-hover: #F2F3F4;
+  --color-bg-page: #F7F7F8;
+  --color-bg-message: rgba(20, 39, 64, 0.05);
+  --color-bg-hover: rgba(20, 39, 64, 0.05);
   --color-stroke-outline: #E8E8E8;
   --color-stroke-toggle: #e6e8ea;
   --color-icon-primary: #142740;
-  --color-sidebar-bg: #FFFFFF;
+  --color-sidebar-bg: #F7F7F8;
   --color-outer-bg: #f5f5f7;
   --color-outer-border: #f5f5f7;
   --color-selected-bg: rgba(49,113,255,0.1);
   --color-selected-text: #3171ff;
+
+  /* Card panel background — light mode: solid #FFFFFF.
+     Dark mode override below uses #001424 at 10% so the shell gradient reads through. */
+  --color-card-panel-bg: #FFFFFF;
+
+  /* Chat input inner fill — light mode: page color.
+     Dark mode override below uses #000000 at 30% so the shell gradient reads through. */
+  --color-input-bg: var(--color-bg-page);
 
   /* Status / semantic accents — used for tags, badges, callouts */
   --color-accent-blue: #3171ff;
@@ -95,6 +103,10 @@
   --color-outer-border: #001424;
   --color-selected-bg: #3171ff;
   --color-selected-text: #ffffff;
+  /* Dark mode card panel: 30% black. */
+  --color-card-panel-bg: rgba(0, 0, 0, 0.3);
+  /* Dark mode chat input inner fill: 30% black. */
+  --color-input-bg: rgba(0, 0, 0, 0.3);
 }
 
 html, body, #root {
@@ -378,6 +390,30 @@ html, body, #root {
   background:
     linear-gradient(var(--color-bg-page), var(--color-bg-page)) padding-box,
     linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box !important;
+}
+
+/* Gradient border for ChatInput's active state that keeps the brand gradient
+   strictly in the 2px edge. Uses a masked ::before so a transparent interior
+   fill (e.g. rgba(0,0,0,.3)) doesn't let the gradient bleed through. */
+.input-gradient-border {
+  position: relative;
+}
+.input-gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 /* Custom checkbox using design-system blue */

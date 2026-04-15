@@ -268,31 +268,48 @@ function findLastIndex<T>(arr: T[], predicate: (item: T) => boolean): number {
 let msgIdCounter = 100;
 const nextId = () => String(++msgIdCounter);
 
-// Responsive panel hierarchy (priority-based collapse):
-//   1. Detail Page — when open on narrow viewports, overlays the
-//      ConversationPanel with a dark backdrop (SplitView handles this).
-//   2. ConversationPanel — always visible (flex-1, takes remaining space).
-//   3. NavPanel — collapses first: full Sidebar → MiniSidebar rail below
-//      COMPACT_NAV_BREAKPOINT, rail hidden below MOBILE_BREAKPOINT. If the
-//      user toggles it open below COMPACT_NAV_BREAKPOINT, it overlays with
-//      a dark backdrop instead of displacing the Conversation.
-//   4. InspectorPanel — collapses second: SplitView switches to overlay
-//      mode (dark backdrop + solid panel) once its container can't fit
-//      sideWidth + mainMinWidth.
-const MOBILE_BREAKPOINT = 768;         // below: no inline nav rail at all
-const COMPACT_NAV_BREAKPOINT = 1200;   // below: force MiniSidebar rail, expanded Sidebar overlays
-const SIDEBAR_WIDTH = 336;
+// Responsive panel hierarchy (priority-based collapse).
+//
+// Module minimum widths (per design):
+//   • Sidebar (full nav):  280
+//   • Center content:      420
+//   • Right panel:         260
+//   • Mini sidebar rail:    64
+//
+// Breakpoints derived from those mins:
+//   • THREE_MODULE_FIT = 280 + 420 + 260 = 960
+//       At or above 960: all three modules can sit inline at their minimums.
+//       Below 960: right panel auto-closes (reopening it renders as overlay).
+//       The sidebar itself stays at its current mode — with right closed,
+//       sidebar + center only need 280 + 420 = 700 to fit.
+//   • COMPACT_NAV_BREAKPOINT = 280 + 420 = 700
+//       Below 700: even sidebar + center can't fit, so sidebar collapses
+//       to the 64px mini rail.
+//   • MOBILE_BREAKPOINT = 64 + 420 = 484
+//       Below 484: even the mini rail can't sit beside the center column.
+//       → Mini rail hides; toggling the sidebar opens it as an overlay.
+//       → Right panel can only ever appear as an overlay.
+const MOBILE_BREAKPOINT = 484;          // below: no inline nav rail; sidebar overlays when toggled
+const COMPACT_NAV_BREAKPOINT = 700;     // below: force MiniSidebar rail (full sidebar overlays)
+const THREE_MODULE_FIT = 960;           // below: right panel auto-closes on resize (overlays if reopened)
+const SIDEBAR_WIDTH = 280;              // full sidebar minimum width (used for fit calc)
+const MINI_SIDEBAR_WIDTH = 64;
 const CONTEXT_PANEL_MIN = 260;
-const MAIN_CONTENT_MIN = 360;
+const MAIN_CONTENT_MIN = 420;
 const subscribe = (cb: () => void) => { window.addEventListener('resize', cb); return () => window.removeEventListener('resize', cb); };
 const getIsMobile = () => window.innerWidth < MOBILE_BREAKPOINT;
 const getIsCompactNav = () => window.innerWidth < COMPACT_NAV_BREAKPOINT;
+const getCanFitAllThree = () => window.innerWidth >= THREE_MODULE_FIT;
 /** Point-in-time check used on send to decide between opening the panel
  *  inline vs. showing a preview animation. Inline render fit is now handled
  *  reactively by SplitView via ResizeObserver. */
 const getCanFitPanel = () => {
   const available = window.innerWidth - 16; // m-2 = 8px each side
-  const sidebarW = window.innerWidth >= MOBILE_BREAKPOINT ? SIDEBAR_WIDTH : 0;
+  const sidebarW = window.innerWidth >= COMPACT_NAV_BREAKPOINT
+    ? SIDEBAR_WIDTH
+    : window.innerWidth >= MOBILE_BREAKPOINT
+      ? MINI_SIDEBAR_WIDTH
+      : 0;
   return available - sidebarW - MAIN_CONTENT_MIN >= CONTEXT_PANEL_MIN;
 };
 
@@ -317,6 +334,7 @@ export default function App() {
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   const isMobile = useSyncExternalStore(subscribe, getIsMobile);
   const isCompactNav = useSyncExternalStore(subscribe, getIsCompactNav);
+  const canFitAllThree = useSyncExternalStore(subscribe, getCanFitAllThree);
   const [contextPanelOpen, setContextPanelOpen] = useState(true);
   // 0–3 = current active step index in alcohol-delivery flow, 4 = all completed
   const [alcoholProgress, setAlcoholProgress] = useState(4);
@@ -325,6 +343,17 @@ export default function App() {
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark);
   }, [isDark]);
+
+  // Responsive auto-collapse: when the viewport drops below the all-three
+  // threshold (sidebar + center + right), retract the right panel so the
+  // sidebar + center can still fit at their minimums. The user can re-open
+  // it; below this threshold SplitView will render it as an overlay.
+  useEffect(() => {
+    if (!canFitAllThree) {
+      setDetailOpen(false);
+      setContextPanelOpen(false);
+    }
+  }, [canFitAllThree]);
 
   // Persist chats to localStorage on every change
   useEffect(() => {
