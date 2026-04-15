@@ -991,7 +991,7 @@ function FoundationsTab() {
           {/* AI insight header */}
           <div className="inline-flex items-center gap-1.5 px-2.5 h-7 rounded-full type-detail-emphasized" style={{ background: 'rgba(107,84,230,0.1)', color: 'var(--color-accent-violet)' }}>
             <Sparkles size={14} />
-            Maya's insight
+            Stephen's insight
           </div>
         </div>
       </div>
@@ -1376,7 +1376,7 @@ const DEMO_CARDS: { key: string; label: string; card: CardData }[] = [
   { key: 'meeting', label: 'Meeting', card: { type: 'meeting', title: 'Design Sync — Mar 12', content: 'Discussed onboarding flow and component library alignment.\n\n**Action items**\n• Document foundations tokens\n• Wire Review Queue approvals' } },
   { key: 'research', label: 'Research', card: { type: 'research', title: 'Alcohol delivery failures', summary: '12 tickets in the last 30 days point to expired IDs and missing signatures. 60% resolve within 2h.', status: 'done', statusLabel: 'Done' } },
   { key: 'ticket', label: 'Ticket',   card: { type: 'ticket', title: 'Review queue approval states', description: 'Add approve / reject UI to new shared components.', assignee: 'Beibei', due: 'Fri', items: [{ text: 'Build Review tab', checked: true }, { text: 'Hook up approval flow', checked: false }], status: 'created', statusLabel: 'Created' } },
-  { key: 'schedule', label: 'Schedule', card: { type: 'schedule', title: 'UX review w/ Maya', date: 'Thu Mar 14', time: '2:00 PM', attendees: ['Maya', 'Beibei', 'Jordan'], location: 'Zoom', status: 'pending', statusLabel: 'Pending' } },
+  { key: 'schedule', label: 'Schedule', card: { type: 'schedule', title: 'UX review w/ Stephen', date: 'Thu Mar 14', time: '2:00 PM', attendees: ['Stephen', 'Beibei', 'Jordan'], location: 'Zoom', status: 'pending', statusLabel: 'Pending' } },
   { key: 'agent', label: 'Agent',     card: { type: 'agent', title: 'Your new agent is ready', status: 'ready', agentName: 'Hana', agentIntro: 'Hi, I\'m Hana — here to keep your operations calm and organized.' } },
 ];
 
@@ -1448,7 +1448,7 @@ function LiveDetailPanel() {
     <DetailPanel
       title="Design Sync — Mar 12"
       content={
-        '**Attendees**\nMaya, Beibei, Jordan\n\n**Agenda**\n• Onboarding flow alignment\n• Review queue states\n• Foundations rollout\n\n**Decisions**\n• Ship Foundations tab first\n• Keep Review queue opt-in per new component\n• Document tokens in src/index.css'
+        '**Attendees**\nStephen, Beibei, Jordan\n\n**Agenda**\n• Onboarding flow alignment\n• Review queue states\n• Foundations rollout\n\n**Decisions**\n• Ship Foundations tab first\n• Keep Review queue opt-in per new component\n• Document tokens in src/index.css'
       }
       onClose={() => {}}
     />
@@ -1710,7 +1710,7 @@ function ComponentsTab() {
     {
       name: 'TaskProgressCard',
       description: 'Clickable card with progress bar. Expands to show step list.',
-      usedIn: ['Overview "Maya is working on" section'],
+      usedIn: ['Overview "Stephen is working on" section'],
       preview: (
         <TaskProgressCard title="Analyzing Q2 metrics" progress={62} eta="~8 min" steps={['Pulling data from Sheets', 'Building charts', 'Formatting']} expanded />
       ),
@@ -1762,7 +1762,7 @@ function ComponentsTab() {
       preview: (
         <div className="flex flex-col gap-1">
           <SharedSectionTitle emoji="👀" title="Needs Your Eyes" count={3} />
-          <SharedSectionTitle emoji="⚡" title="Maya is Working On" />
+          <SharedSectionTitle emoji="⚡" title="Stephen is Working On" />
         </div>
       ),
     },

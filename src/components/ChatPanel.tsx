@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { PanelRight } from 'lucide-react';
 import { Chat, Message, ActionChip } from '../types';
 import ChatMessage from './ChatMessage';
@@ -30,15 +30,25 @@ interface ChatPanelProps {
 const WELCOME_CHIPS = ['Create performance goals', 'Analyze doc(s)', 'Visualize data'];
 
 const AVATARS = [
-  { id: 'black-woman', src: avatarBlackWoman, alt: 'Black woman', videoLight: '/animations/black-woman-light.mp4', videoDark: '/animations/black-woman-dark.mp4' },
-  { id: 'asian-woman', src: avatarAsianWoman, alt: 'Asian woman', videoLight: '/animations/asian-woman-light.mp4', videoDark: '/animations/asian-woman-dark.mp4' },
-  { id: 'white-man', src: avatarWhiteMan, alt: 'White man', videoLight: '/animations/white-man-light.mp4', videoDark: '/animations/white-man-dark.mp4' },
+  { id: 'white-man', name: 'Stephen', src: avatarWhiteMan, alt: 'Stephen', videoLight: ['/animations/white-man-light.mp4', '/animations/white-man-thinking.mp4', '/animations/white-man-checkmark.mp4'], videoDark: ['/animations/white-man-dark.mp4', '/animations/white-man-coffee.mp4'] },
+  { id: 'black-woman', name: 'Maya', src: avatarBlackWoman, alt: 'Maya', videoLight: ['/animations/black-woman-light.mp4'], videoDark: ['/animations/black-woman-dark.mp4'] },
+  { id: 'asian-woman', name: 'Mei', src: avatarAsianWoman, alt: 'Mei', videoLight: ['/animations/asian-woman-light.mp4'], videoDark: ['/animations/asian-woman-dark.mp4'] },
 ];
 
 function WelcomeState({ isDark, selectedAvatarId, onAvatarChange }: { isDark?: boolean; selectedAvatarId?: string; onAvatarChange?: (id: string) => void }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const selectedAvatar = AVATARS.find(a => a.id === selectedAvatarId) || AVATARS[0];
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Pick a random video index once per avatar selection (separate for light/dark)
+  const lightIdx = useMemo(
+    () => Math.floor(Math.random() * selectedAvatar.videoLight.length),
+    [selectedAvatar.id],
+  );
+  const darkIdx = useMemo(
+    () => Math.floor(Math.random() * selectedAvatar.videoDark.length),
+    [selectedAvatar.id],
+  );
 
   const handleSelect = (avatar: typeof AVATARS[number]) => {
     onAvatarChange?.(avatar.id);
@@ -85,7 +95,7 @@ function WelcomeState({ isDark, selectedAvatarId, onAvatarChange }: { isDark?: b
             <video
               ref={videoRef}
               key={`${selectedAvatar.id}-${isDark ? 'dark' : 'light'}`}
-              src={isDark ? selectedAvatar.videoDark : selectedAvatar.videoLight}
+              src={isDark ? selectedAvatar.videoDark[darkIdx] : selectedAvatar.videoLight[lightIdx]}
               autoPlay
               loop
               muted

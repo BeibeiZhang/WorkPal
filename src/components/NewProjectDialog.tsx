@@ -116,9 +116,9 @@ export default function NewProjectDialog({ open, onClose, onCreate }: NewProject
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-end gap-3">
-          <TertiaryButton onClick={onClose} className="px-6">Cancel</TertiaryButton>
-          <PrimaryButton onClick={handleCreate} disabled={!canCreate} className="px-6">Create Project</PrimaryButton>
+        <div className="flex items-center gap-3">
+          <TertiaryButton onClick={onClose} className="flex-1">Cancel</TertiaryButton>
+          <PrimaryButton onClick={handleCreate} disabled={!canCreate} className="flex-1">Create Project</PrimaryButton>
         </div>
       </div>
     </div>,

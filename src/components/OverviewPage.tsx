@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import {
-  Sparkles, ChevronRight,
+  Sparkles, ChevronRight, ChevronDown, ChevronUp,
   Brain, Volume2, Briefcase, Home, Smile,
   Moon, Zap, Gauge, BarChart3, Search,
 } from 'lucide-react';
@@ -46,7 +46,7 @@ const HEALTH_DIMENSIONS: Array<{
   met: boolean;
 }> = [
   { icon: Brain, label: 'Focus Time', value: 2, target: 2, unit: 'h', status: 'on-track', desc: '9–11am blocked & protected', met: true },
-  { icon: Home, label: 'Family Time', value: 2, target: 2, unit: 'h', status: 'on-track', desc: '陪孩子 + 桌游时间已安排', met: true },
+  { icon: Home, label: 'Family Time', value: 2, target: 2, unit: 'h', status: 'on-track', desc: 'Kids + board game time scheduled', met: true },
   { icon: Moon, label: 'Sleep', value: 7, target: 7, unit: 'h', status: 'on-track', desc: 'Last night: 7h 12min — well rested', met: true },
   { icon: Zap, label: 'Workload', value: 3, target: null, unit: 'tasks', status: 'balanced', desc: 'Manageable pace today', met: true },
 ];
@@ -61,9 +61,9 @@ const STRESS_SOURCES = [
 ];
 
 const STRESS_SOLUTIONS = [
-  { icon: '🎧', title: 'AI趋势3分钟速报', desc: '替你追行业动态，每天早上3分钟音频', tag: '针对：跟不上AI' },
-  { icon: '🧘', title: 'Focus Block 守护', desc: '9-11am 自动拦截非紧急会议', tag: '针对：Deadline' },
-  { icon: '📋', title: '异步对齐模板', desc: '减少30%的对齐会议', tag: '针对：跨团队' },
+  { icon: '🎧', title: '3-Min AI Briefing', desc: 'Daily audio digest on industry trends, every morning', tag: 'For: Keeping up with AI' },
+  { icon: '🧘', title: 'Focus Block Guard', desc: '9-11am auto-block non-urgent meetings', tag: 'For: Deadline pressure' },
+  { icon: '📋', title: 'Async Alignment Template', desc: 'Cut 30% of alignment meetings', tag: 'For: Cross-team' },
 ];
 
 const IMPACT_WORK = [
@@ -94,10 +94,10 @@ const WEEKLY_ENERGY = [
 ];
 
 const TYPE_CONFIG: Record<string, { emoji: string; classes: string }> = {
-  feature: { emoji: '🚀', classes: 'bg-bg-hover border-stroke-outline' },
-  metric: { emoji: '📊', classes: 'bg-bg-hover border-stroke-outline' },
-  feedback: { emoji: '💬', classes: 'bg-bg-hover border-stroke-outline' },
-  revenue: { emoji: '💰', classes: 'bg-bg-hover border-stroke-outline' },
+  feature: { emoji: '🚀', classes: 'bg-bg-hover' },
+  metric: { emoji: '📊', classes: 'bg-bg-hover' },
+  feedback: { emoji: '💬', classes: 'bg-bg-hover' },
+  revenue: { emoji: '💰', classes: 'bg-bg-hover' },
 };
 
 /* ── Main Component ── */
@@ -134,7 +134,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat }
       bgClass="app-bg"
     >
           {/* ━━━ 1. GREETING ━━━ */}
-          <div className="rounded-2xl mb-6 relative overflow-hidden bg-bg-hover">
+          <div className="rounded-2xl mb-12 relative overflow-hidden bg-bg-hover">
             <div className="flex flex-col md:flex-row relative">
               <div className="w-full md:w-[45%] shrink-0 overflow-hidden">
                 <video
@@ -148,9 +148,8 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat }
               </div>
               <div className="min-w-0 p-6 md:p-8 flex flex-col justify-center">
                 <div className="flex items-center gap-1 mb-1.5">
-                  <Sparkles size={12} className="text-text-primary" />
                   <span className="text-[14px] font-bold text-text-primary tracking-[0.5px]">
-                    MAYA · MONDAY MORNING BRIEFING
+                    STEPHEN · MONDAY MORNING BRIEFING
                   </span>
                 </div>
                 <h2
@@ -171,8 +170,8 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat }
           </div>
 
           {/* ━━━ 2. LIFE HEALTH INDEX ━━━ */}
-          <div className="mb-6">
-            <SectionTitle emoji="🔋" title="Life Health Index" />
+          <div className="mb-12">
+            <SectionTitle emoji="" title="Life Health Index" size={20} />
 
             <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-5">
               {/* Overall Score Video */}
@@ -188,52 +187,74 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat }
               </div>
 
               {/* Dimensions */}
-              <div className="flex flex-col gap-2">
-                {HEALTH_DIMENSIONS.map((d, i) => (
-                  <HealthDimensionRow
-                    key={i}
-                    icon={d.icon}
-                    label={d.label}
-                    desc={d.desc}
-                    value={d.value}
-                    target={d.target}
-                    unit={d.unit}
-                    status={d.status}
-                  />
-                ))}
+              <div className="flex flex-col">
+                <div className="flex flex-col">
+                  {HEALTH_DIMENSIONS.map((d, i) => (
+                    <HealthDimensionRow
+                      key={i}
+                      icon={d.icon}
+                      label={d.label}
+                      desc={d.desc}
+                      value={d.value}
+                      target={d.target}
+                      unit={d.unit}
+                      status={d.status}
+                    />
+                  ))}
+                </div>
 
                 {/* Stress Index — Clickable */}
                 <button
                   onClick={() => setShowStressDetail(!showStressDetail)}
-                  className="rounded-2xl px-5 py-4 flex items-center gap-3.5 text-left transition-colors bg-bg-hover border border-stroke-outline"
+                  className="rounded-2xl px-5 py-4 flex items-center gap-3.5 text-left transition-colors bg-bg-hover"
                 >
                   <Gauge size={22} strokeWidth={1.75} className="text-text-primary shrink-0 icon-theme" />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[14px] font-bold text-text-primary">Stress Level</span>
-                      <Tag>{STRESS_LEVEL}/100 · {STRESS_LEVEL > 60 ? 'Moderate' : 'Low'}</Tag>
-                      <span className="text-[14px] text-text-primary">↓16 vs last week</span>
-                    </div>
+                    <span className="text-[14px] font-bold text-text-primary">Stress Level</span>
                     <div className="text-[14px] text-text-primary mt-0.5">
                       Tap to see stress analysis & solutions →
                     </div>
+                    <div className="flex items-center gap-2 mt-1.5 md:hidden">
+                      <Tag>{STRESS_LEVEL}/100 · {STRESS_LEVEL > 60 ? 'Moderate' : 'Low'}</Tag>
+                      <span className="text-[14px] text-text-primary">↓16</span>
+                    </div>
                   </div>
-                  <ChevronRight size={16} className="text-text-primary shrink-0" />
+                  <div className="hidden md:flex items-center gap-2 shrink-0">
+                    <Tag>{STRESS_LEVEL}/100 · {STRESS_LEVEL > 60 ? 'Moderate' : 'Low'}</Tag>
+                    <span className="text-[14px] text-text-primary">↓16</span>
+                    {showStressDetail ? <ChevronUp size={16} className="text-text-primary" /> : <ChevronDown size={16} className="text-text-primary" />}
+                  </div>
+                  <div className="md:hidden shrink-0">
+                    {showStressDetail ? <ChevronUp size={16} className="text-text-primary" /> : <ChevronDown size={16} className="text-text-primary" />}
+                  </div>
                 </button>
 
                 {/* Stress Detail Panel (expandable) */}
                 {showStressDetail && (
-                  <div className="bg-bg-page rounded-2xl border border-stroke-outline p-5 -mt-1 dark:bg-[rgba(226,243,255,0.05)]">
+                  <div className="bg-bg-page rounded-2xl p-5 -mt-1 dark:bg-[rgba(226,243,255,0.05)]">
                     <div className="text-[14px] font-bold text-text-primary mb-3 flex items-center gap-1.5">
                       <Brain size={14} className="text-text-primary" /> Stress Analysis
                     </div>
 
-                    {STRESS_SOURCES.map((s, i) => (
-                      <LabeledBar key={i} label={s.label} pct={s.pct} color={s.color} />
-                    ))}
+                    {/* Stacked bar */}
+                    <div className="flex h-[10px] rounded-full overflow-hidden mb-3">
+                      {STRESS_SOURCES.map((s, i) => (
+                        <div key={i} className="h-full transition-[width] duration-700" style={{ width: `${s.pct}%`, background: s.color }} />
+                      ))}
+                    </div>
+                    {/* Legend */}
+                    <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                      {STRESS_SOURCES.map((s, i) => (
+                        <div key={i} className="flex items-center gap-1.5">
+                          <div className="w-2 h-2 rounded-full shrink-0" style={{ background: s.color }} />
+                          <span className="text-[13px] text-text-secondary">{s.label}</span>
+                          <span className="text-[13px] font-bold text-text-primary">{s.pct}%</span>
+                        </div>
+                      ))}
+                    </div>
 
                     <div className="mt-4 pt-3.5 border-t border-stroke-outline">
-                      <div className="text-[14px] font-bold text-text-primary mb-2.5">Maya's Solutions</div>
+                      <div className="text-[14px] font-bold text-text-primary mb-2.5">Stephen's Solutions</div>
                       {STRESS_SOLUTIONS.map((sol, i) => (
                         <SolutionRow key={i} icon={sol.icon} title={sol.title} desc={sol.desc} tag={sol.tag} />
                       ))}
@@ -249,15 +270,15 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat }
           </div>
 
           {/* ━━━ 3. NEEDS YOUR EYES ━━━ */}
-          <div className="mb-6">
-            <div className="flex flex-wrap items-center justify-between">
-              <SectionTitle emoji="👀" title="Needs Your Eyes" count={REVIEW_ITEMS.filter((_, i) => !reviewDone[i]).length} />
+          <div className="mb-12">
+            <div className="flex flex-wrap items-center justify-between mb-4 [&>*]:mb-0">
+              <SectionTitle emoji="" title="Needs Your Eyes" count={REVIEW_ITEMS.filter((_, i) => !reviewDone[i]).length} size={20} />
               <SummaryFooter>
                 Total review time: <strong className="text-text-primary">~16 min</strong> for 3 items
               </SummaryFooter>
             </div>
 
-            <div className="flex flex-col gap-2.5">
+            <div className="flex flex-col">
               {REVIEW_ITEMS.map((item, i) => (
                 <ReviewItemCard
                   key={i}
@@ -273,11 +294,11 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat }
             </div>
           </div>
 
-          {/* ━━━ 4. MAYA IS WORKING ON ━━━ */}
-          <div className="mb-6">
-            <SectionTitle emoji="⚡" title="Agents at Work" />
+          {/* ━━━ 4. STEPHEN IS WORKING ON ━━━ */}
+          <div className="mb-12">
+            <SectionTitle emoji="" title="Agents at Work" count={IN_PROGRESS.length} size={20} />
 
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col">
               {IN_PROGRESS.map((task, i) => (
                 <TaskProgressCard
                   key={i}
@@ -293,26 +314,26 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat }
             </div>
           </div>
 
-          {/* ━━━ 5. MAYA'S INSIGHT ━━━ */}
-          <div className="mb-6">
+          {/* ━━━ 5. STEPHEN'S INSIGHT ━━━ */}
+          <div className="mb-12">
             <InsightCard
               body="I noticed your focus time has dropped 40% this week compared to your best weeks. Your most productive hours are usually between 9-11am, but those slots got filled with meetings. Want me to protect those morning blocks going forward?"
               actions={[
-                { label: 'Yes, protect my mornings' },
+                { label: 'Yes, protect my mornings', secondary: true },
                 { label: 'Show me the data' },
               ]}
             />
           </div>
 
           {/* ━━━ 6. POSITIVE IMPACT — 7 DAY, THREE DIMENSIONS ━━━ */}
-          <div className="mb-10">
-            <div className="flex flex-wrap items-center justify-between mb-4">
-              <SectionTitle emoji="🌟" title="Your Positive Impact This Week" />
+          <div className="mb-20">
+            <div className="flex flex-wrap items-center justify-between mb-4 [&>*]:mb-0">
+              <SectionTitle emoji="" title="Your Positive Impact This Week" size={20} />
               <span className="text-[14px] text-text-primary">Apr 7 – 13, 2026 · 7 days</span>
             </div>
 
             {/* ── WORK IMPACT ── */}
-            <div className="bg-bg-page rounded-2xl border border-stroke-outline p-6 mb-3 dark:bg-[rgba(226,243,255,0.05)]">
+            <div className="bg-bg-page rounded-2xl p-6 mb-3 dark:bg-[rgba(226,243,255,0.05)]">
               <div className="flex items-center gap-2 mb-3.5">
                 <div className="w-8 h-8 rounded-xl bg-bg-hover flex items-center justify-center">
                   <Briefcase size={16} className="text-text-primary" />
@@ -325,7 +346,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat }
                 {IMPACT_WORK.map((item, i) => {
                   const tc = TYPE_CONFIG[item.type];
                   return (
-                    <div key={i} className={`p-3.5 rounded-xl border ${tc.classes}`}>
+                    <div key={i} className={`p-3.5 rounded-xl ${tc.classes}`}>
                       <div className="flex items-center gap-1.5 mb-1">
                         <span className="text-[16px]">{tc.emoji}</span>
                         <span className="text-[14px] font-bold text-text-primary">{item.label}</span>
@@ -340,7 +361,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat }
             {/* ── FAMILY + SELF side by side ── */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3.5">
               {/* Family */}
-              <div className="bg-bg-page rounded-2xl border border-stroke-outline p-5 dark:bg-[rgba(226,243,255,0.05)]">
+              <div className="bg-bg-page rounded-2xl p-5 dark:bg-[rgba(226,243,255,0.05)]">
                 <div className="flex items-center gap-2 mb-3.5">
                   <div className="w-8 h-8 rounded-xl bg-bg-hover flex items-center justify-center">
                     <Home size={16} className="text-text-primary" />
@@ -348,9 +369,9 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat }
                   <span className="text-[14px] font-bold text-text-primary">Family</span>
                 </div>
 
-                <MetricCard title="Emotional value to hubby" value={String(IMPACT_FAMILY.husbandMood)} subtitle="/10 — 满分！" />
+                <MetricCard title="Emotional value to hubby" value={String(IMPACT_FAMILY.husbandMood)} subtitle="/10 — Perfect!" />
 
-                <div className="px-3.5 py-2.5 rounded-xl bg-bg-hover border border-stroke-outline text-[14px] text-text-primary leading-[1.5]">
+                <div className="px-3.5 py-2.5 rounded-xl bg-bg-hover text-[14px] text-text-primary leading-[1.5]">
                   {IMPACT_FAMILY.detail}
                 </div>
 
@@ -362,7 +383,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat }
               </div>
 
               {/* Self */}
-              <div className="bg-bg-page rounded-2xl border border-stroke-outline p-5 dark:bg-[rgba(226,243,255,0.05)]">
+              <div className="bg-bg-page rounded-2xl p-5 dark:bg-[rgba(226,243,255,0.05)]">
                 <div className="flex items-center gap-2 mb-3.5">
                   <div className="w-8 h-8 rounded-xl bg-bg-hover flex items-center justify-center">
                     <Smile size={16} className="text-text-primary" />
@@ -372,7 +393,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat }
 
                 <MetricCard title="Extra disposable time" value={`+${IMPACT_SELF.extraHours}h`} subtitle="this week gained back" />
 
-                <div className="px-3.5 py-2.5 rounded-xl bg-bg-hover border border-stroke-outline text-[14px] text-text-primary leading-[1.5]">
+                <div className="px-3.5 py-2.5 rounded-xl bg-bg-hover text-[14px] text-text-primary leading-[1.5]">
                   {IMPACT_SELF.detail}
                 </div>
 
@@ -385,7 +406,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat }
             </div>
 
             {/* Energy trend */}
-            <div className="bg-bg-page rounded-2xl border border-stroke-outline p-5 dark:bg-[rgba(226,243,255,0.05)]">
+            <div className="bg-bg-page rounded-2xl p-5 dark:bg-[rgba(226,243,255,0.05)]">
               <div className="text-[14px] font-bold text-text-primary mb-2.5">Energy Trend This Week</div>
               <AreaChart data={WEEKLY_ENERGY} color="#3171ff" gradientId="energyGrad" />
             </div>
