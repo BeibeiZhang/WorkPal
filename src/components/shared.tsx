@@ -4,7 +4,7 @@
  * Single source of truth — used by both app pages and the Design System page.
  * Update a component here → it updates everywhere in the app.
  */
-import { AlertTriangle, ArrowLeft, BadgeCheck, Check, ChevronDown, ChevronRight, Clock, Eye, FileText, Mail, PanelLeft, PanelRight, Ticket, Play, Plus, Search, Send, Smile, SquarePen, Timer, User, Sparkles, X, XCircle, type LucideIcon } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, BadgeCheck, Check, ChevronDown, ChevronRight, Clock, FileText, Mail, PanelLeft, PanelRight, Ticket, Play, Plus, Search, Send, Smile, SquarePen, Timer, User, Sparkles, X, XCircle, type LucideIcon } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState, useLayoutEffect } from 'react';
 
 /* ─── 0a. HeaderBar ───
@@ -1334,16 +1334,14 @@ const REVIEW_TYPE_ICONS: Record<string, LucideIcon> = {
 
 export function ReviewItemCard({
   title,
-  source,
   type,
   time,
   humanTime,
   done = false,
-  onToggle,
   icon,
 }: {
   title: string;
-  source: string;
+  source?: string;
   type: string;
   time: string;
   humanTime: string;

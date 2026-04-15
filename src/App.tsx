@@ -964,8 +964,6 @@ export default function App() {
           <OverviewPage
             sidebarOpen={sidebarOpen || !isMobile}
             onToggleSidebar={() => setSidebarOpen(o => !o)}
-            isDark={isDark}
-            selectedAvatarId={selectedAvatarId}
             onNewChat={isMobile ? handleNewChat : undefined}
           />
         ) : activeView === 'library' ? (

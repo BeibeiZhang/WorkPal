@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
-  SectionTitle, LabeledBar, CircularProgress,
+  SectionTitle, LabeledBar,
   Tag, SolutionRow, SummaryFooter, PrimaryButton, TertiaryButton,
   MetricCard, InsightCard, AreaChart, TaskProgressCard, ReviewItemCard,
   HealthDimensionRow, PageLayout,
@@ -19,16 +19,8 @@ import {
 interface OverviewPageProps {
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
-  isDark?: boolean;
-  selectedAvatarId?: string;
   onNewChat?: () => void;
 }
-
-const AVATAR_VIDEOS: Record<string, { light: string; dark: string }> = {
-  'black-woman': { light: '/animations/black-woman-light.mp4', dark: '/animations/black-woman-dark.mp4' },
-  'asian-woman': { light: '/animations/asian-woman-light.mp4', dark: '/animations/asian-woman-dark.mp4' },
-  'white-man': { light: '/animations/white-man-light.mp4', dark: '/animations/white-man-dark.mp4' },
-};
 
 /* ── Data ── */
 
@@ -110,8 +102,7 @@ const TYPE_CONFIG: Record<string, { emoji: string; classes: string }> = {
 
 /* ── Main Component ── */
 
-export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, selectedAvatarId = 'black-woman', onNewChat }: OverviewPageProps) {
-  const avatarVideo = AVATAR_VIDEOS[selectedAvatarId] || AVATAR_VIDEOS['black-woman'];
+export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat }: OverviewPageProps) {
   const videoSrc = '/animations/avatar.mp4';
   const [isSpeaking, setIsSpeaking] = useState(false);
 
@@ -133,10 +124,6 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
   const [expandedProgress, setExpandedProgress] = useState<number | null>(null);
   const [reviewDone, setReviewDone] = useState<Record<number, boolean>>({});
   const [showStressDetail, setShowStressDetail] = useState(false);
-
-  const metCount = HEALTH_DIMENSIONS.filter(d => d.met).length;
-  const totalDimensions = HEALTH_DIMENSIONS.length;
-  const overallScore = Math.round((metCount / totalDimensions) * 100);
 
   return (
     <PageLayout
