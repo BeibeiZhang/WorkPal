@@ -138,7 +138,6 @@ export function MiniSidebar({ activeView, activeChatId, onViewChange, onNewChat,
 }
 
 export default function Sidebar({ chats, activeChatId, activeView, activeProjectId, projects, onChatSelect, onNewChat, onNewProject, onProjectSelect, onViewChange, isDark, onToggleDark, onToggleSidebar }: SidebarProps) {
-  const [search, setSearch] = useState('');
   const [projectsOpen, setProjectsOpen] = useState(true);
   const [onboardingOpen, setOnboardingOpen] = useState(true);
   const [recentsOpen, setRecentsOpen] = useState(true);
@@ -150,9 +149,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
     c.isDraft || (c.title === 'New Session' && c.messages.length === 0);
 
   const filteredChats = chats.filter(c =>
-    c.id !== 'my-workpal' &&
-    !isDraftLike(c) &&
-    c.title.toLowerCase().includes(search.toLowerCase())
+    c.id !== 'my-workpal' && !isDraftLike(c)
   );
 
   // The top "New Session" button shows as selected while a draft chat is the
@@ -177,23 +174,6 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
         <button onClick={onToggleSidebar} title="Close sidebar" className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-bg-hover transition-colors" style={{ color: 'var(--color-icon-primary)' }}>
           <PanelLeft size={20} />
         </button>
-      </div>
-
-      {/* Search */}
-      <div className="pl-4 pr-2 pt-0.5 shrink-0">
-        <div
-          className="flex items-center gap-4 px-4 py-[7px] rounded-full border text-[16px] leading-[22px]"
-          style={{ background: 'transparent', borderColor: 'var(--color-stroke-toggle)', color: 'var(--color-text-secondary)' }}
-        >
-          <Search size={18} className="shrink-0 text-text-primary" />
-          <input
-            type="text"
-            placeholder="Search"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="flex-1 bg-transparent outline-none text-[16px] leading-[22px] text-text-primary placeholder-text-secondary tracking-[-0.43px] truncate"
-          />
-        </div>
       </div>
 
       {/* Scrollable content */}
@@ -245,6 +225,16 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
                 />
               </div>
             )}
+          </button>
+
+          {/* Search */}
+          <button
+            className="flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left hover:bg-bg-hover"
+          >
+            <Search size={20} className="shrink-0 text-text-primary" />
+            <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
+              Search
+            </span>
           </button>
 
           {/* Connectors */}

@@ -265,7 +265,7 @@ export function SplitView({
   sideOpen,
   onCloseSide,
   sideWidth,
-  mainMinWidth = 360,
+  mainMinWidth = 420,
   bgClass,
 }: {
   children: ReactNode;
@@ -427,6 +427,196 @@ export function SideCard({
         />
       </button>
       {open && <div className="px-2 pb-5">{children}</div>}
+    </div>
+  );
+}
+
+/* ─── 0e. ToolbarPill ───
+ * Slim pill-shaped control sitting in the ChatInput toolbar row — folder
+ * picker, branch picker, worktree checkbox, and any future peer that needs
+ * to line up with them. Height is locked to the toolbar token
+ * `--toolbar-btn-h` so every pill in the row matches across mobile/desktop.
+ *
+ * Slots (all `ReactNode` so callers control the exact element):
+ *   - leading  — left side content: an inline SVG, an icon image, or a
+ *                checkbox `<input>` (Worktree case). Required.
+ *   - children — the visible label. Strings are auto-wrapped in
+ *                `<span class="truncate">`; pass a node to skip that.
+ *   - trailing — optional right side node, typically a chevron `<img>` for
+ *                pills that open a dropdown.
+ *
+ * `as="label"` renders a `<label>` instead of a `<button>` (used to wrap the
+ * Worktree checkbox so clicking the pill toggles the input).
+ *
+ * `className` is an escape hatch for responsive caps like
+ * `max-w-[270px] md:max-w-[180px]` — kept out of the base so pills without a
+ * cap (Worktree) don't pick one up.
+ */
+export function ToolbarPill({
+  as = 'button',
+  leading,
+  children,
+  trailing,
+  className,
+  onClick,
+}: {
+  as?: 'button' | 'label';
+  leading: ReactNode;
+  children: ReactNode;
+  trailing?: ReactNode;
+  className?: string;
+  onClick?: () => void;
+}) {
+  const base =
+    'flex items-center gap-[9px] md:gap-1.5 px-[18px] md:px-3 rounded-full border border-stroke-outline text-base text-text-primary hover:bg-bg-hover toolbar-gradient-hover transition-colors cursor-pointer';
+  const merged = [base, as === 'label' ? 'select-none' : '', className].filter(Boolean).join(' ');
+  const style = { height: 'var(--toolbar-btn-h)' } as React.CSSProperties;
+  const body = (
+    <>
+      {leading}
+      {typeof children === 'string' ? <span className="truncate">{children}</span> : children}
+      {trailing}
+    </>
+  );
+  if (as === 'label') {
+    return (
+      <label className={merged} style={style}>
+        {body}
+      </label>
+    );
+  }
+  return (
+    <button type="button" onClick={onClick} className={merged} style={style}>
+      {body}
+    </button>
+  );
+}
+
+/* ─── 0f. Tooltip ───
+ * Dark-background hover tooltip — black bg, white text, appears above the
+ * trigger. Used on icon-only controls in the ChatInput toolbar (attach, mic,
+ * unselected mode-selector segments) to surface their labels.
+ */
+export function Tooltip({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="relative group">
+      {children}
+      <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded-md bg-[#1a1a1a] text-white text-[11px] leading-tight whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50">
+        {label}
+      </div>
+    </div>
+  );
+}
+
+/* ─── 0g. ToolbarIconButton ───
+ * Icon-only square control for the ChatInput toolbar (the `+` attach
+ * button, and any future tool-icon peer). Width === height === the toolbar
+ * height token `--toolbar-btn-h`, so it lines up vertically with
+ * `ToolbarPill` and `ToolbarSegmented` in the same row.
+ *
+ * Pair with `Tooltip` on the caller side so the icon-only button announces
+ * its purpose on hover.
+ */
+export function ToolbarIconButton({
+  onClick,
+  ariaLabel,
+  children,
+  className,
+}: {
+  onClick?: () => void;
+  ariaLabel?: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  const base =
+    'flex items-center justify-center rounded-full border border-stroke-outline hover:bg-bg-hover toolbar-gradient-hover transition-all shrink-0 cursor-pointer text-text-primary';
+  const merged = [base, className].filter(Boolean).join(' ');
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={ariaLabel}
+      className={merged}
+      style={{ width: 'var(--toolbar-btn-h)', height: 'var(--toolbar-btn-h)' }}
+    >
+      {children}
+    </button>
+  );
+}
+
+/* ─── 0h. ToolbarSegmented ───
+ * Connected-segment pill (one outer border, inner segments share it). Used
+ * for the Chat / Tasks / Code mode selector in ChatInput. Every segment
+ * locks to the toolbar height token `--toolbar-btn-h`.
+ *
+ * Behavior:
+ *   - Selected segment: shows `icon + label`, uses `--color-selected-*`
+ *     tokens. Content padded `px-3`; segment grows to fit its label.
+ *   - Unselected segment: icon-only, fixed width `--mode-btn-unselected-w`,
+ *     wrapped in a `Tooltip` so the label is still discoverable on hover.
+ *   - Disabled segment: dimmed; the tooltip prefers `disabledTooltip` if
+ *     provided so the caller can explain *why* it's disabled.
+ *
+ * Generic over segment-value type `T` (e.g. `'Chat' | 'Tasks' | 'Code'`) so
+ * callers stay type-safe when wiring `value` / `onChange`.
+ */
+export function ToolbarSegmented<T extends string>({
+  value,
+  onChange,
+  segments,
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  segments: {
+    value: T;
+    icon: ReactNode;
+    label: string;
+    disabled?: boolean;
+    disabledTooltip?: string;
+  }[];
+}) {
+  return (
+    <div className="flex items-center rounded-full border border-stroke-outline toolbar-gradient-hover">
+      {segments.map((seg, i, arr) => {
+        const isSelected = value === seg.value;
+        const isFirst = i === 0;
+        const isLast = i === arr.length - 1;
+        const disabled = !!seg.disabled;
+        const btn = (
+          <button
+            type="button"
+            key={seg.value}
+            onClick={() => {
+              if (disabled) return;
+              onChange(seg.value);
+            }}
+            className={`flex items-center justify-center gap-1 transition-all text-text-primary ${
+              disabled
+                ? 'opacity-30 cursor-not-allowed'
+                : isSelected
+                ? 'px-3 cursor-pointer'
+                : 'hover:bg-bg-hover cursor-pointer'
+            }`}
+            style={{
+              height: 'var(--toolbar-btn-h)',
+              ...(!isSelected ? { width: 'var(--mode-btn-unselected-w)' } : {}),
+              backgroundColor: isSelected ? 'var(--color-selected-bg)' : undefined,
+              color: isSelected ? 'var(--color-selected-text)' : undefined,
+              borderRadius: isFirst ? '9999px 0 0 9999px' : isLast ? '0 9999px 9999px 0' : '0',
+            }}
+          >
+            {seg.icon}
+            {isSelected && <span className="text-base font-medium">{seg.label}</span>}
+          </button>
+        );
+        if (isSelected) return btn;
+        const tip = disabled ? seg.disabledTooltip ?? seg.label : seg.label;
+        return (
+          <Tooltip key={seg.value} label={tip}>
+            {btn}
+          </Tooltip>
+        );
+      })}
     </div>
   );
 }
