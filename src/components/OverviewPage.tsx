@@ -2,11 +2,11 @@ import { useState, useCallback } from 'react';
 import {
   Sparkles, ChevronRight,
   Brain, Volume2, Briefcase, Home, Smile,
-  Moon, Zap, Gauge,
+  Moon, Zap, Gauge, BarChart3, Search,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
-  SectionTitle, LabeledBar, CircularProgress,
+  SectionTitle, LabeledBar,
   Tag, SolutionRow, SummaryFooter, PrimaryButton, TertiaryButton,
   MetricCard, InsightCard, AreaChart, TaskProgressCard, ReviewItemCard,
   HealthDimensionRow, PageLayout,
@@ -19,16 +19,8 @@ import {
 interface OverviewPageProps {
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
-  isDark?: boolean;
-  selectedAvatarId?: string;
   onNewChat?: () => void;
 }
-
-const AVATAR_VIDEOS: Record<string, { light: string; dark: string }> = {
-  'black-woman': { light: '/animations/black-woman-light.mp4', dark: '/animations/black-woman-dark.mp4' },
-  'asian-woman': { light: '/animations/asian-woman-light.mp4', dark: '/animations/asian-woman-dark.mp4' },
-  'white-man': { light: '/animations/white-man-light.mp4', dark: '/animations/white-man-dark.mp4' },
-};
 
 /* ── Data ── */
 
@@ -38,9 +30,9 @@ const REVIEW_ITEMS = [
   { title: 'Weekly stakeholder email draft', source: 'Gmail', type: 'Email', time: 'Ready 2h ago', urgent: false, humanTime: '~3 min' },
 ];
 
-const IN_PROGRESS = [
-  { title: 'Analyzing Q2 design metrics report', progress: 62, eta: '~8 min', steps: 'Pulling data from Sheets → Building charts → Formatting' },
-  { title: 'Researching competitor onboarding flows', progress: 35, eta: '~20 min', steps: 'Scanning 4 competitor apps → Extracting screenshots → Compiling' },
+const IN_PROGRESS: Array<{ title: string; progress: number; eta: string; steps: string; icon: LucideIcon }> = [
+  { title: 'Analyzing Q2 design metrics report', progress: 62, eta: '~8 min', steps: 'Pulling data from Sheets → Building charts → Formatting', icon: BarChart3 },
+  { title: 'Researching competitor onboarding flows', progress: 35, eta: '~20 min', steps: 'Scanning 4 competitor apps → Extracting screenshots → Compiling', icon: Search },
 ];
 
 const HEALTH_DIMENSIONS: Array<{
@@ -110,9 +102,8 @@ const TYPE_CONFIG: Record<string, { emoji: string; classes: string }> = {
 
 /* ── Main Component ── */
 
-export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, selectedAvatarId = 'black-woman', onNewChat }: OverviewPageProps) {
-  const avatarVideo = AVATAR_VIDEOS[selectedAvatarId] || AVATAR_VIDEOS['black-woman'];
-  const videoSrc = isDark ? avatarVideo.dark : avatarVideo.light;
+export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat }: OverviewPageProps) {
+  const videoSrc = '/animations/avatar.mp4';
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   const GREETING_TEXT = "Good morning, Beibei! Today feels like a steady day. Your life commitments are all locked in — 2 hours family time, 7 hours sleep, check. I've protected your 9 to 11am focus block, and today's workload is light. I finished your meeting notes and drafted 3 tickets — review them whenever you're ready.";
@@ -134,10 +125,6 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
   const [reviewDone, setReviewDone] = useState<Record<number, boolean>>({});
   const [showStressDetail, setShowStressDetail] = useState(false);
 
-  const metCount = HEALTH_DIMENSIONS.filter(d => d.met).length;
-  const totalDimensions = HEALTH_DIMENSIONS.length;
-  const overallScore = Math.round((metCount / totalDimensions) * 100);
-
   return (
     <PageLayout
       title="Overview"
@@ -147,9 +134,9 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
       bgClass="app-bg"
     >
           {/* ━━━ 1. GREETING ━━━ */}
-          <div className="rounded-2xl p-6 md:p-8 mb-6 relative overflow-hidden bg-bg-hover">
-            <div className="flex flex-col md:flex-row gap-4 md:gap-6 relative">
-              <div className="w-[72px] h-[72px] rounded-2xl shrink-0 overflow-hidden bg-bg-hover">
+          <div className="rounded-2xl mb-6 relative overflow-hidden bg-bg-hover">
+            <div className="flex flex-col md:flex-row relative">
+              <div className="w-full md:w-[45%] shrink-0 overflow-hidden">
                 <video
                   src={videoSrc}
                   autoPlay
@@ -159,7 +146,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
                   className="w-full h-full object-cover"
                 />
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 p-6 md:p-8 flex flex-col justify-center">
                 <div className="flex items-center gap-1 mb-1.5">
                   <Sparkles size={12} className="text-text-primary" />
                   <span className="text-[14px] font-bold text-text-primary tracking-[0.5px]">
@@ -187,17 +174,17 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
           <div className="mb-6">
             <SectionTitle emoji="🔋" title="Life Health Index" />
 
-            <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-5">
-              {/* Overall Score Ring */}
-              <div className="bg-bg-page rounded-2xl border border-stroke-outline p-6 text-center flex flex-col items-center dark:bg-[rgba(226,243,255,0.05)]">
-                <div className="mb-3">
-                  <CircularProgress value={overallScore} color="#3171ff">
-                    <span className="text-[28px] font-bold text-text-primary">{metCount}/{totalDimensions}</span>
-                    <span className="text-[14px] text-text-primary">goals met</span>
-                  </CircularProgress>
-                </div>
-                <div className="text-[14px] font-bold text-text-primary">All On Track ✓</div>
-                <div className="text-[14px] text-text-primary mt-1">Life + Work balanced today</div>
+            <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-5">
+              {/* Overall Score Video */}
+              <div className="overflow-hidden rounded-2xl relative h-[320px] md:h-auto" style={{ backgroundColor: '#E8755A' }}>
+                <video
+                  src="/life-health.mov"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="absolute inset-0 w-full h-full object-cover object-bottom block"
+                />
               </div>
 
               {/* Dimensions */}
@@ -218,7 +205,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
                 {/* Stress Index — Clickable */}
                 <button
                   onClick={() => setShowStressDetail(!showStressDetail)}
-                  className="rounded-xl px-4 py-3 flex items-center gap-3.5 text-left transition-colors bg-bg-hover border border-stroke-outline"
+                  className="rounded-2xl px-5 py-4 flex items-center gap-3.5 text-left transition-colors bg-bg-hover border border-stroke-outline"
                 >
                   <Gauge size={22} strokeWidth={1.75} className="text-text-primary shrink-0 icon-theme" />
                   <div className="flex-1 min-w-0">
@@ -288,7 +275,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
 
           {/* ━━━ 4. MAYA IS WORKING ON ━━━ */}
           <div className="mb-6">
-            <SectionTitle emoji="⚡" title="Maya is Working On" />
+            <SectionTitle emoji="⚡" title="Agents at Work" />
 
             <div className="flex flex-col gap-3">
               {IN_PROGRESS.map((task, i) => (
@@ -298,6 +285,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
                   progress={task.progress}
                   eta={task.eta}
                   steps={task.steps.split(' → ')}
+                  icon={task.icon}
                   expanded={expandedProgress === i}
                   onClick={() => setExpandedProgress(expandedProgress === i ? null : i)}
                 />

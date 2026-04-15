@@ -4,7 +4,7 @@
  * Single source of truth — used by both app pages and the Design System page.
  * Update a component here → it updates everywhere in the app.
  */
-import { AlertTriangle, ArrowLeft, BadgeCheck, Check, ChevronDown, Clock, Eye, FileText, Mail, PanelLeft, PanelRight, Ticket, Play, Plus, Search, Send, Smile, SquarePen, Timer, User, Sparkles, X, XCircle, type LucideIcon } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, BadgeCheck, Check, ChevronDown, ChevronRight, Clock, FileText, Mail, PanelLeft, PanelRight, Ticket, Play, Plus, Search, Send, Smile, SquarePen, Timer, User, Sparkles, X, XCircle, type LucideIcon } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState, useLayoutEffect } from 'react';
 
 /* ─── 0a. HeaderBar ───
@@ -1227,6 +1227,7 @@ export function TaskProgressCard({
   progress,
   eta,
   steps,
+  icon: IconComp,
   expanded = false,
   onClick,
 }: {
@@ -1234,18 +1235,18 @@ export function TaskProgressCard({
   progress: number;
   eta: string;
   steps: string[];
+  icon?: LucideIcon;
   expanded?: boolean;
   onClick?: () => void;
 }) {
+  const Ic = IconComp || Play;
   return (
     <button
       onClick={onClick}
-      className="bg-bg-page rounded-2xl border border-stroke-outline p-5 text-left transition-colors dark:bg-[rgba(226,243,255,0.05)] w-full"
+      className="bg-bg-page rounded-2xl border border-stroke-outline px-5 py-4 text-left transition-colors dark:bg-[rgba(226,243,255,0.05)] w-full"
     >
-      <div className="flex items-start gap-3.5">
-        <div className="w-9 h-9 rounded-xl bg-bg-hover flex items-center justify-center shrink-0">
-          <Play size={14} className="text-text-primary" />
-        </div>
+      <div className="flex items-center gap-3.5">
+        <Ic size={22} strokeWidth={1.75} className="text-text-primary shrink-0 icon-theme" />
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
             <div className="text-[14px] font-bold text-text-primary">{title}</div>
@@ -1305,7 +1306,7 @@ export function HealthDimensionRow({
     : pct >= 0.5 ? { variant: 'pending'     as const, icon: AlertTriangle }
     :              { variant: 'failed'      as const, icon: XCircle };
   return (
-    <div className="bg-bg-page rounded-xl border border-stroke-outline px-4 py-3 flex items-center gap-3.5 dark:bg-[rgba(226,243,255,0.05)]">
+    <div className="bg-bg-page rounded-2xl border border-stroke-outline px-5 py-4 flex items-center gap-3.5 dark:bg-[rgba(226,243,255,0.05)]">
       <Icon size={22} strokeWidth={1.75} className="text-text-primary shrink-0 icon-theme" />
       <div className="flex-1 min-w-0">
         <div className="text-[14px] font-bold text-text-primary">{label}</div>
@@ -1333,16 +1334,14 @@ const REVIEW_TYPE_ICONS: Record<string, LucideIcon> = {
 
 export function ReviewItemCard({
   title,
-  source,
   type,
   time,
   humanTime,
   done = false,
-  onToggle,
   icon,
 }: {
   title: string;
-  source: string;
+  source?: string;
   type: string;
   time: string;
   humanTime: string;
@@ -1352,26 +1351,18 @@ export function ReviewItemCard({
 }) {
   const Icon = icon ?? REVIEW_TYPE_ICONS[type] ?? FileText;
   return (
-    <div className={`bg-bg-page rounded-2xl border border-stroke-outline px-5 py-4 flex flex-col md:flex-row md:items-center gap-3 md:gap-4 transition-all dark:bg-[rgba(226,243,255,0.05)] ${done ? 'opacity-50' : ''}`}>
-      <Icon size={22} strokeWidth={1.75} className="text-text-primary shrink-0 icon-theme self-start md:self-center" />
+    <div className={`bg-bg-page rounded-2xl border border-stroke-outline px-5 py-4 flex items-center gap-3.5 transition-all dark:bg-[rgba(226,243,255,0.05)] ${done ? 'opacity-50' : ''}`}>
+      <Icon size={22} strokeWidth={1.75} className="text-text-primary shrink-0 icon-theme" />
       <div className="flex-1 min-w-0">
         <div className={`text-[14px] font-bold text-text-primary ${done ? 'line-through' : ''}`}>
           {title}
         </div>
-        <div className="text-[14px] text-text-primary mt-1 flex items-center gap-2 flex-wrap">
-          <span>{source}</span>
-          <span>·</span>
-          <Tag>{type}</Tag>
-          <span>·</span>
-          <span>{time}</span>
+        <div className="text-[14px] text-text-primary mt-1">
+          {type} · {time}
         </div>
       </div>
-      <div className="flex items-center gap-3 md:gap-4 shrink-0">
-        <TimePill time={humanTime} />
-        <TertiaryButton onClick={onToggle} className="gap-1.5 shrink-0">
-          {done ? <><Check size={14} /> Done</> : <><Eye size={14} /> Review</>}
-        </TertiaryButton>
-      </div>
+      <TimePill time={humanTime} />
+      <ChevronRight size={16} className="text-text-primary shrink-0" />
     </div>
   );
 }
