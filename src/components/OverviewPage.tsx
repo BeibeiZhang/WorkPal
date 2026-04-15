@@ -21,6 +21,7 @@ interface OverviewPageProps {
   onToggleSidebar: () => void;
   isDark?: boolean;
   selectedAvatarId?: string;
+  onNewChat?: () => void;
 }
 
 const AVATAR_VIDEOS: Record<string, { light: string; dark: string }> = {
@@ -109,7 +110,7 @@ const TYPE_CONFIG: Record<string, { emoji: string; classes: string }> = {
 
 /* ── Main Component ── */
 
-export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, selectedAvatarId = 'black-woman' }: OverviewPageProps) {
+export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, selectedAvatarId = 'black-woman', onNewChat }: OverviewPageProps) {
   const avatarVideo = AVATAR_VIDEOS[selectedAvatarId] || AVATAR_VIDEOS['black-woman'];
   const videoSrc = isDark ? avatarVideo.dark : avatarVideo.light;
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -142,6 +143,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, isDark, sel
       title="Overview"
       sidebarOpen={sidebarOpen}
       onToggleSidebar={onToggleSidebar}
+      onNewChat={onNewChat}
       bgClass="app-bg"
     >
           {/* ━━━ 1. GREETING ━━━ */}

@@ -958,6 +958,7 @@ export default function App() {
           <ConnectorsPage
             sidebarOpen={sidebarOpen || !isMobile}
             onToggleSidebar={() => setSidebarOpen(o => !o)}
+            onNewChat={isMobile ? handleNewChat : undefined}
           />
         ) : activeView === 'overview' ? (
           <OverviewPage
@@ -965,11 +966,13 @@ export default function App() {
             onToggleSidebar={() => setSidebarOpen(o => !o)}
             isDark={isDark}
             selectedAvatarId={selectedAvatarId}
+            onNewChat={isMobile ? handleNewChat : undefined}
           />
         ) : activeView === 'library' ? (
           <LibraryPage
             sidebarOpen={sidebarOpen || !isMobile}
             onToggleSidebar={() => setSidebarOpen(o => !o)}
+            onNewChat={isMobile ? handleNewChat : undefined}
           />
         ) : !onboardingDone && activeChatId === 'my-workpal' ? (
           <Onboarding
@@ -1036,6 +1039,7 @@ export default function App() {
                 isAiResponding={isAiResponding}
                 draftValue={activeChat?.draftPrompt}
                 forceMode={activeChat?.id === 'alcohol-delivery' ? 'Tasks' : undefined}
+                onNewChat={isMobile ? handleNewChat : undefined}
               />
               {/* Task panel preview — slides in from right then back out (3s) */}
               {taskPanelPreviewing && !contextPanelOpen && !detailOpen && (

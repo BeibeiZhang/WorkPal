@@ -17,6 +17,7 @@ import { FilterChip, PageLayout, SearchBox } from './shared';
 interface LibraryPageProps {
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
+  onNewChat?: () => void;
 }
 
 /* ─── Item types ─── */
@@ -247,7 +248,7 @@ function LibraryCard({ item }: { item: LibraryItem }) {
 }
 
 /* ─── Page ─── */
-export default function LibraryPage({ sidebarOpen, onToggleSidebar }: LibraryPageProps) {
+export default function LibraryPage({ sidebarOpen, onToggleSidebar, onNewChat }: LibraryPageProps) {
   const [filter, setFilter] = useState<FilterId>('all');
   const [search, setSearch] = useState('');
 
@@ -276,6 +277,9 @@ export default function LibraryPage({ sidebarOpen, onToggleSidebar }: LibraryPag
     <PageLayout
       title="Library"
       bgClass="app-bg"
+      sidebarOpen={sidebarOpen}
+      onToggleSidebar={onToggleSidebar}
+      onNewChat={onNewChat}
       rightSlot={
         <SearchBox
           value={search}
@@ -301,8 +305,6 @@ export default function LibraryPage({ sidebarOpen, onToggleSidebar }: LibraryPag
         </div>
       }
       maxWidth="full"
-      sidebarOpen={sidebarOpen}
-      onToggleSidebar={onToggleSidebar}
     >
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 gap-3">

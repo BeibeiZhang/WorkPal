@@ -323,6 +323,23 @@ html, body, #root {
 .loading-dot:nth-child(2) { background: #B46470; animation-delay: 0.2s; }
 .loading-dot:nth-child(3) { background: #CA9D8C; animation-delay: 0.4s; }
 
+/* Speaker wave ripple — inner wave appears first, outer follows,
+   both fade out together. Creates an outward-radiating ripple while TTS plays. */
+@keyframes speaker-wave-inner {
+  0%, 100% { opacity: 0; }
+  25%, 75% { opacity: 1; }
+}
+@keyframes speaker-wave-outer {
+  0%, 45%, 100% { opacity: 0; }
+  65%, 85% { opacity: 1; }
+}
+.speaker-wave-inner {
+  animation: speaker-wave-inner 1.4s infinite ease-in-out;
+}
+.speaker-wave-outer {
+  animation: speaker-wave-outer 1.4s infinite ease-in-out;
+}
+
 /* Progress bar animation for ticket creation */
 @keyframes progressFill {
   0% { width: 0%; }

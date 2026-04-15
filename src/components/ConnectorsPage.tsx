@@ -86,9 +86,10 @@ type Tab = 'apps' | 'custom-api' | 'custom-mcp';
 interface ConnectorsPageProps {
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
+  onNewChat?: () => void;
 }
 
-export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: ConnectorsPageProps) {
+export default function ConnectorsPage({ sidebarOpen, onToggleSidebar, onNewChat }: ConnectorsPageProps) {
   const [activeTab, setActiveTab] = useState<Tab>('apps');
   const [search, setSearch] = useState('');
 
@@ -108,7 +109,8 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar }: Connect
       bgClass="app-bg"
       sidebarOpen={sidebarOpen}
       onToggleSidebar={onToggleSidebar}
-      rightSlot={<SearchBox value={search} onChange={setSearch} placeholder="Search" width={200} />}
+      onNewChat={onNewChat}
+      rightSlot={<SearchBox value={search} onChange={setSearch} placeholder="Search" />}
       filters={
         <div className="flex items-center gap-2 flex-nowrap sm:flex-wrap overflow-x-auto sm:overflow-visible scrollbar-autohide -mx-4 sm:mx-0 px-4 sm:px-0">
           {tabs.map(tab => (
