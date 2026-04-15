@@ -107,6 +107,7 @@
   --color-card-panel-bg: rgba(0, 0, 0, 0.3);
   /* Dark mode chat input inner fill: 30% black. */
   --color-input-bg: rgba(0, 0, 0, 0.3);
+  --color-progress-bar: #3171ff;
 }
 
 html, body, #root {
@@ -221,7 +222,6 @@ html, body, #root {
 .inverted-btn {
   background: var(--color-text-primary);
   color: var(--color-bg-page);
-  box-shadow: 0px 5px 15px rgba(1, 44, 197, 0.2);
   transition: box-shadow 0.15s ease;
 }
 .inverted-btn:hover {

@@ -49,7 +49,7 @@ function DarkToggle({ isDark, onToggle }: { isDark: boolean; onToggle: () => voi
       </span>
       <span
         className="flex items-center justify-center p-1 rounded-full transition-colors"
-        style={isDark ? { background: 'var(--color-bg-page)' } : undefined}
+        style={isDark ? { background: 'rgba(0,0,0,0.3)' } : undefined}
       >
         <div className="overflow-clip relative" style={{ width: 24, height: 24 }}>
           <div className="absolute" style={{ width: 17.107, height: 15.895, left: '50%', top: '50%', transform: 'translate(-50%,-50%)' }}>

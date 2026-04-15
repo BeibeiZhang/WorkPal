@@ -650,17 +650,20 @@ export function SectionTitle({
   emoji,
   title,
   count,
+  size,
 }: {
   emoji: string;
   title: string;
   count?: number;
+  size?: number;
 }) {
+  const fontSize = size || 14;
   return (
     <div className="flex items-center gap-2 mb-4">
-      <span className="text-[14px]">{emoji}</span>
-      <span className="text-[14px] font-bold text-text-primary tracking-[-0.43px]">{title}</span>
+      {emoji && <span style={{ fontSize }}>{emoji}</span>}
+      <span className="font-bold text-text-primary tracking-[-0.43px]" style={{ fontSize }}>{title}</span>
       {count !== undefined && (
-        <span className="text-[14px] px-2.5 py-0.5 rounded-full bg-bg-hover text-text-primary font-bold">{count}</span>
+        <span className="text-[12px] px-2 py-0.5 rounded-[4px] bg-bg-hover text-text-primary tracking-[-0.3px]">{count}</span>
       )}
     </div>
   );
@@ -669,7 +672,7 @@ export function SectionTitle({
 /* ─── 2. ProgressBar ─── */
 export function ProgressBar({
   value,
-  color = '#142740',
+  color = 'var(--color-progress-bar, #142740)',
   height = 6,
   showLabel = false,
 }: {
@@ -785,8 +788,8 @@ export function CircularProgress({
  * Thin alias — renders StatusTag (neutral, sm) with a User icon.
  * Exists purely for readability at call sites ("time estimate" semantics).
  */
-export function TimePill({ time }: { time: string }) {
-  return <StatusTag variant="neutral" label={time} size="sm" icon={User} />;
+export function TimePill({ time, tooltip }: { time: string; tooltip?: string }) {
+  return <StatusTag variant="success" label={time} size="sm" icon={User} tooltip={tooltip} />;
 }
 
 /* ─── 6. StepIndicator ─── */
@@ -842,6 +845,7 @@ export function StatusTag({
   size = 'md',
   icon,
   outline = false,
+  tooltip,
 }: {
   variant: StatusVariant;
   label: ReactNode;
@@ -849,6 +853,7 @@ export function StatusTag({
   size?: 'sm' | 'md';
   icon?: LucideIcon;
   outline?: boolean;
+  tooltip?: string;
 }) {
   const s = STATUS_STYLES[variant];
   const Icon = icon ?? s.icon;
@@ -860,8 +865,9 @@ export function StatusTag({
     <span
       className={`inline-flex items-center whitespace-nowrap shrink-0 rounded-[4px] tracking-[-0.3px] font-normal ${
         isSmall ? 'gap-1 px-2 py-0.5 text-[12px]' : 'gap-1.5 px-3 py-1 text-[14px] leading-[22px]'
-      }`}
+      } ${tooltip ? 'cursor-help' : ''}`}
       style={surface}
+      title={tooltip}
     >
       {showIcon && <Icon size={isSmall ? 12 : 14} strokeWidth={2} />}
       {label}
@@ -876,9 +882,11 @@ export function StatusTag({
 export function Tag({
   children,
   outline = false,
+  tooltip,
 }: {
   children: ReactNode;
   outline?: boolean;
+  tooltip?: string;
 }) {
   return (
     <StatusTag
@@ -887,6 +895,7 @@ export function Tag({
       size="sm"
       showIcon={false}
       outline={outline}
+      tooltip={tooltip}
     />
   );
 }
@@ -1114,18 +1123,20 @@ export function InsightCard({
   actions,
 }: {
   body: string;
-  actions: { label: string; primary?: boolean; onClick?: () => void }[];
+  actions: { label: string; primary?: boolean; secondary?: boolean; onClick?: () => void }[];
 }) {
   return (
     <div className="rounded-2xl p-7 bg-bg-hover">
       <div className="text-[14px] font-bold text-text-primary mb-3 flex items-center gap-1.5">
-        <Sparkles size={14} className="text-text-primary" /> MAYA'S INSIGHT
+        <Sparkles size={14} className="text-text-primary" /> STEPHEN'S INSIGHT
       </div>
       <p className="text-[14px] text-text-primary leading-[1.7] mb-4 tracking-[-0.43px]">{body}</p>
       <div className="flex flex-wrap gap-2.5">
         {actions.map((a, i) =>
           a.primary ? (
             <PrimaryButton key={i} onClick={a.onClick}>{a.label}</PrimaryButton>
+          ) : a.secondary ? (
+            <SecondaryButton key={i} onClick={a.onClick}>{a.label}</SecondaryButton>
           ) : (
             <TertiaryButton key={i} onClick={a.onClick}>{a.label}</TertiaryButton>
           )
@@ -1243,16 +1254,14 @@ export function TaskProgressCard({
   return (
     <button
       onClick={onClick}
-      className="bg-bg-page rounded-2xl border border-stroke-outline px-5 py-4 text-left transition-colors dark:bg-[rgba(226,243,255,0.05)] w-full"
+      className="px-5 py-4 text-left transition-colors w-full border-b border-dashed border-stroke-outline last:border-0"
     >
       <div className="flex items-center gap-3.5">
         <Ic size={22} strokeWidth={1.75} className="text-text-primary shrink-0 icon-theme" />
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
             <div className="text-[14px] font-bold text-text-primary">{title}</div>
-            <div className="text-[14px] text-text-primary flex items-center gap-1 shrink-0">
-              <Timer size={12} /> ETA {eta}
-            </div>
+            <StatusTag variant="submitted" size="sm" icon={Timer} label={eta} tooltip={`Agent estimates ${eta} to complete this task`} />
           </div>
           <div className="flex items-center gap-3 mt-1.5">
             <div className="flex-1"><ProgressBar value={progress} height={6} /></div>
@@ -1306,18 +1315,32 @@ export function HealthDimensionRow({
     : pct >= 0.5 ? { variant: 'pending'     as const, icon: AlertTriangle }
     :              { variant: 'failed'      as const, icon: XCircle };
   return (
-    <div className="bg-bg-page rounded-2xl border border-stroke-outline px-5 py-4 flex items-center gap-3.5 dark:bg-[rgba(226,243,255,0.05)]">
+    <div
+      className="px-5 py-4 flex items-center gap-3.5 border-b border-dashed border-stroke-outline last:border-0"
+    >
       <Icon size={22} strokeWidth={1.75} className="text-text-primary shrink-0 icon-theme" />
       <div className="flex-1 min-w-0">
         <div className="text-[14px] font-bold text-text-primary">{label}</div>
         <div className="text-[14px] text-text-primary mt-0.5">{desc}</div>
+        <div className="mt-1.5 md:hidden">
+          <StatusTag
+            variant={tagProps.variant}
+            icon={tagProps.icon}
+            size="sm"
+            label={target ? `${value}/${target}${unit}` : `${value} ${unit} · ${status ?? ''}`}
+            tooltip={target ? `${label}: ${value} of ${target}${unit} goal reached` : `${label}: ${value} ${unit}, ${status}`}
+          />
+        </div>
       </div>
-      <StatusTag
-        variant={tagProps.variant}
-        icon={tagProps.icon}
-        size="sm"
-        label={target ? `${value}/${target}${unit}` : `${value} ${unit} · ${status ?? ''}`}
-      />
+      <span className="hidden md:inline-flex">
+        <StatusTag
+          variant={tagProps.variant}
+          icon={tagProps.icon}
+          size="sm"
+          label={target ? `${value}/${target}${unit}` : `${value} ${unit} · ${status ?? ''}`}
+          tooltip={target ? `${label}: ${value} of ${target}${unit} goal reached` : `${label}: ${value} ${unit}, ${status}`}
+        />
+      </span>
     </div>
   );
 }
@@ -1351,7 +1374,9 @@ export function ReviewItemCard({
 }) {
   const Icon = icon ?? REVIEW_TYPE_ICONS[type] ?? FileText;
   return (
-    <div className={`bg-bg-page rounded-2xl border border-stroke-outline px-5 py-4 flex items-center gap-3.5 transition-all dark:bg-[rgba(226,243,255,0.05)] ${done ? 'opacity-50' : ''}`}>
+    <div
+      className={`px-5 py-4 flex items-center gap-3.5 transition-all border-b border-dashed border-stroke-outline last:border-0 ${done ? 'opacity-50' : ''}`}
+    >
       <Icon size={22} strokeWidth={1.75} className="text-text-primary shrink-0 icon-theme" />
       <div className="flex-1 min-w-0">
         <div className={`text-[14px] font-bold text-text-primary ${done ? 'line-through' : ''}`}>
@@ -1360,8 +1385,11 @@ export function ReviewItemCard({
         <div className="text-[14px] text-text-primary mt-1">
           {type} · {time}
         </div>
+        <div className="mt-1.5 md:hidden">
+          <TimePill time={humanTime} tooltip={`Estimated ${humanTime} for you to review`} />
+        </div>
       </div>
-      <TimePill time={humanTime} />
+      <span className="hidden md:inline-flex"><TimePill time={humanTime} tooltip={`Estimated ${humanTime} for you to review`} /></span>
       <ChevronRight size={16} className="text-text-primary shrink-0" />
     </div>
   );

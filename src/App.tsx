@@ -319,7 +319,7 @@ export default function App() {
   const [activeChatId, setActiveChatId] = useState<string>('my-workpal');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isDark, setIsDark] = useState(false);
-  const [selectedAvatarId, setSelectedAvatarId] = useState('black-woman');
+  const [selectedAvatarId, setSelectedAvatarId] = useState('white-man');
   const [detailOpen, setDetailOpen] = useState(false);
   const [onboardingDone, setOnboardingDone] = useState(() => localStorage.getItem('workpal-onboarding-done') === 'true');
   const [activeView, setActiveView] = useState<'chat' | 'connectors' | 'design-system' | 'overview' | 'library'>('chat');
@@ -713,6 +713,12 @@ export default function App() {
     'white-man': avatarWhiteMan,
   };
 
+  const AGENT_NAME_MAP: Record<string, string> = {
+    'black-woman': 'Maya',
+    'asian-woman': 'Mei',
+    'white-man': 'Stephen',
+  };
+
   const handleOnboardingComplete = useCallback((mostImportant: string[], avoid: string[], description?: string) => {
     setOnboardingDone(true);
     localStorage.setItem('workpal-onboarding-done', 'true');
@@ -791,9 +797,9 @@ export default function App() {
               type: 'agent',
               title: 'My WorkPal Agent',
               status: 'ready',
-              agentName: 'Maya',
-              agentIntro: "Hi, I'm Maya. I've got your back! Let's make your workday a little brighter \u2600\uFE0F\uFE0F",
-              avatarUrl: AVATAR_MAP[selectedAvatarId] || avatarBlackWoman,
+              agentName: AGENT_NAME_MAP[selectedAvatarId] || 'Stephen',
+              agentIntro: `Hi, I'm ${AGENT_NAME_MAP[selectedAvatarId] || 'Stephen'}. I've got your back! Let's make your workday a little brighter \u2600\uFE0F\uFE0F`,
+              avatarUrl: AVATAR_MAP[selectedAvatarId] || avatarWhiteMan,
             },
           };
         }

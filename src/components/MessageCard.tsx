@@ -1,4 +1,5 @@
-import { Download } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Download, Volume2, VolumeX } from 'lucide-react';
 import { CardData, MeetingCard, ResearchCard, TicketCard, ScheduleCard, AgentCard } from '../types';
 import { iconAsana, iconDoc20, iconGmail, iconUsers, iconPin, iconClock } from '../assets';
 import { PrimaryButton, TertiaryButton, StatusTag as SharedStatusTag, type StatusVariant } from './shared';
@@ -424,6 +425,15 @@ function ScheduleCardView({ card, onAction }: { card: ScheduleCard; onAction?: (
 /* ── Agent card (creating / ready / saved) ── */
 function AgentCardView({ card, onAction }: { card: AgentCard; onAction?: (a: string) => void }) {
   const status = card.status || 'creating';
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [muted, setMuted] = useState(true);
+
+  const toggleMute = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = !muted;
+      setMuted(!muted);
+    }
+  };
 
   // Gradient icon for card header
   const gradientIcon = (
@@ -433,7 +443,6 @@ function AgentCardView({ card, onAction }: { card: AgentCard; onAction?: (a: str
         backgroundImage: 'linear-gradient(64deg, #7652B9 3%, #B46470 36%, #CA9D8C 80%)',
       }}
     >
-      {/* WorkPal "W" icon — simplified as white shape */}
       <svg width="18" height="10" viewBox="0 0 18 10" fill="none">
         <path d="M1 1L4.5 9L9 3L13.5 9L17 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
@@ -467,39 +476,36 @@ function AgentCardView({ card, onAction }: { card: AgentCard; onAction?: (a: str
         {status === 'saved' && <StatusTag label="Saved" />}
       </div>
       <SoftDivider />
-      {/* Body: Profile + intro */}
-      <div className="p-4 flex flex-col gap-4">
-        {/* Profile row */}
-        <div
-          className="flex items-center gap-4 rounded overflow-hidden"
-          style={{ background: '#E5E9F1' }}
-        >
-          {/* Avatar */}
-          {card.avatarUrl && (
-            <div className="w-[120px] h-[120px] shrink-0">
-              {card.avatarUrl.endsWith('.mp4') ? (
-                <video
-                  src={card.avatarUrl}
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <img src={card.avatarUrl} alt={card.agentName || 'Agent'} className="w-full h-full object-cover" />
-              )}
-            </div>
-          )}
-          {/* Intro text */}
-          <div className="flex-1 pr-2">
+      {/* Body: Video left + blue right with text */}
+      <div className="flex flex-col gap-4 p-4">
+        <div className="flex rounded-lg overflow-hidden" style={{ height: 160, background: '#1B2943' }}>
+          {/* Video — left half */}
+          <div className="w-1/2 shrink-0 relative">
+            <video
+              ref={videoRef}
+              src="/animations/agent-intro.mp4"
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover"
+            />
+            {/* Sound toggle */}
+            <button
+              onClick={toggleMute}
+              className="absolute bottom-2.5 left-2.5 w-7 h-7 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/60 transition-colors cursor-pointer"
+            >
+              {muted ? <VolumeX size={14} className="text-white" /> : <Volume2 size={14} className="text-white" />}
+            </button>
+          </div>
+          {/* Intro text — right half */}
+          <div className="w-1/2 flex items-center p-4">
             <p
-              className="text-text-primary"
+              className="text-white"
               style={{
                 fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
                 fontSize: 14,
                 lineHeight: '22px',
-                letterSpacing: '0px',
               }}
             >
               {card.agentIntro}
