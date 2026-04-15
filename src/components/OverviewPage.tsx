@@ -1,12 +1,12 @@
 import { useState, useCallback } from 'react';
 import {
-  Sparkles, ChevronRight, ChevronDown, ChevronUp,
+  ChevronRight, ChevronDown, ChevronUp,
   Brain, Volume2, Briefcase, Home, Smile,
   Moon, Zap, Gauge, BarChart3, Search,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
-  SectionTitle, LabeledBar,
+  SectionTitle,
   Tag, SolutionRow, SummaryFooter, PrimaryButton, TertiaryButton,
   MetricCard, InsightCard, AreaChart, TaskProgressCard, ReviewItemCard,
   HealthDimensionRow, PageLayout,
