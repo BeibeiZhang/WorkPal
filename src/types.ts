@@ -66,6 +66,20 @@ export interface AgentCard {
 
 export type CardData = MeetingCard | ResearchCard | TicketCard | ScheduleCard | AgentCard;
 
+export type AttachmentKind = 'image' | 'file';
+
+export interface Attachment {
+  id: string;
+  name: string;
+  /** MIME type as reported by the browser (e.g. "image/png", "application/pdf"). */
+  mimeType: string;
+  /** Size in bytes. */
+  size: number;
+  kind: AttachmentKind;
+  /** Base64 data URL — used as the thumbnail for images, and as a download href for files. */
+  dataUrl: string;
+}
+
 export interface Message {
   id: string;
   role: MessageRole;
@@ -74,6 +88,7 @@ export interface Message {
   chips?: ActionChip[];
   card?: CardData;
   isLoading?: boolean;
+  attachments?: Attachment[];
 }
 
 export interface Chat {

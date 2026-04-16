@@ -12,7 +12,7 @@ import OverviewPage from './components/OverviewPage';
 import LibraryPage from './components/LibraryPage';
 import NewProjectDialog from './components/NewProjectDialog';
 import { SplitView } from './components/shared';
-import { Chat, Message, ActionChip, TicketCard, AgentCard, ScheduleCard } from './types';
+import { Chat, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleCard } from './types';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
 import { INITIAL_CHATS } from './data';
 import { streamChat } from './lib/api';
@@ -585,7 +585,7 @@ export default function App() {
     }, 4300);
   }, []);
 
-  const handleSend = useCallback((text: string) => {
+  const handleSend = useCallback((text: string, attachments?: Attachment[]) => {
     // Special-case the alcohol-delivery demo chat: keep title, run scripted flow
     if (activeChatId === 'alcohol-delivery') {
       const userMessage: Message = {
@@ -593,6 +593,7 @@ export default function App() {
         role: 'user',
         content: text,
         timestamp: new Date(),
+        ...(attachments && attachments.length ? { attachments } : {}),
       };
       setChats(prev => prev.map(c =>
         c.id === 'alcohol-delivery'
@@ -621,20 +622,23 @@ export default function App() {
 
     // If on welcome screen or empty session, update the existing chat's title
     if (!activeChat || activeChat.messages.length === 0) {
+      const titleSource = text || (attachments && attachments.length ? attachments[0].name : '');
+      const derivedTitle = titleSource
+        ? titleSource.slice(0, 40) + (titleSource.length > 40 ? '...' : '')
+        : 'New Session';
       if (activeChat && activeChat.messages.length === 0) {
         // Reuse existing empty chat (e.g. "New Session") and update its title.
         // Promote it from draft → recent so it shows up in the Recents list.
         chatId = activeChat.id;
-        const newTitle = text.slice(0, 40) + (text.length > 40 ? '...' : '');
         setChats(prev => prev.map(c =>
-          c.id === chatId ? { ...c, title: newTitle, lastMessage: text, timestamp: new Date(), isDraft: false } : c
+          c.id === chatId ? { ...c, title: derivedTitle, lastMessage: text, timestamp: new Date(), isDraft: false } : c
         ));
       } else {
         // No active chat at all — create a new one
         chatId = `chat-${Date.now()}`;
         const newChat: Chat = {
           id: chatId,
-          title: text.slice(0, 40) + (text.length > 40 ? '...' : ''),
+          title: derivedTitle,
           lastMessage: text,
           timestamp: new Date(),
           messages: [],
@@ -650,6 +654,7 @@ export default function App() {
       role: 'user',
       content: text,
       timestamp: new Date(),
+      ...(attachments && attachments.length ? { attachments } : {}),
     };
 
     // Need to use the possibly-new chatId
@@ -658,7 +663,7 @@ export default function App() {
       return {
         ...c,
         messages: [...c.messages, userMessage],
-        lastMessage: text,
+        lastMessage: text || (attachments && attachments.length ? `📎 ${attachments[0].name}` : ''),
         timestamp: new Date(),
       };
     }));

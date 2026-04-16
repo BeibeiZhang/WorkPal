@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { PanelRight } from 'lucide-react';
-import { Chat, Message, ActionChip } from '../types';
+import { Chat, Message, ActionChip, Attachment } from '../types';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import VoiceMode from './VoiceMode';
@@ -9,7 +9,7 @@ import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from '../assets';
 
 interface ChatPanelProps {
   chat: Chat | null;
-  onSend: (message: string) => void;
+  onSend: (message: string, attachments?: Attachment[]) => void;
   onChipClick: (chip: ActionChip) => void;
   onCardAction: (action: string) => void;
   sidebarOpen: boolean;
