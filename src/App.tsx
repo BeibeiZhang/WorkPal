@@ -33,8 +33,15 @@ function loadChats(): Chat[] {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      // Rehydrate Date objects
-      return parsed.map((c: any) => ({
+      // Dedupe by id (earlier bug seeded multiple chats with id 'draft-session').
+      // Keep the first occurrence of each id.
+      const seen = new Set<string>();
+      const deduped = parsed.filter((c: any) => {
+        if (seen.has(c.id)) return false;
+        seen.add(c.id);
+        return true;
+      });
+      return deduped.map((c: any) => ({
         ...c,
         timestamp: new Date(c.timestamp),
         messages: c.messages.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) })),
@@ -44,24 +51,20 @@ function loadChats(): Chat[] {
   return INITIAL_CHATS;
 }
 
-// Ensure the app always lands on a fresh "New Session" draft so the default
-// experience is the welcome state, not the Onboarding page (which only shows
-// when the user explicitly opens the My WorkPal chat).
-const DEFAULT_DRAFT_ID = 'draft-session';
-
 function getInitialChatState(): { chats: Chat[]; activeChatId: string } {
   const loaded = loadChats();
   const existingDraft = loaded.find(c => c.isDraft);
   if (existingDraft) return { chats: loaded, activeChatId: existingDraft.id };
+  const newDraftId = `chat-${Date.now()}`;
   const draft: Chat = {
-    id: DEFAULT_DRAFT_ID,
+    id: newDraftId,
     title: 'New Session',
     lastMessage: '',
     timestamp: new Date(),
     messages: [],
     isDraft: true,
   };
-  return { chats: [draft, ...loaded], activeChatId: DEFAULT_DRAFT_ID };
+  return { chats: [draft, ...loaded], activeChatId: newDraftId };
 }
 
 function saveChats(chats: Chat[]) {
@@ -982,6 +985,35 @@ export default function App() {
     setNewProjectOpen(false);
   }, []);
 
+  const handleDeleteChat = useCallback((id: string) => {
+    setChats(prev => {
+      const remaining = prev.filter(c => c.id !== id);
+      if (id !== activeChatId) return remaining;
+      // Deleted the active chat — land on a fresh draft so the sidebar always
+      // has something selected and the main pane shows the welcome state.
+      const newDraftId = `chat-${Date.now()}`;
+      const draft: Chat = {
+        id: newDraftId,
+        title: 'New Session',
+        lastMessage: '',
+        timestamp: new Date(),
+        messages: [],
+        isDraft: true,
+      };
+      setActiveChatId(newDraftId);
+      setActiveView('chat');
+      return [draft, ...remaining];
+    });
+  }, [activeChatId]);
+
+  const handleDeleteProject = useCallback((id: string) => {
+    setProjects(prev => prev.filter(p => p.id !== id));
+    if (activeProjectId === id) {
+      setActiveProjectId(null);
+      setActiveView('chat');
+    }
+  }, [activeProjectId]);
+
   // Voice mode: close session
   const handleVoiceModeClose = useCallback(() => {
     setVoiceModeActive(false);
@@ -1046,6 +1078,8 @@ export default function App() {
                   onNewProject={() => setNewProjectOpen(true)}
                   onProjectSelect={handleProjectSelect}
                   onViewChange={(view) => { setActiveView(view); setActiveProjectId(null); }}
+                  onDeleteChat={handleDeleteChat}
+                  onDeleteProject={handleDeleteProject}
                   isDark={isDark}
                   onToggleDark={() => setIsDark(d => !d)}
                   onToggleSidebar={() => setSidebarOpen(o => !o)}
@@ -1072,6 +1106,8 @@ export default function App() {
                       onNewProject={() => setNewProjectOpen(true)}
                       onProjectSelect={(id) => { handleProjectSelect(id); if (closeOnNav) setSidebarOpen(false); }}
                       onViewChange={(view) => { setActiveView(view); setActiveProjectId(null); if (closeOnNav) setSidebarOpen(false); }}
+                      onDeleteChat={handleDeleteChat}
+                      onDeleteProject={handleDeleteProject}
                       isDark={isDark}
                       onToggleDark={() => setIsDark(d => !d)}
                       onToggleSidebar={() => setSidebarOpen(o => !o)}

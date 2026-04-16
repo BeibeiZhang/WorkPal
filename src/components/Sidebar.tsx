@@ -1,9 +1,89 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Chat } from '../types';
-import { LayoutDashboard, SquarePen, Link, BookOpen, FolderPlus, ChevronDown, Search, Palette, PanelLeft } from 'lucide-react';
-import {
-  iconSun, iconMoon, iconSpinner,
-} from '../assets';
+import { LayoutDashboard, SquarePen, Link, BookOpen, FolderPlus, ChevronDown, Search, Palette, PanelLeft, MoreHorizontal, Trash2 } from 'lucide-react';
+import { iconSun, iconMoon } from '../assets';
+
+/**
+ * Hover-visible "⋯" menu anchored to a sidebar row. Opens a small popover
+ * with a Delete action; dismisses on outside click. Menu is portaled to
+ * document.body so it escapes the sidebar's `overflow-y-auto` clipping.
+ */
+function RowMoreMenu({ onDelete }: { onDelete: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!open || !btnRef.current) return;
+    const rect = btnRef.current.getBoundingClientRect();
+    setPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (btnRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+    const handleScroll = () => setOpen(false);
+    document.addEventListener('mousedown', handleClick);
+    window.addEventListener('scroll', handleScroll, true);
+    window.addEventListener('resize', handleScroll);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      window.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('resize', handleScroll);
+    };
+  }, [open]);
+
+  return (
+    <div
+      className={`absolute right-2 top-1/2 -translate-y-1/2 transition-opacity ${
+        open ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100'
+      }`}
+    >
+      <button
+        ref={btnRef}
+        type="button"
+        aria-label="More"
+        onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
+        className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-bg-hover transition-colors text-text-primary"
+      >
+        <MoreHorizontal size={16} />
+      </button>
+      {open && pos && createPortal(
+        <div
+          ref={menuRef}
+          className="fixed min-w-[140px] rounded-xl py-1 border"
+          style={{
+            top: pos.top,
+            right: pos.right,
+            zIndex: 1000,
+            background: 'var(--color-bg-page)',
+            borderColor: 'var(--color-stroke-outline)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onDelete(); setOpen(false); }}
+            className="mx-1 px-3 py-2 flex items-center gap-2 text-left text-[14px] leading-[18px] text-text-primary hover:bg-bg-hover transition-colors rounded-lg"
+            style={{ width: 'calc(100% - 8px)' }}
+          >
+            <Trash2 size={14} />
+            <span>Delete</span>
+          </button>
+        </div>,
+        document.body,
+      )}
+    </div>
+  );
+}
 
 const USER_PROFILE_IMG = '/icons/user-profile.png';
 
@@ -24,6 +104,8 @@ interface SidebarProps {
   onNewProject: () => void;
   onProjectSelect: (id: string) => void;
   onViewChange?: (view: 'chat' | 'connectors' | 'design-system' | 'overview' | 'library') => void;
+  onDeleteChat?: (id: string) => void;
+  onDeleteProject?: (id: string) => void;
   isDark: boolean;
   onToggleDark: () => void;
   onToggleSidebar?: () => void;
@@ -129,7 +211,7 @@ export function MiniSidebar({ activeView, activeChatId, onViewChange, onNewChat,
   );
 }
 
-export default function Sidebar({ chats, activeChatId, activeView, activeProjectId, projects, onChatSelect, onNewChat, onNewProject, onProjectSelect, onViewChange, isDark, onToggleDark, onToggleSidebar }: SidebarProps) {
+export default function Sidebar({ chats, activeChatId, activeView, activeProjectId, projects, onChatSelect, onNewChat, onNewProject, onProjectSelect, onViewChange, onDeleteChat, onDeleteProject, isDark, onToggleDark, onToggleSidebar }: SidebarProps) {
   const [projectsOpen, setProjectsOpen] = useState(true);
   const [onboardingOpen, setOnboardingOpen] = useState(true);
   const [recentsOpen, setRecentsOpen] = useState(true);
@@ -208,27 +290,6 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
             <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
               New Session
             </span>
-            {isNewSessionActive && (
-              <div className="flex items-center justify-center shrink-0" style={{ width: 25, height: 25 }}>
-                <div
-                  className="animate-spin"
-                  style={{
-                    width: 23,
-                    height: 23,
-                    background: 'linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%)',
-                    WebkitMaskImage: `url(${iconSpinner})`,
-                    WebkitMaskSize: 'contain',
-                    WebkitMaskRepeat: 'no-repeat',
-                    WebkitMaskPosition: 'center',
-                    maskImage: `url(${iconSpinner})`,
-                    maskSize: 'contain',
-                    maskRepeat: 'no-repeat',
-                    maskPosition: 'center',
-                    animationDuration: '1.5s',
-                  }}
-                />
-              </div>
-            )}
           </button>
 
           {/* 2. Overview */}
@@ -281,17 +342,19 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
               </button>
 
               {projects.map(proj => (
-                <button
-                  key={proj.id}
-                  onClick={() => onProjectSelect(proj.id)}
-                  className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${
-                    activeProjectId === proj.id ? 'gradient-ring' : 'hover:bg-bg-hover'
-                  }`}
-                >
-                  <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px] truncate" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
-                    {proj.name}
-                  </span>
-                </button>
+                <div key={proj.id} className="relative group">
+                  <button
+                    onClick={() => onProjectSelect(proj.id)}
+                    className={`flex items-center gap-4 w-full pl-4 pr-10 py-2 rounded-full transition-colors text-left ${
+                      activeProjectId === proj.id ? 'gradient-ring' : 'hover:bg-bg-hover'
+                    }`}
+                  >
+                    <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px] truncate" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
+                      {proj.name}
+                    </span>
+                  </button>
+                  {onDeleteProject && <RowMoreMenu onDelete={() => onDeleteProject(proj.id)} />}
+                </div>
               ))}
             </>
           )}
@@ -314,41 +377,22 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
           {recentsOpen && filteredChats.map(chat => {
             const isActive = activeChatId === chat.id && activeView === 'chat';
             return (
-              <button
-                key={chat.id}
-                onClick={() => onChatSelect(chat.id)}
-                className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${
-                  isActive ? 'gradient-ring' : 'hover:bg-bg-hover'
-                }`}
-              >
-                <span
-                  className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px] truncate"
-                  style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}
+              <div key={chat.id} className="relative group">
+                <button
+                  onClick={() => onChatSelect(chat.id)}
+                  className={`flex items-center gap-4 w-full pl-4 pr-10 py-2 rounded-full transition-colors text-left ${
+                    isActive ? 'gradient-ring' : 'hover:bg-bg-hover'
+                  }`}
                 >
-                  {chat.title}
-                </span>
-                {isActive && (
-                  <div className="flex items-center justify-center shrink-0" style={{ width: 25, height: 25 }}>
-                    <div
-                      className="animate-spin"
-                      style={{
-                        width: 23,
-                        height: 23,
-                        background: 'linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%)',
-                        WebkitMaskImage: `url(${iconSpinner})`,
-                        WebkitMaskSize: 'contain',
-                        WebkitMaskRepeat: 'no-repeat',
-                        WebkitMaskPosition: 'center',
-                        maskImage: `url(${iconSpinner})`,
-                        maskSize: 'contain',
-                        maskRepeat: 'no-repeat',
-                        maskPosition: 'center',
-                        animationDuration: '1.5s',
-                      }}
-                    />
-                  </div>
-                )}
-              </button>
+                  <span
+                    className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px] truncate"
+                    style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}
+                  >
+                    {chat.title}
+                  </span>
+                </button>
+                {onDeleteChat && <RowMoreMenu onDelete={() => onDeleteChat(chat.id)} />}
+              </div>
             );
           })}
         </div>
@@ -425,27 +469,6 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
                   >
                     Onboarding Experience
                   </span>
-                  {isActive && (
-                    <div className="flex items-center justify-center shrink-0" style={{ width: 25, height: 25 }}>
-                      <div
-                        className="animate-spin"
-                        style={{
-                          width: 23,
-                          height: 23,
-                          background: 'linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%)',
-                          WebkitMaskImage: `url(${iconSpinner})`,
-                          WebkitMaskSize: 'contain',
-                          WebkitMaskRepeat: 'no-repeat',
-                          WebkitMaskPosition: 'center',
-                          maskImage: `url(${iconSpinner})`,
-                          maskSize: 'contain',
-                          maskRepeat: 'no-repeat',
-                          maskPosition: 'center',
-                          animationDuration: '1.5s',
-                        }}
-                      />
-                    </div>
-                  )}
                 </button>
               );
             })()}
