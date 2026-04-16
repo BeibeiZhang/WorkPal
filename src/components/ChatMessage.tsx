@@ -1,7 +1,65 @@
 import { useState, useCallback } from 'react';
-import { Message } from '../types';
+import { FileText, Download } from 'lucide-react';
+import { Message, Attachment } from '../types';
 import MessageCard from './MessageCard';
 import { iconCopy, iconShare, iconThumbsUp, iconRefresh } from '../assets';
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function MessageAttachments({ attachments }: { attachments: Attachment[] }) {
+  const images = attachments.filter(a => a.kind === 'image');
+  const files = attachments.filter(a => a.kind !== 'image');
+  return (
+    <div className="flex flex-col gap-2 mb-2">
+      {images.length > 0 && (
+        <div className="flex flex-wrap justify-end gap-2">
+          {images.map(att => (
+            <a
+              key={att.id}
+              href={att.dataUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="block rounded-lg overflow-hidden border border-stroke-outline"
+              title={`${att.name} · ${formatBytes(att.size)}`}
+            >
+              <img
+                src={att.dataUrl}
+                alt={att.name}
+                className="max-w-[220px] max-h-[220px] object-cover block"
+                style={{ minWidth: 80, minHeight: 80 }}
+              />
+            </a>
+          ))}
+        </div>
+      )}
+      {files.length > 0 && (
+        <div className="flex flex-col gap-2 items-end">
+          {files.map(att => (
+            <a
+              key={att.id}
+              href={att.dataUrl}
+              download={att.name}
+              className="flex items-center gap-2 pr-3 pl-0 rounded-lg border border-stroke-outline bg-bg-message hover:bg-bg-hover transition-colors max-w-[280px] no-underline"
+            >
+              <div className="w-10 h-10 shrink-0 flex items-center justify-center bg-bg-hover text-text-secondary rounded-l-lg">
+                <FileText size={20} />
+              </div>
+              <div className="min-w-0 flex-1 py-1">
+                <div className="text-[13px] leading-[16px] text-text-primary truncate">{att.name}</div>
+                <div className="text-[11px] leading-[14px] text-text-secondary">{formatBytes(att.size)}</div>
+              </div>
+              <Download size={14} className="text-text-secondary shrink-0" />
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface ChatMessageProps {
   message: Message;
@@ -100,11 +158,16 @@ function TypingIndicator() {
 
 export default function ChatMessage({ message, isLastAssistant, onCardAction }: ChatMessageProps) {
   if (message.role === 'user') {
+    const hasAttachments = !!message.attachments && message.attachments.length > 0;
+    const hasText = !!message.content;
     return (
-      <div className="flex justify-end mb-4 message-appear">
-        <div className="max-w-[320px] bg-bg-message rounded-lg px-4 py-3">
-          <p className="text-base text-text-primary leading-[24px]">{message.content}</p>
-        </div>
+      <div className="flex flex-col items-end mb-4 message-appear">
+        {hasAttachments && <MessageAttachments attachments={message.attachments!} />}
+        {hasText && (
+          <div className="max-w-[320px] bg-bg-message rounded-lg px-4 py-3">
+            <p className="text-base text-text-primary leading-[24px]">{message.content}</p>
+          </div>
+        )}
       </div>
     );
   }

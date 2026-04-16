@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, KeyboardEvent } from 'react';
+import { FileText, X } from 'lucide-react';
 import { iconGoals, iconDoc16, iconBarChart, iconAdd, iconPhoto, iconCamera, iconUpload, iconSend, iconSendActive, iconChevronDown } from '../assets';
-import { ActionChip } from '../types';
+import { ActionChip, Attachment } from '../types';
 import { ToolbarPill, ToolbarIconButton, ToolbarSegmented, Tooltip } from './shared';
 
 type InputMode = 'Chat' | 'Tasks' | 'Code';
@@ -12,7 +13,7 @@ const CHIP_ICONS: Record<string, string> = {
 };
 
 interface ChatInputProps {
-  onSend: (message: string) => void;
+  onSend: (message: string, attachments?: Attachment[]) => void;
   placeholder?: string;
   quickChips?: string[];
   actionChips?: ActionChip[];
@@ -122,6 +123,29 @@ const FOLDER_OPTIONS = [
   '~/Downloads',
 ];
 
+/** Per-attachment cap (8MB) and per-message cap (10 files). Keeps localStorage
+ *  and in-memory data URLs manageable for a frontend-only prototype. */
+const MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024;
+const MAX_ATTACHMENTS_PER_MESSAGE = 10;
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ''));
+    reader.onerror = () => reject(reader.error ?? new Error('Read failed'));
+    reader.readAsDataURL(file);
+  });
+}
+
+let attachmentIdCounter = 0;
+const nextAttachmentId = () => `att-${Date.now()}-${++attachmentIdCounter}`;
+
 /** Simulated branch options */
 const BRANCH_OPTIONS = ['main', 'develop', 'feature/chat-input', 'fix/ui-polish'];
 
@@ -136,10 +160,15 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
   const [showBranchMenu, setShowBranchMenu] = useState(false);
   const [useWorktree, setUseWorktree] = useState(false);
   const [isMultiline, setIsMultiline] = useState(false);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [attachError, setAttachError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const attachRef = useRef<HTMLDivElement>(null);
   const folderRef = useRef<HTMLDivElement>(null);
   const branchRef = useRef<HTMLDivElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Sync draft value + forced mode whenever the active chat changes
   const lastChatKeyRef = useRef<string | undefined>(chatKey);
@@ -147,11 +176,20 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
     if (chatKey === lastChatKeyRef.current) return;
     lastChatKeyRef.current = chatKey;
     setValue(draftValue ?? '');
+    setAttachments([]);
+    setAttachError(null);
     if (forceMode && forceMode !== mode) {
       setMode(forceMode);
       onModeChange?.(forceMode);
     }
   }, [chatKey, draftValue, forceMode, mode, onModeChange]);
+
+  // Auto-dismiss the inline attach error after a few seconds
+  useEffect(() => {
+    if (!attachError) return;
+    const t = window.setTimeout(() => setAttachError(null), 4000);
+    return () => window.clearTimeout(t);
+  }, [attachError]);
 
   // Auto-resize textarea whenever its value changes (covers both typing and
   // programmatic updates like draft pre-fills, voice transcription, etc.).
@@ -186,13 +224,77 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
 
   const handleSend = () => {
     const trimmed = value.trim();
-    if (!trimmed && !forceSendActive) return;
-    onSend(trimmed);
+    const hasAttachments = attachments.length > 0;
+    if (!trimmed && !hasAttachments && !forceSendActive) return;
+    onSend(trimmed, hasAttachments ? attachments : undefined);
     setValue('');
+    setAttachments([]);
+    setAttachError(null);
     setIsMultiline(false);
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
+  };
+
+  const addFiles = async (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return;
+    const files = Array.from(fileList);
+    const remaining = MAX_ATTACHMENTS_PER_MESSAGE - attachments.length;
+    if (remaining <= 0) {
+      setAttachError(`Up to ${MAX_ATTACHMENTS_PER_MESSAGE} attachments per message`);
+      return;
+    }
+    const toProcess = files.slice(0, remaining);
+    const droppedForLimit = files.length - toProcess.length;
+    const oversized: string[] = [];
+    const results = await Promise.all(
+      toProcess.map(async (f): Promise<Attachment | null> => {
+        if (f.size > MAX_ATTACHMENT_BYTES) {
+          oversized.push(f.name);
+          return null;
+        }
+        try {
+          const dataUrl = await readFileAsDataUrl(f);
+          return {
+            id: nextAttachmentId(),
+            name: f.name || 'file',
+            mimeType: f.type || 'application/octet-stream',
+            size: f.size,
+            kind: f.type.startsWith('image/') ? 'image' : 'file',
+            dataUrl,
+          };
+        } catch {
+          return null;
+        }
+      }),
+    );
+    const added = results.filter((a): a is Attachment => a !== null);
+    if (added.length) {
+      setAttachments(prev => [...prev, ...added]);
+    }
+    const problems: string[] = [];
+    if (oversized.length) problems.push(`${oversized.length} file${oversized.length > 1 ? 's' : ''} over ${formatBytes(MAX_ATTACHMENT_BYTES)}`);
+    if (droppedForLimit) problems.push(`${droppedForLimit} skipped (limit ${MAX_ATTACHMENTS_PER_MESSAGE})`);
+    setAttachError(problems.length ? problems.join(' • ') : null);
+  };
+
+  const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    await addFiles(e.target.files);
+    // Reset so picking the same file twice in a row still fires onChange
+    e.target.value = '';
+  };
+
+  const openPicker = (kind: 'photo' | 'camera' | 'file') => {
+    setShowAttachMenu(false);
+    const ref =
+      kind === 'photo' ? photoInputRef :
+      kind === 'camera' ? cameraInputRef :
+      fileInputRef;
+    ref.current?.click();
+  };
+
+  const removeAttachment = (id: string) => {
+    setAttachments(prev => prev.filter(a => a.id !== id));
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -215,13 +317,81 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
     setShowBranchMenu(false);
   };
 
-  const canSend = value.trim().length > 0;
+  const canSend = value.trim().length > 0 || attachments.length > 0;
   const isActive = focused || canSend;
 
   return (
     <div className="w-full flex flex-col gap-4">
-      {/* Quick chips */}
-      {quickChips && quickChips.length > 0 && (
+      {/* Hidden file inputs — triggered by the attach menu */}
+      <input
+        ref={photoInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={handleFileInput}
+      />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleFileInput}
+      />
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        className="hidden"
+        onChange={handleFileInput}
+      />
+
+      {/* Attachment preview strip — above the input when any files are staged */}
+      {attachments.length > 0 && (
+        <div className="flex flex-wrap gap-2" aria-label="Pending attachments">
+          {attachments.map(att => (
+            <div
+              key={att.id}
+              className="relative group flex items-center gap-2 pr-2 rounded-lg border border-stroke-outline bg-bg-message overflow-hidden"
+            >
+              {att.kind === 'image' ? (
+                <img
+                  src={att.dataUrl}
+                  alt={att.name}
+                  className="w-12 h-12 object-cover shrink-0"
+                />
+              ) : (
+                <div className="w-12 h-12 shrink-0 flex items-center justify-center bg-bg-hover text-text-secondary">
+                  <FileText size={22} />
+                </div>
+              )}
+              <div className="min-w-0 max-w-[160px] pr-1">
+                <div className="text-[13px] leading-[16px] text-text-primary truncate">{att.name}</div>
+                <div className="text-[11px] leading-[14px] text-text-secondary">{formatBytes(att.size)}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => removeAttachment(att.id)}
+                aria-label={`Remove ${att.name}`}
+                className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center bg-bg-page/90 border border-stroke-outline text-text-primary opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity cursor-pointer"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {attachError && (
+        <div className="text-[12px] leading-[16px] text-[#B42318]" role="status">
+          {attachError}
+        </div>
+      )}
+
+      {/* Quick chips — hidden once the user has started composing (typed text,
+          added attachments, or opened voice mode). */}
+      {quickChips && quickChips.length > 0 && value.length === 0 && attachments.length === 0 && !voiceModeActive && (
         <div className="flex flex-wrap gap-2">
           {quickChips.map(chip => (
             <button
@@ -279,6 +449,15 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
           value={value}
           onChange={e => { setValue(e.target.value); handleInput(); }}
           onKeyDown={handleKeyDown}
+          onPaste={e => {
+            const files = Array.from(e.clipboardData?.files ?? []);
+            if (files.length > 0) {
+              e.preventDefault();
+              const dt = new DataTransfer();
+              files.forEach(f => dt.items.add(f));
+              addFiles(dt.files);
+            }
+          }}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           placeholder={placeholder}
@@ -356,15 +535,18 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
             </Tooltip>
             {showAttachMenu && (
               <div className="absolute bottom-full left-0 mb-3 md:mb-2 w-72 md:w-48 bg-bg-page border border-stroke-outline rounded-2xl md:rounded-xl shadow-lg py-3 md:py-2 z-50">
-                {[
-                  { icon: null, label: 'Mention', isMention: true },
-                  { icon: iconPhoto, label: 'Photo', isMention: false },
-                  { icon: iconCamera, label: 'Camera', isMention: false },
-                  { icon: iconUpload, label: 'Upload File', isMention: false },
-                ].map(item => (
+                {([
+                  { icon: null, label: 'Mention', isMention: true, action: 'mention' },
+                  { icon: iconPhoto, label: 'Photo', isMention: false, action: 'photo' },
+                  { icon: iconCamera, label: 'Camera', isMention: false, action: 'camera' },
+                  { icon: iconUpload, label: 'Upload File', isMention: false, action: 'file' },
+                ] as const).map(item => (
                   <button
                     key={item.label}
-                    onClick={() => setShowAttachMenu(false)}
+                    onClick={() => {
+                      if (item.action === 'mention') { setShowAttachMenu(false); return; }
+                      openPicker(item.action);
+                    }}
                     className="w-full flex items-center gap-[18px] md:gap-3 px-6 md:px-4 py-[15px] md:py-2.5 hover:bg-bg-hover transition-colors text-text-primary text-[21px] md:text-sm cursor-pointer"
                   >
                     {item.isMention ? (
