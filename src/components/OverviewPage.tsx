@@ -8,7 +8,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   SectionTitle,
   Tag, SolutionRow, SummaryFooter, PrimaryButton, TertiaryButton,
-  MetricCard, InsightCard, AreaChart, TaskProgressCard, ReviewItemCard,
+  MetricCard, InsightCard, MultiLineChart, TaskProgressCard, ReviewItemCard,
   HealthDimensionRow, PageLayout,
 } from './shared';
 
@@ -83,14 +83,36 @@ const IMPACT_SELF = {
   detail: 'AI handled emails, meeting notes, and research → you got 2h back for yourself',
 };
 
+// Data shaped for dramatic interweaving waves
 const WEEKLY_ENERGY = [
-  { label: 'Mon', value: 85 },
-  { label: 'Tue', value: 72 },
-  { label: 'Wed', value: 65 },
-  { label: 'Thu', value: 78 },
-  { label: 'Fri', value: 60 },
-  { label: 'Sat', value: 90 },
+  { label: 'Mon', value: 40 },
+  { label: 'Tue', value: 80 },
+  { label: 'Wed', value: 35 },
+  { label: 'Thu', value: 90 },
+  { label: 'Fri', value: 45 },
+  { label: 'Sat', value: 85 },
   { label: 'Sun', value: 95 },
+];
+
+const WEEKLY_SLEEP = [
+  { label: 'Mon', value: 8.5 },
+  { label: 'Tue', value: 5.0 },
+  { label: 'Wed', value: 9.0 },
+  { label: 'Thu', value: 5.5 },
+  { label: 'Fri', value: 8.0 },
+  { label: 'Sat', value: 6.0 },
+  { label: 'Sun', value: 7.5 },
+];
+
+// Stress: 0-100. Color: ≤33 green, ≤66 yellow, >66 red
+const WEEKLY_STRESS = [
+  { label: 'Mon', value: 65 },
+  { label: 'Tue', value: 30 },
+  { label: 'Wed', value: 80 },
+  { label: 'Thu', value: 25 },
+  { label: 'Fri', value: 70 },
+  { label: 'Sat', value: 35 },
+  { label: 'Sun', value: 15 },
 ];
 
 const TYPE_CONFIG: Record<string, { emoji: string; classes: string }> = {
@@ -333,7 +355,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat }
             </div>
 
             {/* ── WORK IMPACT ── */}
-            <div className="bg-bg-page rounded-2xl p-6 mb-3 dark:bg-[rgba(226,243,255,0.05)]">
+            <div className="border border-stroke-outline rounded-2xl p-6 mb-3">
               <div className="flex items-center gap-2 mb-3.5">
                 <div className="w-8 h-8 rounded-xl bg-bg-hover flex items-center justify-center">
                   <Briefcase size={16} className="text-text-primary" />
@@ -361,7 +383,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat }
             {/* ── FAMILY + SELF side by side ── */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3.5">
               {/* Family */}
-              <div className="bg-bg-page rounded-2xl p-5 dark:bg-[rgba(226,243,255,0.05)]">
+              <div className="border border-stroke-outline rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-3.5">
                   <div className="w-8 h-8 rounded-xl bg-bg-hover flex items-center justify-center">
                     <Home size={16} className="text-text-primary" />
@@ -383,7 +405,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat }
               </div>
 
               {/* Self */}
-              <div className="bg-bg-page rounded-2xl p-5 dark:bg-[rgba(226,243,255,0.05)]">
+              <div className="border border-stroke-outline rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-3.5">
                   <div className="w-8 h-8 rounded-xl bg-bg-hover flex items-center justify-center">
                     <Smile size={16} className="text-text-primary" />
@@ -405,10 +427,33 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat }
               </div>
             </div>
 
-            {/* Energy trend */}
-            <div className="bg-bg-page rounded-2xl p-5 dark:bg-[rgba(226,243,255,0.05)]">
-              <div className="text-[14px] font-bold text-text-primary mb-2.5">Energy Trend This Week</div>
-              <AreaChart data={WEEKLY_ENERGY} color="#3171ff" gradientId="energyGrad" />
+            {/* Weekly trend chart */}
+            <div className="border border-stroke-outline rounded-2xl p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-[14px] font-bold text-text-primary">Weekly Trends</div>
+                <div className="flex items-center gap-4 text-[12px] text-text-primary opacity-70">
+                  <span className="flex items-center gap-1.5"><span className="w-5 h-[2.5px] rounded-full inline-block" style={{ background: '#3171FF' }} />Energy</span>
+                  <span className="flex items-center gap-1.5"><span className="w-5 h-[2.5px] rounded-full inline-block" style={{ background: '#8B5CF6' }} />Sleep</span>
+                  <span className="flex items-center gap-1.5"><span className="w-5 h-[2.5px] rounded-full inline-block" style={{ background: '#028901' }} />Stress</span>
+                </div>
+              </div>
+              <MultiLineChart
+                labels={WEEKLY_ENERGY.map(d => d.label)}
+                height={180}
+                series={[
+                  { data: WEEKLY_ENERGY, color: '#3171FF' },
+                  { data: WEEKLY_SLEEP.map(d => ({ ...d, value: (d.value / 9.5) * 100 })), color: '#8B5CF6' },
+                  {
+                    data: WEEKLY_STRESS,
+                    color: '#028901',
+                    strokeGradient: [
+                      { offset: '0%', color: '#DC2626' },   // top = high stress = red
+                      { offset: '50%', color: '#D97706' },  // mid = orange
+                      { offset: '100%', color: '#028901' }, // bottom = low stress = green
+                    ],
+                  },
+                ]}
+              />
             </div>
           </div>
     </PageLayout>
