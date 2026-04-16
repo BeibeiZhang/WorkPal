@@ -15,6 +15,10 @@ import { SplitView } from './components/shared';
 import { Chat, Message, ActionChip, TicketCard, AgentCard, ScheduleCard } from './types';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
 import { INITIAL_CHATS } from './data';
+import { streamChat } from './lib/api';
+
+// Demo chat IDs — these always use hardcoded flows, never call the API
+const DEMO_CHAT_IDS = ['alcohol-delivery', 'ux-meeting', 'my-workpal'];
 
 // Bump this whenever INITIAL_CHATS gains new seed fields (e.g. draftPrompt) so
 // returning visitors with stale localStorage drop their cached chats and pick
@@ -338,6 +342,9 @@ export default function App() {
   const [contextPanelOpen, setContextPanelOpen] = useState(true);
   // 0–3 = current active step index in alcohol-delivery flow, 4 = all completed
   const [alcoholProgress, setAlcoholProgress] = useState(4);
+  // Voice mode overlay
+  const [voiceModeActive, setVoiceModeActive] = useState(false);
+  const [voicePendingText, setVoicePendingText] = useState<string | undefined>();
 
   // Toggle dark class on root element
   useEffect(() => {
@@ -413,6 +420,77 @@ export default function App() {
       }));
     }, delay);
   }, [addMessage]);
+
+  // Stream a real LLM response for non-demo chats
+  const streamFromAPI = useCallback(async (chatId: string, userText: string) => {
+    // Collect conversation history for context
+    // We pass userText explicitly because setChats hasn't committed yet
+    const chat = chats.find(c => c.id === chatId);
+    const previousMessages = (chat?.messages || [])
+      .filter(m => !m.isLoading)
+      .map(m => ({ role: m.role, content: m.content }));
+    const history = [...previousMessages, { role: 'user' as const, content: userText }];
+
+    // Add a loading placeholder
+    const assistantId = nextId();
+    addMessage(chatId, {
+      id: assistantId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      isLoading: true,
+    });
+
+    try {
+      let fullContent = '';
+      for await (const chunk of streamChat(history, undefined)) {
+        if (chunk.type === 'text') {
+          fullContent += chunk.content;
+          // Update the message in-place with streamed content
+          setChats(prev => prev.map(c => {
+            if (c.id !== chatId) return c;
+            return {
+              ...c,
+              messages: c.messages.map(m =>
+                m.id === assistantId
+                  ? { ...m, content: fullContent, isLoading: true }
+                  : m
+              ),
+            };
+          }));
+        } else if (chunk.type === 'error') {
+          fullContent = `Sorry, something went wrong: ${chunk.content}`;
+        }
+      }
+      // Finalize: remove loading state
+      setChats(prev => prev.map(c => {
+        if (c.id !== chatId) return c;
+        return {
+          ...c,
+          messages: c.messages.map(m =>
+            m.id === assistantId
+              ? { ...m, content: fullContent || 'No response received.', isLoading: false }
+              : m
+          ),
+          lastMessage: fullContent || 'No response received.',
+          timestamp: new Date(),
+        };
+      }));
+    } catch {
+      // Network error fallback
+      setChats(prev => prev.map(c => {
+        if (c.id !== chatId) return c;
+        return {
+          ...c,
+          messages: c.messages.map(m =>
+            m.id === assistantId
+              ? { ...m, content: 'Failed to connect to AI. Is the server running?', isLoading: false }
+              : m
+          ),
+        };
+      }));
+    }
+  }, [chats, addMessage]);
 
   // Auto-respond when opening ux-meeting chat with only the user message
   useEffect(() => {
@@ -561,10 +639,20 @@ export default function App() {
       };
     }));
 
-    // Generate response
-    const responses = generateResponse(text);
-    showTypingThenRespond(chatId, responses, 1200);
-  }, [activeChatId, activeChat, showTypingThenRespond, inputMode]);
+    // Generate response — route depends on current mode
+    if (DEMO_CHAT_IDS.includes(chatId)) {
+      // Demo chats always use hardcoded flows
+      const responses = generateResponse(text);
+      showTypingThenRespond(chatId, responses, 1200);
+    } else if (voiceModeActive) {
+      // Voice mode active — don't call text API, the Realtime session handles it.
+      // The text was already added as a user message above, and VoiceMode's
+      // sendText() will inject it into the voice conversation.
+      setVoicePendingText(text);
+    } else {
+      streamFromAPI(chatId, text);
+    }
+  }, [activeChatId, activeChat, showTypingThenRespond, streamFromAPI, inputMode, voiceModeActive]);
 
   const handleChipClick = useCallback((chip: ActionChip) => {
     // Treat chip click as a user message
@@ -873,6 +961,32 @@ export default function App() {
     setNewProjectOpen(false);
   }, []);
 
+  // Voice mode: close session
+  const handleVoiceModeClose = useCallback(() => {
+    setVoiceModeActive(false);
+  }, []);
+
+  // Voice mode: add each spoken message to the chat in real-time
+  const handleVoiceMessage = useCallback((role: 'user' | 'assistant', text: string) => {
+    let chatId = activeChatId;
+
+    // If first message in an empty chat, promote it
+    if (activeChat && activeChat.messages.length === 0 && role === 'user') {
+      const newTitle = text.slice(0, 40) + (text.length > 40 ? '...' : '');
+      setChats(prev => prev.map(c =>
+        c.id === chatId ? { ...c, title: newTitle, isDraft: false } : c
+      ));
+    }
+
+    const msg: Message = {
+      id: nextId(),
+      role,
+      content: text,
+      timestamp: new Date(),
+    };
+    addMessage(chatId, msg);
+  }, [activeChatId, activeChat, addMessage]);
+
   return (
     <div className="flex h-full w-full overflow-hidden" style={{ background: 'var(--color-outer-bg)' }}>
       {/* Outer rounded container */}
@@ -1044,6 +1158,12 @@ export default function App() {
                 draftValue={activeChat?.draftPrompt}
                 forceMode={activeChat?.id === 'alcohol-delivery' ? 'Tasks' : undefined}
                 onNewChat={isMobile ? handleNewChat : undefined}
+                onVoiceMode={() => setVoiceModeActive(true)}
+                voiceModeActive={voiceModeActive}
+                onVoiceModeClose={handleVoiceModeClose}
+                onVoiceMessage={handleVoiceMessage}
+                voicePendingText={voicePendingText}
+                onVoicePendingTextConsumed={() => setVoicePendingText(undefined)}
               />
               {/* Task panel preview — slides in from right then back out (3s) */}
               {taskPanelPreviewing && !contextPanelOpen && !detailOpen && (
@@ -1069,6 +1189,7 @@ export default function App() {
         onClose={() => setNewProjectOpen(false)}
         onCreate={handleCreateProject}
       />
+
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { PanelRight } from 'lucide-react';
 import { Chat, Message, ActionChip } from '../types';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
+import VoiceMode from './VoiceMode';
 import { HeaderBar } from './shared';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from '../assets';
 
@@ -25,6 +26,18 @@ interface ChatPanelProps {
   forceMode?: 'Chat' | 'Tasks' | 'Code';
   /** Mobile-only: shown as a "+" button in the header's right group. */
   onNewChat?: () => void;
+  /** Open voice mode */
+  onVoiceMode?: () => void;
+  /** Whether voice mode is currently active */
+  voiceModeActive?: boolean;
+  /** Close voice mode */
+  onVoiceModeClose?: () => void;
+  /** Real-time voice message callback */
+  onVoiceMessage?: (role: 'user' | 'assistant', text: string) => void;
+  /** Text typed during voice mode to inject into the voice session */
+  voicePendingText?: string;
+  /** Called after VoiceMode consumes the pending text */
+  onVoicePendingTextConsumed?: () => void;
 }
 
 const WELCOME_CHIPS = ['Create performance goals', 'Analyze doc(s)', 'Visualize data'];
@@ -157,6 +170,12 @@ export default function ChatPanel({
   draftValue,
   forceMode,
   onNewChat,
+  onVoiceMode,
+  voiceModeActive,
+  onVoiceModeClose,
+  onVoiceMessage,
+  voicePendingText,
+  onVoicePendingTextConsumed,
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -218,6 +237,15 @@ export default function ChatPanel({
       {/* Input area */}
       <div className="px-8 pb-[40px] shrink-0">
         <div className="max-w-[863px] mx-auto">
+          {/* Voice mode bar — inline above input */}
+          {voiceModeActive && onVoiceModeClose && (
+            <VoiceMode
+              onClose={onVoiceModeClose}
+              onMessage={onVoiceMessage}
+              pendingText={voicePendingText}
+              onPendingTextConsumed={onVoicePendingTextConsumed}
+            />
+          )}
           <ChatInput
             onSend={onSend}
             quickChips={isNewChat && !chat?.draftPrompt ? WELCOME_CHIPS : undefined}
@@ -228,6 +256,8 @@ export default function ChatPanel({
             chatKey={chat?.id}
             draftValue={draftValue}
             forceMode={forceMode}
+            onVoiceMode={onVoiceMode}
+            voiceModeActive={voiceModeActive}
           />
         </div>
       </div>

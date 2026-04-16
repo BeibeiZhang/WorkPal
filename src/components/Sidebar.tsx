@@ -73,11 +73,11 @@ interface MiniSidebarProps {
 
 export function MiniSidebar({ activeView, activeChatId, onViewChange, onNewChat, onToggleSidebar }: MiniSidebarProps) {
   const items: { id: string; label: string; Icon: typeof LayoutDashboard; onClick: () => void; active: boolean }[] = [
-    { id: 'overview', label: 'Overview', Icon: LayoutDashboard, onClick: () => onViewChange?.('overview'), active: activeView === 'overview' && !activeChatId },
     { id: 'new', label: 'New Session', Icon: SquarePen, onClick: onNewChat, active: false },
+    { id: 'overview', label: 'Overview', Icon: LayoutDashboard, onClick: () => onViewChange?.('overview'), active: activeView === 'overview' && !activeChatId },
     { id: 'search', label: 'Search', Icon: Search, onClick: () => onToggleSidebar?.(), active: false },
-    { id: 'library', label: 'Library', Icon: BookOpen, onClick: () => onViewChange?.('library'), active: activeView === 'library' },
     { id: 'connectors', label: 'Connectors', Icon: Link, onClick: () => onViewChange?.('connectors'), active: activeView === 'connectors' },
+    { id: 'library', label: 'Library', Icon: BookOpen, onClick: () => onViewChange?.('library'), active: activeView === 'library' },
     { id: 'design-system', label: 'Design System', Icon: Palette, onClick: () => onViewChange?.('design-system'), active: activeView === 'design-system' },
   ];
 
@@ -133,6 +133,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
   const [projectsOpen, setProjectsOpen] = useState(true);
   const [onboardingOpen, setOnboardingOpen] = useState(true);
   const [recentsOpen, setRecentsOpen] = useState(true);
+  const [extensionsOpen, setExtensionsOpen] = useState(true);
 
   // Hide drafts (and any leftover empty "New Session" entries from older
   // sessions in localStorage) from the Recents list — they live under the
@@ -164,6 +165,11 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
 
   const adminOpen = onboardingOpen && !isOverflowing;
 
+  // Auto-collapse Extensions when scroll area overflows
+  useEffect(() => {
+    if (isOverflowing) setExtensionsOpen(false);
+  }, [isOverflowing]);
+
   return (
     <div
       className="flex flex-col h-full w-[300px] select-none shrink-0 bg-bg-sidebar dark:bg-transparent"
@@ -188,19 +194,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
 
         {/* Top menu items */}
         <div className="px-4 flex flex-col gap-1">
-          {/* Overview */}
-          <button
-            onClick={() => onViewChange?.('overview')}
-            className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${activeView === 'overview' ? 'gradient-ring' : 'hover:bg-bg-hover'}`}
-          >
-            <LayoutDashboard size={20} className="shrink-0 text-text-primary" />
-            <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
-              Overview
-            </span>
-          </button>
-
-          {/* New Session — shows the gradient-border selected state while a
-              draft chat is active (i.e. user clicked it but hasn't sent yet). */}
+          {/* 1. New Session (default page) */}
           <button
             onClick={onNewChat}
             className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${
@@ -234,7 +228,18 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
             )}
           </button>
 
-          {/* Search */}
+          {/* 2. Overview */}
+          <button
+            onClick={() => onViewChange?.('overview')}
+            className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${activeView === 'overview' ? 'gradient-ring' : 'hover:bg-bg-hover'}`}
+          >
+            <LayoutDashboard size={20} className="shrink-0 text-text-primary" />
+            <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
+              Overview
+            </span>
+          </button>
+
+          {/* 3. Search */}
           <button
             className="flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left hover:bg-bg-hover"
           >
@@ -243,31 +248,9 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
               Search
             </span>
           </button>
-
-          {/* Library */}
-          <button
-            onClick={() => onViewChange?.('library')}
-            className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${activeView === 'library' ? 'gradient-ring' : 'hover:bg-bg-hover'}`}
-          >
-            <BookOpen size={20} className="shrink-0 text-text-primary" />
-            <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
-              Library
-            </span>
-          </button>
-
-          {/* Connectors */}
-          <button
-            onClick={() => onViewChange?.('connectors')}
-            className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${activeView === 'connectors' ? 'gradient-ring' : 'hover:bg-bg-hover'}`}
-          >
-            <Link size={20} className="shrink-0 text-text-primary" />
-            <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
-              Connectors
-            </span>
-          </button>
         </div>
 
-        {/* Projects section */}
+        {/* 4. Projects section */}
         <div className="px-4 pt-4 flex flex-col gap-1">
           <button
             onClick={() => setProjectsOpen(!projectsOpen)}
@@ -366,9 +349,48 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
             );
           })}
         </div>
+
       </div>
 
-      {/* Admin section — pinned above account footer, auto-collapses on overflow */}
+      {/* 6. Extensions — pinned below scroll area, auto-collapses when Recents overflows */}
+      <div className="px-4 pt-2 pb-1 shrink-0 flex flex-col gap-1">
+        <button
+          onClick={() => setExtensionsOpen(!extensionsOpen)}
+          className="px-4 flex items-center justify-between hover:bg-bg-hover rounded-full transition-colors"
+          style={{ height: 32 }}
+        >
+          <p className="text-base font-bold text-text-primary tracking-[-0.43px]">Extensions</p>
+          <ChevronDown
+            size={16}
+            className={`text-text-primary transition-transform ${extensionsOpen ? '' : '-rotate-90'}`}
+          />
+        </button>
+
+        {extensionsOpen && (
+          <>
+            <button
+              onClick={() => onViewChange?.('connectors')}
+              className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${activeView === 'connectors' ? 'gradient-ring' : 'hover:bg-bg-hover'}`}
+            >
+              <Link size={18} className="shrink-0 text-text-primary" />
+              <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
+                Connectors
+              </span>
+            </button>
+            <button
+              onClick={() => onViewChange?.('library')}
+              className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${activeView === 'library' ? 'gradient-ring' : 'hover:bg-bg-hover'}`}
+            >
+              <BookOpen size={18} className="shrink-0 text-text-primary" />
+              <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
+                Library
+              </span>
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* 7. Admin section — pinned above account footer */}
       <div className="px-4 pt-2 pb-1 shrink-0 flex flex-col gap-1">
         <button
           onClick={() => setOnboardingOpen(!onboardingOpen)}

@@ -130,7 +130,6 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
         <ChatInput
           onSend={handleChatSend}
           chatOnly
-          voiceAsSend
           forceSendActive={canProceed}
           placeholder={canProceed ? 'Want to add anything in your own words? Or just hit send' : 'Type your own words here...'}
         />
