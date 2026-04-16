@@ -1387,7 +1387,7 @@ export function MultiLineChart({
             </linearGradient>
           ))}
           {/* Gaussian blur glow filter per series */}
-          {series.map((s, si) => (
+          {series.map((_, si) => (
             <filter key={`gf${si}`} id={`lineGlow${si}`} x="-20%" y="-40%" width="140%" height="180%">
               <feGaussianBlur in="SourceGraphic" stdDeviation="4" />
             </filter>
