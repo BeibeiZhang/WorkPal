@@ -150,7 +150,10 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
   const activeChat = chats.find(c => c.id === activeChatId);
   const isNewSessionActive = activeView === 'chat' && !!activeChat && isDraftLike(activeChat);
 
-  // Auto-collapse Admin when scrollable content overflows
+  // Auto-collapse Admin/Extensions when scrollable content overflows.
+  // One-shot collapse (not derived) to avoid expand↔collapse flicker loop:
+  // deriving `open` from `isOverflowing` causes oscillation because collapsing
+  // removes overflow, which then re-expands and re-triggers overflow.
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isOverflowing, setIsOverflowing] = useState(false);
   useEffect(() => {
@@ -163,11 +166,11 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
     return () => ro.disconnect();
   }, [chats, projectsOpen, recentsOpen]);
 
-  const adminOpen = onboardingOpen && !isOverflowing;
-
-  // Auto-collapse Extensions when scroll area overflows
   useEffect(() => {
-    if (isOverflowing) setExtensionsOpen(false);
+    if (isOverflowing) {
+      setOnboardingOpen(false);
+      setExtensionsOpen(false);
+    }
   }, [isOverflowing]);
 
   return (
@@ -400,11 +403,11 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
           <p className="text-base font-bold text-text-primary tracking-[-0.43px]">Admin</p>
           <ChevronDown
             size={16}
-            className={`text-text-primary transition-transform ${adminOpen ? '' : '-rotate-90'}`}
+            className={`text-text-primary transition-transform ${onboardingOpen ? '' : '-rotate-90'}`}
           />
         </button>
 
-        {adminOpen && (
+        {onboardingOpen && (
           <>
             {/* Onboarding Experience */}
             {(() => {
