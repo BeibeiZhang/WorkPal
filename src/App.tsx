@@ -44,6 +44,26 @@ function loadChats(): Chat[] {
   return INITIAL_CHATS;
 }
 
+// Ensure the app always lands on a fresh "New Session" draft so the default
+// experience is the welcome state, not the Onboarding page (which only shows
+// when the user explicitly opens the My WorkPal chat).
+const DEFAULT_DRAFT_ID = 'draft-session';
+
+function getInitialChatState(): { chats: Chat[]; activeChatId: string } {
+  const loaded = loadChats();
+  const existingDraft = loaded.find(c => c.isDraft);
+  if (existingDraft) return { chats: loaded, activeChatId: existingDraft.id };
+  const draft: Chat = {
+    id: DEFAULT_DRAFT_ID,
+    title: 'New Session',
+    lastMessage: '',
+    timestamp: new Date(),
+    messages: [],
+    isDraft: true,
+  };
+  return { chats: [draft, ...loaded], activeChatId: DEFAULT_DRAFT_ID };
+}
+
 function saveChats(chats: Chat[]) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
@@ -319,8 +339,9 @@ const getCanFitPanel = () => {
 
 
 export default function App() {
-  const [chats, setChats] = useState<Chat[]>(loadChats);
-  const [activeChatId, setActiveChatId] = useState<string>('my-workpal');
+  const [initialChatState] = useState(getInitialChatState);
+  const [chats, setChats] = useState<Chat[]>(initialChatState.chats);
+  const [activeChatId, setActiveChatId] = useState<string>(initialChatState.activeChatId);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isDark, setIsDark] = useState(false);
   const [selectedAvatarId, setSelectedAvatarId] = useState('white-man');
