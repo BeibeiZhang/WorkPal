@@ -95,13 +95,13 @@ const WEEKLY_ENERGY = [
 ];
 
 const WEEKLY_SLEEP = [
-  { label: 'Mon', value: 8.5 },
-  { label: 'Tue', value: 5.0 },
-  { label: 'Wed', value: 9.0 },
-  { label: 'Thu', value: 5.5 },
-  { label: 'Fri', value: 8.0 },
-  { label: 'Sat', value: 6.0 },
-  { label: 'Sun', value: 7.5 },
+  { label: 'Mon', value: 5.5 },
+  { label: 'Tue', value: 8.0 },
+  { label: 'Wed', value: 5.0 },
+  { label: 'Thu', value: 9.0 },
+  { label: 'Fri', value: 5.5 },
+  { label: 'Sat', value: 8.5 },
+  { label: 'Sun', value: 9.0 },
 ];
 
 // Stress: 0-100. Color: ≤33 green, ≤66 yellow, >66 red
