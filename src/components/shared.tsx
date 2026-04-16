@@ -1232,6 +1232,234 @@ export function AreaChart({
   );
 }
 
+/* ─── 12b. MultiLineChart ───
+ * Multiple overlapping smooth lines on one chart. Each series gets its own color,
+ * optional area fill, and optional per-segment coloring (for stress-style lines
+ * where color changes based on value thresholds).
+ */
+export type ChartSeries = {
+  data: { label: string; value: number }[];
+  color: string;
+  gradientId?: string;
+  showArea?: boolean;
+  /** Per-segment coloring: returns stroke color for the segment between point i and i+1 */
+  segmentColor?: (value: number, nextValue: number) => string;
+  /** Vertical gradient stops for the stroke — top-to-bottom [{offset, color}] */
+  strokeGradient?: { offset: string; color: string }[];
+};
+
+export function MultiLineChart({
+  series,
+  height = 160,
+  labels,
+}: {
+  series: ChartSeries[];
+  height?: number;
+  labels: string[];
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(600);
+
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    setWidth(el.clientWidth || 600);
+    const ro = new ResizeObserver(entries => {
+      for (const e of entries) {
+        const cw = Math.round(e.contentRect.width);
+        if (cw > 0) setWidth(cw);
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const allValues = series.flatMap(s => s.data.map(d => d.value));
+  const max = Math.max(...allValues, 1);
+  const labelSpace = 28;
+  const plotH = height - labelSpace;
+  const padX = 20;
+  const padY = 12;
+  const n = labels.length;
+  const stepX = (width - padX * 2) / Math.max(1, n - 1);
+
+  const getPoints = (data: { value: number }[]) =>
+    data.map((d, i) => ({
+      x: padX + i * stepX,
+      y: padY + (plotH - padY * 2) * (1 - d.value / max),
+    }));
+
+  /* Monotone cubic Hermite spline — guaranteed smooth & no overshoot.
+   * Produces one cubic bezier segment per data interval. */
+  const smoothPath = (pts: { x: number; y: number }[]) => {
+    const len = pts.length;
+    if (len < 2) return `M${pts[0].x},${pts[0].y}`;
+
+    // 1. Compute slopes (finite-difference, clamped at endpoints)
+    const dx: number[] = [];
+    const dy: number[] = [];
+    const m: number[] = [];
+    for (let i = 0; i < len - 1; i++) {
+      dx.push(pts[i + 1].x - pts[i].x);
+      dy.push(pts[i + 1].y - pts[i].y);
+    }
+    // tangent at each point
+    m.push(dy[0] / dx[0]);
+    for (let i = 1; i < len - 1; i++) {
+      const s0 = dy[i - 1] / dx[i - 1];
+      const s1 = dy[i] / dx[i];
+      if (s0 * s1 <= 0) { m.push(0); }
+      else { m.push((s0 + s1) / 2); }
+    }
+    m.push(dy[len - 2] / dx[len - 2]);
+
+    // 2. Adjust tangents for monotonicity (Fritsch-Carlson)
+    for (let i = 0; i < len - 1; i++) {
+      const s = dy[i] / dx[i];
+      if (Math.abs(s) < 1e-10) { m[i] = 0; m[i + 1] = 0; continue; }
+      const a = m[i] / s;
+      const b = m[i + 1] / s;
+      const h = Math.hypot(a, b);
+      if (h > 3) { const t = 3 / h; m[i] = t * a * s; m[i + 1] = t * b * s; }
+    }
+
+    // 3. Build SVG path
+    let path = `M${pts[0].x.toFixed(2)},${pts[0].y.toFixed(2)}`;
+    for (let i = 0; i < len - 1; i++) {
+      const d = dx[i] / 3;
+      const c1x = pts[i].x + d;
+      const c1y = pts[i].y + m[i] * d;
+      const c2x = pts[i + 1].x - d;
+      const c2y = pts[i + 1].y - m[i + 1] * d;
+      path += ` C${c1x.toFixed(2)},${c1y.toFixed(2)} ${c2x.toFixed(2)},${c2y.toFixed(2)} ${pts[i + 1].x.toFixed(2)},${pts[i + 1].y.toFixed(2)}`;
+    }
+    return path;
+  };
+
+  /* Build per-segment sub-paths for series with segmentColor */
+  const segmentPaths = (pts: { x: number; y: number }[], s: ChartSeries) => {
+    if (!s.segmentColor) return null;
+    const len = pts.length;
+    const dx: number[] = [];
+    const dy: number[] = [];
+    const m: number[] = [];
+    for (let i = 0; i < len - 1; i++) {
+      dx.push(pts[i + 1].x - pts[i].x);
+      dy.push(pts[i + 1].y - pts[i].y);
+    }
+    m.push(dy[0] / dx[0]);
+    for (let i = 1; i < len - 1; i++) {
+      const s0 = dy[i - 1] / dx[i - 1];
+      const s1 = dy[i] / dx[i];
+      m.push(s0 * s1 <= 0 ? 0 : (s0 + s1) / 2);
+    }
+    m.push(dy[len - 2] / dx[len - 2]);
+    for (let i = 0; i < len - 1; i++) {
+      const sl = dy[i] / dx[i];
+      if (Math.abs(sl) < 1e-10) { m[i] = 0; m[i + 1] = 0; continue; }
+      const a = m[i] / sl, b = m[i + 1] / sl, h = Math.hypot(a, b);
+      if (h > 3) { const t = 3 / h; m[i] = t * a * sl; m[i + 1] = t * b * sl; }
+    }
+
+    const segs: { d: string; color: string }[] = [];
+    for (let i = 0; i < len - 1; i++) {
+      const d = dx[i] / 3;
+      const c1x = pts[i].x + d, c1y = pts[i].y + m[i] * d;
+      const c2x = pts[i + 1].x - d, c2y = pts[i + 1].y - m[i + 1] * d;
+      segs.push({
+        d: `M${pts[i].x.toFixed(2)},${pts[i].y.toFixed(2)} C${c1x.toFixed(2)},${c1y.toFixed(2)} ${c2x.toFixed(2)},${c2y.toFixed(2)} ${pts[i + 1].x.toFixed(2)},${pts[i + 1].y.toFixed(2)}`,
+        color: s.segmentColor(s.data[i].value, s.data[i + 1].value),
+      });
+    }
+    return segs;
+  };
+
+  return (
+    <div ref={containerRef} className="w-full" style={{ height }}>
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="block">
+        <defs>
+          {/* Vertical stroke gradients */}
+          {series.map((s, si) => s.strokeGradient && (
+            <linearGradient key={`sg${si}`} id={`strokeGrad${si}`} x1="0" y1="0" x2="0" y2="1">
+              {s.strokeGradient.map((stop, j) => (
+                <stop key={j} offset={stop.offset} stopColor={stop.color} />
+              ))}
+            </linearGradient>
+          ))}
+          {/* Gaussian blur glow filter per series */}
+          {series.map((s, si) => (
+            <filter key={`gf${si}`} id={`lineGlow${si}`} x="-20%" y="-40%" width="140%" height="180%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="4" />
+            </filter>
+          ))}
+        </defs>
+
+        {series.map((s, si) => {
+          const pts = getPoints(s.data);
+          const line = smoothPath(pts);
+          const segs = s.segmentColor ? segmentPaths(pts, s) : null;
+          const hasStrokeGrad = !!s.strokeGradient;
+          const strokeRef = hasStrokeGrad ? `url(#strokeGrad${si})` : s.color;
+
+          /* For strokeGradient dots: interpolate color from gradient stops by Y position */
+          const dotColorForPt = (p: { x: number; y: number }) => {
+            if (!s.strokeGradient) return segs ? s.segmentColor!(s.data[pts.indexOf(p)].value, s.data[Math.min(pts.indexOf(p), s.data.length - 2)].value) : s.color;
+            const pct = (p.y - padY) / (plotH - padY * 2); // 0 = top, 1 = bottom
+            const stops = s.strokeGradient;
+            // find two surrounding stops
+            for (let j = 0; j < stops.length - 1; j++) {
+              const a = parseFloat(stops[j].offset) / 100;
+              const b = parseFloat(stops[j + 1].offset) / 100;
+              if (pct >= a && pct <= b) {
+                const t = (pct - a) / (b - a);
+                // simple hex lerp
+                const c1 = stops[j].color, c2 = stops[j + 1].color;
+                const r = Math.round(parseInt(c1.slice(1, 3), 16) * (1 - t) + parseInt(c2.slice(1, 3), 16) * t);
+                const g = Math.round(parseInt(c1.slice(3, 5), 16) * (1 - t) + parseInt(c2.slice(3, 5), 16) * t);
+                const bl = Math.round(parseInt(c1.slice(5, 7), 16) * (1 - t) + parseInt(c2.slice(5, 7), 16) * t);
+                return `rgb(${r},${g},${bl})`;
+              }
+            }
+            return stops[stops.length - 1].color;
+          };
+
+          return (
+            <g key={si}>
+              {/* Gaussian blur glow — fades smoothly outward */}
+              <path d={line} fill="none" stroke={strokeRef} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" opacity={0.35} filter={`url(#lineGlow${si})`} />
+              {/* Main line */}
+              {segs && !hasStrokeGrad ? (
+                segs.map((seg, j) => (
+                  <path key={j} d={seg.d} fill="none" stroke={seg.color} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+                ))
+              ) : (
+                <path d={line} fill="none" stroke={strokeRef} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+              )}
+              {/* Dots */}
+              {pts.map((p, i) => {
+                const dc = dotColorForPt(p);
+                return (
+                  <g key={i}>
+                    <circle cx={p.x} cy={p.y} r={6} fill={dc} opacity={0.12} />
+                    <circle cx={p.x} cy={p.y} r={2.5} fill="var(--color-bg-page, #fff)" stroke={dc} strokeWidth={1.5} />
+                  </g>
+                );
+              })}
+            </g>
+          );
+        })}
+
+        {/* X-axis labels */}
+        {labels.map((lbl, i) => (
+          <text key={i} x={padX + i * stepX} y={plotH + 18} textAnchor="middle" fill="var(--color-text-primary)" opacity={0.5} fontSize={12} fontWeight={500} fontFamily="Inter, sans-serif">
+            {lbl}
+          </text>
+        ))}
+      </svg>
+    </div>
+  );
+}
+
 /* ─── 13. TaskProgressCard ─── */
 export function TaskProgressCard({
   title,
@@ -1259,15 +1487,13 @@ export function TaskProgressCard({
       <div className="flex items-center gap-3.5">
         <Ic size={22} strokeWidth={1.75} className="text-text-primary shrink-0 icon-theme" />
         <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-            <div className="text-[14px] font-bold text-text-primary">{title}</div>
-            <StatusTag variant="submitted" size="sm" icon={Timer} label={eta} tooltip={`Agent estimates ${eta} to complete this task`} />
-          </div>
-          <div className="flex items-center gap-3 mt-1.5">
-            <div className="flex-1"><ProgressBar value={progress} height={6} /></div>
-            <span className="text-[14px] text-text-primary shrink-0">{progress}%</span>
-          </div>
+          <div className="text-[14px] font-bold text-text-primary">{title}</div>
         </div>
+        <StatusTag variant="submitted" size="sm" icon={Timer} label={eta} tooltip={`Agent estimates ${eta} to complete this task`} />
+      </div>
+      <div className="flex items-center gap-3 mt-1.5 pl-[36px]">
+        <div className="flex-1"><ProgressBar value={progress} height={6} /></div>
+        <span className="text-[14px] text-text-primary shrink-0">{progress}%</span>
       </div>
       {expanded && (
         <div className="mt-3.5 p-3.5 bg-bg-hover rounded-xl text-[14px] text-text-primary leading-[1.8] ml-[52px]">
@@ -1322,25 +1548,14 @@ export function HealthDimensionRow({
       <div className="flex-1 min-w-0">
         <div className="text-[14px] font-bold text-text-primary">{label}</div>
         <div className="text-[14px] text-text-primary mt-0.5">{desc}</div>
-        <div className="mt-1.5 md:hidden">
-          <StatusTag
-            variant={tagProps.variant}
-            icon={tagProps.icon}
-            size="sm"
-            label={target ? `${value}/${target}${unit}` : `${value} ${unit} · ${status ?? ''}`}
-            tooltip={target ? `${label}: ${value} of ${target}${unit} goal reached` : `${label}: ${value} ${unit}, ${status}`}
-          />
-        </div>
       </div>
-      <span className="hidden md:inline-flex">
-        <StatusTag
-          variant={tagProps.variant}
-          icon={tagProps.icon}
-          size="sm"
-          label={target ? `${value}/${target}${unit}` : `${value} ${unit} · ${status ?? ''}`}
-          tooltip={target ? `${label}: ${value} of ${target}${unit} goal reached` : `${label}: ${value} ${unit}, ${status}`}
-        />
-      </span>
+      <StatusTag
+        variant={tagProps.variant}
+        icon={tagProps.icon}
+        size="sm"
+        label={target ? `${value}/${target}${unit}` : `${value} ${unit} · ${status ?? ''}`}
+        tooltip={target ? `${label}: ${value} of ${target}${unit} goal reached` : `${label}: ${value} ${unit}, ${status}`}
+      />
     </div>
   );
 }
@@ -1385,11 +1600,8 @@ export function ReviewItemCard({
         <div className="text-[14px] text-text-primary mt-1">
           {type} · {time}
         </div>
-        <div className="mt-1.5 md:hidden">
-          <TimePill time={humanTime} tooltip={`Estimated ${humanTime} for you to review`} />
-        </div>
       </div>
-      <span className="hidden md:inline-flex"><TimePill time={humanTime} tooltip={`Estimated ${humanTime} for you to review`} /></span>
+      <TimePill time={humanTime} tooltip={`Estimated ${humanTime} for you to review`} />
       <ChevronRight size={16} className="text-text-primary shrink-0" />
     </div>
   );
