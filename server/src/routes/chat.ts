@@ -114,7 +114,7 @@ router.get('/realtime/token', async (req, res) => {
       body: JSON.stringify({
         model: 'gpt-4o-realtime-preview',
         voice,
-        instructions: 'You are WorkPal, an AI workplace assistant. Be concise and helpful. Respond in the same language the user speaks. Support Chinese, English, and mixed language conversations. When a user gives you a URL, use the browse_url tool to read the page content before responding.',
+        instructions: 'You are WorkPal, an AI workplace assistant. Be concise and helpful. Respond in the same language the user speaks. Support Chinese, English, and mixed language conversations. When a user gives you a URL, use the browse_url tool to read the page content before responding. When the user attaches an image, describe what you see and answer any questions about it.',
         input_audio_transcription: { model: 'whisper-1' },
         tools: [
           {

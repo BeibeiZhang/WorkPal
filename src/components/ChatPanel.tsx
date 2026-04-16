@@ -36,7 +36,9 @@ interface ChatPanelProps {
   onVoiceMessage?: (role: 'user' | 'assistant', text: string) => void;
   /** Text typed during voice mode to inject into the voice session */
   voicePendingText?: string;
-  /** Called after VoiceMode consumes the pending text */
+  /** Image data URLs attached during voice mode to send to the voice session */
+  voicePendingImages?: string[];
+  /** Called after VoiceMode consumes the pending text/images */
   onVoicePendingTextConsumed?: () => void;
 }
 
@@ -175,6 +177,7 @@ export default function ChatPanel({
   onVoiceModeClose,
   onVoiceMessage,
   voicePendingText,
+  voicePendingImages,
   onVoicePendingTextConsumed,
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -243,6 +246,7 @@ export default function ChatPanel({
               onClose={onVoiceModeClose}
               onMessage={onVoiceMessage}
               pendingText={voicePendingText}
+              pendingImages={voicePendingImages}
               onPendingTextConsumed={onVoicePendingTextConsumed}
               agentGender={selectedAvatarId === 'white-man' ? 'male' : 'female'}
             />

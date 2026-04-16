@@ -80,6 +80,17 @@ export interface Attachment {
   dataUrl: string;
 }
 
+/** An image returned by the `search_images` tool and rendered inline in the
+ *  assistant's message. Separate from `attachments` (user-uploaded files). */
+export interface ImageResult {
+  url: string;
+  thumbUrl: string;
+  aspectRatio?: number;
+  alt: string;
+  sourceUrl?: string;
+  attribution?: string;
+}
+
 export interface Message {
   id: string;
   role: MessageRole;
@@ -89,6 +100,9 @@ export interface Message {
   card?: CardData;
   isLoading?: boolean;
   attachments?: Attachment[];
+  /** Images the assistant fetched via the search_images tool, rendered in a
+   *  grid alongside the text. Populated as streaming chunks arrive. */
+  imageResults?: ImageResult[];
 }
 
 export interface Chat {

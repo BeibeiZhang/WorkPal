@@ -9,6 +9,8 @@ interface VoiceModeProps {
   onMessage?: (role: 'user' | 'assistant', text: string) => void;
   /** Send text into the voice conversation (e.g. a pasted URL) */
   pendingText?: string;
+  /** Image data URLs to send alongside the pending text (or standalone). */
+  pendingImages?: string[];
   onPendingTextConsumed?: () => void;
   /** Restrict voice options to match the agent's gender (the agent already has a name). */
   agentGender?: VoiceGender;
@@ -33,7 +35,7 @@ function loadStoredVoice(gender: VoiceGender): VoiceId {
  * NOT a full-screen overlay. The chat UI stays fully visible and interactive.
  * Users can still type in ChatInput to send text/URLs into the voice conversation.
  */
-export default function VoiceMode({ onClose, onMessage, pendingText, onPendingTextConsumed, agentGender = 'female' }: VoiceModeProps) {
+export default function VoiceMode({ onClose, onMessage, pendingText, pendingImages, onPendingTextConsumed, agentGender = 'female' }: VoiceModeProps) {
   const [state, setState] = useState<RealtimeState>('idle');
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -90,13 +92,15 @@ export default function VoiceMode({ onClose, onMessage, pendingText, onPendingTe
     };
   }, [voice]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Forward pending text (typed URL/info) into the voice conversation
+  // Forward pending text + images (typed URL / dropped attachments) into the voice conversation
   useEffect(() => {
-    if (pendingText && sessionRef.current && state === 'connected') {
-      sessionRef.current.sendText(pendingText);
+    const hasText = !!pendingText;
+    const hasImages = !!pendingImages && pendingImages.length > 0;
+    if ((hasText || hasImages) && sessionRef.current && state === 'connected') {
+      sessionRef.current.sendText(pendingText || '', pendingImages || []);
       onPendingTextConsumed?.();
     }
-  }, [pendingText, state, onPendingTextConsumed]);
+  }, [pendingText, pendingImages, state, onPendingTextConsumed]);
 
   // Close picker on outside click
   useEffect(() => {

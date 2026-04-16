@@ -1,12 +1,19 @@
+import type { ImageResult } from '../types';
+
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+  /** Optional image data URLs (data:image/*;base64,...) attached to this message.
+   *  Forwarded to the backend, which builds an OpenAI multimodal content array
+   *  so vision-capable models (gpt-4o / gpt-4o-mini) can see the images. */
+  images?: string[];
 }
 
-interface StreamChunk {
-  type: 'text' | 'done' | 'error';
-  content: string;
-}
+export type StreamChunk =
+  | { type: 'text'; content: string }
+  | { type: 'images'; images: ImageResult[] }
+  | { type: 'done'; content: string }
+  | { type: 'error'; content: string };
 
 /**
  * Stream a chat response from the backend LLM API.
