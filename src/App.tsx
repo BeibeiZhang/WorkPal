@@ -16,6 +16,7 @@ import { Chat, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleC
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
 import { INITIAL_CHATS } from './data';
 import { streamChat } from './lib/api';
+import { buildAttachmentContextBlock, buildImageDescriptionBlock } from './lib/attachments';
 
 // Demo chat IDs — these always use hardcoded flows, never call the API
 const DEMO_CHAT_IDS = ['alcohol-delivery', 'ux-meeting', 'my-workpal'];
@@ -369,6 +370,7 @@ export default function App() {
   // Voice mode overlay
   const [voiceModeActive, setVoiceModeActive] = useState(false);
   const [voicePendingText, setVoicePendingText] = useState<string | undefined>();
+  const [voicePendingImages, setVoicePendingImages] = useState<string[] | undefined>();
 
   // Toggle dark class on root element
   useEffect(() => {
@@ -446,14 +448,29 @@ export default function App() {
   }, [addMessage]);
 
   // Stream a real LLM response for non-demo chats
-  const streamFromAPI = useCallback(async (chatId: string, userText: string) => {
+  const streamFromAPI = useCallback(async (chatId: string, userText: string, userAttachments?: Attachment[]) => {
     // Collect conversation history for context
-    // We pass userText explicitly because setChats hasn't committed yet
+    // We pass userText/attachments explicitly because setChats hasn't committed yet.
+    // Historical messages forward their own image attachments too so the model keeps
+    // visual context across turns (e.g. user: "look again at the image I sent").
     const chat = chats.find(c => c.id === chatId);
     const previousMessages = (chat?.messages || [])
       .filter(m => !m.isLoading)
-      .map(m => ({ role: m.role, content: m.content }));
-    const history = [...previousMessages, { role: 'user' as const, content: userText }];
+      .map(m => {
+        const imgs = (m.attachments || []).filter(a => a.kind === 'image').map(a => a.dataUrl);
+        return imgs.length > 0
+          ? { role: m.role, content: m.content, images: imgs }
+          : { role: m.role, content: m.content };
+      });
+    // Extract text from non-image attachments (PDFs, .txt, .md, etc.) and
+    // inline it ahead of the user's message so the model can answer about it.
+    const docText = userAttachments ? await buildAttachmentContextBlock(userAttachments) : null;
+    const combinedText = docText ? `${docText}\n\n${userText}`.trim() : userText;
+    const currentImages = (userAttachments || []).filter(a => a.kind === 'image').map(a => a.dataUrl);
+    const currentMessage = currentImages.length > 0
+      ? { role: 'user' as const, content: combinedText, images: currentImages }
+      : { role: 'user' as const, content: combinedText };
+    const history = [...previousMessages, currentMessage];
 
     // Add a loading placeholder
     const assistantId = nextId();
@@ -478,6 +495,20 @@ export default function App() {
               messages: c.messages.map(m =>
                 m.id === assistantId
                   ? { ...m, content: fullContent, isLoading: true }
+                  : m
+              ),
+            };
+          }));
+        } else if (chunk.type === 'images') {
+          // Append image search results to the in-flight assistant message so
+          // they render in the grid below the streaming text.
+          setChats(prev => prev.map(c => {
+            if (c.id !== chatId) return c;
+            return {
+              ...c,
+              messages: c.messages.map(m =>
+                m.id === assistantId
+                  ? { ...m, imageResults: [...(m.imageResults || []), ...chunk.images] }
                   : m
               ),
             };
@@ -675,11 +706,27 @@ export default function App() {
       showTypingThenRespond(chatId, responses, 1200);
     } else if (voiceModeActive) {
       // Voice mode active — don't call text API, the Realtime session handles it.
-      // The text was already added as a user message above, and VoiceMode's
-      // sendText() will inject it into the voice conversation.
-      setVoicePendingText(text);
+      // The OpenAI Realtime API (gpt-4o-realtime-preview) only accepts input_text
+      // and input_audio — sending input_image breaks the session. So every kind of
+      // attachment goes in as text: non-image files via client-side extraction,
+      // images via a one-shot vision-model description round-trip. Both flow into
+      // pendingText; pendingImages stays undefined so no input_image gets sent.
+      setVoicePendingImages(undefined);
+      const hasImages = !!attachments?.some(a => a.kind === 'image');
+      const hasFiles = !!attachments?.some(a => a.kind !== 'image');
+      if (hasImages || hasFiles) {
+        Promise.all([
+          hasFiles ? buildAttachmentContextBlock(attachments!) : Promise.resolve(null),
+          hasImages ? buildImageDescriptionBlock(attachments!) : Promise.resolve(null),
+        ]).then(([docBlock, imgBlock]) => {
+          const parts = [docBlock, imgBlock, text].filter((p): p is string => !!p && p.length > 0);
+          setVoicePendingText(parts.join('\n\n'));
+        });
+      } else {
+        setVoicePendingText(text);
+      }
     } else {
-      streamFromAPI(chatId, text);
+      streamFromAPI(chatId, text, attachments);
     }
   }, [activeChatId, activeChat, showTypingThenRespond, streamFromAPI, inputMode, voiceModeActive]);
 
@@ -1225,7 +1272,8 @@ export default function App() {
                 onVoiceModeClose={handleVoiceModeClose}
                 onVoiceMessage={handleVoiceMessage}
                 voicePendingText={voicePendingText}
-                onVoicePendingTextConsumed={() => setVoicePendingText(undefined)}
+                voicePendingImages={voicePendingImages}
+                onVoicePendingTextConsumed={() => { setVoicePendingText(undefined); setVoicePendingImages(undefined); }}
               />
               {/* Task panel preview — slides in from right then back out (3s) */}
               {taskPanelPreviewing && !contextPanelOpen && !detailOpen && (

@@ -1,8 +1,45 @@
 import { useState, useCallback } from 'react';
 import { FileText, Download } from 'lucide-react';
-import { Message, Attachment } from '../types';
+import { Message, Attachment, ImageResult } from '../types';
 import MessageCard from './MessageCard';
 import { iconCopy, iconShare, iconThumbsUp, iconRefresh } from '../assets';
+
+/** Assistant image-search grid. Layout adapts to count:
+ *   1 → single wide image (max-w tight so it doesn't dominate)
+ *   2 → two equal columns
+ *   3+ → 2-column masonry-ish grid, max 6 shown
+ *  Style is deliberately restrained: neutral border, soft rounding, subtle
+ *  attribution on hover — matches the "clean, professional, not flashy" ask. */
+function ImageResultsGrid({ images }: { images: ImageResult[] }) {
+  const shown = images.slice(0, 6);
+  const cols = shown.length === 1 ? 'grid-cols-1 max-w-[420px]' : 'grid-cols-2 max-w-[520px]';
+  return (
+    <div className={`mt-2 mb-1 grid gap-2 ${cols}`}>
+      {shown.map((img, i) => (
+        <a
+          key={i}
+          href={img.sourceUrl || img.url}
+          target="_blank"
+          rel="noreferrer"
+          className="group/img relative block rounded-lg overflow-hidden border border-stroke-outline bg-bg-hover no-underline"
+          title={img.alt}
+        >
+          <img
+            src={img.thumbUrl || img.url}
+            alt={img.alt}
+            loading="lazy"
+            className="block w-full h-full object-cover aspect-[4/3] transition-transform duration-300 group-hover/img:scale-[1.02]"
+          />
+          {img.attribution && (
+            <div className="absolute bottom-0 left-0 right-0 px-2 py-1 text-[10px] leading-[14px] text-white opacity-0 group-hover/img:opacity-100 transition-opacity bg-gradient-to-t from-black/60 to-transparent truncate">
+              {img.attribution}
+            </div>
+          )}
+        </a>
+      ))}
+    </div>
+  );
+}
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -193,6 +230,11 @@ export default function ChatMessage({ message, isLastAssistant, onCardAction }: 
             <p className="text-base text-text-primary leading-[22px]">
               {renderText(message.content)}
             </p>
+          )}
+
+          {/* Images fetched via search_images tool */}
+          {message.imageResults && message.imageResults.length > 0 && (
+            <ImageResultsGrid images={message.imageResults} />
           )}
 
           {/* Feedback bar: always visible on last assistant msg, hover-only on others */}

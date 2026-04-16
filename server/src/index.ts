@@ -24,4 +24,9 @@ app.listen(PORT, () => {
   if (!process.env.OPENAI_API_KEY) {
     console.warn('⚠️  OPENAI_API_KEY not set — LLM calls will fail');
   }
+  if (process.env.UNSPLASH_ACCESS_KEY) {
+    console.log('✅ UNSPLASH_ACCESS_KEY loaded — search_images tool is active');
+  } else {
+    console.warn('⚠️  UNSPLASH_ACCESS_KEY not set — search_images tool disabled');
+  }
 });

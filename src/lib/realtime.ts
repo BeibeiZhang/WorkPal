@@ -45,6 +45,10 @@ export class RealtimeSession {
   private localStream: MediaStream | null = null;
   private callbacks: RealtimeCallbacks;
   private _state: RealtimeState = 'idle';
+  /** Set by disconnect(). connect() checks after every await so an in-flight
+   *  handshake (token fetch, mic prompt, SDP exchange) is abandoned cleanly
+   *  when React StrictMode tears the session down between its double-mount. */
+  private disposed = false;
 
   constructor(callbacks: RealtimeCallbacks) {
     this.callbacks = callbacks;
@@ -53,22 +57,26 @@ export class RealtimeSession {
   get state() { return this._state; }
 
   private setState(s: RealtimeState) {
+    if (this.disposed) return;
     this._state = s;
     this.callbacks.onStateChange(s);
   }
 
   async connect(voice?: VoiceId): Promise<void> {
+    if (this.disposed) return;
     this.setState('connecting');
 
     try {
       // 1. Get ephemeral token from our backend
       const tokenUrl = voice ? `/api/realtime/token?voice=${encodeURIComponent(voice)}` : '/api/realtime/token';
       const tokenRes = await fetch(tokenUrl);
+      if (this.disposed) return;
       if (!tokenRes.ok) {
         const err = await tokenRes.json();
         throw new Error(err.error || `Token request failed: ${tokenRes.status}`);
       }
       const session = await tokenRes.json();
+      if (this.disposed) return;
       const ephemeralKey = session.client_secret?.value;
       if (!ephemeralKey) {
         throw new Error('No ephemeral key returned from server');
@@ -96,6 +104,7 @@ export class RealtimeSession {
         }
         throw new Error('Could not access microphone: ' + (micErr instanceof Error ? micErr.message : 'unknown error'));
       }
+      if (this.disposed) { this.cleanupResources(); return; }
       this.localStream.getTracks().forEach(track => {
         this.pc!.addTrack(track, this.localStream!);
       });
@@ -106,7 +115,9 @@ export class RealtimeSession {
 
       // 6. SDP exchange with OpenAI
       const offer = await this.pc.createOffer();
+      if (this.disposed) { this.cleanupResources(); return; }
       await this.pc.setLocalDescription(offer);
+      if (this.disposed) { this.cleanupResources(); return; }
 
       const sdpRes = await fetch('https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview', {
         method: 'POST',
@@ -116,13 +127,16 @@ export class RealtimeSession {
           'Content-Type': 'application/sdp',
         },
       });
+      if (this.disposed) { this.cleanupResources(); return; }
 
       if (!sdpRes.ok) {
         throw new Error(`SDP exchange failed: ${sdpRes.status}`);
       }
 
       const answerSdp = await sdpRes.text();
+      if (this.disposed) { this.cleanupResources(); return; }
       await this.pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
+      if (this.disposed) { this.cleanupResources(); return; }
 
       // 7. Monitor connection state
       this.pc.onconnectionstatechange = () => {
@@ -135,9 +149,32 @@ export class RealtimeSession {
       };
 
     } catch (err) {
+      if (this.disposed) return;
       const msg = err instanceof Error ? err.message : 'Connection failed';
       this.setState('error');
       this.callbacks.onError(msg);
+    }
+  }
+
+  private cleanupResources() {
+    if (this.dc) {
+      this.dc.removeEventListener('message', this.handleDataChannelMessage);
+      try { this.dc.close(); } catch { /* already closed */ }
+      this.dc = null;
+    }
+    if (this.localStream) {
+      this.localStream.getTracks().forEach(t => t.stop());
+      this.localStream = null;
+    }
+    if (this.audioEl) {
+      this.audioEl.pause();
+      this.audioEl.srcObject = null;
+      this.audioEl.remove();
+      this.audioEl = null;
+    }
+    if (this.pc) {
+      try { this.pc.close(); } catch { /* already closed */ }
+      this.pc = null;
     }
   }
 
@@ -242,16 +279,23 @@ export class RealtimeSession {
     this.dc.send(JSON.stringify({ type: 'response.create' }));
   }
 
-  /** Send a text message into the voice conversation (e.g. a URL) */
-  sendText(text: string) {
+  /** Send a text + optional image message into the voice conversation.
+   *  Images are sent as `input_image` content parts with data URLs so the
+   *  vision-capable realtime model can see attachments the user dropped into
+   *  ChatInput while voice mode is active. */
+  sendText(text: string, images: string[] = []) {
     if (!this.dc || this.dc.readyState !== 'open') return;
+    const content: Array<Record<string, unknown>> = [];
+    if (text) content.push({ type: 'input_text', text });
+    for (const url of images) content.push({ type: 'input_image', image_url: url });
+    if (content.length === 0) return;
 
     this.dc.send(JSON.stringify({
       type: 'conversation.item.create',
       item: {
         type: 'message',
         role: 'user',
-        content: [{ type: 'input_text', text }],
+        content,
       },
     }));
     // Trigger a response
@@ -269,27 +313,12 @@ export class RealtimeSession {
     return false;
   }
 
-  /** Disconnect and clean up all resources */
+  /** Disconnect and clean up all resources. Safe to call while connect()
+   *  is still in flight — sets `disposed` so the in-flight handshake bails
+   *  at its next checkpoint. */
   disconnect() {
-    if (this.dc) {
-      this.dc.removeEventListener('message', this.handleDataChannelMessage);
-      this.dc.close();
-      this.dc = null;
-    }
-    if (this.localStream) {
-      this.localStream.getTracks().forEach(t => t.stop());
-      this.localStream = null;
-    }
-    if (this.audioEl) {
-      this.audioEl.pause();
-      this.audioEl.srcObject = null;
-      this.audioEl.remove();
-      this.audioEl = null;
-    }
-    if (this.pc) {
-      this.pc.close();
-      this.pc = null;
-    }
-    this.setState('idle');
+    this.disposed = true;
+    this.cleanupResources();
+    this._state = 'idle';
   }
 }
