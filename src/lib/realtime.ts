@@ -8,6 +8,8 @@
  * 4. DataChannel for events (transcripts, function calls)
  */
 
+import type { ImageResult } from '../types';
+
 export type RealtimeState = 'idle' | 'connecting' | 'connected' | 'error';
 
 export type VoiceGender = 'male' | 'female';
@@ -36,6 +38,9 @@ export interface RealtimeCallbacks {
   onAudioStart: () => void;
   onAudioEnd: () => void;
   onError: (message: string) => void;
+  /** Fired when the AI invokes the search_images tool — results are rendered
+   *  into the chat as an assistant message with imageResults populated. */
+  onImages?: (query: string, images: ImageResult[]) => void;
 }
 
 export class RealtimeSession {
@@ -258,6 +263,22 @@ export class RealtimeSession {
         result = data.title
           ? `Page title: ${data.title}\n\nContent:\n${data.content}`
           : data.content;
+      } else if (name === 'search_images' && args.query) {
+        // Fetch photos via our backend, render them into the chat, and
+        // report back to the AI so it can keep speaking naturally.
+        const res = await fetch('/api/search-images', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: args.query, count: args.count }),
+        });
+        const data = await res.json();
+        const images: ImageResult[] = Array.isArray(data?.images) ? data.images : [];
+        if (images.length > 0) {
+          this.callbacks.onImages?.(args.query, images);
+          result = `Displayed ${images.length} photo${images.length === 1 ? '' : 's'} for "${args.query}" in the chat. Continue the conversation naturally — do NOT list URLs or re-describe each photo; briefly reference that you've shown them and move on.`;
+        } else {
+          result = `No photos found for "${args.query}". Tell the user you couldn't find suitable photos and offer to try a different query.`;
+        }
       } else {
         result = `Unknown function: ${name}`;
       }

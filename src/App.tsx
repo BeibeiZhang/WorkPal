@@ -12,7 +12,7 @@ import OverviewPage from './components/OverviewPage';
 import LibraryPage from './components/LibraryPage';
 import NewProjectDialog from './components/NewProjectDialog';
 import { SplitView } from './components/shared';
-import { Chat, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleCard } from './types';
+import { Chat, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleCard, ImageResult } from './types';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
 import { INITIAL_CHATS } from './data';
 import { streamChat } from './lib/api';
@@ -1092,6 +1092,20 @@ export default function App() {
     addMessage(chatId, msg);
   }, [activeChatId, activeChat, addMessage]);
 
+  // Voice mode: the AI invoked search_images — append the photos as an
+  // assistant message in the active chat. Text content stays empty so the
+  // message card only shows the image grid (matching text-mode rendering).
+  const handleVoiceImages = useCallback((_query: string, images: ImageResult[]) => {
+    const msg: Message = {
+      id: nextId(),
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      imageResults: images,
+    };
+    addMessage(activeChatId, msg);
+  }, [activeChatId, addMessage]);
+
   return (
     <div className="flex h-full w-full overflow-hidden" style={{ background: 'var(--color-outer-bg)' }}>
       {/* Outer rounded container */}
@@ -1271,6 +1285,7 @@ export default function App() {
                 voiceModeActive={voiceModeActive}
                 onVoiceModeClose={handleVoiceModeClose}
                 onVoiceMessage={handleVoiceMessage}
+                onVoiceImages={handleVoiceImages}
                 voicePendingText={voicePendingText}
                 voicePendingImages={voicePendingImages}
                 onVoicePendingTextConsumed={() => { setVoicePendingText(undefined); setVoicePendingImages(undefined); }}

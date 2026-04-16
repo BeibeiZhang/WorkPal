@@ -1,12 +1,16 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { RealtimeSession, VOICE_OPTIONS } from '../lib/realtime';
 import type { RealtimeState, TranscriptEvent, VoiceId, VoiceGender } from '../lib/realtime';
+import type { ImageResult } from '../types';
 
 interface VoiceModeProps {
   /** Called when voice session ends */
   onClose: () => void;
   /** Called in real-time as messages arrive — lets App add them to the chat */
   onMessage?: (role: 'user' | 'assistant', text: string) => void;
+  /** Called when the AI fetches photos via search_images — App renders an
+   *  assistant message with imageResults so they appear inline in the chat. */
+  onImages?: (query: string, images: ImageResult[]) => void;
   /** Send text into the voice conversation (e.g. a pasted URL) */
   pendingText?: string;
   /** Image data URLs to send alongside the pending text (or standalone). */
@@ -35,7 +39,7 @@ function loadStoredVoice(gender: VoiceGender): VoiceId {
  * NOT a full-screen overlay. The chat UI stays fully visible and interactive.
  * Users can still type in ChatInput to send text/URLs into the voice conversation.
  */
-export default function VoiceMode({ onClose, onMessage, pendingText, pendingImages, onPendingTextConsumed, agentGender = 'female' }: VoiceModeProps) {
+export default function VoiceMode({ onClose, onMessage, onImages, pendingText, pendingImages, onPendingTextConsumed, agentGender = 'female' }: VoiceModeProps) {
   const [state, setState] = useState<RealtimeState>('idle');
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -81,6 +85,7 @@ export default function VoiceMode({ onClose, onMessage, pendingText, pendingImag
       onAudioStart: () => setIsSpeaking(true),
       onAudioEnd: () => setIsSpeaking(false),
       onError: (msg) => setErrorMsg(msg),
+      onImages: (query, images) => onImages?.(query, images),
     });
 
     sessionRef.current = session;
