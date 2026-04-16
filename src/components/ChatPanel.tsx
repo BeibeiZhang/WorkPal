@@ -244,6 +244,7 @@ export default function ChatPanel({
               onMessage={onVoiceMessage}
               pendingText={voicePendingText}
               onPendingTextConsumed={onVoicePendingTextConsumed}
+              agentGender={selectedAvatarId === 'white-man' ? 'male' : 'female'}
             />
           )}
           <ChatInput
