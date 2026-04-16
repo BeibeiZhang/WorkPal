@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Chat } from '../types';
 import { LayoutDashboard, SquarePen, Link, BookOpen, FolderPlus, ChevronDown, Search, Palette, PanelLeft } from 'lucide-react';
 import {
@@ -75,8 +75,9 @@ export function MiniSidebar({ activeView, activeChatId, onViewChange, onNewChat,
   const items: { id: string; label: string; Icon: typeof LayoutDashboard; onClick: () => void; active: boolean }[] = [
     { id: 'overview', label: 'Overview', Icon: LayoutDashboard, onClick: () => onViewChange?.('overview'), active: activeView === 'overview' && !activeChatId },
     { id: 'new', label: 'New Session', Icon: SquarePen, onClick: onNewChat, active: false },
-    { id: 'connectors', label: 'Connectors', Icon: Link, onClick: () => onViewChange?.('connectors'), active: activeView === 'connectors' },
+    { id: 'search', label: 'Search', Icon: Search, onClick: onToggleSidebar, active: false },
     { id: 'library', label: 'Library', Icon: BookOpen, onClick: () => onViewChange?.('library'), active: activeView === 'library' },
+    { id: 'connectors', label: 'Connectors', Icon: Link, onClick: () => onViewChange?.('connectors'), active: activeView === 'connectors' },
     { id: 'design-system', label: 'Design System', Icon: Palette, onClick: () => onViewChange?.('design-system'), active: activeView === 'design-system' },
   ];
 
@@ -91,7 +92,7 @@ export function MiniSidebar({ activeView, activeChatId, onViewChange, onNewChat,
       }}
     >
       {/* Top: hamburger to expand */}
-      <div className="flex items-center justify-center h-16 shrink-0">
+      <div className="flex items-center justify-center pt-6 shrink-0">
         <button
           onClick={onToggleSidebar}
           title="Open sidebar"
@@ -104,15 +105,6 @@ export function MiniSidebar({ activeView, activeChatId, onViewChange, onNewChat,
 
       {/* Nav icons */}
       <div className="flex-1 flex flex-col items-center gap-1 pt-2">
-        {/* Search — expands sidebar so the user can type */}
-        <button
-          onClick={onToggleSidebar}
-          title="Search"
-          className="w-11 h-11 flex items-center justify-center rounded-full transition-colors hover:bg-bg-hover"
-          style={{ border: '1px solid transparent' }}
-        >
-          <Search size={20} className="text-text-primary" />
-        </button>
         {items.map(({ id, label, Icon, onClick, active }) => (
           <button
             key={id}
@@ -157,6 +149,21 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
   const activeChat = chats.find(c => c.id === activeChatId);
   const isNewSessionActive = activeView === 'chat' && !!activeChat && isDraftLike(activeChat);
 
+  // Auto-collapse Admin when scrollable content overflows
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [isOverflowing, setIsOverflowing] = useState(false);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const check = () => setIsOverflowing(el.scrollHeight > el.clientHeight);
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [chats, projectsOpen, recentsOpen]);
+
+  const adminOpen = onboardingOpen && !isOverflowing;
+
   return (
     <div
       className="flex flex-col h-full w-[300px] select-none shrink-0 bg-bg-sidebar dark:bg-transparent"
@@ -169,7 +176,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
     >
 
       {/* Top toolbar */}
-      <div className="flex items-center justify-between px-6 h-16 shrink-0">
+      <div className="flex items-center justify-between px-6 pt-6 shrink-0">
         {/* Hamburger nav — closes sidebar */}
         <button onClick={onToggleSidebar} title="Close sidebar" className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-bg-hover transition-colors" style={{ color: 'var(--color-icon-primary)' }}>
           <PanelLeft size={20} />
@@ -177,7 +184,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto min-h-0 py-4 scrollbar-autohide">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto min-h-0 py-4 scrollbar-autohide">
 
         {/* Top menu items */}
         <div className="px-4 flex flex-col gap-1">
@@ -237,17 +244,6 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
             </span>
           </button>
 
-          {/* Connectors */}
-          <button
-            onClick={() => onViewChange?.('connectors')}
-            className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${activeView === 'connectors' ? 'gradient-ring' : 'hover:bg-bg-hover'}`}
-          >
-            <Link size={20} className="shrink-0 text-text-primary" />
-            <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
-              Connectors
-            </span>
-          </button>
-
           {/* Library */}
           <button
             onClick={() => onViewChange?.('library')}
@@ -256,6 +252,17 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
             <BookOpen size={20} className="shrink-0 text-text-primary" />
             <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
               Library
+            </span>
+          </button>
+
+          {/* Connectors */}
+          <button
+            onClick={() => onViewChange?.('connectors')}
+            className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${activeView === 'connectors' ? 'gradient-ring' : 'hover:bg-bg-hover'}`}
+          >
+            <Link size={20} className="shrink-0 text-text-primary" />
+            <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
+              Connectors
             </span>
           </button>
         </div>
@@ -300,80 +307,6 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
                   </span>
                 </button>
               ))}
-            </>
-          )}
-        </div>
-
-        {/* Admin section */}
-        <div className="px-4 pt-4 flex flex-col gap-1">
-          <button
-            onClick={() => setOnboardingOpen(!onboardingOpen)}
-            className="px-4 flex items-center justify-between hover:bg-bg-hover rounded-full transition-colors"
-            style={{ height: 32 }}
-          >
-            <p className="text-base font-bold text-text-primary tracking-[-0.43px]">Admin</p>
-            <ChevronDown
-              size={16}
-              className={`text-text-primary transition-transform ${onboardingOpen ? '' : '-rotate-90'}`}
-            />
-          </button>
-
-          {onboardingOpen && (
-            <>
-              {/* Onboarding Experience */}
-              {(() => {
-                const isActive = activeChatId === 'my-workpal' && activeView === 'chat';
-                return (
-                  <button
-                    onClick={() => onChatSelect('my-workpal')}
-                    className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${
-                      isActive ? 'gradient-ring' : 'hover:bg-bg-hover'
-                    }`}
-                  >
-                    <span
-                      className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px] truncate"
-                      style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}
-                    >
-                      Onboarding Experience
-                    </span>
-                    {isActive && (
-                      <div className="flex items-center justify-center shrink-0" style={{ width: 25, height: 25 }}>
-                        <div
-                          className="animate-spin"
-                          style={{
-                            width: 23,
-                            height: 23,
-                            background: 'linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%)',
-                            WebkitMaskImage: `url(${iconSpinner})`,
-                            WebkitMaskSize: 'contain',
-                            WebkitMaskRepeat: 'no-repeat',
-                            WebkitMaskPosition: 'center',
-                            maskImage: `url(${iconSpinner})`,
-                            maskSize: 'contain',
-                            maskRepeat: 'no-repeat',
-                            maskPosition: 'center',
-                            animationDuration: '1.5s',
-                          }}
-                        />
-                      </div>
-                    )}
-                  </button>
-                );
-              })()}
-
-              {/* Design System */}
-              <button
-                onClick={() => onViewChange?.('design-system')}
-                className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${activeView === 'design-system' ? 'gradient-ring' : 'hover:bg-bg-hover'}`}
-              >
-                <Palette size={18} className="shrink-0 text-text-primary" />
-                <span
-                  className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px] truncate"
-                  style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}
-                >
-                  Design System
-                </span>
-              </button>
             </>
           )}
         </div>
@@ -433,6 +366,80 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
             );
           })}
         </div>
+      </div>
+
+      {/* Admin section — pinned above account footer, auto-collapses on overflow */}
+      <div className="px-4 pt-2 pb-1 shrink-0 flex flex-col gap-1">
+        <button
+          onClick={() => setOnboardingOpen(!onboardingOpen)}
+          className="px-4 flex items-center justify-between hover:bg-bg-hover rounded-full transition-colors"
+          style={{ height: 32 }}
+        >
+          <p className="text-base font-bold text-text-primary tracking-[-0.43px]">Admin</p>
+          <ChevronDown
+            size={16}
+            className={`text-text-primary transition-transform ${adminOpen ? '' : '-rotate-90'}`}
+          />
+        </button>
+
+        {adminOpen && (
+          <>
+            {/* Onboarding Experience */}
+            {(() => {
+              const isActive = activeChatId === 'my-workpal' && activeView === 'chat';
+              return (
+                <button
+                  onClick={() => onChatSelect('my-workpal')}
+                  className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${
+                    isActive ? 'gradient-ring' : 'hover:bg-bg-hover'
+                  }`}
+                >
+                  <span
+                    className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px] truncate"
+                    style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}
+                  >
+                    Onboarding Experience
+                  </span>
+                  {isActive && (
+                    <div className="flex items-center justify-center shrink-0" style={{ width: 25, height: 25 }}>
+                      <div
+                        className="animate-spin"
+                        style={{
+                          width: 23,
+                          height: 23,
+                          background: 'linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%)',
+                          WebkitMaskImage: `url(${iconSpinner})`,
+                          WebkitMaskSize: 'contain',
+                          WebkitMaskRepeat: 'no-repeat',
+                          WebkitMaskPosition: 'center',
+                          maskImage: `url(${iconSpinner})`,
+                          maskSize: 'contain',
+                          maskRepeat: 'no-repeat',
+                          maskPosition: 'center',
+                          animationDuration: '1.5s',
+                        }}
+                      />
+                    </div>
+                  )}
+                </button>
+              );
+            })()}
+
+            {/* Design System */}
+            <button
+              onClick={() => onViewChange?.('design-system')}
+              className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${activeView === 'design-system' ? 'gradient-ring' : 'hover:bg-bg-hover'}`}
+            >
+              <Palette size={18} className="shrink-0 text-text-primary" />
+              <span
+                className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px] truncate"
+                style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}
+              >
+                Design System
+              </span>
+            </button>
+          </>
+        )}
       </div>
 
       {/* Account footer */}

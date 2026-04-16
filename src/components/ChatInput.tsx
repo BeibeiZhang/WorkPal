@@ -498,7 +498,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
           onBlur={() => setFocused(false)}
           placeholder={voicePlaceholder}
           rows={1}
-          className="w-full bg-transparent resize-none outline-none text-text-primary placeholder-text-tertiary chat-textarea"
+          className="w-full bg-transparent resize-none outline-none text-text-primary placeholder-text-tertiary chat-textarea py-[11px]"
           style={{
             fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
             fontSize: 16,

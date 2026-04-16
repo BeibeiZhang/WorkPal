@@ -33,7 +33,7 @@ export function HeaderBar({
 }) {
   const hasRight = onNewChat || headerRight;
   return (
-    <div className="flex items-center gap-4 px-4 h-12 shrink-0">
+    <div className="flex items-center gap-4 px-4 pt-6 shrink-0">
       {!sidebarOpen && onToggleSidebar && (
         <button
           onClick={onToggleSidebar}
