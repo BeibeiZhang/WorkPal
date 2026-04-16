@@ -10,6 +10,20 @@
 
 export type RealtimeState = 'idle' | 'connecting' | 'connected' | 'error';
 
+export type VoiceGender = 'male' | 'female';
+
+export const VOICE_OPTIONS = [
+  { id: 'alloy',   gender: 'female', short: 'Neutral',     hint: 'Neutral, versatile' },
+  { id: 'coral',   gender: 'female', short: 'Bright',      hint: 'Bright, friendly' },
+  { id: 'sage',    gender: 'female', short: 'Measured',    hint: 'Measured, thoughtful' },
+  { id: 'shimmer', gender: 'female', short: 'Crisp',       hint: 'Crisp, upbeat' },
+  { id: 'ash',     gender: 'male',   short: 'Deep',        hint: 'Deep, grounded' },
+  { id: 'ballad',  gender: 'male',   short: 'Warm',        hint: 'Warm, soft' },
+  { id: 'echo',    gender: 'male',   short: 'Smooth',      hint: 'Smooth, calm' },
+  { id: 'verse',   gender: 'male',   short: 'Expressive',  hint: 'Expressive, lively' },
+] as const;
+export type VoiceId = (typeof VOICE_OPTIONS)[number]['id'];
+
 export interface TranscriptEvent {
   role: 'user' | 'assistant';
   text: string;
@@ -43,12 +57,13 @@ export class RealtimeSession {
     this.callbacks.onStateChange(s);
   }
 
-  async connect(): Promise<void> {
+  async connect(voice?: VoiceId): Promise<void> {
     this.setState('connecting');
 
     try {
       // 1. Get ephemeral token from our backend
-      const tokenRes = await fetch('/api/realtime/token');
+      const tokenUrl = voice ? `/api/realtime/token?voice=${encodeURIComponent(voice)}` : '/api/realtime/token';
+      const tokenRes = await fetch(tokenUrl);
       if (!tokenRes.ok) {
         const err = await tokenRes.json();
         throw new Error(err.error || `Token request failed: ${tokenRes.status}`);

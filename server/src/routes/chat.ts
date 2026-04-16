@@ -92,11 +92,17 @@ router.post('/browse', async (req, res) => {
 });
 
 // GET /api/realtime/token — ephemeral token for OpenAI Realtime WebRTC
-router.get('/realtime/token', async (_req, res) => {
+const ALLOWED_VOICES = ['alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', 'verse'] as const;
+type Voice = (typeof ALLOWED_VOICES)[number];
+
+router.get('/realtime/token', async (req, res) => {
   if (!process.env.OPENAI_API_KEY) {
     res.status(500).json({ error: 'OPENAI_API_KEY not configured' });
     return;
   }
+
+  const requested = typeof req.query.voice === 'string' ? req.query.voice : '';
+  const voice: Voice = (ALLOWED_VOICES as readonly string[]).includes(requested) ? (requested as Voice) : 'alloy';
 
   try {
     const response = await fetch('https://api.openai.com/v1/realtime/sessions', {
@@ -107,7 +113,7 @@ router.get('/realtime/token', async (_req, res) => {
       },
       body: JSON.stringify({
         model: 'gpt-4o-realtime-preview',
-        voice: 'alloy',
+        voice,
         instructions: 'You are WorkPal, an AI workplace assistant. Be concise and helpful. Respond in the same language the user speaks. Support Chinese, English, and mixed language conversations. When a user gives you a URL, use the browse_url tool to read the page content before responding.',
         input_audio_transcription: { model: 'whisper-1' },
         tools: [
