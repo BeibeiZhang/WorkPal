@@ -1,27 +1,7 @@
-import { useState, useRef, useEffect, useCallback, KeyboardEvent } from 'react';
+import { useState, useRef, useEffect, KeyboardEvent } from 'react';
 import { iconGoals, iconDoc16, iconBarChart, iconAdd, iconPhoto, iconCamera, iconUpload, iconSend, iconSendActive, iconChevronDown } from '../assets';
 import { ActionChip } from '../types';
 import { ToolbarPill, ToolbarIconButton, ToolbarSegmented, Tooltip } from './shared';
-
-// Web Speech API types
-interface SpeechRecognitionEvent extends Event {
-  results: SpeechRecognitionResultList;
-}
-interface SpeechRecognitionErrorEvent extends Event {
-  error: string;
-}
-type SpeechRecognitionInstance = {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  start(): void;
-  stop(): void;
-  abort(): void;
-  onresult: ((e: SpeechRecognitionEvent) => void) | null;
-  onerror: ((e: SpeechRecognitionErrorEvent) => void) | null;
-  onend: (() => void) | null;
-};
-const SpeechRecognitionCtor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
 type InputMode = 'Chat' | 'Tasks' | 'Code';
 
@@ -46,10 +26,12 @@ interface ChatInputProps {
   draftValue?: string;
   /** Mode to force when chatKey changes. */
   forceMode?: InputMode;
-  /** Replace the voice-mode toggle with an always-visible send (up-arrow) button. Voice mode is disabled. */
-  voiceAsSend?: boolean;
   /** Force the send button into its active state even when the input is empty. Click still calls onSend (with empty string if no text). */
   forceSendActive?: boolean;
+  /** Open real-time voice mode (OpenAI Realtime API) */
+  onVoiceMode?: () => void;
+  /** Whether Realtime voice mode is currently active — hides voice buttons, shows send only */
+  voiceModeActive?: boolean;
 }
 
 /** Exact pixel dimensions from Figma for each toolbar icon within its 24×24 container */
@@ -114,26 +96,6 @@ function CodeIcon() {
   );
 }
 
-/** 16×16 inline SVG icons for mic / voice in input field */
-function MicIcon16() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 w-[24px] h-[24px] md:w-[16px] md:h-[16px]">
-      <rect x="9" y="1" width="6" height="11" rx="3" />
-      <path d="M19 10v1a7 7 0 0 1-14 0v-1" />
-      <line x1="12" y1="19" x2="12" y2="23" />
-      <line x1="8" y1="23" x2="16" y2="23" />
-    </svg>
-  );
-}
-
-function StopIcon16() {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="shrink-0 w-[24px] h-[24px] md:w-[16px] md:h-[16px]">
-      <rect x="6" y="6" width="12" height="12" rx="2" />
-    </svg>
-  );
-}
-
 function VoiceIcon16() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 w-[24px] h-[24px] md:w-[16px] md:h-[16px]">
@@ -163,7 +125,7 @@ const FOLDER_OPTIONS = [
 /** Simulated branch options */
 const BRANCH_OPTIONS = ['main', 'develop', 'feature/chat-input', 'fix/ui-polish'];
 
-export default function ChatInput({ onSend, placeholder = 'Message WorkPal', quickChips, actionChips, onChipClick, onModeChange, chatOnly, isAiResponding, chatKey, draftValue, forceMode, voiceAsSend, forceSendActive }: ChatInputProps) {
+export default function ChatInput({ onSend, placeholder = 'Message WorkPal', quickChips, actionChips, onChipClick, onModeChange, chatOnly, chatKey, draftValue, forceMode, forceSendActive, onVoiceMode, voiceModeActive }: ChatInputProps) {
   const [value, setValue] = useState(() => draftValue ?? '');
   const [focused, setFocused] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
@@ -173,11 +135,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
   const [branch, setBranch] = useState(BRANCH_OPTIONS[0]);
   const [showBranchMenu, setShowBranchMenu] = useState(false);
   const [useWorktree, setUseWorktree] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [voiceMode, setVoiceMode] = useState(false);
-  const [voiceListening, setVoiceListening] = useState(false);
   const [isMultiline, setIsMultiline] = useState(false);
-  const voiceModeRef = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const attachRef = useRef<HTMLDivElement>(null);
   const folderRef = useRef<HTMLDivElement>(null);
@@ -208,175 +166,6 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
     // Single line is 22px (line-height). Anything taller has wrapped.
     setIsMultiline(ta.scrollHeight > 30);
   }, [value]);
-
-  // Simulated voice phrases for demo fallback when mic permission is denied
-  const DEMO_PHRASES = [
-    'Can you summarize yesterday\'s meeting about alcohol delivery?',
-    'Set up a UX review meeting for the team.',
-    'Find any reports about Spark drivers experiencing issues.',
-    'Create performance goals for Q2.',
-  ];
-  const demoIndexRef = useRef(0);
-  const simTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Simulate typing out a phrase character by character
-  const simulateVoiceInput = useCallback((phrase: string, onDone: () => void) => {
-    let i = 0;
-    const typeNext = () => {
-      if (i <= phrase.length) {
-        setValue(phrase.slice(0, i));
-        i++;
-        simTimerRef.current = setTimeout(typeNext, 40 + Math.random() * 30);
-      } else {
-        onDone();
-      }
-    };
-    typeNext();
-  }, []);
-
-  const clearSimTimer = useCallback(() => {
-    if (simTimerRef.current) { clearTimeout(simTimerRef.current); simTimerRef.current = null; }
-  }, []);
-
-  // Try real speech recognition; fall back to simulation on permission error
-  const tryStartRecognition = useCallback((opts: {
-    continuous: boolean;
-    onResult: (text: string) => void;
-    onEnd: (finalText: string) => void;
-    onError: (error: string) => void;
-  }): { stop: () => void; isSimulated: boolean } => {
-    if (!SpeechRecognitionCtor) {
-      // No API — simulate
-      const phrase = DEMO_PHRASES[demoIndexRef.current % DEMO_PHRASES.length];
-      demoIndexRef.current++;
-      simulateVoiceInput(phrase, () => opts.onEnd(phrase));
-      return { stop: () => { clearSimTimer(); opts.onEnd(''); }, isSimulated: true };
-    }
-
-    const recognition: SpeechRecognitionInstance = new SpeechRecognitionCtor();
-    recognition.continuous = opts.continuous;
-    recognition.interimResults = true;
-    recognition.lang = navigator.language || 'en-US';
-
-    let finalTranscript = '';
-    let fell_back = false;
-
-    recognition.onresult = (e: SpeechRecognitionEvent) => {
-      let interim = '';
-      finalTranscript = '';
-      for (let i = 0; i < e.results.length; i++) {
-        if (e.results[i].isFinal) {
-          finalTranscript += e.results[i][0].transcript;
-        } else {
-          interim += e.results[i][0].transcript;
-        }
-      }
-      opts.onResult(finalTranscript + interim);
-    };
-    recognition.onerror = (e: SpeechRecognitionErrorEvent) => {
-      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-        // Permission denied — fall back to simulation
-        fell_back = true;
-        const phrase = DEMO_PHRASES[demoIndexRef.current % DEMO_PHRASES.length];
-        demoIndexRef.current++;
-        simulateVoiceInput(phrase, () => opts.onEnd(phrase));
-        return;
-      }
-      opts.onError(e.error);
-    };
-    recognition.onend = () => {
-      if (!fell_back) opts.onEnd(finalTranscript);
-    };
-
-    try { recognition.start(); } catch { /* already started */ }
-
-    return {
-      stop: () => { try { recognition.stop(); } catch { /* */ } clearSimTimer(); },
-      isSimulated: false,
-    };
-  }, [simulateVoiceInput, clearSimTimer]);
-
-  // --- Mic button: click to start, click to stop & send ---
-  const activeRecRef = useRef<{ stop: () => void } | null>(null);
-  const toggleRecording = useCallback(() => {
-    if (isRecording) {
-      activeRecRef.current?.stop();
-      setIsRecording(false);
-      return;
-    }
-    setIsRecording(true);
-    const handle = tryStartRecognition({
-      continuous: true,
-      onResult: (text) => setValue(text),
-      onEnd: (finalText) => {
-        setIsRecording(false);
-        if (finalText.trim()) {
-          onSend(finalText.trim());
-          setValue('');
-        }
-      },
-      onError: () => setIsRecording(false),
-    });
-    activeRecRef.current = handle;
-  }, [isRecording, onSend, tryStartRecognition]);
-
-  // --- Voice conversation mode ---
-  const activeVoiceRecRef = useRef<{ stop: () => void } | null>(null);
-
-  const startVoiceListening = useCallback(() => {
-    if (!voiceModeRef.current) return;
-    setVoiceListening(true);
-    setValue('');
-    const handle = tryStartRecognition({
-      continuous: false,
-      onResult: (text) => setValue(text),
-      onEnd: (finalText) => {
-        setVoiceListening(false);
-        if (finalText.trim() && voiceModeRef.current) {
-          onSend(finalText.trim());
-          setValue('');
-        } else if (voiceModeRef.current) {
-          setTimeout(() => startVoiceListening(), 300);
-        }
-      },
-      onError: (error) => {
-        if (error === 'no-speech' && voiceModeRef.current) {
-          setTimeout(() => startVoiceListening(), 300);
-          return;
-        }
-        setVoiceListening(false);
-      },
-    });
-    activeVoiceRecRef.current = handle;
-  }, [onSend, tryStartRecognition]);
-
-  const toggleVoiceMode = useCallback(() => {
-    if (voiceMode) {
-      // Exit voice mode
-      voiceModeRef.current = false;
-      setVoiceMode(false);
-      setVoiceListening(false);
-      activeVoiceRecRef.current?.stop();
-      clearSimTimer();
-      setValue('');
-    } else {
-      // Enter voice mode
-      voiceModeRef.current = true;
-      setVoiceMode(true);
-      startVoiceListening();
-    }
-  }, [voiceMode, startVoiceListening, clearSimTimer]);
-
-  // When AI finishes responding while in voice mode, resume listening
-  const prevAiRespondingRef = useRef(false);
-  useEffect(() => {
-    const wasResponding = prevAiRespondingRef.current;
-    prevAiRespondingRef.current = !!isAiResponding;
-    // AI just finished responding → resume listening
-    if (wasResponding && !isAiResponding && voiceModeRef.current) {
-      setTimeout(() => startVoiceListening(), 500);
-    }
-  }, [isAiResponding, startVoiceListening]);
 
   // Close popups on outside click
   useEffect(() => {
@@ -427,11 +216,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
   };
 
   const canSend = value.trim().length > 0;
-  const isActive = focused || canSend || voiceMode;
-
-  const voicePlaceholder = voiceMode
-    ? (isAiResponding ? 'AI is thinking...' : voiceListening ? 'Listening...' : 'Waiting...')
-    : placeholder;
+  const isActive = focused || canSend;
 
   return (
     <div className="w-full flex flex-col gap-4">
@@ -496,7 +281,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
           onKeyDown={handleKeyDown}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          placeholder={voicePlaceholder}
+          placeholder={placeholder}
           rows={1}
           className="w-full bg-transparent resize-none outline-none text-text-primary placeholder-text-tertiary chat-textarea py-[11px]"
           style={{
@@ -508,26 +293,8 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
         />
         {/* Mic / Voice / Send — inside input, right-aligned, 24×24 buttons */}
         <div className="flex items-center gap-4 md:gap-2 shrink-0 ml-2">
-          <Tooltip label={isRecording ? 'Stop & send' : 'Microphone'}>
-            <button
-              onClick={toggleRecording}
-              className={`flex items-center justify-center shrink-0 cursor-pointer rounded-full transition-all ${isRecording ? 'bg-red-500/20 text-red-500 animate-pulse' : 'hover:bg-bg-hover text-text-primary'}`}
-              style={{ width: 'var(--input-btn-size)', height: 'var(--input-btn-size)' } as React.CSSProperties}
-            >
-              <MicIcon16 />
-            </button>
-          </Tooltip>
-          {voiceMode && !voiceAsSend ? (
-            <Tooltip label="Stop voice mode">
-              <button
-                onClick={toggleVoiceMode}
-                className="flex items-center justify-center shrink-0 cursor-pointer rounded-full transition-all bg-red-500 text-white hover:bg-red-600"
-                style={{ width: 'var(--input-btn-size)', height: 'var(--input-btn-size)' } as React.CSSProperties}
-              >
-                <StopIcon16 />
-              </button>
-            </Tooltip>
-          ) : voiceAsSend || focused || canSend ? (
+          {/* Show Send when focused/typing, Voice icon when idle (not in voice mode) */}
+          {voiceModeActive || focused || canSend ? (
             (() => {
               const isSendActive = canSend || !!forceSendActive;
               return (
@@ -549,14 +316,24 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
                 </Tooltip>
               );
             })()
-          ) : (
+          ) : onVoiceMode ? (
             <Tooltip label="Voice mode">
               <button
-                onClick={toggleVoiceMode}
+                onClick={onVoiceMode}
                 className="flex items-center justify-center shrink-0 cursor-pointer rounded-full hover:bg-bg-hover transition-all text-text-primary"
                 style={{ width: 'var(--input-btn-size)', height: 'var(--input-btn-size)' } as React.CSSProperties}
               >
                 <VoiceIcon16 />
+              </button>
+            </Tooltip>
+          ) : (
+            <Tooltip label="Send">
+              <button
+                onClick={canSend ? handleSend : undefined}
+                className="flex items-center justify-center shrink-0 rounded-full transition-all cursor-default hover:bg-bg-hover"
+                style={{ width: 'var(--input-btn-size)', height: 'var(--input-btn-size)' } as React.CSSProperties}
+              >
+                <IconImg src={iconSend} alt="Send" size={16} />
               </button>
             </Tooltip>
           )}

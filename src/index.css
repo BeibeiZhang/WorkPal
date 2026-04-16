@@ -349,6 +349,48 @@ html, body, #root {
   animation: progressFill 2.5s ease-in-out forwards;
 }
 
+/* ── Voice Mode animations ── */
+.voice-orb-listening {
+  background: linear-gradient(135deg, #7652B9, #B46470);
+  box-shadow: 0 0 40px rgba(118, 82, 185, 0.3);
+}
+.voice-orb-speaking {
+  background: linear-gradient(135deg, #7652B9, #B46470, #CA9D8C);
+  box-shadow: 0 0 60px rgba(118, 82, 185, 0.5);
+  animation: orbPulse 1.5s ease-in-out infinite;
+}
+@keyframes orbPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 40px rgba(118, 82, 185, 0.3); }
+  50% { transform: scale(1.08); box-shadow: 0 0 80px rgba(118, 82, 185, 0.5); }
+}
+@keyframes voicePulse1 {
+  0%, 100% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.05); opacity: 0.6; }
+}
+@keyframes voicePulse2 {
+  0%, 100% { transform: scale(1); opacity: 0.2; }
+  50% { transform: scale(1.08); opacity: 0.35; }
+}
+@keyframes voicePulse3 {
+  0%, 100% { transform: scale(1); opacity: 0.1; }
+  50% { transform: scale(1.1); opacity: 0.2; }
+}
+.voice-pulse-1 { animation: voicePulse1 1.5s ease-in-out infinite; }
+.voice-pulse-2 { animation: voicePulse2 1.8s ease-in-out infinite 0.2s; }
+.voice-pulse-3 { animation: voicePulse3 2.1s ease-in-out infinite 0.4s; }
+
+@keyframes voiceBar {
+  0%, 100% { height: 8px; }
+  50% { height: 24px; }
+}
+.voice-bar {
+  animation: voiceBar 0.8s ease-in-out infinite;
+}
+.voice-bar-bg {
+  background: linear-gradient(135deg, rgba(118,82,185,0.85), rgba(180,100,112,0.85));
+  backdrop-filter: blur(8px);
+}
+
 /* Dark overlay layer rendered behind any panel that overlays another panel
    due to tight-viewport collapse. Used by:
      • Sidebar when it overlays ChatPanel on compact / mobile viewports
