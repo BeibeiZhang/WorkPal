@@ -91,6 +91,18 @@ export interface ImageResult {
   attribution?: string;
 }
 
+/** A YouTube video returned by the `search_videos` tool and rendered as a
+ *  clickable card in the assistant's message. */
+export interface VideoResult {
+  videoId: string;
+  url: string;
+  title: string;
+  channelTitle: string;
+  thumbnailUrl: string;
+  publishedAt?: string;
+  description?: string;
+}
+
 export interface Message {
   id: string;
   role: MessageRole;
@@ -103,6 +115,9 @@ export interface Message {
   /** Images the assistant fetched via the search_images tool, rendered in a
    *  grid alongside the text. Populated as streaming chunks arrive. */
   imageResults?: ImageResult[];
+  /** YouTube videos the assistant fetched via the search_videos tool, rendered
+   *  as a list of cards beneath the text. */
+  videoResults?: VideoResult[];
 }
 
 export interface Chat {

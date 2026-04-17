@@ -8,7 +8,7 @@
  * 4. DataChannel for events (transcripts, function calls)
  */
 
-import type { ImageResult } from '../types';
+import type { ImageResult, VideoResult } from '../types';
 
 export type RealtimeState = 'idle' | 'connecting' | 'connected' | 'error';
 
@@ -41,6 +41,9 @@ export interface RealtimeCallbacks {
   /** Fired when the AI invokes the search_images tool — results are rendered
    *  into the chat as an assistant message with imageResults populated. */
   onImages?: (query: string, images: ImageResult[]) => void;
+  /** Fired when the AI invokes the search_videos tool — results are rendered
+   *  into the chat as an assistant message with videoResults populated. */
+  onVideos?: (query: string, videos: VideoResult[]) => void;
 }
 
 export class RealtimeSession {
@@ -278,6 +281,20 @@ export class RealtimeSession {
           result = `Displayed ${images.length} photo${images.length === 1 ? '' : 's'} for "${args.query}" in the chat. Continue the conversation naturally — do NOT list URLs or re-describe each photo; briefly reference that you've shown them and move on.`;
         } else {
           result = `No photos found for "${args.query}". Tell the user you couldn't find suitable photos and offer to try a different query.`;
+        }
+      } else if (name === 'search_videos' && args.query) {
+        const res = await fetch('/api/search-videos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: args.query, count: args.count }),
+        });
+        const data = await res.json();
+        const videos: VideoResult[] = Array.isArray(data?.videos) ? data.videos : [];
+        if (videos.length > 0) {
+          this.callbacks.onVideos?.(args.query, videos);
+          result = `Displayed ${videos.length} YouTube video${videos.length === 1 ? '' : 's'} for "${args.query}" in the chat. Continue naturally — do NOT read out URLs or titles; briefly reference that you've shown the videos and move on.`;
+        } else {
+          result = `No YouTube videos found for "${args.query}". Tell the user and offer to try a different query.`;
         }
       } else {
         result = `Unknown function: ${name}`;

@@ -12,7 +12,7 @@ import OverviewPage from './components/OverviewPage';
 import LibraryPage from './components/LibraryPage';
 import NewProjectDialog from './components/NewProjectDialog';
 import { SplitView } from './components/shared';
-import { Chat, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleCard, ImageResult } from './types';
+import { Chat, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleCard, ImageResult, VideoResult } from './types';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
 import { INITIAL_CHATS } from './data';
 import { streamChat } from './lib/api';
@@ -509,6 +509,19 @@ export default function App() {
               messages: c.messages.map(m =>
                 m.id === assistantId
                   ? { ...m, imageResults: [...(m.imageResults || []), ...chunk.images] }
+                  : m
+              ),
+            };
+          }));
+        } else if (chunk.type === 'videos') {
+          // Append YouTube video cards to the in-flight assistant message.
+          setChats(prev => prev.map(c => {
+            if (c.id !== chatId) return c;
+            return {
+              ...c,
+              messages: c.messages.map(m =>
+                m.id === assistantId
+                  ? { ...m, videoResults: [...(m.videoResults || []), ...chunk.videos] }
                   : m
               ),
             };
@@ -1106,6 +1119,19 @@ export default function App() {
     addMessage(activeChatId, msg);
   }, [activeChatId, addMessage]);
 
+  // Voice mode counterpart for search_videos — drop the cards into the chat
+  // as a standalone assistant message, same shape as the image flow.
+  const handleVoiceVideos = useCallback((_query: string, videos: VideoResult[]) => {
+    const msg: Message = {
+      id: nextId(),
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      videoResults: videos,
+    };
+    addMessage(activeChatId, msg);
+  }, [activeChatId, addMessage]);
+
   return (
     <div className="flex h-full w-full overflow-hidden" style={{ background: 'var(--color-outer-bg)' }}>
       {/* Outer rounded container */}
@@ -1286,6 +1312,7 @@ export default function App() {
                 onVoiceModeClose={handleVoiceModeClose}
                 onVoiceMessage={handleVoiceMessage}
                 onVoiceImages={handleVoiceImages}
+                onVoiceVideos={handleVoiceVideos}
                 voicePendingText={voicePendingText}
                 voicePendingImages={voicePendingImages}
                 onVoicePendingTextConsumed={() => { setVoicePendingText(undefined); setVoicePendingImages(undefined); }}

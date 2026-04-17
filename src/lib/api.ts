@@ -1,4 +1,4 @@
-import type { ImageResult } from '../types';
+import type { ImageResult, VideoResult } from '../types';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -12,6 +12,7 @@ interface ChatMessage {
 export type StreamChunk =
   | { type: 'text'; content: string }
   | { type: 'images'; images: ImageResult[] }
+  | { type: 'videos'; videos: VideoResult[] }
   | { type: 'done'; content: string }
   | { type: 'error'; content: string };
 
