@@ -62,6 +62,14 @@ export default function VoiceMode({ onClose, onMessage, onImages, pendingText, p
 
   const sessionRef = useRef<RealtimeSession | null>(null);
   const transcriptRef = useRef<{ role: 'user' | 'assistant'; content: string }[]>([]);
+  // Whisper transcription of the user's turn often lands AFTER the assistant's
+  // transcript is final (the assistant starts responding as soon as VAD fires,
+  // while Whisper keeps post-processing). Without buffering, the assistant
+  // message would appear above the user's question in the chat. Hold the
+  // assistant text until the user turn lands, then flush — or release after a
+  // short timeout if the user turn never arrives (e.g. assistant-initiated
+  // greeting on connect).
+  const pendingAssistantRef = useRef<{ text: string; timer: number } | null>(null);
   const pickerRef = useRef<HTMLDivElement | null>(null);
 
   // Connect / reconnect whenever `voice` changes. Each mount (or voice change) gets its own session.
@@ -71,15 +79,41 @@ export default function VoiceMode({ onClose, onMessage, onImages, pendingText, p
     setIsSpeaking(false);
     setIsMuted(false);
 
+    const pushAssistant = (text: string) => {
+      transcriptRef.current.push({ role: 'assistant', content: text });
+      onMessage?.('assistant', text);
+    };
+    const clearPendingAssistant = () => {
+      const p = pendingAssistantRef.current;
+      if (!p) return;
+      clearTimeout(p.timer);
+      pendingAssistantRef.current = null;
+      return p.text;
+    };
+
     const session = new RealtimeSession({
       onStateChange: setState,
       onTranscript: (evt: TranscriptEvent) => {
         if (evt.role === 'user' && evt.isFinal && evt.text.trim()) {
           transcriptRef.current.push({ role: 'user', content: evt.text });
           onMessage?.('user', evt.text);
+          // Flush any assistant reply that was waiting on this user turn.
+          const buffered = clearPendingAssistant();
+          if (buffered) pushAssistant(buffered);
         } else if (evt.role === 'assistant' && evt.isFinal && evt.text.trim()) {
-          transcriptRef.current.push({ role: 'assistant', content: evt.text });
-          onMessage?.('assistant', evt.text);
+          const last = transcriptRef.current[transcriptRef.current.length - 1];
+          const userTurnPending = !last || last.role === 'assistant';
+          if (userTurnPending) {
+            clearPendingAssistant();
+            const text = evt.text;
+            const timer = window.setTimeout(() => {
+              pendingAssistantRef.current = null;
+              pushAssistant(text);
+            }, 2000);
+            pendingAssistantRef.current = { text, timer };
+          } else {
+            pushAssistant(evt.text);
+          }
         }
       },
       onAudioStart: () => setIsSpeaking(true),
@@ -94,6 +128,10 @@ export default function VoiceMode({ onClose, onMessage, onImages, pendingText, p
     return () => {
       session.disconnect();
       sessionRef.current = null;
+      if (pendingAssistantRef.current) {
+        clearTimeout(pendingAssistantRef.current.timer);
+        pendingAssistantRef.current = null;
+      }
     };
   }, [voice]); // eslint-disable-line react-hooks/exhaustive-deps
 

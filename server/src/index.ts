@@ -7,7 +7,10 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
-app.use(express.json());
+// Attachments arrive as base64 data URLs; a single PNG easily exceeds the
+// default 100kb body limit. Match the client-side per-file cap (8 MB) and
+// allow a few in flight.
+app.use(express.json({ limit: '50mb' }));
 
 // API routes
 app.use('/api', chatRouter);
