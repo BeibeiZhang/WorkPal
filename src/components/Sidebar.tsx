@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Chat } from '../types';
-import { LayoutDashboard, SquarePen, Link, BookOpen, FolderPlus, ChevronDown, Search, Palette, PanelLeft, MoreHorizontal, Trash2, FolderInput, Check } from 'lucide-react';
+import { Chat, Attachment } from '../types';
+import { LayoutDashboard, SquarePen, Link, BookOpen, Brain, FolderPlus, ChevronDown, Search, Palette, PanelLeft, MoreHorizontal, Trash2, FolderInput, Check } from 'lucide-react';
 import { iconSun, iconMoon } from '../assets';
 
 /**
@@ -173,19 +173,23 @@ export interface Project {
   id: string;
   name: string;
   description?: string;
+  /** Reference files attached to the project. Their content is prepended to
+   *  every AI request in any chat scoped to this project — persistent
+   *  cross-chat context. See buildAttachmentContextBlock(..., 'project'). */
+  files?: Attachment[];
 }
 
 interface SidebarProps {
   chats: Chat[];
   activeChatId: string;
-  activeView?: 'chat' | 'connectors' | 'design-system' | 'overview' | 'library';
+  activeView?: 'chat' | 'connectors' | 'design-system' | 'overview' | 'library' | 'memory';
   activeProjectId?: string | null;
   projects: Project[];
   onChatSelect: (id: string) => void;
   onNewChat: () => void;
   onNewProject: () => void;
   onProjectSelect: (id: string) => void;
-  onViewChange?: (view: 'chat' | 'connectors' | 'design-system' | 'overview' | 'library') => void;
+  onViewChange?: (view: 'chat' | 'connectors' | 'design-system' | 'overview' | 'library' | 'memory') => void;
   onDeleteChat?: (id: string) => void;
   onDeleteProject?: (id: string) => void;
   /** File a chat into a project, or pass null to remove it from any project. */
@@ -244,6 +248,7 @@ export function MiniSidebar({ activeView, activeChatId, onViewChange, onNewChat,
     { id: 'search', label: 'Search', Icon: Search, onClick: () => onToggleSidebar?.(), active: false },
     { id: 'connectors', label: 'Connectors', Icon: Link, onClick: () => onViewChange?.('connectors'), active: activeView === 'connectors' },
     { id: 'library', label: 'Library', Icon: BookOpen, onClick: () => onViewChange?.('library'), active: activeView === 'library' },
+    { id: 'memory', label: 'Memory', Icon: Brain, onClick: () => onViewChange?.('memory'), active: activeView === 'memory' },
     { id: 'design-system', label: 'Design System', Icon: Palette, onClick: () => onViewChange?.('design-system'), active: activeView === 'design-system' },
   ];
 
@@ -522,6 +527,15 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
               <BookOpen size={18} className="shrink-0 text-text-primary" />
               <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
                 Library
+              </span>
+            </button>
+            <button
+              onClick={() => onViewChange?.('memory')}
+              className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${activeView === 'memory' ? 'gradient-ring' : 'hover:bg-bg-hover'}`}
+            >
+              <Brain size={18} className="shrink-0 text-text-primary" />
+              <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
+                Memory
               </span>
             </button>
           </>

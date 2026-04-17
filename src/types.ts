@@ -162,3 +162,23 @@ export interface App {
   icon: string;
   color: string;
 }
+
+/** Memory entry — persistent context about the user that gets injected into
+ *  every AI request (scoped by kind + optional project). Core/preference
+ *  memories apply globally; project memories only apply when the chat is in
+ *  that project. */
+export type MemoryKind = 'core' | 'preference' | 'project';
+
+export interface MemoryEntry {
+  id: string;
+  kind: MemoryKind;
+  /** Short headline shown in the list — also goes into the prompt as a label. */
+  title: string;
+  /** Body content — the substance that informs the AI. */
+  content: string;
+  /** Only meaningful for kind='project' — scopes this memory to one project. */
+  projectId?: string;
+  /** ISO strings (Date round-trips poorly through JSON). */
+  createdAt: string;
+  updatedAt: string;
+}

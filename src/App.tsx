@@ -10,13 +10,70 @@ import ConnectorsPage from './components/ConnectorsPage';
 import DesignSystemPage from './components/DesignSystemPage';
 import OverviewPage from './components/OverviewPage';
 import LibraryPage from './components/LibraryPage';
+import MemoryPage from './components/MemoryPage';
 import NewProjectDialog from './components/NewProjectDialog';
 import { SplitView } from './components/shared';
-import { Chat, ChatMode, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleCard, ImageResult, VideoResult, WebResult } from './types';
+import { Chat, ChatMode, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleCard, ImageResult, VideoResult, WebResult, MemoryEntry, MemoryKind } from './types';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
 import { INITIAL_CHATS } from './data';
 import { streamChat } from './lib/api';
 import { buildAttachmentContextBlock, buildImageDescriptionBlock } from './lib/attachments';
+import { loadMemories, saveMemories, buildMemoryBlock, nextMemoryId } from './lib/memory';
+
+// Projects are persisted separately from chats so uploads survive a refresh.
+// Bump the version if the shape changes in an incompatible way.
+const PROJECTS_STORAGE_KEY = 'workpal-projects-v1';
+
+// Seeded Instructions.md for the demo project. Stored as a real data URL so
+// it round-trips through the same extract → prompt-block path as user uploads.
+const DEMO_INSTRUCTIONS_MD = `# Agent Design — Project Instructions
+
+This project tracks the evolution of interface design norms and interaction
+patterns of mainstream AI products (Grok, ChatGPT, Claude, Gemini).
+
+## Focus areas
+- Navigation patterns and information architecture
+- Onboarding and first-run experience
+- Message/response rendering patterns
+- Tool-use and reasoning visibility
+- Agent personality and voice
+
+## Notes
+When asked about any AI product design, anchor in this project's scope —
+prefer comparative analysis across the four focal products.`;
+
+function seedInstructionsFile(): Attachment {
+  const b64 = btoa(unescape(encodeURIComponent(DEMO_INSTRUCTIONS_MD)));
+  return {
+    id: 'seed-instructions-md',
+    name: 'Instructions.md',
+    mimeType: 'text/markdown',
+    size: DEMO_INSTRUCTIONS_MD.length,
+    kind: 'file',
+    dataUrl: `data:text/markdown;base64,${b64}`,
+  };
+}
+
+function loadProjects(): Project[] {
+  try {
+    const raw = localStorage.getItem(PROJECTS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch { /* ignore corrupted data */ }
+  return [{
+    id: 'proj-1',
+    name: 'Agent Design',
+    files: [seedInstructionsFile()],
+  }];
+}
+
+function saveProjects(projects: Project[]) {
+  try {
+    localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(projects));
+  } catch { /* quota exceeded — silently drop, matches saveChats behavior */ }
+}
 
 // Demo chat IDs — these always use hardcoded flows, never call the API
 const DEMO_CHAT_IDS = ['alcohol-delivery', 'ux-meeting', 'my-workpal'];
@@ -351,16 +408,18 @@ export default function App() {
   const [selectedAvatarId, setSelectedAvatarId] = useState('white-man');
   const [detailOpen, setDetailOpen] = useState(false);
   const [onboardingDone, setOnboardingDone] = useState(() => localStorage.getItem('workpal-onboarding-done') === 'true');
-  const [activeView, setActiveView] = useState<'chat' | 'connectors' | 'design-system' | 'overview' | 'library'>('chat');
+  const [activeView, setActiveView] = useState<'chat' | 'connectors' | 'design-system' | 'overview' | 'library' | 'memory'>('chat');
   const [inputMode, setInputMode] = useState<'Chat' | 'Tasks' | 'Code'>('Chat');
   const [taskModeMsgSent, setTaskModeMsgSent] = useState(false);
   const [taskPanelPreviewing, setTaskPanelPreviewing] = useState(false);
   const [_taskModeUserMsg, setTaskModeUserMsg] = useState('');
-  const [projects, setProjects] = useState<Project[]>([
-    { id: 'proj-1', name: 'Agent Design' },
-  ]);
+  const [projects, setProjects] = useState<Project[]>(loadProjects);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
+  // Memory: persistent context about the user. Core + preference memories apply
+  // to every chat; project-scoped memories apply only when a chat sits under
+  // the matching project. Injected via buildMemoryBlock in streamFromAPI.
+  const [memories, setMemories] = useState<MemoryEntry[]>(loadMemories);
   const isMobile = useSyncExternalStore(subscribe, getIsMobile);
   const isCompactNav = useSyncExternalStore(subscribe, getIsCompactNav);
   const canFitAllThree = useSyncExternalStore(subscribe, getCanFitAllThree);
@@ -392,6 +451,16 @@ export default function App() {
   useEffect(() => {
     saveChats(chats);
   }, [chats]);
+
+  // Persist projects (including uploaded files) so uploads survive a refresh.
+  useEffect(() => {
+    saveProjects(projects);
+  }, [projects]);
+
+  // Persist memories so user edits survive reloads.
+  useEffect(() => {
+    saveMemories(memories);
+  }, [memories]);
 
   const activeChat = chats.find(c => c.id === activeChatId) || null;
 
@@ -448,7 +517,15 @@ export default function App() {
   }, [addMessage]);
 
   // Stream a real LLM response for non-demo chats
-  const streamFromAPI = useCallback(async (chatId: string, userText: string, userAttachments?: Attachment[]) => {
+  const streamFromAPI = useCallback(async (
+    chatId: string,
+    userText: string,
+    userAttachments?: Attachment[],
+    /** Override for fresh chats created by handleCreateChatInProject — the
+     *  chats closure hasn't committed yet, so we can't look up projectId via
+     *  the chat row the way the post-submit path does. */
+    projectIdOverride?: string,
+  ) => {
     // Collect conversation history for context
     // We pass userText/attachments explicitly because setChats hasn't committed yet.
     // Historical messages forward their own image attachments too so the model keeps
@@ -462,11 +539,34 @@ export default function App() {
           ? { role: m.role, content: m.content, images: imgs }
           : { role: m.role, content: m.content };
       });
+    // Project-level reference files: treat them as persistent context that
+    // applies to every message in any chat scoped to this project. Prepended
+    // ahead of per-message attachments so the model sees the project brief
+    // first, then the user's specific upload, then the question.
+    const projectId = projectIdOverride ?? chat?.projectId;
+    const project = projectId ? projects.find(p => p.id === projectId) : null;
+    const projectFiles = project?.files || [];
+    const projectDocBlock = projectFiles.length > 0
+      ? await buildAttachmentContextBlock(projectFiles, 'project')
+      : null;
+    const projectImages = projectFiles.filter(a => a.kind === 'image').map(a => a.dataUrl);
+    // Memory: core + preference memories always apply; project memories apply
+    // only when the active chat is in the matching project. Kept stable across
+    // turns so prompt caching on the backend can reuse it once implemented.
+    const memoryBlock = buildMemoryBlock(memories, projectId ?? undefined);
     // Extract text from non-image attachments (PDFs, .txt, .md, etc.) and
     // inline it ahead of the user's message so the model can answer about it.
     const docText = userAttachments ? await buildAttachmentContextBlock(userAttachments) : null;
-    const combinedText = docText ? `${docText}\n\n${userText}`.trim() : userText;
-    const currentImages = (userAttachments || []).filter(a => a.kind === 'image').map(a => a.dataUrl);
+    // Order: memory → project docs → per-message attachments → user question.
+    // Memory goes first so the model frames everything that follows through
+    // the user's preferences.
+    const combinedText = [memoryBlock, projectDocBlock, docText, userText]
+      .filter((s): s is string => !!s && s.length > 0)
+      .join('\n\n');
+    const currentImages = [
+      ...projectImages,
+      ...(userAttachments || []).filter(a => a.kind === 'image').map(a => a.dataUrl),
+    ];
     const currentMessage = currentImages.length > 0
       ? { role: 'user' as const, content: combinedText, images: currentImages }
       : { role: 'user' as const, content: combinedText };
@@ -572,7 +672,7 @@ export default function App() {
         };
       }));
     }
-  }, [chats, addMessage]);
+  }, [chats, projects, memories, addMessage]);
 
   // Auto-respond when opening ux-meeting chat with only the user message
   useEffect(() => {
@@ -917,6 +1017,51 @@ export default function App() {
     setOnboardingDone(true);
     localStorage.setItem('workpal-onboarding-done', 'true');
 
+    // Persist the user's selections as Memory so every future chat inherits
+    // them — not just the first message. Fixed IDs so re-running onboarding
+    // overwrites instead of duplicating. Empty sections get removed.
+    const now = new Date().toISOString();
+    const upsertEntries: MemoryEntry[] = [];
+    if (mostImportant.length) {
+      upsertEntries.push({
+        id: 'onboarding-top-qualities',
+        kind: 'preference',
+        title: 'Top qualities I value',
+        content: `When shaping tone and behavior, lean into these qualities the user chose as most important: ${mostImportant.join(', ')}.`,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+    if (avoid.length) {
+      upsertEntries.push({
+        id: 'onboarding-avoid',
+        kind: 'preference',
+        title: 'Qualities to avoid',
+        content: `Avoid these traits the user marked as unwanted: ${avoid.join(', ')}.`,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+    if (description) {
+      upsertEntries.push({
+        id: 'onboarding-description',
+        kind: 'core',
+        title: 'In the user\u2019s own words',
+        content: description,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+    const upsertIds = new Set(upsertEntries.map(e => e.id));
+    // Also clear any onboarding-* entries that no longer apply (e.g. user
+    // cleared their description on a re-run).
+    const staleOnboardingIds = new Set(['onboarding-top-qualities', 'onboarding-avoid', 'onboarding-description']);
+    setMemories(prev => {
+      const kept = prev.filter(m => !staleOnboardingIds.has(m.id) || upsertIds.has(m.id));
+      const withoutUpserted = kept.filter(m => !upsertIds.has(m.id));
+      return [...upsertEntries, ...withoutUpserted];
+    });
+
     // Build user message content: optional description + most-important + avoid sections
     const lines: string[] = [];
     if (description) {
@@ -1115,8 +1260,9 @@ export default function App() {
       setTaskModeMsgSent(false);
       setContextPanelOpen(false);
     }
-    // Stream the AI response
-    streamFromAPI(chatId, text, attachments);
+    // Stream the AI response — pass projectId explicitly because the chats
+    // closure inside streamFromAPI hasn't committed the new chat yet.
+    streamFromAPI(chatId, text, attachments, projectId);
   }, [streamFromAPI]);
 
   const handleCreateProject = useCallback((name: string, description: string) => {
@@ -1157,6 +1303,54 @@ export default function App() {
       setActiveView('chat');
     }
   }, [activeProjectId]);
+
+  // Add one or more files to a project's shared reference files. The caller
+  // (ProjectPage) has already converted the FileList → Attachment[] via
+  // filesToAttachments so the data URL + metadata are ready to persist.
+  const handleAddProjectFiles = useCallback((projectId: string, newFiles: Attachment[]) => {
+    if (newFiles.length === 0) return;
+    setProjects(prev => prev.map(p =>
+      p.id === projectId
+        ? { ...p, files: [...(p.files || []), ...newFiles] }
+        : p
+    ));
+  }, []);
+
+  const handleRemoveProjectFile = useCallback((projectId: string, fileId: string) => {
+    setProjects(prev => prev.map(p =>
+      p.id === projectId
+        ? { ...p, files: (p.files || []).filter(f => f.id !== fileId) }
+        : p
+    ));
+  }, []);
+
+  // Memory CRUD. Every mutation updates updatedAt so the list can sort by
+  // most-recent later if we want.
+  const handleAddMemory = useCallback((draft: { kind: MemoryKind; title: string; content: string; projectId?: string }) => {
+    const now = new Date().toISOString();
+    const entry: MemoryEntry = {
+      id: nextMemoryId(),
+      kind: draft.kind,
+      title: draft.title,
+      content: draft.content,
+      projectId: draft.projectId,
+      createdAt: now,
+      updatedAt: now,
+    };
+    setMemories(prev => [entry, ...prev]);
+  }, []);
+
+  const handleUpdateMemory = useCallback((id: string, patch: { kind: MemoryKind; title: string; content: string; projectId?: string }) => {
+    setMemories(prev => prev.map(m =>
+      m.id === id
+        ? { ...m, ...patch, updatedAt: new Date().toISOString() }
+        : m
+    ));
+  }, []);
+
+  const handleDeleteMemory = useCallback((id: string) => {
+    setMemories(prev => prev.filter(m => m.id !== id));
+  }, []);
 
   // Move a chat into a project (or out of any project when projectId is null).
   // Triggered from the Recents row's 3-dot menu.
@@ -1325,6 +1519,8 @@ export default function App() {
             chats={chats}
             onCreateChat={handleCreateChatInProject}
             onOpenChat={handleChatSelect}
+            onAddFiles={handleAddProjectFiles}
+            onRemoveFile={handleRemoveProjectFile}
             sidebarOpen={sidebarOpen || !isMobile}
             onToggleSidebar={() => setSidebarOpen(o => !o)}
           />
@@ -1347,6 +1543,17 @@ export default function App() {
           />
         ) : activeView === 'library' ? (
           <LibraryPage
+            sidebarOpen={sidebarOpen || !isMobile}
+            onToggleSidebar={() => setSidebarOpen(o => !o)}
+            onNewChat={isMobile ? handleNewChat : undefined}
+          />
+        ) : activeView === 'memory' ? (
+          <MemoryPage
+            memories={memories}
+            projects={projects}
+            onAdd={handleAddMemory}
+            onUpdate={handleUpdateMemory}
+            onDelete={handleDeleteMemory}
             sidebarOpen={sidebarOpen || !isMobile}
             onToggleSidebar={() => setSidebarOpen(o => !o)}
             onNewChat={isMobile ? handleNewChat : undefined}

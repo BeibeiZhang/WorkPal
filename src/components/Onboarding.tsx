@@ -84,6 +84,16 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
 
   const canProceed = important.length === 3;
 
+  // Placeholder narrates progress so the input nudges the user through the
+  // 0→3 selection flow without a separate helper label.
+  const inputPlaceholder = (() => {
+    const n = important.length;
+    if (n === 0) return 'Type your own words here...';
+    if (n === 3) return 'Anything else to add? Or hit send \u2191.';
+    const remaining = 3 - n;
+    return `${remaining} more to pick-or add your own words here.`;
+  })();
+
   const handleChatSend = (text: string) => {
     const trimmed = text.trim();
     if (!canProceed && !trimmed) return;
@@ -131,7 +141,7 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
           onSend={handleChatSend}
           chatOnly
           forceSendActive={canProceed}
-          placeholder={canProceed ? 'Want to add anything in your own words? Or just hit send' : 'Type your own words here...'}
+          placeholder={inputPlaceholder}
         />
       }
     >
