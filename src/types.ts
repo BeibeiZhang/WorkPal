@@ -132,6 +132,8 @@ export interface Message {
   webResults?: WebResult[];
 }
 
+export type ChatMode = 'Chat' | 'Tasks' | 'Code';
+
 export interface Chat {
   id: string;
   title: string;
@@ -145,6 +147,13 @@ export interface Chat {
    *  stay highlighted under the top "New Session" button until the user
    *  submits something. */
   isDraft?: boolean;
+  /** Project this chat belongs to. Unset for chats created outside any
+   *  project (they only appear in the root Recents list). */
+  projectId?: string;
+  /** Which conversation mode the chat was started in. Drives the right
+   *  panel (Task mode opens the context/workspace panel; Chat mode keeps
+   *  it closed). Preserved across reopens. */
+  mode?: ChatMode;
 }
 
 export interface App {
