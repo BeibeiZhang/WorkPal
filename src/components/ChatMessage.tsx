@@ -1,8 +1,59 @@
 import { useState, useCallback } from 'react';
 import { FileText, Download, Play } from 'lucide-react';
-import { Message, Attachment, ImageResult, VideoResult } from '../types';
+import { Message, Attachment, ImageResult, VideoResult, WebResult } from '../types';
 import MessageCard from './MessageCard';
 import { iconCopy, iconShare, iconThumbsUp, iconRefresh } from '../assets';
+
+/** Extract a clean display host from a URL — strips leading "www." and falls
+ *  back to the raw string if parsing fails (e.g. relative URL, bad input). */
+function hostFromUrl(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return url;
+  }
+}
+
+/** Source chips rendered under the assistant's synthesized answer — one small
+ *  rounded pill per unique domain cited by the web_search tool. Favicon is
+ *  pulled from Google's s2 service to avoid the chip failing when the source
+ *  site blocks direct /favicon.ico hotlinking. */
+function WebSourceChips({ results }: { results: WebResult[] }) {
+  const seen = new Set<string>();
+  const unique = results.filter((r) => {
+    const host = hostFromUrl(r.url);
+    if (seen.has(host)) return false;
+    seen.add(host);
+    return true;
+  }).slice(0, 6);
+  if (unique.length === 0) return null;
+  return (
+    <div className="mt-2 flex flex-wrap gap-1.5">
+      {unique.map((r) => {
+        const host = hostFromUrl(r.url);
+        return (
+          <a
+            key={r.url}
+            href={r.url}
+            target="_blank"
+            rel="noreferrer"
+            title={r.title || host}
+            className="inline-flex items-center gap-1.5 h-6 px-2 rounded-full bg-bg-hover hover:bg-stroke-outline border border-stroke-outline text-[11px] leading-none text-text-secondary hover:text-text-primary transition-colors no-underline max-w-[200px]"
+          >
+            <img
+              src={`https://www.google.com/s2/favicons?domain=${host}&sz=64`}
+              alt=""
+              className="w-3.5 h-3.5 rounded-sm shrink-0"
+              loading="lazy"
+              onError={(e) => { (e.target as HTMLImageElement).style.visibility = 'hidden'; }}
+            />
+            <span className="truncate">{host}</span>
+          </a>
+        );
+      })}
+    </div>
+  );
+}
 
 /** Assistant image-search grid. Layout adapts to count:
  *   1 → single wide image (max-w tight so it doesn't dominate)
@@ -295,6 +346,12 @@ export default function ChatMessage({ message, isLastAssistant, onCardAction }: 
             <p className="text-base text-text-primary leading-[22px]">
               {renderText(message.content)}
             </p>
+          )}
+
+          {/* Source chips from the web_search tool — shown directly under the
+              synthesized answer so they read as citations for that text. */}
+          {message.webResults && message.webResults.length > 0 && (
+            <WebSourceChips results={message.webResults} />
           )}
 
           {/* Images fetched via search_images tool */}

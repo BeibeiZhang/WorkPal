@@ -103,6 +103,15 @@ export interface VideoResult {
   description?: string;
 }
 
+/** A web search hit returned by the `web_search` tool. Rendered as a small
+ *  source chip (favicon + domain) under the assistant's synthesized answer. */
+export interface WebResult {
+  title: string;
+  url: string;
+  content: string;
+  score?: number;
+}
+
 export interface Message {
   id: string;
   role: MessageRole;
@@ -118,6 +127,9 @@ export interface Message {
   /** YouTube videos the assistant fetched via the search_videos tool, rendered
    *  as a list of cards beneath the text. */
   videoResults?: VideoResult[];
+  /** Web-search source hits — shown as small favicon+domain chips so the user
+   *  can click through to the citation. */
+  webResults?: WebResult[];
 }
 
 export interface Chat {

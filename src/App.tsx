@@ -526,6 +526,20 @@ export default function App() {
               ),
             };
           }));
+        } else if (chunk.type === 'web_results') {
+          // Stream web-search hits into the in-flight message so the source
+          // chips appear immediately while the model synthesizes its reply.
+          setChats(prev => prev.map(c => {
+            if (c.id !== chatId) return c;
+            return {
+              ...c,
+              messages: c.messages.map(m =>
+                m.id === assistantId
+                  ? { ...m, webResults: [...(m.webResults || []), ...chunk.results] }
+                  : m
+              ),
+            };
+          }));
         } else if (chunk.type === 'error') {
           fullContent = `Sorry, something went wrong: ${chunk.content}`;
         }

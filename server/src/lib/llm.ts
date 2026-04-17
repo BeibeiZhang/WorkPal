@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import type { ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources/chat/completions';
 import { searchImages, isImageSearchConfigured, type ImageResult } from './imageSearch.js';
 import { searchVideos, isVideoSearchConfigured, type VideoResult } from './youtubeSearch.js';
+import { searchWeb, isWebSearchConfigured, type WebResult } from './webSearch.js';
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -15,6 +16,7 @@ export type StreamChunk =
   | { type: 'text'; content: string }
   | { type: 'images'; images: ImageResult[] }
   | { type: 'videos'; videos: VideoResult[] }
+  | { type: 'web_results'; results: WebResult[] }
   | { type: 'done'; content: string }
   | { type: 'error'; content: string };
 
@@ -66,13 +68,39 @@ const VIDEO_SEARCH_TOOL: ChatCompletionTool = {
   },
 };
 
+const WEB_SEARCH_TOOL: ChatCompletionTool = {
+  type: 'function',
+  function: {
+    name: 'web_search',
+    description: 'Search the live web for up-to-date facts, prices, news, product specs, official sources, or any information that may have changed since your training cutoff. ALWAYS call this — do not refuse or say you "cannot browse" — when the user asks for current prices, product availability, official website content, recent events, statistics, or anything requiring live data. After the tool returns, write a concise synthesized answer in the user\'s language and cite the sources naturally (the UI will render source chips automatically from the tool results).',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Specific search query. Include product name, brand, country/market, and "official" or "site:brand.com" when looking for authoritative prices. Match the language appropriate to the target site (e.g. Chinese for chanel.cn, English for chanel.com).',
+        },
+        max_results: {
+          type: 'integer',
+          description: 'How many source results to fetch, 3-8. Default 5.',
+          minimum: 3,
+          maximum: 8,
+        },
+      },
+      required: ['query'],
+    },
+  },
+};
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
 const SYSTEM_PROMPT = `You are WorkPal, an AI workplace assistant. You help users with meeting summaries, task management, research, scheduling, and general work productivity. Be concise, helpful, and professional. Respond in the same language the user uses.
 
-When a user attaches an image, describe what you visually observe — subjects, setting, composition, mood, visible text, style — so the user can work with the content. For photos of people, describe visible attributes (expression, clothing, hair, pose, background) without attempting to identify or guess who the person is. Never respond that you "cannot see" or "cannot describe" an attached image; the image is present and you are able to describe it.`;
+When a user attaches an image, describe what you visually observe — subjects, setting, composition, mood, visible text, style — so the user can work with the content. For photos of people, describe visible attributes (expression, clothing, hair, pose, background) without attempting to identify or guess who the person is. Never respond that you "cannot see" or "cannot describe" an attached image; the image is present and you are able to describe it.
+
+For any question about current prices, product specs, news, live statistics, official-website content, or anything that may have changed since your training, you MUST call the web_search tool. Do NOT guess, do NOT say "I cannot browse the web," and do NOT tell the user to check the website themselves — you have web_search, use it. After the tool returns, write a concise answer in the user's language that synthesizes the findings. The UI renders source chips from the tool results automatically, so you do not need to paste raw URLs.`;
 
 function toOpenAIMessage(msg: ChatMessage): ChatCompletionMessageParam {
   // Only user messages can carry images. Assistant/system stay text-only.
@@ -95,28 +123,27 @@ export async function* streamChat(
   messages: ChatMessage[],
   model = 'gpt-4o-mini',
 ): AsyncGenerator<StreamChunk> {
-  // gpt-4o-mini already supports vision, so image messages Just Work.
   const toolList: ChatCompletionTool[] = [];
   if (isImageSearchConfigured()) toolList.push(IMAGE_SEARCH_TOOL);
   if (isVideoSearchConfigured()) toolList.push(VIDEO_SEARCH_TOOL);
+  if (isWebSearchConfigured()) toolList.push(WEB_SEARCH_TOOL);
   const tools = toolList.length > 0 ? toolList : undefined;
 
+  const baseMessages: ChatCompletionMessageParam[] = [
+    { role: 'system', content: SYSTEM_PROMPT },
+    ...messages.map(toOpenAIMessage),
+  ];
+
   try {
-    // Single-pass streaming. The model may stream text and tool_call deltas
-    // in the same response; the tool description instructs it to write a
-    // one-sentence intro *before* calling search_images, so no follow-up
-    // round is needed — we execute the tool, yield the images, and end.
     const stream = await openai.chat.completions.create({
       model,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        ...messages.map(toOpenAIMessage),
-      ],
+      messages: baseMessages,
       stream: true,
       ...(tools ? { tools, tool_choice: 'auto' as const } : {}),
     });
 
     const toolCallsBuffer: Array<{
+      id: string;
       function: { name: string; arguments: string };
     }> = [];
 
@@ -128,17 +155,28 @@ export async function* streamChat(
         for (const tc of delta.tool_calls) {
           const idx = tc.index ?? 0;
           if (!toolCallsBuffer[idx]) {
-            toolCallsBuffer[idx] = { function: { name: '', arguments: '' } };
+            toolCallsBuffer[idx] = { id: '', function: { name: '', arguments: '' } };
           }
+          if (tc.id) toolCallsBuffer[idx].id = tc.id;
           if (tc.function?.name) toolCallsBuffer[idx].function.name = tc.function.name;
           if (tc.function?.arguments) toolCallsBuffer[idx].function.arguments += tc.function.arguments;
         }
       }
     }
 
-    // Execute tool calls after the text stream finishes, then emit results.
+    // Execute one-shot tools (images/videos) — results are terminal UI output.
+    // Web search needs a second LLM pass so the model can synthesize an answer
+    // from the retrieved snippets; collect those separately.
+    const webCalls: Array<{
+      id: string;
+      name: string;
+      rawArgs: string;
+      results: WebResult[];
+      images: string[];
+    }> = [];
+
     for (const tc of toolCallsBuffer) {
-      let args: { query?: string; count?: number } = {};
+      let args: { query?: string; count?: number; max_results?: number } = {};
       try { args = JSON.parse(tc.function.arguments); } catch { /* invalid JSON — treat as empty */ }
       if (tc.function.name === 'search_images') {
         const images = await searchImages(args.query || '', args.count || 4);
@@ -146,6 +184,66 @@ export async function* streamChat(
       } else if (tc.function.name === 'search_videos') {
         const videos = await searchVideos(args.query || '', args.count || 5);
         if (videos.length > 0) yield { type: 'videos', videos };
+      } else if (tc.function.name === 'web_search') {
+        const resp = await searchWeb(args.query || '', args.max_results || 5);
+        if (resp.results.length > 0) yield { type: 'web_results', results: resp.results };
+        webCalls.push({
+          id: tc.id,
+          name: tc.function.name,
+          rawArgs: tc.function.arguments || '{}',
+          results: resp.results,
+          images: resp.images,
+        });
+      }
+    }
+
+    // Second pass: if web_search ran, feed results back so the model synthesizes
+    // a grounded answer citing the sources.
+    if (webCalls.length > 0) {
+      const followupMessages: ChatCompletionMessageParam[] = [
+        ...baseMessages,
+        {
+          role: 'assistant',
+          content: null,
+          tool_calls: webCalls.map((c) => ({
+            id: c.id || `call_${Math.random().toString(36).slice(2, 10)}`,
+            type: 'function' as const,
+            function: { name: c.name, arguments: c.rawArgs },
+          })),
+        },
+        ...webCalls.map((c) => ({
+          role: 'tool' as const,
+          tool_call_id: c.id || `call_${Math.random().toString(36).slice(2, 10)}`,
+          content: JSON.stringify({
+            results: c.results.map((r) => ({ title: r.title, url: r.url, content: r.content })),
+          }),
+        })),
+      ];
+
+      const followup = await openai.chat.completions.create({
+        model,
+        messages: followupMessages,
+        stream: true,
+      });
+
+      for await (const chunk of followup) {
+        const delta = chunk.choices[0]?.delta;
+        if (delta?.content) yield { type: 'text', content: delta.content };
+      }
+
+      // If the search returned inline images, show the first one as a product photo.
+      const firstImage = webCalls.flatMap((c) => c.images).find(Boolean);
+      if (firstImage) {
+        yield {
+          type: 'images',
+          images: [{
+            url: firstImage,
+            thumbUrl: firstImage,
+            alt: 'Search result image',
+            sourceUrl: webCalls[0]?.results[0]?.url,
+            attribution: webCalls[0]?.results[0]?.title,
+          }],
+        };
       }
     }
 
