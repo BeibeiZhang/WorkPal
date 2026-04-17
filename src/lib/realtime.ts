@@ -8,7 +8,7 @@
  * 4. DataChannel for events (transcripts, function calls)
  */
 
-import type { ImageResult, VideoResult } from '../types';
+import type { ImageResult, VideoResult, WebResult } from '../types';
 
 export type RealtimeState = 'idle' | 'connecting' | 'connected' | 'error';
 
@@ -44,6 +44,10 @@ export interface RealtimeCallbacks {
   /** Fired when the AI invokes the search_videos tool — results are rendered
    *  into the chat as an assistant message with videoResults populated. */
   onVideos?: (query: string, videos: VideoResult[]) => void;
+  /** Fired when the AI invokes web_search — an assistant message is appended
+   *  with webResults (source chips) and optional imageResults (product photo
+   *  pulled from the Tavily response). */
+  onWebSearch?: (query: string, results: WebResult[], images: ImageResult[]) => void;
 }
 
 export class RealtimeSession {
@@ -295,6 +299,37 @@ export class RealtimeSession {
           result = `Displayed ${videos.length} YouTube video${videos.length === 1 ? '' : 's'} for "${args.query}" in the chat. Continue naturally — do NOT read out URLs or titles; briefly reference that you've shown the videos and move on.`;
         } else {
           result = `No YouTube videos found for "${args.query}". Tell the user and offer to try a different query.`;
+        }
+      } else if (name === 'web_search' && args.query) {
+        // Web search for prices/facts. Unlike text mode (which runs a second
+        // LLM pass to synthesize), voice mode passes the raw result snippets
+        // back as the function output — the realtime model reads them in its
+        // next spoken turn. Results + the first inline image render as a
+        // standalone assistant message so the user sees source chips and a
+        // product photo while the AI speaks the answer.
+        const res = await fetch('/api/search-web', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: args.query, max_results: args.max_results }),
+        });
+        const data = await res.json();
+        const results: WebResult[] = Array.isArray(data?.results) ? data.results : [];
+        const imageUrls: string[] = Array.isArray(data?.images) ? data.images : [];
+        if (results.length > 0) {
+          const images: ImageResult[] = imageUrls[0]
+            ? [{
+                url: imageUrls[0],
+                thumbUrl: imageUrls[0],
+                alt: 'Search result image',
+                sourceUrl: results[0].url,
+                attribution: results[0].title,
+              }]
+            : [];
+          this.callbacks.onWebSearch?.(args.query, results, images);
+          const condensed = results.slice(0, 5).map((r, i) => `${i + 1}. ${r.title}\n${r.content.slice(0, 500)}\nSource: ${r.url}`).join('\n\n');
+          result = `Web search results for "${args.query}" (source chips are already displayed in the chat — do NOT read out URLs aloud). Summarize the key facts in the user's language:\n\n${condensed}`;
+        } else {
+          result = `No web results found for "${args.query}". Tell the user and ask whether to refine the query.`;
         }
       } else {
         result = `Unknown function: ${name}`;

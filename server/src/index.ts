@@ -37,4 +37,9 @@ app.listen(PORT, () => {
   } else {
     console.warn('⚠️  YOUTUBE_API_KEY not set — search_videos tool disabled');
   }
+  if (process.env.TAVILY_API_KEY) {
+    console.log('✅ TAVILY_API_KEY loaded — web_search tool is active');
+  } else {
+    console.warn('⚠️  TAVILY_API_KEY not set — web_search tool disabled');
+  }
 });

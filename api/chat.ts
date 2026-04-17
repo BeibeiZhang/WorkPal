@@ -29,6 +29,13 @@ interface VideoResult {
   description?: string;
 }
 
+interface WebResult {
+  title: string;
+  url: string;
+  content: string;
+  score?: number;
+}
+
 async function searchImages(query: string, count: number): Promise<ImageResult[]> {
   const key = process.env.UNSPLASH_ACCESS_KEY;
   if (!key) return [];
@@ -132,6 +139,48 @@ async function searchVideos(query: string, count: number): Promise<VideoResult[]
   }
 }
 
+async function searchWeb(query: string, maxResults: number): Promise<{ results: WebResult[]; images: string[] }> {
+  const key = process.env.TAVILY_API_KEY;
+  if (!key) return { results: [], images: [] };
+  const capped = Math.max(3, Math.min(maxResults, 8));
+  try {
+    const res = await fetch('https://api.tavily.com/search', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        query,
+        search_depth: 'basic',
+        max_results: capped,
+        include_images: true,
+        include_answer: false,
+      }),
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!res.ok) return { results: [], images: [] };
+    const data = (await res.json()) as {
+      results?: Array<{ title?: string; url?: string; content?: string; score?: number }>;
+      images?: Array<string | { url?: string }>;
+    };
+    const results: WebResult[] = (data.results || [])
+      .map((r) => ({
+        title: (r.title || '').trim(),
+        url: (r.url || '').trim(),
+        content: (r.content || '').trim(),
+        score: r.score,
+      }))
+      .filter((r) => r.url);
+    const images = (data.images || [])
+      .map((i) => (typeof i === 'string' ? i : i?.url || ''))
+      .filter((u): u is string => !!u);
+    return { results, images };
+  } catch {
+    return { results: [], images: [] };
+  }
+}
+
 const IMAGE_SEARCH_TOOL: ChatCompletionTool = {
   type: 'function',
   function: {
@@ -164,9 +213,27 @@ const VIDEO_SEARCH_TOOL: ChatCompletionTool = {
   },
 };
 
+const WEB_SEARCH_TOOL: ChatCompletionTool = {
+  type: 'function',
+  function: {
+    name: 'web_search',
+    description: 'Search the live web for up-to-date facts, prices, news, product specs, official sources, or any information that may have changed since your training cutoff. ALWAYS call this — do not refuse or say you "cannot browse" — when the user asks for current prices, product availability, official website content, recent events, statistics, or anything requiring live data. After the tool returns, write a concise synthesized answer in the user\'s language and cite the sources naturally (the UI will render source chips automatically from the tool results).',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Specific search query. Include product name, brand, country/market, and "official" or "site:brand.com" when looking for authoritative prices. Match the language appropriate to the target site (e.g. Chinese for chanel.cn, English for chanel.com).' },
+        max_results: { type: 'integer', description: 'How many source results to fetch, 3-8. Default 5.', minimum: 3, maximum: 8 },
+      },
+      required: ['query'],
+    },
+  },
+};
+
 const SYSTEM_PROMPT = `You are WorkPal, an AI workplace assistant. You help users with meeting summaries, task management, research, scheduling, and general work productivity. Be concise, helpful, and professional. Respond in the same language the user uses.
 
-When a user attaches an image, describe what you visually observe — subjects, setting, composition, mood, visible text, style — so the user can work with the content. For photos of people, describe visible attributes (expression, clothing, hair, pose, background) without attempting to identify or guess who the person is. Never respond that you "cannot see" or "cannot describe" an attached image; the image is present and you are able to describe it.`;
+When a user attaches an image, describe what you visually observe — subjects, setting, composition, mood, visible text, style — so the user can work with the content. For photos of people, describe visible attributes (expression, clothing, hair, pose, background) without attempting to identify or guess who the person is. Never respond that you "cannot see" or "cannot describe" an attached image; the image is present and you are able to describe it.
+
+For any question about current prices, product specs, news, live statistics, official-website content, or anything that may have changed since your training, you MUST call the web_search tool. Do NOT guess, do NOT say "I cannot browse the web," and do NOT tell the user to check the website themselves — you have web_search, use it. After the tool returns, write a concise answer in the user's language that synthesizes the findings. The UI renders source chips from the tool results automatically, so you do not need to paste raw URLs.`;
 
 function toOpenAIMessage(msg: ChatMessage): ChatCompletionMessageParam {
   if (msg.role === 'user' && msg.images && msg.images.length > 0) {
@@ -211,23 +278,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const tools: ChatCompletionTool[] = [];
   if (process.env.UNSPLASH_ACCESS_KEY) tools.push(IMAGE_SEARCH_TOOL);
   if (process.env.YOUTUBE_API_KEY) tools.push(VIDEO_SEARCH_TOOL);
+  if (process.env.TAVILY_API_KEY) tools.push(WEB_SEARCH_TOOL);
 
   const write = (chunk: unknown) => {
     res.write(`data: ${JSON.stringify(chunk)}\n\n`);
   };
 
+  const baseMessages: ChatCompletionMessageParam[] = [
+    { role: 'system', content: SYSTEM_PROMPT },
+    ...messages.map(toOpenAIMessage),
+  ];
+
   try {
     const stream = await openai.chat.completions.create({
       model,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        ...messages.map(toOpenAIMessage),
-      ],
+      messages: baseMessages,
       stream: true,
       ...(tools.length > 0 ? { tools, tool_choice: 'auto' as const } : {}),
     });
 
-    const toolCallsBuffer: Array<{ function: { name: string; arguments: string } }> = [];
+    const toolCallsBuffer: Array<{ id: string; function: { name: string; arguments: string } }> = [];
 
     for await (const chunk of stream) {
       const delta = chunk.choices[0]?.delta;
@@ -237,16 +307,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         for (const tc of delta.tool_calls) {
           const idx = tc.index ?? 0;
           if (!toolCallsBuffer[idx]) {
-            toolCallsBuffer[idx] = { function: { name: '', arguments: '' } };
+            toolCallsBuffer[idx] = { id: '', function: { name: '', arguments: '' } };
           }
+          if (tc.id) toolCallsBuffer[idx].id = tc.id;
           if (tc.function?.name) toolCallsBuffer[idx].function.name = tc.function.name;
           if (tc.function?.arguments) toolCallsBuffer[idx].function.arguments += tc.function.arguments;
         }
       }
     }
 
+    const webCalls: Array<{
+      id: string;
+      name: string;
+      rawArgs: string;
+      results: WebResult[];
+      images: string[];
+    }> = [];
+
     for (const tc of toolCallsBuffer) {
-      let args: { query?: string; count?: number } = {};
+      let args: { query?: string; count?: number; max_results?: number } = {};
       try { args = JSON.parse(tc.function.arguments); } catch { /* invalid JSON — treat as empty */ }
       if (tc.function.name === 'search_images') {
         const images = await searchImages(args.query || '', args.count || 4);
@@ -254,6 +333,63 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       } else if (tc.function.name === 'search_videos') {
         const videos = await searchVideos(args.query || '', args.count || 5);
         if (videos.length > 0) write({ type: 'videos', videos });
+      } else if (tc.function.name === 'web_search') {
+        const resp = await searchWeb(args.query || '', args.max_results || 5);
+        if (resp.results.length > 0) write({ type: 'web_results', results: resp.results });
+        webCalls.push({
+          id: tc.id,
+          name: tc.function.name,
+          rawArgs: tc.function.arguments || '{}',
+          results: resp.results,
+          images: resp.images,
+        });
+      }
+    }
+
+    if (webCalls.length > 0) {
+      const followupMessages: ChatCompletionMessageParam[] = [
+        ...baseMessages,
+        {
+          role: 'assistant',
+          content: null,
+          tool_calls: webCalls.map((c) => ({
+            id: c.id || `call_${Math.random().toString(36).slice(2, 10)}`,
+            type: 'function' as const,
+            function: { name: c.name, arguments: c.rawArgs },
+          })),
+        },
+        ...webCalls.map((c) => ({
+          role: 'tool' as const,
+          tool_call_id: c.id || `call_${Math.random().toString(36).slice(2, 10)}`,
+          content: JSON.stringify({
+            results: c.results.map((r) => ({ title: r.title, url: r.url, content: r.content })),
+          }),
+        })),
+      ];
+
+      const followup = await openai.chat.completions.create({
+        model,
+        messages: followupMessages,
+        stream: true,
+      });
+
+      for await (const chunk of followup) {
+        const delta = chunk.choices[0]?.delta;
+        if (delta?.content) write({ type: 'text', content: delta.content });
+      }
+
+      const firstImage = webCalls.flatMap((c) => c.images).find(Boolean);
+      if (firstImage) {
+        write({
+          type: 'images',
+          images: [{
+            url: firstImage,
+            thumbUrl: firstImage,
+            alt: 'Search result image',
+            sourceUrl: webCalls[0]?.results[0]?.url,
+            attribution: webCalls[0]?.results[0]?.title,
+          }],
+        });
       }
     }
 

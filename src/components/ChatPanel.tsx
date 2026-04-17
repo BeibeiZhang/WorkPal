@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { PanelRight } from 'lucide-react';
-import { Chat, Message, ActionChip, Attachment, ImageResult, VideoResult } from '../types';
+import { Chat, Message, ActionChip, Attachment, ImageResult, VideoResult, WebResult } from '../types';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import VoiceMode from './VoiceMode';
@@ -38,6 +38,9 @@ interface ChatPanelProps {
   onVoiceImages?: (query: string, images: ImageResult[]) => void;
   /** Called when the AI fetches YouTube videos via search_videos during voice mode. */
   onVoiceVideos?: (query: string, videos: VideoResult[]) => void;
+  /** Called when the AI invokes web_search during voice mode — App renders an
+   *  assistant message with source chips and an optional product photo. */
+  onVoiceWebSearch?: (query: string, results: WebResult[], images: ImageResult[]) => void;
   /** Text typed during voice mode to inject into the voice session */
   voicePendingText?: string;
   /** Image data URLs attached during voice mode to send to the voice session */
@@ -182,6 +185,7 @@ export default function ChatPanel({
   onVoiceMessage,
   onVoiceImages,
   onVoiceVideos,
+  onVoiceWebSearch,
   voicePendingText,
   voicePendingImages,
   onVoicePendingTextConsumed,
@@ -253,6 +257,7 @@ export default function ChatPanel({
               onMessage={onVoiceMessage}
               onImages={onVoiceImages}
               onVideos={onVoiceVideos}
+              onWebSearch={onVoiceWebSearch}
               pendingText={voicePendingText}
               pendingImages={voicePendingImages}
               onPendingTextConsumed={onVoicePendingTextConsumed}

@@ -3,6 +3,7 @@ import { streamChat, getAvailableModels } from '../lib/llm.js';
 import type { ChatMessage } from '../lib/llm.js';
 import { searchImages } from '../lib/imageSearch.js';
 import { searchVideos } from '../lib/youtubeSearch.js';
+import { searchWeb } from '../lib/webSearch.js';
 
 const router = Router();
 
@@ -115,6 +116,17 @@ router.post('/search-videos', async (req, res) => {
   res.json({ videos });
 });
 
+// POST /api/search-web — called by voice mode when the AI invokes web_search
+router.post('/search-web', async (req, res) => {
+  const { query, max_results } = req.body as { query?: string; max_results?: number };
+  if (!query || typeof query !== 'string') {
+    res.status(400).json({ error: 'query is required' });
+    return;
+  }
+  const resp = await searchWeb(query, typeof max_results === 'number' ? max_results : 5);
+  res.json({ results: resp.results, images: resp.images });
+});
+
 // GET /api/realtime/token — ephemeral token for OpenAI Realtime WebRTC
 const ALLOWED_VOICES = ['alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', 'verse'] as const;
 type Voice = (typeof ALLOWED_VOICES)[number];
@@ -138,7 +150,7 @@ router.get('/realtime/token', async (req, res) => {
       body: JSON.stringify({
         model: 'gpt-4o-realtime-preview',
         voice,
-        instructions: 'You are WorkPal, an AI workplace assistant. Be concise and helpful. Respond in the same language the user speaks. Support Chinese, English, and mixed language conversations. When a user gives you a URL, use the browse_url tool to read the page content before responding. When the user attaches an image, describe what you see and answer any questions about it. Use the search_images tool proactively to add real photos whenever visual examples would make your answer clearer — when the user asks to see pictures of something, when you are explaining a concrete thing (an animal, a place, a product), or when a few illustrative photos would enrich the reply. Before calling search_images, speak a short one-sentence lead-in like "Let me pull up some photos of X." Keep queries short and in English for best results (e.g. "golden retriever puppy").',
+        instructions: 'You are WorkPal, an AI workplace assistant. Be concise and helpful. Respond in the same language the user speaks. Support Chinese, English, and mixed language conversations. When a user gives you a URL, use the browse_url tool to read the page content before responding. When the user attaches an image, describe what you see and answer any questions about it. Use the search_images tool proactively to add real photos whenever visual examples would make your answer clearer — when the user asks to see pictures of something, when you are explaining a concrete thing (an animal, a place, a product), or when a few illustrative photos would enrich the reply. Before calling search_images, speak a short one-sentence lead-in like "Let me pull up some photos of X." Keep queries short and in English for best results (e.g. "golden retriever puppy"). For any question about current prices, product specs, news, live statistics, or official-website content, you MUST call the web_search tool — never refuse with "I cannot browse" and never guess numbers. Speak a short one-sentence lead-in like "Let me look that up for you" before calling web_search, then after the tool returns, speak a concise synthesized answer in the user\'s language; the UI will render source chips and product images automatically, so you do not need to read URLs aloud.',
         input_audio_transcription: { model: 'whisper-1' },
         tools: [
           {
@@ -175,6 +187,19 @@ router.get('/realtime/token', async (req, res) => {
               properties: {
                 query: { type: 'string', description: 'Search phrase — match the user\'s language. Include specifics like skill level or tool name, e.g. "react hooks tutorial beginner", "日语五十音教学".' },
                 count: { type: 'number', description: 'How many videos to return (1–8). Default 5.' },
+              },
+              required: ['query'],
+            },
+          },
+          {
+            type: 'function',
+            name: 'web_search',
+            description: 'Search the live web for current facts — prices, news, product specs, official-site content, anything that may have changed since training. ALWAYS call this for price/fact questions; do not refuse. Speak a short one-sentence lead-in BEFORE calling so the user hears that you are looking it up, then speak a concise synthesized answer after the tool returns. The UI shows source chips and product images automatically.',
+            parameters: {
+              type: 'object',
+              properties: {
+                query: { type: 'string', description: 'Specific search query. Include product name, brand, and market/country, and match the language appropriate to the target site (Chinese for chanel.cn, English for chanel.com).' },
+                max_results: { type: 'number', description: 'How many source results to fetch (3–8). Default 5.' },
               },
               required: ['query'],
             },
