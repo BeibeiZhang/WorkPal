@@ -13,7 +13,7 @@ import LibraryPage from './components/LibraryPage';
 import MemoryPage from './components/MemoryPage';
 import NewProjectDialog from './components/NewProjectDialog';
 import { SplitView } from './components/shared';
-import { Chat, ChatMode, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleCard, ImageResult, VideoResult, WebResult, MemoryEntry, MemoryKind } from './types';
+import { Chat, ChatMode, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleCard, ImageResult, VideoResult, WebResult, MemoryEntry, MemoryKind, CardData } from './types';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
 import { INITIAL_CHATS } from './data';
 import { streamChat } from './lib/api';
@@ -439,6 +439,13 @@ export default function App() {
   const [contextPanelOpen, setContextPanelOpen] = useState(true);
   // 0–3 = current active step index in alcohol-delivery flow, 4 = all completed
   const [alcoholProgress, setAlcoholProgress] = useState(4);
+  // Live task-mode progress & tool list — populated from streaming chunks
+  // emitted by Gmail/Calendar tool calls. Reset on every new Tasks-mode send.
+  const [taskSteps, setTaskSteps] = useState<{ id: string; label: string; status: 'active' | 'completed' }[]>([]);
+  const [activeTools, setActiveTools] = useState<string[]>([]);
+  // The specific card whose "view-report" was clicked — drives what the side
+  // DetailPanel renders. Null = fall back to the alcohol-delivery demo report.
+  const [detailCard, setDetailCard] = useState<CardData | null>(null);
   // Voice mode overlay
   const [voiceModeActive, setVoiceModeActive] = useState(false);
   const [voicePendingText, setVoicePendingText] = useState<string | undefined>();
@@ -550,7 +557,11 @@ export default function App() {
      *  chats closure hasn't committed yet, so we can't look up projectId via
      *  the chat row the way the post-submit path does. */
     projectIdOverride?: string,
+    /** Chat mode to forward to the backend — gates which tools the LLM sees.
+     *  Defaults to the current UI mode when not explicitly passed. */
+    modeOverride?: ChatMode,
   ) => {
+    const mode: ChatMode = modeOverride ?? inputMode;
     // Collect conversation history for context
     // We pass userText/attachments explicitly because setChats hasn't committed yet.
     // Historical messages forward their own image attachments too so the model keeps
@@ -609,7 +620,7 @@ export default function App() {
 
     try {
       let fullContent = '';
-      for await (const chunk of streamChat(history, undefined)) {
+      for await (const chunk of streamChat(history, undefined, mode)) {
         if (chunk.type === 'text') {
           fullContent += chunk.content;
           // Update the message in-place with streamed content
@@ -665,20 +676,50 @@ export default function App() {
               ),
             };
           }));
+        } else if (chunk.type === 'card') {
+          // Gmail/Calendar tool produced a structured card — attach it to the
+          // in-flight assistant message so MessageCard renders it. Only the
+          // first card wins per message (matches how scripted flows work).
+          setChats(prev => prev.map(c => {
+            if (c.id !== chatId) return c;
+            return {
+              ...c,
+              messages: c.messages.map(m =>
+                m.id === assistantId && !m.card
+                  ? { ...m, card: chunk.card }
+                  : m
+              ),
+            };
+          }));
+        } else if (chunk.type === 'task_step') {
+          // Live task-panel progress — update by id (server reuses tool_call_id
+          // so the same step flips from active → completed in place).
+          setTaskSteps(prev => {
+            const idx = prev.findIndex(s => s.id === chunk.step.id);
+            if (idx === -1) return [...prev, chunk.step];
+            const next = prev.slice();
+            next[idx] = chunk.step;
+            return next;
+          });
+        } else if (chunk.type === 'tool_active') {
+          setActiveTools(prev => prev.includes(chunk.name) ? prev : [...prev, chunk.name]);
         } else if (chunk.type === 'error') {
           fullContent = `Sorry, something went wrong: ${chunk.content}`;
         }
       }
-      // Finalize: remove loading state
+      // Finalize: remove loading state. A read-only tool can produce a card
+      // with no accompanying text — don't show the "No response received."
+      // fallback in that case, since the card IS the answer.
       setChats(prev => prev.map(c => {
         if (c.id !== chatId) return c;
         return {
           ...c,
-          messages: c.messages.map(m =>
-            m.id === assistantId
-              ? { ...m, content: fullContent || 'No response received.', isLoading: false }
-              : m
-          ),
+          messages: c.messages.map(m => {
+            if (m.id !== assistantId) return m;
+            const hasStructured = !!(m.card || m.imageResults?.length || m.videoResults?.length || m.webResults?.length);
+            const finalText = fullContent || (hasStructured ? '' : 'No response received.');
+            return { ...m, content: finalText, isLoading: false };
+          }),
           lastMessage: fullContent || 'No response received.',
           timestamp: new Date(),
         };
@@ -697,7 +738,7 @@ export default function App() {
         };
       }));
     }
-  }, [chats, projects, memories, addMessage]);
+  }, [chats, projects, memories, addMessage, inputMode]);
 
   // Auto-respond when opening ux-meeting chat with only the user message
   useEffect(() => {
@@ -799,7 +840,14 @@ export default function App() {
       return;
     }
 
-    if (inputMode === 'Tasks') { setTaskModeMsgSent(true); setTaskModeUserMsg(text); }
+    if (inputMode === 'Tasks') {
+      setTaskModeMsgSent(true);
+      setTaskModeUserMsg(text);
+      // Fresh send in Tasks mode — clear any prior live progress/tools so the
+      // right panel shows this task's work, not the previous one's.
+      setTaskSteps([]);
+      setActiveTools([]);
+    }
     // Find or create active chat
     let chatId = activeChatId;
 
@@ -1230,6 +1278,10 @@ export default function App() {
     } else {
       setContextPanelOpen(false);
     }
+    // Streaming task progress is per-conversation-turn — clearing on switch
+    // prevents old chatroom's progress from bleeding into the next one.
+    setTaskSteps([]);
+    setActiveTools([]);
     if (target?.mode) setInputMode(target.mode);
     setActiveChatId(id);
     setActiveProjectId(null);
@@ -1281,13 +1333,17 @@ export default function App() {
       setTaskModeMsgSent(true);
       setTaskModeUserMsg(text);
       setContextPanelOpen(getCanFitPanel());
+      setTaskSteps([]);
+      setActiveTools([]);
     } else {
       setTaskModeMsgSent(false);
       setContextPanelOpen(false);
     }
     // Stream the AI response — pass projectId explicitly because the chats
     // closure inside streamFromAPI hasn't committed the new chat yet.
-    streamFromAPI(chatId, text, attachments, projectId);
+    // Pass the mode override too so a Tasks-mode project chat starts with the
+    // right tool set even before setInputMode() commits.
+    streamFromAPI(chatId, text, attachments, projectId, mode);
   }, [streamFromAPI]);
 
   const handleCreateProject = useCallback((name: string, description: string) => {
@@ -1649,20 +1705,47 @@ export default function App() {
               bgClass="app-bg"
               side={({ overlay }) => {
                 if (sideKind === 'detail') {
+                  // Real tool-result cards (Research / Meeting) carry their own
+                  // title + body. Fall back to the alcohol-delivery demo report
+                  // when no specific card was opened (demo view-report click).
+                  let detailTitle = 'Summary Report: Spark Driver Alcohol';
+                  let detailContent: string | null = null;
+                  if (detailCard?.type === 'research') {
+                    detailTitle = detailCard.title;
+                    detailContent = detailCard.summary;
+                  } else if (detailCard?.type === 'meeting') {
+                    detailTitle = detailCard.title;
+                    detailContent = detailCard.content;
+                  }
                   return (
                     <DetailPanel
-                      title="Summary Report: Spark Driver Alcohol"
-                      content={REPORT_CONTENT}
-                      onClose={() => { setDetailOpen(false); setContextPanelOpen(true); }}
+                      title={detailTitle}
+                      content={detailContent ?? REPORT_CONTENT}
+                      onClose={() => { setDetailOpen(false); setDetailCard(null); setContextPanelOpen(true); }}
                       fullScreen={overlay}
                     />
                   );
                 }
                 if (sideKind === 'context') {
+                  const isDemo = activeChatId === 'alcohol-delivery';
+                  // Live tool-call progress maps onto the Progress step list.
+                  // The demo chat keeps its scripted 4-step sequence; real chats
+                  // render whatever the streaming backend emitted.
+                  const liveProgress = isDemo
+                    ? buildAlcoholProgress(alcoholProgress)
+                    : taskSteps.map(s => ({
+                        label: s.label,
+                        status: s.status === 'completed' ? 'completed' as const : 'active' as const,
+                      }));
+                  const liveTools = isDemo
+                    ? undefined
+                    : activeTools.map(name => ({ name }));
                   return (
                     <TaskContextPanel
                       onClose={() => setContextPanelOpen(false)}
-                      progress={activeChatId === 'alcohol-delivery' ? buildAlcoholProgress(alcoholProgress) : undefined}
+                      progress={liveProgress}
+                      toolsActive={liveTools}
+                      useDemoDefaults={isDemo}
                       fullScreen={overlay}
                     />
                   );
@@ -1674,8 +1757,13 @@ export default function App() {
                 chat={activeChat?.id === 'my-workpal' && (!onboardingDone || (activeChat?.messages.length ?? 0) === 0) ? null : activeChat ?? null}
                 onSend={handleSend}
                 onChipClick={handleChipClick}
-                onCardAction={(action) => {
-                  if (action === 'view-report') { setDetailOpen(true); setContextPanelOpen(false); return; }
+                onCardAction={(action, card) => {
+                  if (action === 'view-report') {
+                    setDetailCard(card ?? null);
+                    setDetailOpen(true);
+                    setContextPanelOpen(false);
+                    return;
+                  }
                   handleCardAction(action);
                 }}
                 sidebarOpen={sidebarOpen || !isMobile}
@@ -1711,6 +1799,7 @@ export default function App() {
                   <TaskContextPanel
                     onClose={() => {}}
                     progress={activeChatId === 'alcohol-delivery' ? buildAlcoholProgress(alcoholProgress) : undefined}
+                    useDemoDefaults={activeChatId === 'alcohol-delivery'}
                     fullScreen
                   />
                 </div>

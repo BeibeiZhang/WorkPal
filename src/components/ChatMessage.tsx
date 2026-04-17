@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { FileText, Download, Play } from 'lucide-react';
-import { Message, Attachment, ImageResult, VideoResult, WebResult } from '../types';
+import { Message, Attachment, ImageResult, VideoResult, WebResult, CardData } from '../types';
 import MessageCard from './MessageCard';
 import { iconCopy, iconShare, iconThumbsUp, iconRefresh } from '../assets';
 
@@ -217,7 +217,7 @@ function MessageAttachments({ attachments }: { attachments: Attachment[] }) {
 interface ChatMessageProps {
   message: Message;
   isLastAssistant?: boolean;
-  onCardAction?: (action: string) => void;
+  onCardAction?: (action: string, card?: CardData) => void;
 }
 
 function renderText(text: string) {
