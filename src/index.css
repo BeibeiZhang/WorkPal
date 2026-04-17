@@ -253,9 +253,12 @@ html, body, #root {
 
 .dark .app-shell-bg {
   background:
-    radial-gradient(ellipse 464px 493px at right bottom, rgba(97,108,255,0.25) 0%, transparent 100%),
-    radial-gradient(ellipse 944px 571px at 40% top, rgba(244,112,1,0.25) 0%, transparent 100%),
-    radial-gradient(ellipse 469px 657px at left bottom, rgba(47,165,255,0.20) 0%, transparent 100%),
+    /* Light/Purple #616cff @ 25% — right side vertical glow (Figma mask 861×832, container right 67%) */
+    radial-gradient(ellipse 45% 110% at 100% 55%, rgba(97, 108, 255, 0.25) 0%, transparent 75%),
+    /* Light/Orange #f47001 @ 25% — bottom-left warm glow (Figma mask 1280×832, container left 77%) */
+    radial-gradient(ellipse 110% 100% at 0% 100%, rgba(244, 112, 1, 0.25) 0%, transparent 80%),
+    /* Light/Blue #2fa5ff @ 20% — upper-left cool glow (Figma mask 788×657, container left 62% top 79%) */
+    radial-gradient(ellipse 70% 55% at 25% 5%, rgba(47, 165, 255, 0.20) 0%, transparent 75%),
     #001424;
 }
 
