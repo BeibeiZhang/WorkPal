@@ -18,7 +18,17 @@ import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
 import { INITIAL_CHATS } from './data';
 import { streamChat } from './lib/api';
 import { buildAttachmentContextBlock, buildImageDescriptionBlock } from './lib/attachments';
-import { loadMemories, saveMemories, buildMemoryBlock, nextMemoryId } from './lib/memory';
+import {
+  loadMemoriesCache,
+  saveMemoriesCache,
+  buildMemoryBlock,
+  nextMemoryId,
+  fetchMemoriesFromServer,
+  createMemoryOnServer,
+  updateMemoryOnServer,
+  deleteMemoryOnServer,
+} from './lib/memory';
+import { useMemoryAuth } from './lib/useMemoryAuth';
 
 // Projects are persisted separately from chats so uploads survive a refresh.
 // Bump the version if the shape changes in an incompatible way.
@@ -419,7 +429,10 @@ export default function App() {
   // Memory: persistent context about the user. Core + preference memories apply
   // to every chat; project-scoped memories apply only when a chat sits under
   // the matching project. Injected via buildMemoryBlock in streamFromAPI.
-  const [memories, setMemories] = useState<MemoryEntry[]>(loadMemories);
+  // Source of truth lives on the backend (so phone + laptop stay in sync);
+  // localStorage acts as an offline-friendly first-paint cache.
+  const [memories, setMemories] = useState<MemoryEntry[]>(loadMemoriesCache);
+  const { ensurePassword, passwordModal } = useMemoryAuth();
   const isMobile = useSyncExternalStore(subscribe, getIsMobile);
   const isCompactNav = useSyncExternalStore(subscribe, getIsCompactNav);
   const canFitAllThree = useSyncExternalStore(subscribe, getCanFitAllThree);
@@ -457,10 +470,22 @@ export default function App() {
     saveProjects(projects);
   }, [projects]);
 
-  // Persist memories so user edits survive reloads.
+  // Refresh local cache (used as the first-paint snapshot before the next
+  // network fetch) whenever memories change.
   useEffect(() => {
-    saveMemories(memories);
+    saveMemoriesCache(memories);
   }, [memories]);
+
+  // Pull canonical memory list from the backend on mount so the UI matches
+  // whatever was last saved from any device. Falls back silently to the
+  // localStorage-cached state if the backend is unreachable.
+  useEffect(() => {
+    let cancelled = false;
+    fetchMemoriesFromServer()
+      .then((list) => { if (!cancelled) setMemories(list); })
+      .catch((err) => { console.warn('Memory sync failed:', err); });
+    return () => { cancelled = true; };
+  }, []);
 
   const activeChat = chats.find(c => c.id === activeChatId) || null;
 
@@ -1324,9 +1349,17 @@ export default function App() {
     ));
   }, []);
 
-  // Memory CRUD. Every mutation updates updatedAt so the list can sort by
-  // most-recent later if we want.
-  const handleAddMemory = useCallback((draft: { kind: MemoryKind; title: string; content: string; projectId?: string }) => {
+  // Memory CRUD. Every mutation goes through the backend (so phone + laptop
+  // stay in sync) and is gated by the password the user set in MEMORY_PASSWORD.
+  // The handlers resolve to a boolean so the calling form can stay open on
+  // failure and close on success.
+  const handleAddMemory = useCallback(async (draft: { kind: MemoryKind; title: string; content: string; projectId?: string }): Promise<boolean> => {
+    let password: string;
+    try {
+      password = await ensurePassword();
+    } catch {
+      return false;
+    }
     const now = new Date().toISOString();
     const entry: MemoryEntry = {
       id: nextMemoryId(),
@@ -1337,20 +1370,54 @@ export default function App() {
       createdAt: now,
       updatedAt: now,
     };
-    setMemories(prev => [entry, ...prev]);
-  }, []);
+    try {
+      const saved = await createMemoryOnServer(entry, password);
+      setMemories(prev => [saved, ...prev]);
+      return true;
+    } catch (err) {
+      console.error('Failed to add memory:', err);
+      return false;
+    }
+  }, [ensurePassword]);
 
-  const handleUpdateMemory = useCallback((id: string, patch: { kind: MemoryKind; title: string; content: string; projectId?: string }) => {
-    setMemories(prev => prev.map(m =>
-      m.id === id
-        ? { ...m, ...patch, updatedAt: new Date().toISOString() }
-        : m
-    ));
-  }, []);
+  const handleUpdateMemory = useCallback(async (id: string, patch: { kind: MemoryKind; title: string; content: string; projectId?: string }): Promise<boolean> => {
+    let password: string;
+    try {
+      password = await ensurePassword();
+    } catch {
+      return false;
+    }
+    try {
+      const saved = await updateMemoryOnServer(id, patch, password);
+      setMemories(prev => prev.map(m => m.id === id ? saved : m));
+      return true;
+    } catch (err) {
+      console.error('Failed to update memory:', err);
+      return false;
+    }
+  }, [ensurePassword]);
 
-  const handleDeleteMemory = useCallback((id: string) => {
-    setMemories(prev => prev.filter(m => m.id !== id));
-  }, []);
+  const handleDeleteMemory = useCallback(async (id: string): Promise<boolean> => {
+    // Delete is destructive — always re-prompt for the password, even if a
+    // valid one is cached for the current session.
+    let password: string;
+    try {
+      password = await ensurePassword({
+        force: true,
+        message: 'Deleting a memory requires the password — there is no undo.',
+      });
+    } catch {
+      return false;
+    }
+    try {
+      await deleteMemoryOnServer(id, password);
+      setMemories(prev => prev.filter(m => m.id !== id));
+      return true;
+    } catch (err) {
+      console.error('Failed to delete memory:', err);
+      return false;
+    }
+  }, [ensurePassword]);
 
   // Move a chat into a project (or out of any project when projectId is null).
   // Triggered from the Recents row's 3-dot menu.
@@ -1659,6 +1726,9 @@ export default function App() {
         onClose={() => setNewProjectOpen(false)}
         onCreate={handleCreateProject}
       />
+
+      {/* Memory password prompt (rendered by useMemoryAuth) */}
+      {passwordModal}
 
     </div>
   );

@@ -7,9 +7,12 @@ import { KIND_LABEL } from '../lib/memory';
 interface MemoryPageProps {
   memories: MemoryEntry[];
   projects: { id: string; name: string }[];
-  onAdd: (draft: { kind: MemoryKind; title: string; content: string; projectId?: string }) => void;
-  onUpdate: (id: string, patch: { kind: MemoryKind; title: string; content: string; projectId?: string }) => void;
-  onDelete: (id: string) => void;
+  /** Returns true when the change persisted; false when the password prompt
+   *  was cancelled or the server rejected the write. The page uses the result
+   *  to decide whether to close the inline form. */
+  onAdd: (draft: { kind: MemoryKind; title: string; content: string; projectId?: string }) => Promise<boolean>;
+  onUpdate: (id: string, patch: { kind: MemoryKind; title: string; content: string; projectId?: string }) => Promise<boolean>;
+  onDelete: (id: string) => Promise<boolean>;
   sidebarOpen: boolean;
   onToggleSidebar?: () => void;
   onNewChat?: () => void;
@@ -197,14 +200,14 @@ export default function MemoryPage({
 
   const filtered = memories.filter(m => filter === 'All' || m.kind === filter);
 
-  const handleAddSave = (draft: { kind: MemoryKind; title: string; content: string; projectId?: string }) => {
-    onAdd(draft);
-    setAdding(false);
+  const handleAddSave = async (draft: { kind: MemoryKind; title: string; content: string; projectId?: string }) => {
+    const ok = await onAdd(draft);
+    if (ok) setAdding(false);
   };
 
-  const handleUpdateSave = (id: string, draft: { kind: MemoryKind; title: string; content: string; projectId?: string }) => {
-    onUpdate(id, draft);
-    setEditingId(null);
+  const handleUpdateSave = async (id: string, draft: { kind: MemoryKind; title: string; content: string; projectId?: string }) => {
+    const ok = await onUpdate(id, draft);
+    if (ok) setEditingId(null);
   };
 
   return (

@@ -169,6 +169,82 @@ function RowMoreMenu({
 
 const USER_PROFILE_IMG = '/icons/user-profile.png';
 
+/**
+ * Account dropdown anchored to the sidebar's profile row. Opens upward
+ * (footer-anchored) with entries like "Memory" that jump to their page.
+ * Dismisses on outside click or Escape.
+ */
+function AvatarMenu({ onMemory }: { onMemory: () => void }) {
+  const [open, setOpen] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (btnRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="relative flex-1 min-w-0">
+      <button
+        ref={btnRef}
+        type="button"
+        aria-label="Open account menu"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-6 w-full rounded-full hover:bg-bg-hover transition-colors text-left"
+      >
+        <div className="rounded-full overflow-hidden shrink-0" style={{ width: 35, height: 35 }}>
+          <img src={USER_PROFILE_IMG} alt="Beibei Zhang" className="w-full h-full object-cover" />
+        </div>
+        <p
+          className="text-[16px] font-bold text-text-primary tracking-[-0.43px] truncate"
+          style={{ lineHeight: '32px', fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
+        >
+          Beibei Zhang
+        </p>
+      </button>
+
+      {open && (
+        <div
+          ref={menuRef}
+          role="menu"
+          className="absolute bottom-full left-0 mb-2 min-w-[180px] py-1 rounded-xl overflow-hidden z-40"
+          style={{
+            background: 'var(--color-bg-page)',
+            border: '1px solid var(--color-stroke-outline)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          }}
+        >
+          <button
+            role="menuitem"
+            onClick={() => { setOpen(false); onMemory(); }}
+            className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-bg-hover transition-colors"
+          >
+            <Brain size={16} className="shrink-0 text-text-primary" />
+            <span className="text-[14px] text-text-primary">Memory</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -605,18 +681,8 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
           backgroundPosition: 'top',
         }}
       >
-        {/* Profile */}
-        <div className="flex items-center gap-6 flex-1 min-w-0">
-          <div className="rounded-full overflow-hidden shrink-0" style={{ width: 35, height: 35 }}>
-            <img src={USER_PROFILE_IMG} alt="Beibei Zhang" className="w-full h-full object-cover" />
-          </div>
-          <p
-            className="text-[16px] font-bold text-text-primary tracking-[-0.43px] truncate"
-            style={{ lineHeight: '32px', fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
-          >
-            Beibei Zhang
-          </p>
-        </div>
+        {/* Profile + account menu */}
+        <AvatarMenu onMemory={() => onViewChange?.('memory')} />
         {/* Dark/Light toggle */}
         <DarkToggle isDark={isDark} onToggle={onToggleDark} />
       </div>
