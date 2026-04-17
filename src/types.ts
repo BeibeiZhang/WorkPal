@@ -5,10 +5,16 @@ export interface ActionChip {
   action: string;
 }
 
+/** Origin of a tool-result card — drives the app-header icon + label at the top
+ *  of the card (e.g. "Gmail", "Google Calendar"). Undefined means no header
+ *  (legacy freeform rendering for demo flows). */
+export type CardSource = 'gmail' | 'calendar' | 'doc';
+
 export interface MeetingCard {
   title: string;
   content: string;
   type: 'meeting';
+  source?: CardSource;
 }
 
 export interface ResearchCard {
@@ -17,6 +23,7 @@ export interface ResearchCard {
   type: 'research';
   status?: 'in-progress' | 'sent' | 'done';
   statusLabel?: string;
+  source?: CardSource;
 }
 
 export interface TicketItem {
@@ -53,6 +60,7 @@ export interface ScheduleCard {
   type: 'schedule';
   status?: 'pending' | 'sent';
   statusLabel?: string;
+  source?: CardSource;
 }
 
 export interface AgentCard {

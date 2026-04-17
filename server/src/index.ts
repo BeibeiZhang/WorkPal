@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import chatRouter from './routes/chat.js';
 import memoryRouter from './routes/memory.js';
+import connectorsRouter from './routes/connectors.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -16,6 +17,7 @@ app.use(express.json({ limit: '50mb' }));
 // API routes
 app.use('/api', chatRouter);
 app.use('/api', memoryRouter);
+app.use('/api', connectorsRouter);
 
 // Health check
 app.get('/health', (_req, res) => {
@@ -43,5 +45,17 @@ app.listen(PORT, () => {
     console.log('✅ TAVILY_API_KEY loaded — web_search tool is active');
   } else {
     console.warn('⚠️  TAVILY_API_KEY not set — web_search tool disabled');
+  }
+  const googleReady = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_REDIRECT_URI);
+  if (googleReady) {
+    console.log('✅ Google OAuth configured — Gmail + Calendar connect flows active');
+  } else {
+    console.warn('⚠️  Google OAuth not configured — set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI in server/.env to enable Gmail + Calendar connectors');
+  }
+  if (!process.env.MEMORY_PASSWORD) {
+    console.warn('⚠️  MEMORY_PASSWORD not set — connector mutations + memory writes will be blocked');
+  }
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+    console.warn('⚠️  SUPABASE_URL / SUPABASE_ANON_KEY not set — connectors + memory persistence will fail');
   }
 });

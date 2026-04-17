@@ -1,4 +1,4 @@
-import type { ImageResult, VideoResult, WebResult } from '../types';
+import type { CardData, ChatMode, ImageResult, VideoResult, WebResult } from '../types';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -9,11 +9,23 @@ interface ChatMessage {
   images?: string[];
 }
 
+/** A live task-progress step emitted by the server as a Gmail/Calendar tool
+ *  runs. Mirrors server/src/lib/llm.ts `TaskStepChunk`. Rendered in the
+ *  TaskContextPanel's Progress list. */
+export interface TaskStepPayload {
+  id: string;
+  label: string;
+  status: 'active' | 'completed';
+}
+
 export type StreamChunk =
   | { type: 'text'; content: string }
   | { type: 'images'; images: ImageResult[] }
   | { type: 'videos'; videos: VideoResult[] }
   | { type: 'web_results'; results: WebResult[] }
+  | { type: 'card'; card: CardData }
+  | { type: 'task_step'; step: TaskStepPayload }
+  | { type: 'tool_active'; name: string }
   | { type: 'done'; content: string }
   | { type: 'error'; content: string };
 
@@ -24,11 +36,12 @@ export type StreamChunk =
 export async function* streamChat(
   messages: ChatMessage[],
   model?: string,
+  mode?: ChatMode,
 ): AsyncGenerator<StreamChunk> {
   const res = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages, model }),
+    body: JSON.stringify({ messages, model, mode }),
   });
 
   if (!res.ok) {

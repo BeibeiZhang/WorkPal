@@ -1,12 +1,23 @@
 import { useRef, useState } from 'react';
 import { Download, Volume2, VolumeX } from 'lucide-react';
 import { CardData, MeetingCard, ResearchCard, TicketCard, ScheduleCard, AgentCard } from '../types';
-import { iconAsana, iconDoc20, iconGmail, iconUsers, iconPin, iconClock } from '../assets';
+import { iconAsana, iconDoc20, iconGmail, iconUsers, iconPin, iconClock, iconCalendar } from '../assets';
+import type { CardSource } from '../types';
+
+/** App-header meta for cards that come from a specific connector. Keys match
+ *  `CardSource` in types.ts. */
+const SOURCE_META: Record<CardSource, { icon: string; label: string }> = {
+  gmail: { icon: iconGmail, label: 'Gmail' },
+  calendar: { icon: iconCalendar, label: 'Google Calendar' },
+  doc: { icon: iconDoc20, label: 'Document' },
+};
 import { PrimaryButton, TertiaryButton, StatusTag as SharedStatusTag, type StatusVariant } from './shared';
 
 interface MessageCardProps {
   card: CardData;
-  onAction?: (action: string) => void;
+  /** Second arg carries the card so parents can open a detail view for this
+   *  specific message (used by Research "view-report" to show real tool data). */
+  onAction?: (action: string, card?: CardData) => void;
 }
 
 /* ── Shared card shell ── */
@@ -88,8 +99,95 @@ function RichText({ text, assignee, due }: { text: string; assignee?: string; du
    Card type views
    ═══════════════════════════════════════════════════ */
 
-/* ── Meeting card (plain formatted text, no card shell) ── */
+/* ── Meeting card content renderer — parses the "**heading**\n body" format
+ *  into sections. Used by both the bare (demo) and source-branded variants. */
+function renderMeetingContent(content: string): React.ReactNode[] {
+  const lines = content.split('\n');
+  const elements: React.ReactNode[] = [];
+
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+
+    if (line.trim() === '') {
+      i++;
+      continue;
+    }
+
+    if (line.startsWith('**') && line.endsWith('**')) {
+      const heading = line.replace(/\*\*/g, '');
+      const bodyLines: string[] = [];
+      i++;
+      while (i < lines.length && lines[i].trim() !== '' && !(lines[i].startsWith('**') && lines[i].endsWith('**'))) {
+        bodyLines.push(lines[i]);
+        i++;
+      }
+      const isBulletList = bodyLines.every(l => l.startsWith('•') || l.startsWith('- '));
+      elements.push(
+        <div key={`section-${elements.length}`} className="mb-4">
+          <p className="font-bold text-base leading-[22px] text-text-primary">{heading}</p>
+          {isBulletList ? (
+            <ul className="list-disc pl-5 mt-0">
+              {bodyLines.map((bl, j) => (
+                <li key={j} className="text-base leading-[22px] text-text-primary mt-1">
+                  {bl.replace(/^(•\s*|-\s*)/, '')}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            bodyLines.map((bl, j) => (
+              <p key={j} className="text-base leading-[22px] text-text-primary">{bl}</p>
+            ))
+          )}
+        </div>
+      );
+      continue;
+    }
+
+    // Inline bold within a plain line (e.g. "- **Subject** — sender ...").
+    if (line.includes('**')) {
+      const parts = line.split(/(\*\*[^*]+\*\*)/g);
+      elements.push(
+        <p key={`line-${i}`} className="text-base leading-[22px] text-text-primary mb-1">
+          {parts.map((p, k) => p.startsWith('**') && p.endsWith('**')
+            ? <span key={k} className="font-bold">{p.slice(2, -2)}</span>
+            : <span key={k}>{p}</span>
+          )}
+        </p>
+      );
+      i++;
+      continue;
+    }
+
+    elements.push(
+      <p key={`line-${i}`} className="text-base leading-[22px] text-text-primary mb-1">{line}</p>
+    );
+    i++;
+  }
+
+  return elements;
+}
+
+/* ── Meeting card — two variants:
+ *     1. source set  → branded shell (e.g. Gmail / Google Calendar header + subject/title + body)
+ *     2. source unset → legacy freeform markdown (alcohol-delivery demo, ux-meeting) */
 function MeetingCardView({ card }: { card: MeetingCard }) {
+  if (card.source) {
+    const meta = SOURCE_META[card.source];
+    return (
+      <CardShell>
+        <CardHeader icon={meta.icon} title={meta.label} borderBottom />
+        <div className="p-4 flex flex-col gap-2">
+          <p className="font-bold text-base leading-[22px] text-text-primary">{card.title}</p>
+          <div className="flex flex-col gap-1">
+            {renderMeetingContent(card.content)}
+          </div>
+        </div>
+      </CardShell>
+    );
+  }
+
+  // Legacy freeform rendering — used by demo chats.
   // Parse content into sections: group heading + body lines together
   const lines = card.content.split('\n');
   const elements: React.ReactNode[] = [];
@@ -192,7 +290,7 @@ function StatusTag({ label }: { label: string }) {
 }
 
 /* ── Research / text-only card ── */
-function ResearchCardView({ card, onAction }: { card: ResearchCard; onAction?: (a: string) => void }) {
+function ResearchCardView({ card, onAction }: { card: ResearchCard; onAction?: (a: string, c?: CardData) => void }) {
   // In-progress state: compact card with loading dots and status tag
   if (card.status === 'in-progress' || card.status === 'sent') {
     return (
@@ -213,18 +311,22 @@ function ResearchCardView({ card, onAction }: { card: ResearchCard; onAction?: (
     );
   }
 
-  // Default: full card with content — clickable to open the report detail panel
+  // Default: full card with content — clickable to open the report detail panel.
+  // The header is source-aware: Gmail / Google Calendar / default doc icon.
   const parts = card.summary.split(/(\*\*[^*]+\*\*)/g);
+  const meta = card.source ? SOURCE_META[card.source] : null;
+  const headerIcon = meta?.icon ?? iconDoc20;
+  const headerLabel = meta?.label ?? card.title;
   return (
     <button
       type="button"
-      onClick={() => onAction?.('view-report')}
+      onClick={() => onAction?.('view-report', card)}
       className="inline-block max-w-full mb-3 text-left cursor-pointer transition-shadow hover:shadow-[0_4px_20px_rgba(1,44,197,0.12)] rounded-lg"
     >
       <CardShell className="">
         <CardHeader
-          icon={iconDoc20}
-          title={card.title}
+          icon={headerIcon}
+          title={headerLabel}
           borderBottom
           rightElement={
             <span
@@ -244,7 +346,10 @@ function ResearchCardView({ card, onAction }: { card: ResearchCard; onAction?: (
             </span>
           }
         />
-        <div className="p-4">
+        <div className="p-4 flex flex-col gap-2">
+          {meta && (
+            <p className="font-bold text-base leading-[22px] text-text-primary">{card.title}</p>
+          )}
           <p className="text-base leading-[22px] text-text-primary">
             {parts.map((part, i) => {
               if (part.startsWith('**') && part.endsWith('**')) {
@@ -347,6 +452,36 @@ function TicketCardView({ card, onAction }: { card: TicketCard; onAction?: (a: s
 
 /* ── Schedule / radio-list card ── */
 function ScheduleCardView({ card, onAction }: { card: ScheduleCard; onAction?: (a: string) => void }) {
+  // Source-branded variant (real tool result): app icon + card title in the
+  // header, simple info rows below. No Scheduling radios, no Send button —
+  // this is a confirmation/info card, not a meeting proposal.
+  if (card.source) {
+    const meta = SOURCE_META[card.source];
+    return (
+      <CardShell>
+        <CardHeader icon={meta.icon} title={card.title} borderBottom />
+        <div className="p-4 flex flex-col gap-2">
+          {card.location && (
+            <InfoRow icon={iconPin}>{card.location}</InfoRow>
+          )}
+          {card.attendees.length > 0 && (
+            <InfoRow icon={iconUsers} textClass="text-[#3171ff]">
+              {card.attendees.map((a, i) => (
+                <span key={i}>{i > 0 ? '  ' : ''}@{a}</span>
+              ))}
+            </InfoRow>
+          )}
+          {(card.date || card.time) && (
+            <InfoRow icon={iconClock}>
+              {[card.date, card.time].filter(Boolean).join(', ')}
+            </InfoRow>
+          )}
+        </div>
+      </CardShell>
+    );
+  }
+
+  // Legacy (demo) variant — full Schedule with radios + Send button.
   const isSent = card.status === 'sent';
   return (
     <CardShell>

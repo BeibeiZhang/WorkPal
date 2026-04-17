@@ -53,7 +53,7 @@ router.post('/memories', requirePassword, async (req, res) => {
 
 router.put('/memories/:id', requirePassword, async (req, res) => {
   try {
-    const id = req.params.id;
+    const id = String(req.params.id);
     const patch = req.body as Partial<MemoryEntry>;
     const saved = await updateMemory(id, patch);
     if (!saved) {
@@ -69,7 +69,7 @@ router.put('/memories/:id', requirePassword, async (req, res) => {
 
 router.delete('/memories/:id', requirePassword, async (req, res) => {
   try {
-    const id = req.params.id;
+    const id = String(req.params.id);
     const ok = await deleteMemory(id);
     if (!ok) {
       res.status(404).json({ error: 'Not found' });

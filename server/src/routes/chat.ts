@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { streamChat, getAvailableModels } from '../lib/llm.js';
+import { streamChat, getAvailableModels, type ChatMode } from '../lib/llm.js';
 import type { ChatMessage } from '../lib/llm.js';
 import { searchImages } from '../lib/imageSearch.js';
 import { searchVideos } from '../lib/youtubeSearch.js';
@@ -7,17 +7,24 @@ import { searchWeb } from '../lib/webSearch.js';
 
 const router = Router();
 
+function isChatMode(v: unknown): v is ChatMode {
+  return v === 'Chat' || v === 'Tasks' || v === 'Code';
+}
+
 // POST /api/chat — streaming LLM response via SSE
 router.post('/chat', async (req, res) => {
-  const { messages, model } = req.body as {
+  const { messages, model, mode } = req.body as {
     messages?: ChatMessage[];
     model?: string;
+    mode?: ChatMode;
   };
 
   if (!messages || !Array.isArray(messages) || messages.length === 0) {
     res.status(400).json({ error: 'messages array is required' });
     return;
   }
+
+  const chatMode: ChatMode = isChatMode(mode) ? mode : 'Chat';
 
   // Set up SSE headers
   res.setHeader('Content-Type', 'text/event-stream');
@@ -26,7 +33,7 @@ router.post('/chat', async (req, res) => {
   res.flushHeaders();
 
   try {
-    for await (const chunk of streamChat(messages, model)) {
+    for await (const chunk of streamChat(messages, model, chatMode)) {
       res.write(`data: ${JSON.stringify(chunk)}\n\n`);
     }
   } catch {

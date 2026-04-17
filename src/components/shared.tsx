@@ -986,6 +986,11 @@ export function TertiaryButton({
  *   - Name takes remaining width; truncates on overflow.
  *   - When `connected` is true, shows the green "Connected" StatusTag;
  *     otherwise shows a Connect button that calls `onConnect`.
+ *   - When `connecting` is true, the button swaps to a small inline spinner
+ *     and becomes non-interactive. Used during the mock 800ms delay + server
+ *     round-trip so the user sees immediate feedback.
+ *   - When `connected` + `onDisconnect` are both set, clicking the Connected
+ *     pill opens a tiny dropdown with a Disconnect item.
  *
  * Fill matches the Overview-card pattern: `bg-bg-page` in light mode,
  * semi-transparent tint in dark mode so the shell gradient shows through.
@@ -995,17 +1000,34 @@ export function ConnectorCard({
   name,
   logo,
   connected = false,
+  connecting = false,
   onConnect,
+  onDisconnect,
   connectLabel = 'Connect',
   connectedLabel = 'Connected',
 }: {
   name: string;
   logo: ReactNode;
   connected?: boolean;
+  connecting?: boolean;
   onConnect?: () => void;
+  onDisconnect?: () => void;
   connectLabel?: string;
   connectedLabel?: string;
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (!menuRef.current) return;
+      if (!menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [menuOpen]);
+
   return (
     <div className="flex items-center gap-3 p-3 rounded-lg border border-stroke-outline bg-bg-page dark:bg-[rgba(226,243,255,0.05)]">
       {logo}
@@ -1015,8 +1037,48 @@ export function ConnectorCard({
       >
         {name}
       </span>
-      {connected ? (
-        <StatusTag variant="success" label={connectedLabel} size="sm" showIcon={false} />
+      {connecting ? (
+        <span
+          className="text-[11px] px-3 py-1 rounded-full border border-stroke-outline text-text-secondary inline-flex items-center gap-1.5"
+          aria-live="polite"
+        >
+          <span
+            className="inline-block w-3 h-3 rounded-full border-[1.5px] border-stroke-outline border-t-text-primary animate-spin"
+            aria-hidden
+          />
+          Connecting
+        </span>
+      ) : connected ? (
+        <div className="relative" ref={menuRef}>
+          <button
+            type="button"
+            onClick={onDisconnect ? () => setMenuOpen((o) => !o) : undefined}
+            className={onDisconnect ? 'cursor-pointer' : 'cursor-default'}
+            aria-haspopup={onDisconnect ? 'menu' : undefined}
+            aria-expanded={onDisconnect ? menuOpen : undefined}
+          >
+            <StatusTag variant="success" label={connectedLabel} size="sm" showIcon={false} />
+          </button>
+          {onDisconnect && menuOpen && (
+            <div
+              role="menu"
+              className="absolute right-0 top-full mt-1 z-10 min-w-[140px] rounded-lg py-1 shadow-lg"
+              style={{ background: 'var(--color-bg-page)', border: '1px solid var(--color-stroke-outline)' }}
+            >
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onDisconnect();
+                }}
+                className="w-full px-3 py-1.5 text-left text-[13px] text-text-primary hover:bg-bg-hover transition-colors"
+              >
+                Disconnect
+              </button>
+            </div>
+          )}
+        </div>
       ) : (
         <button
           onClick={onConnect}
