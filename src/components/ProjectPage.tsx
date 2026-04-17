@@ -1,19 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Project } from './Sidebar';
 import ChatInput from './ChatInput';
 import {
   ChevronDown, ChevronRight, Star, MoreVertical, PanelRight,
-  FileCode2, MessageCircle, CheckSquare, Code2, Pen, File,
+  FileCode2, MessageCircle, CheckSquare, Code2, Pen, File, Plus, X,
   MonitorPlay, Presentation,
 } from 'lucide-react';
 import { FilterChip, PageLayout, SearchBox, SideCard, SidePanelHeader, SplitView } from './shared';
 import type { Chat, ChatMode, Attachment } from '../types';
+import { filesToAttachments, formatFileSize } from '../lib/attachments';
 
 interface ProjectPageProps {
   project: Project;
   chats: Chat[];
   onCreateChat: (projectId: string, mode: ChatMode, text: string, attachments?: Attachment[]) => void;
   onOpenChat: (chatId: string) => void;
+  /** Add reference files to the project — their content gets prepended to
+   *  every AI request in any chat scoped here. */
+  onAddFiles?: (projectId: string, files: Attachment[]) => void;
+  onRemoveFile?: (projectId: string, fileId: string) => void;
   sidebarOpen: boolean;
   onToggleSidebar?: () => void;
 }
@@ -62,15 +67,10 @@ interface RecentItem {
   type: RecentType;
 }
 
-interface ProjectFile {
-  name: string;
-}
-
 interface ProjectContent {
   objective: string;
   outputs: OutputItem[];
   recents: RecentItem[];
-  files: ProjectFile[];
   contextLabel: string;
   defaultSelectedOutputId: string;
 }
@@ -140,9 +140,6 @@ const PROJECT_CONTENT: Record<string, ProjectContent> = {
         type: 'Code',
       },
     ],
-    files: [
-      { name: 'Instructions.md' },
-    ],
     contextLabel: 'Agent Design',
     defaultSelectedOutputId: '2',
   },
@@ -211,11 +208,6 @@ const PROJECT_CONTENT: Record<string, ProjectContent> = {
         type: 'Chat',
       },
     ],
-    files: [
-      { name: 'Driver_Onboarding_Brief.pdf' },
-      { name: 'Current_Flow_Audit.md' },
-      { name: 'Interview_Transcripts.zip' },
-    ],
     contextLabel: 'Spark Driver Research',
     defaultSelectedOutputId: '2',
   },
@@ -231,7 +223,7 @@ const TYPE_ICON: Record<RecentType, typeof MessageCircle> = {
 
 const FILTER_OPTIONS = ['All', 'Chat', 'Task', 'Code'] as const;
 
-export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, sidebarOpen, onToggleSidebar }: ProjectPageProps) {
+export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, onAddFiles, onRemoveFile, sidebarOpen, onToggleSidebar }: ProjectPageProps) {
   const content = PROJECT_CONTENT[project.id] ?? FALLBACK_CONTENT;
   const [recentsFilter, setRecentsFilter] = useState<string>('All');
   const [outputFilter, setOutputFilter] = useState<OutputType>('All');
@@ -243,6 +235,22 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
   // Mode the user picks on the footer input. The ChatInput's forceMode syncs
   // this as the initial value on mount; onModeChange keeps it in sync.
   const [inputMode, setInputMode] = useState<ChatMode>('Chat');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+
+  const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { added, oversized } = await filesToAttachments(e.target.files);
+    e.target.value = '';
+    if (added.length && onAddFiles) onAddFiles(project.id, added);
+    setFileError(oversized.length ? `${oversized.length} file${oversized.length > 1 ? 's' : ''} too large (max 25MB)` : null);
+  };
+
+  // Auto-clear the error after a few seconds so it doesn't linger.
+  useEffect(() => {
+    if (!fileError) return;
+    const t = window.setTimeout(() => setFileError(null), 4000);
+    return () => window.clearTimeout(t);
+  }, [fileError]);
 
   // Reset selected output when switching projects
   useEffect(() => {
@@ -334,18 +342,56 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
               <p className="text-text-secondary/60 italic text-[13px]">Set up recurring tasks for this project.</p>
             </SideCard>
 
-            {/* Files */}
+            {/* Files — real project-scoped uploads. Each file's text is
+                 injected into every AI request in chats under this project. */}
             <SideCard title="Files" defaultOpen>
               <div className="flex flex-col gap-1">
-                {content.files.map(file => (
-                  <button
-                    key={file.name}
-                    className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-bg-hover transition-colors"
+                {(project.files || []).map(file => (
+                  <div
+                    key={file.id}
+                    className="group flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-bg-hover transition-colors"
                   >
-                    <File size={16} className="text-text-primary shrink-0" />
-                    <span className="text-[14px] text-text-primary">{file.name}</span>
-                  </button>
+                    {file.kind === 'image' ? (
+                      <img
+                        src={file.dataUrl}
+                        alt={file.name}
+                        className="w-5 h-5 object-cover rounded shrink-0"
+                      />
+                    ) : (
+                      <File size={16} className="text-text-primary shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[14px] text-text-primary truncate">{file.name}</div>
+                      <div className="text-[11px] text-text-secondary">{formatFileSize(file.size)}</div>
+                    </div>
+                    {onRemoveFile && (
+                      <button
+                        onClick={() => onRemoveFile(project.id, file.id)}
+                        aria-label={`Remove ${file.name}`}
+                        className="w-5 h-5 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-bg-page transition-opacity"
+                      >
+                        <X size={12} className="text-text-secondary" />
+                      </button>
+                    )}
+                  </div>
                 ))}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-2 w-full px-3 py-2 rounded-lg hover:bg-bg-hover transition-colors text-text-secondary hover:text-text-primary"
+                >
+                  <Plus size={16} />
+                  <span className="text-[13px]">Add file</span>
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={handleFileInput}
+                />
+                {fileError && (
+                  <div className="px-3 py-1 text-[12px] text-[#B42318]">{fileError}</div>
+                )}
               </div>
             </SideCard>
 

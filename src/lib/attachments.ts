@@ -85,8 +85,15 @@ export async function extractAttachmentText(att: Attachment): Promise<string | n
 /** Run extraction over a batch and format as a prompt-ready block.
  *  Returns null if nothing was extractable. The preamble is explicit so the
  *  model doesn't fall back on its prior of "I can't read PDFs" — several early
- *  tries confirmed the model would otherwise deny it had the content. */
-export async function buildAttachmentContextBlock(attachments: Attachment[]): Promise<string | null> {
+ *  tries confirmed the model would otherwise deny it had the content.
+ *
+ *  `variant='project'` changes the wording and file tag so project-level
+ *  reference files read as persistent context (applies to every message in
+ *  the project) instead of one-off per-message attachments. */
+export async function buildAttachmentContextBlock(
+  attachments: Attachment[],
+  variant: 'message' | 'project' = 'message',
+): Promise<string | null> {
   const candidates = attachments.filter((a) => a.kind !== 'image');
   if (candidates.length === 0) return null;
   const results = await Promise.all(
@@ -95,14 +102,79 @@ export async function buildAttachmentContextBlock(attachments: Attachment[]): Pr
       return text ? { name: a.name, text } : null;
     }),
   );
+  const tag = variant === 'project' ? 'PROJECT FILE' : 'FILE';
   const blocks = results
     .filter((r): r is { name: string; text: string } => r !== null)
-    .map((r) => `[FILE: ${r.name}]\n${r.text}\n[END FILE: ${r.name}]`);
+    .map((r) => `[${tag}: ${r.name}]\n${r.text}\n[END ${tag}: ${r.name}]`);
   if (blocks.length === 0) return null;
-  const preamble = blocks.length === 1
-    ? 'The user attached a file. Its full text content is included below — treat this as readable file content you have access to, not an inability to open the file. Use it to answer the question that follows.'
-    : `The user attached ${blocks.length} files. The full text content of each is included below — treat these as readable file contents you have access to, not an inability to open files. Use them to answer the question that follows.`;
+  const preamble = variant === 'project'
+    ? (blocks.length === 1
+        ? 'This conversation belongs to a project. A reference file is attached to the project below; its full text is persistent context that applies to every message in the project. Treat it as readable file content you have access to, and use it to inform your answers.'
+        : `This conversation belongs to a project. ${blocks.length} reference files are attached to the project below; their full text is persistent context that applies to every message in the project. Treat them as readable file content you have access to, and use them to inform your answers.`)
+    : (blocks.length === 1
+        ? 'The user attached a file. Its full text content is included below — treat this as readable file content you have access to, not an inability to open the file. Use it to answer the question that follows.'
+        : `The user attached ${blocks.length} files. The full text content of each is included below — treat these as readable file contents you have access to, not an inability to open files. Use them to answer the question that follows.`);
   return `${preamble}\n\n${blocks.join('\n\n')}`;
+}
+
+/** ── Project file upload helpers ─────────────────────────────────────── */
+
+/** Per-file size cap for project reference files. Larger than per-message
+ *  attachments since these are long-lived. 25MB — matches ChatInput's cap. */
+export const MAX_PROJECT_FILE_BYTES = 25 * 1024 * 1024;
+
+let projectFileIdCounter = 0;
+const nextProjectFileId = () => `pf-${Date.now()}-${++projectFileIdCounter}`;
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ''));
+    reader.onerror = () => reject(reader.error ?? new Error('Read failed'));
+    reader.readAsDataURL(file);
+  });
+}
+
+/** Turn a FileList (from an <input type="file"> or drop event) into project
+ *  Attachment objects. Skips files over the size cap; returns their names
+ *  separately so the UI can surface the problem. */
+export async function filesToAttachments(
+  fileList: FileList | File[] | null,
+): Promise<{ added: Attachment[]; oversized: string[] }> {
+  if (!fileList || fileList.length === 0) return { added: [], oversized: [] };
+  const files = Array.from(fileList);
+  const oversized: string[] = [];
+  const results = await Promise.all(
+    files.map(async (f): Promise<Attachment | null> => {
+      if (f.size > MAX_PROJECT_FILE_BYTES) {
+        oversized.push(f.name);
+        return null;
+      }
+      try {
+        const dataUrl = await readFileAsDataUrl(f);
+        return {
+          id: nextProjectFileId(),
+          name: f.name || 'file',
+          mimeType: f.type || 'application/octet-stream',
+          size: f.size,
+          kind: f.type.startsWith('image/') ? 'image' : 'file',
+          dataUrl,
+        };
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return {
+    added: results.filter((a): a is Attachment => a !== null),
+    oversized,
+  };
+}
+
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 /** Ask the vision model to describe one image, and return a promise of the

@@ -472,8 +472,11 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
         />
         {/* Mic / Voice / Send — inside input, right-aligned, 24×24 buttons */}
         <div className="flex items-center gap-4 md:gap-2 shrink-0 ml-2">
-          {/* Show Send when focused/typing, Voice icon when idle (not in voice mode) */}
-          {voiceModeActive || focused || canSend ? (
+          {/* Show Send when focused/typing, Voice icon when idle (not in voice mode).
+              forceSendActive also triggers the Send render (e.g. Onboarding's
+              "3 selected" state) so the gradient active button shows up even
+              though the textarea is empty and unfocused. */}
+          {voiceModeActive || focused || canSend || forceSendActive ? (
             (() => {
               const isSendActive = canSend || !!forceSendActive;
               return (
