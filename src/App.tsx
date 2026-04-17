@@ -12,7 +12,7 @@ import OverviewPage from './components/OverviewPage';
 import LibraryPage from './components/LibraryPage';
 import NewProjectDialog from './components/NewProjectDialog';
 import { SplitView } from './components/shared';
-import { Chat, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleCard, ImageResult, VideoResult } from './types';
+import { Chat, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleCard, ImageResult, VideoResult, WebResult } from './types';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
 import { INITIAL_CHATS } from './data';
 import { streamChat } from './lib/api';
@@ -1146,6 +1146,22 @@ export default function App() {
     addMessage(activeChatId, msg);
   }, [activeChatId, addMessage]);
 
+  // Voice mode counterpart for web_search — drop source chips and an optional
+  // product photo into the chat while the AI speaks the synthesized answer.
+  // The spoken reply arrives separately via handleVoiceMessage, so this
+  // message stays text-empty and just carries the chip/image payload.
+  const handleVoiceWebSearch = useCallback((_query: string, results: WebResult[], images: ImageResult[]) => {
+    const msg: Message = {
+      id: nextId(),
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      webResults: results,
+      imageResults: images.length > 0 ? images : undefined,
+    };
+    addMessage(activeChatId, msg);
+  }, [activeChatId, addMessage]);
+
   return (
     <div className="flex h-full w-full overflow-hidden" style={{ background: 'var(--color-outer-bg)' }}>
       {/* Outer rounded container */}
@@ -1327,6 +1343,7 @@ export default function App() {
                 onVoiceMessage={handleVoiceMessage}
                 onVoiceImages={handleVoiceImages}
                 onVoiceVideos={handleVoiceVideos}
+                onVoiceWebSearch={handleVoiceWebSearch}
                 voicePendingText={voicePendingText}
                 voicePendingImages={voicePendingImages}
                 onVoicePendingTextConsumed={() => { setVoicePendingText(undefined); setVoicePendingImages(undefined); }}

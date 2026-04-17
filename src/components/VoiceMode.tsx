@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { RealtimeSession, VOICE_OPTIONS } from '../lib/realtime';
 import type { RealtimeState, TranscriptEvent, VoiceId, VoiceGender } from '../lib/realtime';
-import type { ImageResult, VideoResult } from '../types';
+import type { ImageResult, VideoResult, WebResult } from '../types';
 
 interface VoiceModeProps {
   /** Called when voice session ends */
@@ -13,6 +13,9 @@ interface VoiceModeProps {
   onImages?: (query: string, images: ImageResult[]) => void;
   /** Counterpart for search_videos — drops YouTube cards into the chat. */
   onVideos?: (query: string, videos: VideoResult[]) => void;
+  /** Counterpart for web_search — drops source chips + product photo into the
+   *  chat while the AI speaks the synthesized answer. */
+  onWebSearch?: (query: string, results: WebResult[], images: ImageResult[]) => void;
   /** Send text into the voice conversation (e.g. a pasted URL) */
   pendingText?: string;
   /** Image data URLs to send alongside the pending text (or standalone). */
@@ -41,7 +44,7 @@ function loadStoredVoice(gender: VoiceGender): VoiceId {
  * NOT a full-screen overlay. The chat UI stays fully visible and interactive.
  * Users can still type in ChatInput to send text/URLs into the voice conversation.
  */
-export default function VoiceMode({ onClose, onMessage, onImages, onVideos, pendingText, pendingImages, onPendingTextConsumed, agentGender = 'female' }: VoiceModeProps) {
+export default function VoiceMode({ onClose, onMessage, onImages, onVideos, onWebSearch, pendingText, pendingImages, onPendingTextConsumed, agentGender = 'female' }: VoiceModeProps) {
   const [state, setState] = useState<RealtimeState>('idle');
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -123,6 +126,7 @@ export default function VoiceMode({ onClose, onMessage, onImages, onVideos, pend
       onError: (msg) => setErrorMsg(msg),
       onImages: (query, images) => onImages?.(query, images),
       onVideos: (query, videos) => onVideos?.(query, videos),
+      onWebSearch: (query, results, images) => onWebSearch?.(query, results, images),
     });
 
     sessionRef.current = session;
