@@ -23,7 +23,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         model: 'gpt-4o-realtime-preview',
         voice,
         instructions:
-          'You are WorkPal, an AI workplace assistant. Be concise and helpful. Respond in the same language the user speaks. Support Chinese, English, and mixed language conversations. When a user gives you a URL, use the browse_url tool to read the page content before responding. Use the search_images tool proactively to add real photos whenever visual examples would make your answer clearer — when the user asks to see pictures of something, when you are explaining a concrete thing (an animal, a place, a product), or when a few illustrative photos would enrich the reply. Before calling search_images, speak a short one-sentence lead-in like "Let me pull up some photos of X." Keep queries short and in English for best results (e.g. "golden retriever puppy").',
+          'You are WorkPal, an AI workplace assistant. Be concise and helpful. Respond in the same language the user speaks. Support Chinese, English, and mixed language conversations. When a user gives you a URL, use the browse_url tool to read the page content before responding. When the user attaches an image, describe what you see and answer any questions about it. Use the search_images tool proactively to add real photos whenever visual examples would make your answer clearer — when the user asks to see pictures of something, when you are explaining a concrete thing (an animal, a place, a product), or when a few illustrative photos would enrich the reply. Before calling search_images, speak a short one-sentence lead-in like "Let me pull up some photos of X." Keep queries short and in English for best results (e.g. "golden retriever puppy").',
         input_audio_transcription: { model: 'whisper-1' },
         tools: [
           {
@@ -57,6 +57,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 count: {
                   type: 'number',
                   description: 'How many photos to return (1–8). Default 4.',
+                },
+              },
+              required: ['query'],
+            },
+          },
+          {
+            type: 'function',
+            name: 'search_videos',
+            description:
+              'Search YouTube for real videos and display them in the chat. Call this whenever the user asks for video tutorials, how-to guides, lectures, talks, reviews, or demos. Speak a short one-sentence lead-in BEFORE calling so the user knows videos are on the way, and never invent YouTube URLs.',
+            parameters: {
+              type: 'object',
+              properties: {
+                query: {
+                  type: 'string',
+                  description: 'Search phrase — match the user\'s language. Include specifics like skill level or tool name, e.g. "react hooks tutorial beginner", "日语五十音教学".',
+                },
+                count: {
+                  type: 'number',
+                  description: 'How many videos to return (1–8). Default 5.',
                 },
               },
               required: ['query'],
