@@ -7,11 +7,36 @@ import {
   MonitorPlay, Presentation,
 } from 'lucide-react';
 import { FilterChip, PageLayout, SearchBox, SideCard, SidePanelHeader, SplitView } from './shared';
+import type { Chat, ChatMode, Attachment } from '../types';
 
 interface ProjectPageProps {
   project: Project;
+  chats: Chat[];
+  onCreateChat: (projectId: string, mode: ChatMode, text: string, attachments?: Attachment[]) => void;
+  onOpenChat: (chatId: string) => void;
   sidebarOpen: boolean;
   onToggleSidebar?: () => void;
+}
+
+/** Format a timestamp as a coarse "x hour ago" label (matches the demo copy). */
+function formatRelative(date: Date): string {
+  const diffMs = Date.now() - date.getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins} min ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} hour ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days > 1 ? 's' : ''} ago`;
+}
+
+/** ChatInput uses the plural "Tasks" label for its mode; the Recents filter
+ *  uses the shorter "Task" label. Bridge the two so stored chats slot into
+ *  the filter correctly. */
+function modeToRecentType(mode: ChatMode | undefined): RecentType {
+  if (mode === 'Tasks') return 'Task';
+  if (mode === 'Code') return 'Code';
+  return 'Chat';
 }
 
 /* ── Demo data ── */
@@ -206,7 +231,7 @@ const TYPE_ICON: Record<RecentType, typeof MessageCircle> = {
 
 const FILTER_OPTIONS = ['All', 'Chat', 'Task', 'Code'] as const;
 
-export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: ProjectPageProps) {
+export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, sidebarOpen, onToggleSidebar }: ProjectPageProps) {
   const content = PROJECT_CONTENT[project.id] ?? FALLBACK_CONTENT;
   const [recentsFilter, setRecentsFilter] = useState<string>('All');
   const [outputFilter, setOutputFilter] = useState<OutputType>('All');
@@ -215,6 +240,9 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
   const [recentsOpen, setRecentsOpen] = useState(true);
   const [search, setSearch] = useState('');
   const [infoPanelOpen, setInfoPanelOpen] = useState(true);
+  // Mode the user picks on the footer input. The ChatInput's forceMode syncs
+  // this as the initial value on mount; onModeChange keeps it in sync.
+  const [inputMode, setInputMode] = useState<ChatMode>('Chat');
 
   // Reset selected output when switching projects
   useEffect(() => {
@@ -227,7 +255,28 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
   const q = search.trim().toLowerCase();
   const matchesSearch = (text: string) => !q || text.toLowerCase().includes(q);
 
-  const filteredRecents = content.recents.filter(r => {
+  // Real chats belonging to this project, mapped into the RecentItem shape so
+  // they render with the same layout as the seeded demo rows. Newest first.
+  // Drafts (empty "New Session" placeholders) are excluded.
+  const realRecents: (RecentItem & { isReal: true })[] = chats
+    .filter(c => c.projectId === project.id && !c.isDraft && c.messages.length > 0)
+    .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+    .map(c => ({
+      id: c.id,
+      title: c.title,
+      description: c.lastMessage || c.messages[0]?.content || '',
+      time: formatRelative(c.timestamp),
+      type: modeToRecentType(c.mode),
+      isReal: true as const,
+    }));
+
+  // Combine real chats on top, then the project's seeded demo rows.
+  const combinedRecents: (RecentItem & { isReal?: boolean })[] = [
+    ...realRecents,
+    ...content.recents.map(r => ({ ...r, isReal: false })),
+  ];
+
+  const filteredRecents = combinedRecents.filter(r => {
     if (recentsFilter !== 'All' && r.type !== recentsFilter) return false;
     return matchesSearch(r.title) || matchesSearch(r.description) || matchesSearch(r.outputTag ?? '');
   });
@@ -236,6 +285,12 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
     if (outputFilter !== 'All' && o.type !== outputFilter) return false;
     return matchesSearch(o.name);
   });
+
+  const handleSend = (text: string, attachments?: Attachment[]) => {
+    const trimmed = text.trim();
+    if (!trimmed && !(attachments && attachments.length)) return;
+    onCreateChat(project.id, inputMode, trimmed, attachments);
+  };
 
   return (
     <SplitView
@@ -340,7 +395,10 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
         }
         footer={
           <ChatInput
-            onSend={() => {}}
+            onSend={handleSend}
+            onModeChange={(m) => setInputMode(m)}
+            forceMode={inputMode}
+            chatKey={`project-${project.id}`}
             placeholder="What would you like to work on in this project?"
           />
         }
@@ -436,10 +494,16 @@ export default function ProjectPage({ project, sidebarOpen, onToggleSidebar }: P
                     <div className="flex flex-col">
                       {filteredRecents.map(r => {
                         const Icon = TYPE_ICON[r.type];
+                        // Only real chats are wired up for now. Demo rows stay
+                        // visual-only so the page keeps its showcase content.
+                        const isReal = r.isReal === true;
                         return (
                           <button
                             key={r.id}
-                            className="flex items-start gap-3 w-full px-5 py-4 hover:bg-bg-hover transition-colors text-left side-card-divider last:bg-none"
+                            onClick={isReal ? () => onOpenChat(r.id) : undefined}
+                            className={`flex items-start gap-3 w-full px-5 py-4 transition-colors text-left side-card-divider last:bg-none ${
+                              isReal ? 'hover:bg-bg-hover cursor-pointer' : 'hover:bg-bg-hover'
+                            }`}
                           >
                             <div className="flex items-center justify-center shrink-0 mt-px text-text-primary">
                               <Icon size={18} />

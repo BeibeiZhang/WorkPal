@@ -12,7 +12,7 @@ import OverviewPage from './components/OverviewPage';
 import LibraryPage from './components/LibraryPage';
 import NewProjectDialog from './components/NewProjectDialog';
 import { SplitView } from './components/shared';
-import { Chat, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleCard, ImageResult, VideoResult, WebResult } from './types';
+import { Chat, ChatMode, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleCard, ImageResult, VideoResult, WebResult } from './types';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
 import { INITIAL_CHATS } from './data';
 import { streamChat } from './lib/api';
@@ -687,9 +687,11 @@ export default function App() {
       if (activeChat && activeChat.messages.length === 0) {
         // Reuse existing empty chat (e.g. "New Session") and update its title.
         // Promote it from draft → recent so it shows up in the Recents list.
+        // Also freeze the current inputMode onto the chat so reopens restore
+        // the right footer mode + side panel state.
         chatId = activeChat.id;
         setChats(prev => prev.map(c =>
-          c.id === chatId ? { ...c, title: derivedTitle, lastMessage: text, timestamp: new Date(), isDraft: false } : c
+          c.id === chatId ? { ...c, title: derivedTitle, lastMessage: text, timestamp: new Date(), isDraft: false, mode: inputMode } : c
         ));
       } else {
         // No active chat at all — create a new one
@@ -700,6 +702,7 @@ export default function App() {
           lastMessage: text,
           timestamp: new Date(),
           messages: [],
+          mode: inputMode,
         };
         setChats(prev => [newChat, ...prev.filter(c => c.id !== 'my-workpal'), prev.find(c => c.id === 'my-workpal')!]);
         setActiveChatId(chatId);
@@ -1019,6 +1022,10 @@ export default function App() {
         isDraft: true,
       }, ...prev];
     });
+    // New Session is a fresh root-level chat — leave any project view so
+    // the draft shows in the main chat pane, and let the user file it into
+    // a project later via the Recents row's menu.
+    setActiveProjectId(null);
     setActiveView('chat');
   }, []);
 
@@ -1042,17 +1049,75 @@ export default function App() {
       setContextPanelOpen(false);
       setTaskPanelPreviewing(false);
     }
-    // Clear task-mode panel state when switching chats
-    setTaskModeMsgSent(false);
+    // Reset task-mode panel state, then re-apply based on the target chat's
+    // stored mode so a Task chat reopens with its right panel, and a Chat
+    // chat reopens without one.
+    const target = chats.find(c => c.id === id);
+    const isTaskChat = target?.mode === 'Tasks' && target.messages.length > 0;
+    setTaskModeMsgSent(isTaskChat);
+    if (isTaskChat) {
+      setContextPanelOpen(getCanFitPanel());
+    } else {
+      setContextPanelOpen(false);
+    }
+    if (target?.mode) setInputMode(target.mode);
     setActiveChatId(id);
     setActiveProjectId(null);
     setActiveView('chat');
-  }, []);
+  }, [chats]);
 
   const handleProjectSelect = useCallback((id: string) => {
     setActiveProjectId(id);
     setActiveView('chat'); // reset view
   }, []);
+
+  // Create a new chat inside a project with the chosen mode, then send the
+  // first message. Invoked when the user types into the project page's input.
+  const handleCreateChatInProject = useCallback((
+    projectId: string,
+    mode: ChatMode,
+    text: string,
+    attachments?: Attachment[],
+  ) => {
+    const chatId = `chat-${Date.now()}`;
+    const titleSource = text || (attachments && attachments.length ? attachments[0].name : '');
+    const derivedTitle = titleSource
+      ? titleSource.slice(0, 40) + (titleSource.length > 40 ? '...' : '')
+      : 'New Session';
+    const userMessage: Message = {
+      id: nextId(),
+      role: 'user',
+      content: text,
+      timestamp: new Date(),
+      ...(attachments && attachments.length ? { attachments } : {}),
+    };
+    const newChat: Chat = {
+      id: chatId,
+      title: derivedTitle,
+      lastMessage: text || (attachments && attachments.length ? `📎 ${attachments[0].name}` : ''),
+      timestamp: new Date(),
+      messages: [userMessage],
+      projectId,
+      mode,
+    };
+    // Insert at the top so it appears first in both root Recents and the
+    // project's Recents list.
+    setChats(prev => [newChat, ...prev]);
+    setActiveChatId(chatId);
+    setActiveProjectId(null);
+    setActiveView('chat');
+    setInputMode(mode);
+    if (mode === 'Tasks') {
+      setTaskModeMsgSent(true);
+      setTaskModeUserMsg(text);
+      setContextPanelOpen(getCanFitPanel());
+    } else {
+      setTaskModeMsgSent(false);
+      setContextPanelOpen(false);
+    }
+    // Stream the AI response
+    streamFromAPI(chatId, text, attachments);
+  }, [streamFromAPI]);
 
   const handleCreateProject = useCallback((name: string, description: string) => {
     const newProject: Project = {
@@ -1092,6 +1157,16 @@ export default function App() {
       setActiveView('chat');
     }
   }, [activeProjectId]);
+
+  // Move a chat into a project (or out of any project when projectId is null).
+  // Triggered from the Recents row's 3-dot menu.
+  const handleMoveChat = useCallback((chatId: string, projectId: string | null) => {
+    setChats(prev => prev.map(c =>
+      c.id === chatId
+        ? { ...c, projectId: projectId ?? undefined }
+        : c
+    ));
+  }, []);
 
   // Voice mode: close session
   const handleVoiceModeClose = useCallback(() => {
@@ -1202,6 +1277,7 @@ export default function App() {
                   onViewChange={(view) => { setActiveView(view); setActiveProjectId(null); }}
                   onDeleteChat={handleDeleteChat}
                   onDeleteProject={handleDeleteProject}
+                  onMoveChat={handleMoveChat}
                   isDark={isDark}
                   onToggleDark={() => setIsDark(d => !d)}
                   onToggleSidebar={() => setSidebarOpen(o => !o)}
@@ -1230,6 +1306,7 @@ export default function App() {
                       onViewChange={(view) => { setActiveView(view); setActiveProjectId(null); if (closeOnNav) setSidebarOpen(false); }}
                       onDeleteChat={handleDeleteChat}
                       onDeleteProject={handleDeleteProject}
+                      onMoveChat={handleMoveChat}
                       isDark={isDark}
                       onToggleDark={() => setIsDark(d => !d)}
                       onToggleSidebar={() => setSidebarOpen(o => !o)}
@@ -1245,6 +1322,9 @@ export default function App() {
         {activeProjectId && projects.find(p => p.id === activeProjectId) ? (
           <ProjectPage
             project={projects.find(p => p.id === activeProjectId)!}
+            chats={chats}
+            onCreateChat={handleCreateChatInProject}
+            onOpenChat={handleChatSelect}
             sidebarOpen={sidebarOpen || !isMobile}
             onToggleSidebar={() => setSidebarOpen(o => !o)}
           />
@@ -1335,7 +1415,7 @@ export default function App() {
                 onToggleContextPanel={() => setContextPanelOpen(o => !o)}
                 isAiResponding={isAiResponding}
                 draftValue={activeChat?.draftPrompt}
-                forceMode={activeChat?.id === 'alcohol-delivery' ? 'Tasks' : undefined}
+                forceMode={activeChat?.id === 'alcohol-delivery' ? 'Tasks' : activeChat?.mode}
                 onNewChat={isMobile ? handleNewChat : undefined}
                 onVoiceMode={() => setVoiceModeActive(true)}
                 voiceModeActive={voiceModeActive}

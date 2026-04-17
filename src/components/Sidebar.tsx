@@ -1,16 +1,32 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Chat } from '../types';
-import { LayoutDashboard, SquarePen, Link, BookOpen, FolderPlus, ChevronDown, Search, Palette, PanelLeft, MoreHorizontal, Trash2 } from 'lucide-react';
+import { LayoutDashboard, SquarePen, Link, BookOpen, FolderPlus, ChevronDown, Search, Palette, PanelLeft, MoreHorizontal, Trash2, FolderInput, Check } from 'lucide-react';
 import { iconSun, iconMoon } from '../assets';
 
 /**
- * Hover-visible "⋯" menu anchored to a sidebar row. Opens a small popover
- * with a Delete action; dismisses on outside click. Menu is portaled to
- * document.body so it escapes the sidebar's `overflow-y-auto` clipping.
+ * Hover-visible "⋯" menu anchored to a sidebar row. Opens a popover with
+ * actions: "Move to…" (when moveTargets is provided) and "Delete".
+ * Dismisses on outside click. Menu is portaled to document.body so it
+ * escapes the sidebar's `overflow-y-auto` clipping.
  */
-function RowMoreMenu({ onDelete }: { onDelete: () => void }) {
+function RowMoreMenu({
+  onDelete,
+  moveTargets,
+  currentProjectId,
+  onMove,
+}: {
+  onDelete: () => void;
+  /** Projects the row can be filed into. Omit to hide the Move section. */
+  moveTargets?: { id: string; name: string }[];
+  /** Project the row currently belongs to — shown with a checkmark so the
+   *  user can tell at a glance where it's filed. */
+  currentProjectId?: string;
+  /** Invoked with a project id, or null to remove from any project. */
+  onMove?: (projectId: string | null) => void;
+}) {
   const [open, setOpen] = useState(false);
+  const [moveOpen, setMoveOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -28,8 +44,9 @@ function RowMoreMenu({ onDelete }: { onDelete: () => void }) {
       if (btnRef.current?.contains(target)) return;
       if (menuRef.current?.contains(target)) return;
       setOpen(false);
+      setMoveOpen(false);
     };
-    const handleScroll = () => setOpen(false);
+    const handleScroll = () => { setOpen(false); setMoveOpen(false); };
     document.addEventListener('mousedown', handleClick);
     window.addEventListener('scroll', handleScroll, true);
     window.addEventListener('resize', handleScroll);
@@ -39,6 +56,14 @@ function RowMoreMenu({ onDelete }: { onDelete: () => void }) {
       window.removeEventListener('resize', handleScroll);
     };
   }, [open]);
+
+  // Collapse the Move submenu whenever the outer menu closes so reopening
+  // starts from the top-level menu, not the Move drill-down.
+  useEffect(() => {
+    if (!open) setMoveOpen(false);
+  }, [open]);
+
+  const canMove = !!moveTargets && !!onMove;
 
   return (
     <div
@@ -58,7 +83,7 @@ function RowMoreMenu({ onDelete }: { onDelete: () => void }) {
       {open && pos && createPortal(
         <div
           ref={menuRef}
-          className="fixed min-w-[140px] rounded-xl py-1 border"
+          className="fixed min-w-[180px] rounded-xl py-1 border"
           style={{
             top: pos.top,
             right: pos.right,
@@ -69,15 +94,72 @@ function RowMoreMenu({ onDelete }: { onDelete: () => void }) {
           }}
           onMouseDown={(e) => e.stopPropagation()}
         >
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onDelete(); setOpen(false); }}
-            className="mx-1 px-3 py-2 flex items-center gap-2 text-left text-[14px] leading-[18px] text-text-primary hover:bg-bg-hover transition-colors rounded-lg"
-            style={{ width: 'calc(100% - 8px)' }}
-          >
-            <Trash2 size={14} />
-            <span>Delete</span>
-          </button>
+          {!moveOpen ? (
+            <>
+              {canMove && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setMoveOpen(true); }}
+                  className="mx-1 px-3 py-2 flex items-center gap-2 text-left text-[14px] leading-[18px] text-text-primary hover:bg-bg-hover transition-colors rounded-lg"
+                  style={{ width: 'calc(100% - 8px)' }}
+                >
+                  <FolderInput size={14} />
+                  <span className="flex-1">Move to project</span>
+                  <ChevronDown size={12} className="-rotate-90" />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onDelete(); setOpen(false); }}
+                className="mx-1 px-3 py-2 flex items-center gap-2 text-left text-[14px] leading-[18px] text-text-primary hover:bg-bg-hover transition-colors rounded-lg"
+                style={{ width: 'calc(100% - 8px)' }}
+              >
+                <Trash2 size={14} />
+                <span>Delete</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setMoveOpen(false); }}
+                className="mx-1 px-3 py-1 flex items-center gap-2 text-left text-[12px] leading-[16px] text-text-secondary hover:bg-bg-hover transition-colors rounded-lg"
+                style={{ width: 'calc(100% - 8px)' }}
+              >
+                <ChevronDown size={12} className="rotate-90" />
+                <span>Back</span>
+              </button>
+              <div className="h-px my-1 mx-2" style={{ background: 'var(--color-stroke-outline)' }} />
+              {moveTargets!.map(p => {
+                const isCurrent = currentProjectId === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onMove!(p.id); setOpen(false); setMoveOpen(false); }}
+                    className="mx-1 px-3 py-2 flex items-center gap-2 text-left text-[14px] leading-[18px] text-text-primary hover:bg-bg-hover transition-colors rounded-lg"
+                    style={{ width: 'calc(100% - 8px)' }}
+                  >
+                    <span className="flex-1 truncate">{p.name}</span>
+                    {isCurrent && <Check size={14} className="shrink-0" />}
+                  </button>
+                );
+              })}
+              {currentProjectId && (
+                <>
+                  <div className="h-px my-1 mx-2" style={{ background: 'var(--color-stroke-outline)' }} />
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onMove!(null); setOpen(false); setMoveOpen(false); }}
+                    className="mx-1 px-3 py-2 flex items-center gap-2 text-left text-[14px] leading-[18px] text-text-primary hover:bg-bg-hover transition-colors rounded-lg"
+                    style={{ width: 'calc(100% - 8px)' }}
+                  >
+                    <span className="flex-1">Remove from project</span>
+                  </button>
+                </>
+              )}
+            </>
+          )}
         </div>,
         document.body,
       )}
@@ -106,6 +188,8 @@ interface SidebarProps {
   onViewChange?: (view: 'chat' | 'connectors' | 'design-system' | 'overview' | 'library') => void;
   onDeleteChat?: (id: string) => void;
   onDeleteProject?: (id: string) => void;
+  /** File a chat into a project, or pass null to remove it from any project. */
+  onMoveChat?: (chatId: string, projectId: string | null) => void;
   isDark: boolean;
   onToggleDark: () => void;
   onToggleSidebar?: () => void;
@@ -211,7 +295,7 @@ export function MiniSidebar({ activeView, activeChatId, onViewChange, onNewChat,
   );
 }
 
-export default function Sidebar({ chats, activeChatId, activeView, activeProjectId, projects, onChatSelect, onNewChat, onNewProject, onProjectSelect, onViewChange, onDeleteChat, onDeleteProject, isDark, onToggleDark, onToggleSidebar }: SidebarProps) {
+export default function Sidebar({ chats, activeChatId, activeView, activeProjectId, projects, onChatSelect, onNewChat, onNewProject, onProjectSelect, onViewChange, onDeleteChat, onDeleteProject, onMoveChat, isDark, onToggleDark, onToggleSidebar }: SidebarProps) {
   const [projectsOpen, setProjectsOpen] = useState(true);
   const [onboardingOpen, setOnboardingOpen] = useState(true);
   const [recentsOpen, setRecentsOpen] = useState(true);
@@ -391,7 +475,14 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
                     {chat.title}
                   </span>
                 </button>
-                {onDeleteChat && <RowMoreMenu onDelete={() => onDeleteChat(chat.id)} />}
+                {onDeleteChat && (
+                  <RowMoreMenu
+                    onDelete={() => onDeleteChat(chat.id)}
+                    moveTargets={onMoveChat && projects.length > 0 ? projects.map(p => ({ id: p.id, name: p.name })) : undefined}
+                    currentProjectId={chat.projectId}
+                    onMove={onMoveChat ? (projectId) => onMoveChat(chat.id, projectId) : undefined}
+                  />
+                )}
               </div>
             );
           })}
