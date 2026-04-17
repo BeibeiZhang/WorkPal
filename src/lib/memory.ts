@@ -5,8 +5,8 @@ const STORAGE_KEY = 'workpal-memories-v1';
 let memoryIdCounter = 0;
 export const nextMemoryId = () => `mem-${Date.now()}-${++memoryIdCounter}`;
 
-/** Demo seed — three entries so the Memory page has content on first load.
- *  Matches what's already known from the onboarding flow / CLAUDE.md. */
+/** Local-only fallback used when the backend is unreachable on first paint.
+ *  Server has its own canonical seed; this just prevents an empty UI flash. */
 function seedMemories(): MemoryEntry[] {
   const now = new Date().toISOString();
   return [
@@ -37,7 +37,10 @@ function seedMemories(): MemoryEntry[] {
   ];
 }
 
-export function loadMemories(): MemoryEntry[] {
+/** Synchronous bootstrap from localStorage cache, so the Memory page has
+ *  something to show before the network fetch resolves. The cache is
+ *  refreshed by saveMemoriesCache() whenever the server responds. */
+export function loadMemoriesCache(): MemoryEntry[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -48,10 +51,76 @@ export function loadMemories(): MemoryEntry[] {
   return seedMemories();
 }
 
-export function saveMemories(memories: MemoryEntry[]) {
+export function saveMemoriesCache(memories: MemoryEntry[]) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(memories));
   } catch { /* quota exceeded — silently drop */ }
+}
+
+/* ── Backend API client ─────────────────────────────────────────────── */
+
+export class MemoryAuthError extends Error {
+  constructor(msg = 'Invalid memory password') {
+    super(msg);
+    this.name = 'MemoryAuthError';
+  }
+}
+
+async function handleResponse<T>(res: Response): Promise<T> {
+  if (res.status === 401) throw new MemoryAuthError();
+  if (!res.ok) throw new Error(`Memory API ${res.status}`);
+  return res.json() as Promise<T>;
+}
+
+export async function fetchMemoriesFromServer(): Promise<MemoryEntry[]> {
+  const res = await fetch('/api/memories');
+  const data = await handleResponse<{ memories: MemoryEntry[] }>(res);
+  return data.memories;
+}
+
+export async function verifyPassword(password: string): Promise<boolean> {
+  try {
+    const res = await fetch('/api/memories/verify', {
+      method: 'POST',
+      headers: { 'x-memory-password': password },
+    });
+    if (res.status === 401) return false;
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function createMemoryOnServer(entry: MemoryEntry, password: string): Promise<MemoryEntry> {
+  const res = await fetch('/api/memories', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-memory-password': password },
+    body: JSON.stringify(entry),
+  });
+  const data = await handleResponse<{ memory: MemoryEntry }>(res);
+  return data.memory;
+}
+
+export async function updateMemoryOnServer(
+  id: string,
+  patch: Partial<MemoryEntry>,
+  password: string,
+): Promise<MemoryEntry> {
+  const res = await fetch(`/api/memories/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json', 'x-memory-password': password },
+    body: JSON.stringify(patch),
+  });
+  const data = await handleResponse<{ memory: MemoryEntry }>(res);
+  return data.memory;
+}
+
+export async function deleteMemoryOnServer(id: string, password: string): Promise<void> {
+  const res = await fetch(`/api/memories/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: { 'x-memory-password': password },
+  });
+  await handleResponse<{ ok: true }>(res);
 }
 
 /** Build the prompt-ready memory block. Filters by scope:

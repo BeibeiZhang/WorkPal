@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import chatRouter from './routes/chat.js';
+import memoryRouter from './routes/memory.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -14,6 +15,7 @@ app.use(express.json({ limit: '50mb' }));
 
 // API routes
 app.use('/api', chatRouter);
+app.use('/api', memoryRouter);
 
 // Health check
 app.get('/health', (_req, res) => {
