@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { streamChat, getAvailableModels } from '../lib/llm.js';
 import type { ChatMessage } from '../lib/llm.js';
 import { searchImages } from '../lib/imageSearch.js';
+import { searchVideos } from '../lib/youtubeSearch.js';
 
 const router = Router();
 
@@ -103,6 +104,17 @@ router.post('/search-images', async (req, res) => {
   res.json({ images });
 });
 
+// POST /api/search-videos — called by voice mode when AI invokes the search_videos tool
+router.post('/search-videos', async (req, res) => {
+  const { query, count } = req.body as { query?: string; count?: number };
+  if (!query || typeof query !== 'string') {
+    res.status(400).json({ error: 'query is required' });
+    return;
+  }
+  const videos = await searchVideos(query, typeof count === 'number' ? count : 5);
+  res.json({ videos });
+});
+
 // GET /api/realtime/token — ephemeral token for OpenAI Realtime WebRTC
 const ALLOWED_VOICES = ['alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', 'verse'] as const;
 type Voice = (typeof ALLOWED_VOICES)[number];
@@ -150,6 +162,19 @@ router.get('/realtime/token', async (req, res) => {
               properties: {
                 query: { type: 'string', description: 'Short English search query, e.g. "golden retriever puppy" or "tokyo street at night".' },
                 count: { type: 'number', description: 'How many photos to return (1–8). Default 4.' },
+              },
+              required: ['query'],
+            },
+          },
+          {
+            type: 'function',
+            name: 'search_videos',
+            description: 'Search YouTube for real videos and display them in the chat. Call this whenever the user asks for video tutorials, how-to guides, lectures, talks, reviews, or demos. Speak a short one-sentence lead-in BEFORE calling so the user knows videos are on the way, and never invent YouTube URLs.',
+            parameters: {
+              type: 'object',
+              properties: {
+                query: { type: 'string', description: 'Search phrase — match the user\'s language. Include specifics like skill level or tool name, e.g. "react hooks tutorial beginner", "日语五十音教学".' },
+                count: { type: 'number', description: 'How many videos to return (1–8). Default 5.' },
               },
               required: ['query'],
             },

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { PanelRight } from 'lucide-react';
-import { Chat, Message, ActionChip, Attachment, ImageResult } from '../types';
+import { Chat, Message, ActionChip, Attachment, ImageResult, VideoResult } from '../types';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import VoiceMode from './VoiceMode';
@@ -36,6 +36,8 @@ interface ChatPanelProps {
   onVoiceMessage?: (role: 'user' | 'assistant', text: string) => void;
   /** Called when the AI fetches photos via the search_images tool during voice mode. */
   onVoiceImages?: (query: string, images: ImageResult[]) => void;
+  /** Called when the AI fetches YouTube videos via search_videos during voice mode. */
+  onVoiceVideos?: (query: string, videos: VideoResult[]) => void;
   /** Text typed during voice mode to inject into the voice session */
   voicePendingText?: string;
   /** Image data URLs attached during voice mode to send to the voice session */
@@ -179,6 +181,7 @@ export default function ChatPanel({
   onVoiceModeClose,
   onVoiceMessage,
   onVoiceImages,
+  onVoiceVideos,
   voicePendingText,
   voicePendingImages,
   onVoicePendingTextConsumed,
@@ -249,6 +252,7 @@ export default function ChatPanel({
               onClose={onVoiceModeClose}
               onMessage={onVoiceMessage}
               onImages={onVoiceImages}
+              onVideos={onVoiceVideos}
               pendingText={voicePendingText}
               pendingImages={voicePendingImages}
               onPendingTextConsumed={onVoicePendingTextConsumed}

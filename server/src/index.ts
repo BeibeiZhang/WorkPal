@@ -32,4 +32,9 @@ app.listen(PORT, () => {
   } else {
     console.warn('⚠️  UNSPLASH_ACCESS_KEY not set — search_images tool disabled');
   }
+  if (process.env.YOUTUBE_API_KEY) {
+    console.log('✅ YOUTUBE_API_KEY loaded — search_videos tool is active');
+  } else {
+    console.warn('⚠️  YOUTUBE_API_KEY not set — search_videos tool disabled');
+  }
 });

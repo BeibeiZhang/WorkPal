@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources/chat/completions';
 import { searchImages, isImageSearchConfigured, type ImageResult } from './imageSearch.js';
+import { searchVideos, isVideoSearchConfigured, type VideoResult } from './youtubeSearch.js';
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -13,6 +14,7 @@ export interface ChatMessage {
 export type StreamChunk =
   | { type: 'text'; content: string }
   | { type: 'images'; images: ImageResult[] }
+  | { type: 'videos'; videos: VideoResult[] }
   | { type: 'done'; content: string }
   | { type: 'error'; content: string };
 
@@ -33,6 +35,30 @@ const IMAGE_SEARCH_TOOL: ChatCompletionTool = {
           description: 'How many images to show, 1-6. Default 4.',
           minimum: 1,
           maximum: 6,
+        },
+      },
+      required: ['query'],
+    },
+  },
+};
+
+const VIDEO_SEARCH_TOOL: ChatCompletionTool = {
+  type: 'function',
+  function: {
+    name: 'search_videos',
+    description: 'Search YouTube for real videos to accompany your answer. Call this whenever the user asks for video tutorials, how-to guides, lectures, talks, reviews, demos, or any request that would be best answered by pointing to specific videos. IMPORTANT: Before calling this tool, always write a short one-sentence intro like "Here are a few videos on X:" — that is the ONLY text that will accompany the videos, since no follow-up message is generated after the tool call. Do NOT invent or guess YouTube URLs; use this tool.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Search phrase. Match the user\'s language (e.g. use Chinese if they asked in Chinese) and include specifics like skill level or tool name — "react hooks tutorial for beginners", "日语五十音教学", "figma auto layout demo".',
+        },
+        count: {
+          type: 'integer',
+          description: 'How many videos to show, 1-8. Default 5.',
+          minimum: 1,
+          maximum: 8,
         },
       },
       required: ['query'],
@@ -70,7 +96,10 @@ export async function* streamChat(
   model = 'gpt-4o-mini',
 ): AsyncGenerator<StreamChunk> {
   // gpt-4o-mini already supports vision, so image messages Just Work.
-  const tools = isImageSearchConfigured() ? [IMAGE_SEARCH_TOOL] : undefined;
+  const toolList: ChatCompletionTool[] = [];
+  if (isImageSearchConfigured()) toolList.push(IMAGE_SEARCH_TOOL);
+  if (isVideoSearchConfigured()) toolList.push(VIDEO_SEARCH_TOOL);
+  const tools = toolList.length > 0 ? toolList : undefined;
 
   try {
     // Single-pass streaming. The model may stream text and tool_call deltas
@@ -107,13 +136,17 @@ export async function* streamChat(
       }
     }
 
-    // Execute tool calls after the text stream finishes, then emit images.
+    // Execute tool calls after the text stream finishes, then emit results.
     for (const tc of toolCallsBuffer) {
-      if (tc.function.name !== 'search_images') continue;
       let args: { query?: string; count?: number } = {};
       try { args = JSON.parse(tc.function.arguments); } catch { /* invalid JSON — treat as empty */ }
-      const images = await searchImages(args.query || '', args.count || 4);
-      if (images.length > 0) yield { type: 'images', images };
+      if (tc.function.name === 'search_images') {
+        const images = await searchImages(args.query || '', args.count || 4);
+        if (images.length > 0) yield { type: 'images', images };
+      } else if (tc.function.name === 'search_videos') {
+        const videos = await searchVideos(args.query || '', args.count || 5);
+        if (videos.length > 0) yield { type: 'videos', videos };
+      }
     }
 
     yield { type: 'done', content: '' };

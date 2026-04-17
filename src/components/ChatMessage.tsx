@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import { FileText, Download } from 'lucide-react';
-import { Message, Attachment, ImageResult } from '../types';
+import { FileText, Download, Play } from 'lucide-react';
+import { Message, Attachment, ImageResult, VideoResult } from '../types';
 import MessageCard from './MessageCard';
 import { iconCopy, iconShare, iconThumbsUp, iconRefresh } from '../assets';
 
@@ -35,6 +35,71 @@ function ImageResultsGrid({ images }: { images: ImageResult[] }) {
               {img.attribution}
             </div>
           )}
+        </a>
+      ))}
+    </div>
+  );
+}
+
+/** Human-friendly "N ago" label for a YouTube publishedAt ISO string. */
+function timeAgo(iso?: string): string {
+  if (!iso) return '';
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return '';
+  const secs = Math.max(1, Math.floor((Date.now() - then) / 1000));
+  const units: [number, string][] = [
+    [60 * 60 * 24 * 365, 'y'],
+    [60 * 60 * 24 * 30, 'mo'],
+    [60 * 60 * 24 * 7, 'w'],
+    [60 * 60 * 24, 'd'],
+    [60 * 60, 'h'],
+    [60, 'm'],
+  ];
+  for (const [size, label] of units) {
+    const n = Math.floor(secs / size);
+    if (n >= 1) return `${n}${label} ago`;
+  }
+  return 'just now';
+}
+
+/** YouTube video cards rendered under an assistant message. Thumbnail on the
+ *  left, title / channel / meta on the right — clicking opens the watch page
+ *  in a new tab. Layout is a single vertical column so titles stay readable
+ *  even on narrow widths. */
+function VideoResultsGrid({ videos }: { videos: VideoResult[] }) {
+  const shown = videos.slice(0, 8);
+  return (
+    <div className="mt-2 mb-1 flex flex-col gap-2 max-w-[560px]">
+      {shown.map((v) => (
+        <a
+          key={v.videoId}
+          href={v.url}
+          target="_blank"
+          rel="noreferrer"
+          className="group/vid flex gap-3 rounded-xl overflow-hidden border border-stroke-outline bg-bg-hover hover:bg-bg-hover/70 transition-colors no-underline p-2"
+          title={v.title}
+        >
+          <div className="relative shrink-0 w-[160px] aspect-video rounded-lg overflow-hidden bg-stroke-outline">
+            <img
+              src={v.thumbnailUrl}
+              alt={v.title}
+              loading="lazy"
+              className="block w-full h-full object-cover transition-transform duration-300 group-hover/vid:scale-[1.03]"
+            />
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/vid:opacity-100 transition-opacity bg-black/30">
+              <div className="w-9 h-9 rounded-full bg-white/90 flex items-center justify-center">
+                <Play size={16} className="text-black ml-[2px]" fill="currentColor" />
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 min-w-0 flex flex-col justify-center py-1">
+            <div className="text-sm font-medium text-text-primary leading-snug line-clamp-2">
+              {v.title}
+            </div>
+            <div className="mt-1 text-xs text-text-secondary truncate">
+              {v.channelTitle}{v.publishedAt ? ` · ${timeAgo(v.publishedAt)}` : ''}
+            </div>
+          </div>
         </a>
       ))}
     </div>
@@ -235,6 +300,11 @@ export default function ChatMessage({ message, isLastAssistant, onCardAction }: 
           {/* Images fetched via search_images tool */}
           {message.imageResults && message.imageResults.length > 0 && (
             <ImageResultsGrid images={message.imageResults} />
+          )}
+
+          {/* YouTube videos fetched via search_videos tool */}
+          {message.videoResults && message.videoResults.length > 0 && (
+            <VideoResultsGrid videos={message.videoResults} />
           )}
 
           {/* Feedback bar: always visible on last assistant msg, hover-only on others */}
