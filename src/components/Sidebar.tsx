@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Chat, Attachment } from '../types';
-import { LayoutDashboard, SquarePen, Link, BookOpen, Brain, FolderPlus, ChevronDown, Search, Palette, PanelLeft, MoreHorizontal, Trash2, FolderInput, Check } from 'lucide-react';
+import { LayoutDashboard, SquarePen, Link, BookOpen, Brain, FolderPlus, ChevronDown, Search, Palette, PanelLeft, MoreHorizontal, Trash2, FolderInput, Check, Sparkles } from 'lucide-react';
 import { iconSun, iconMoon } from '../assets';
 
 /**
@@ -174,7 +174,21 @@ const USER_PROFILE_IMG = '/icons/user-profile.png';
  * (footer-anchored) with entries like "Memory" that jump to their page.
  * Dismisses on outside click or Escape.
  */
-function AvatarMenu({ onMemory }: { onMemory: () => void }) {
+interface AvatarMenuProps {
+  compact?: boolean;
+  activeView?: SidebarProps['activeView'];
+  activeChatId?: string;
+  onViewChange?: SidebarProps['onViewChange'];
+  onChatSelect?: (id: string) => void;
+}
+
+/**
+ * Account/navigation hub anchored to the profile avatar. Opens upward with
+ * entries for Connectors, Library, Memory, Onboarding Experience, and
+ * Design System — destinations that no longer live in the left rail.
+ * Dismisses on outside click or Escape.
+ */
+function AvatarMenu({ compact = false, activeView, activeChatId, onViewChange, onChatSelect }: AvatarMenuProps) {
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -198,8 +212,16 @@ function AvatarMenu({ onMemory }: { onMemory: () => void }) {
     };
   }, [open]);
 
+  const items: { id: string; label: string; Icon: typeof Link; onClick: () => void; active: boolean }[] = [
+    { id: 'connectors',    label: 'Connectors',            Icon: Link,     onClick: () => onViewChange?.('connectors'),    active: activeView === 'connectors' },
+    { id: 'library',       label: 'Library',               Icon: BookOpen, onClick: () => onViewChange?.('library'),       active: activeView === 'library' },
+    { id: 'memory',        label: 'Memory',                Icon: Brain,    onClick: () => onViewChange?.('memory'),        active: activeView === 'memory' },
+    { id: 'onboarding',    label: 'Onboarding Experience', Icon: Sparkles, onClick: () => onChatSelect?.('my-workpal'),    active: activeChatId === 'my-workpal' && activeView === 'chat' },
+    { id: 'design-system', label: 'Design System',         Icon: Palette,  onClick: () => onViewChange?.('design-system'), active: activeView === 'design-system' },
+  ];
+
   return (
-    <div className="relative flex-1 min-w-0">
+    <div className={compact ? 'relative' : 'relative flex-1 min-w-0'}>
       <button
         ref={btnRef}
         type="button"
@@ -207,38 +229,52 @@ function AvatarMenu({ onMemory }: { onMemory: () => void }) {
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-6 w-full rounded-full hover:bg-bg-hover transition-colors text-left"
+        className={
+          compact
+            ? 'block rounded-full overflow-hidden hover:opacity-80 transition-opacity'
+            : 'flex items-center gap-6 w-full rounded-full hover:bg-bg-hover transition-colors text-left'
+        }
+        style={compact ? { width: 35, height: 35 } : undefined}
       >
-        <div className="rounded-full overflow-hidden shrink-0" style={{ width: 35, height: 35 }}>
+        {compact ? (
           <img src={USER_PROFILE_IMG} alt="Beibei Zhang" className="w-full h-full object-cover" />
-        </div>
-        <p
-          className="text-[16px] font-bold text-text-primary tracking-[-0.43px] truncate"
-          style={{ lineHeight: '32px', fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
-        >
-          Beibei Zhang
-        </p>
+        ) : (
+          <>
+            <div className="rounded-full overflow-hidden shrink-0" style={{ width: 35, height: 35 }}>
+              <img src={USER_PROFILE_IMG} alt="Beibei Zhang" className="w-full h-full object-cover" />
+            </div>
+            <p
+              className="text-[16px] font-bold text-text-primary tracking-[-0.43px] truncate"
+              style={{ lineHeight: '32px', fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
+            >
+              Beibei Zhang
+            </p>
+          </>
+        )}
       </button>
 
       {open && (
         <div
           ref={menuRef}
           role="menu"
-          className="absolute bottom-full left-0 mb-2 min-w-[180px] py-1 rounded-xl overflow-hidden z-40"
+          className="absolute bottom-full left-0 mb-2 min-w-[220px] py-1 rounded-xl overflow-hidden z-40"
           style={{
             background: 'var(--color-bg-page)',
             border: '1px solid var(--color-stroke-outline)',
             boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
           }}
         >
-          <button
-            role="menuitem"
-            onClick={() => { setOpen(false); onMemory(); }}
-            className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-bg-hover transition-colors"
-          >
-            <Brain size={16} className="shrink-0 text-text-primary" />
-            <span className="text-[14px] text-text-primary">Memory</span>
-          </button>
+          {items.map(({ id, label, Icon, onClick, active }) => (
+            <button
+              key={id}
+              role="menuitem"
+              onClick={() => { setOpen(false); onClick(); }}
+              className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors ${active ? 'bg-bg-hover' : 'hover:bg-bg-hover'}`}
+            >
+              <Icon size={16} className="shrink-0 text-text-primary" />
+              <span className="text-[14px] text-text-primary">{label}</span>
+            </button>
+          ))}
         </div>
       )}
     </div>
@@ -317,15 +353,11 @@ interface MiniSidebarProps {
   onToggleSidebar?: () => void;
 }
 
-export function MiniSidebar({ activeView, activeChatId, onViewChange, onNewChat, onToggleSidebar }: MiniSidebarProps) {
+export function MiniSidebar({ activeView, activeChatId, onChatSelect, onViewChange, onNewChat, onToggleSidebar }: MiniSidebarProps) {
   const items: { id: string; label: string; Icon: typeof LayoutDashboard; onClick: () => void; active: boolean }[] = [
     { id: 'new', label: 'New Session', Icon: SquarePen, onClick: onNewChat, active: false },
     { id: 'overview', label: 'Overview', Icon: LayoutDashboard, onClick: () => onViewChange?.('overview'), active: activeView === 'overview' && !activeChatId },
     { id: 'search', label: 'Search', Icon: Search, onClick: () => onToggleSidebar?.(), active: false },
-    { id: 'connectors', label: 'Connectors', Icon: Link, onClick: () => onViewChange?.('connectors'), active: activeView === 'connectors' },
-    { id: 'library', label: 'Library', Icon: BookOpen, onClick: () => onViewChange?.('library'), active: activeView === 'library' },
-    { id: 'memory', label: 'Memory', Icon: Brain, onClick: () => onViewChange?.('memory'), active: activeView === 'memory' },
-    { id: 'design-system', label: 'Design System', Icon: Palette, onClick: () => onViewChange?.('design-system'), active: activeView === 'design-system' },
   ];
 
   return (
@@ -368,9 +400,13 @@ export function MiniSidebar({ activeView, activeChatId, onViewChange, onNewChat,
 
       {/* Profile at bottom */}
       <div className="pb-10 shrink-0 flex items-center justify-center">
-        <div className="rounded-full overflow-hidden shrink-0" style={{ width: 35, height: 35 }}>
-          <img src={USER_PROFILE_IMG} alt="Beibei Zhang" className="w-full h-full object-cover" />
-        </div>
+        <AvatarMenu
+          compact
+          activeView={activeView}
+          activeChatId={activeChatId}
+          onViewChange={onViewChange}
+          onChatSelect={onChatSelect}
+        />
       </div>
     </div>
   );
@@ -378,9 +414,7 @@ export function MiniSidebar({ activeView, activeChatId, onViewChange, onNewChat,
 
 export default function Sidebar({ chats, activeChatId, activeView, activeProjectId, projects, onChatSelect, onNewChat, onNewProject, onProjectSelect, onViewChange, onDeleteChat, onDeleteProject, onMoveChat, isDark, onToggleDark, onToggleSidebar }: SidebarProps) {
   const [projectsOpen, setProjectsOpen] = useState(true);
-  const [onboardingOpen, setOnboardingOpen] = useState(true);
   const [recentsOpen, setRecentsOpen] = useState(true);
-  const [extensionsOpen, setExtensionsOpen] = useState(true);
 
   // Hide drafts (and any leftover empty "New Session" entries from older
   // sessions in localStorage) from the Recents list — they live under the
@@ -396,29 +430,6 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
   // active chat — i.e. the user has clicked it but hasn't sent a message yet.
   const activeChat = chats.find(c => c.id === activeChatId);
   const isNewSessionActive = activeView === 'chat' && !!activeChat && isDraftLike(activeChat);
-
-  // Auto-collapse Admin/Extensions when scrollable content overflows.
-  // One-shot collapse (not derived) to avoid expand↔collapse flicker loop:
-  // deriving `open` from `isOverflowing` causes oscillation because collapsing
-  // removes overflow, which then re-expands and re-triggers overflow.
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [isOverflowing, setIsOverflowing] = useState(false);
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const check = () => setIsOverflowing(el.scrollHeight > el.clientHeight);
-    check();
-    const ro = new ResizeObserver(check);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [chats, projectsOpen, recentsOpen]);
-
-  useEffect(() => {
-    if (isOverflowing) {
-      setOnboardingOpen(false);
-      setExtensionsOpen(false);
-    }
-  }, [isOverflowing]);
 
   return (
     <div
@@ -440,7 +451,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
       </div>
 
       {/* Scrollable content */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto min-h-0 py-4 scrollbar-autohide">
+      <div className="flex-1 overflow-y-auto min-h-0 py-4 scrollbar-autohide">
 
         {/* Top menu items */}
         <div className="px-4 flex flex-col gap-1">
@@ -571,106 +582,6 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
 
       </div>
 
-      {/* 6. Extensions — pinned below scroll area, auto-collapses when Recents overflows */}
-      <div className="px-4 pt-2 pb-1 shrink-0 flex flex-col gap-1">
-        <button
-          onClick={() => setExtensionsOpen(!extensionsOpen)}
-          className="px-4 flex items-center justify-between hover:bg-bg-hover rounded-full transition-colors"
-          style={{ height: 32 }}
-        >
-          <p className="text-base font-bold text-text-primary tracking-[-0.43px]">Extensions</p>
-          <ChevronDown
-            size={16}
-            className={`text-text-primary transition-transform ${extensionsOpen ? '' : '-rotate-90'}`}
-          />
-        </button>
-
-        {extensionsOpen && (
-          <>
-            <button
-              onClick={() => onViewChange?.('connectors')}
-              className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${activeView === 'connectors' ? 'gradient-ring' : 'hover:bg-bg-hover'}`}
-            >
-              <Link size={18} className="shrink-0 text-text-primary" />
-              <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
-                Connectors
-              </span>
-            </button>
-            <button
-              onClick={() => onViewChange?.('library')}
-              className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${activeView === 'library' ? 'gradient-ring' : 'hover:bg-bg-hover'}`}
-            >
-              <BookOpen size={18} className="shrink-0 text-text-primary" />
-              <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
-                Library
-              </span>
-            </button>
-            <button
-              onClick={() => onViewChange?.('memory')}
-              className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${activeView === 'memory' ? 'gradient-ring' : 'hover:bg-bg-hover'}`}
-            >
-              <Brain size={18} className="shrink-0 text-text-primary" />
-              <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
-                Memory
-              </span>
-            </button>
-          </>
-        )}
-      </div>
-
-      {/* 7. Admin section — pinned above account footer */}
-      <div className="px-4 pt-2 pb-1 shrink-0 flex flex-col gap-1">
-        <button
-          onClick={() => setOnboardingOpen(!onboardingOpen)}
-          className="px-4 flex items-center justify-between hover:bg-bg-hover rounded-full transition-colors"
-          style={{ height: 32 }}
-        >
-          <p className="text-base font-bold text-text-primary tracking-[-0.43px]">Admin</p>
-          <ChevronDown
-            size={16}
-            className={`text-text-primary transition-transform ${onboardingOpen ? '' : '-rotate-90'}`}
-          />
-        </button>
-
-        {onboardingOpen && (
-          <>
-            {/* Onboarding Experience */}
-            {(() => {
-              const isActive = activeChatId === 'my-workpal' && activeView === 'chat';
-              return (
-                <button
-                  onClick={() => onChatSelect('my-workpal')}
-                  className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${
-                    isActive ? 'gradient-ring' : 'hover:bg-bg-hover'
-                  }`}
-                >
-                  <span
-                    className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px] truncate"
-                    style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}
-                  >
-                    Onboarding Experience
-                  </span>
-                </button>
-              );
-            })()}
-
-            {/* Design System */}
-            <button
-              onClick={() => onViewChange?.('design-system')}
-              className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${activeView === 'design-system' ? 'gradient-ring' : 'hover:bg-bg-hover'}`}
-            >
-              <Palette size={18} className="shrink-0 text-text-primary" />
-              <span
-                className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px] truncate"
-                style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}
-              >
-                Design System
-              </span>
-            </button>
-          </>
-        )}
-      </div>
-
       {/* Account footer */}
       <div
         className="px-4 pt-4 pb-10 shrink-0 flex items-center gap-6"
@@ -681,8 +592,13 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
           backgroundPosition: 'top',
         }}
       >
-        {/* Profile + account menu */}
-        <AvatarMenu onMemory={() => onViewChange?.('memory')} />
+        {/* Profile + account menu (Connectors · Library · Memory · Onboarding · Design System) */}
+        <AvatarMenu
+          activeView={activeView}
+          activeChatId={activeChatId}
+          onViewChange={onViewChange}
+          onChatSelect={onChatSelect}
+        />
         {/* Dark/Light toggle */}
         <DarkToggle isDark={isDark} onToggle={onToggleDark} />
       </div>

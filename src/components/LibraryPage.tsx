@@ -44,6 +44,8 @@ interface LibraryItem {
   pages?: number;
   /** Aspect ratio (width / height) for masonry layout — drives tile height */
   ratio: string;
+  /** Short summary shown on the card below the title divider. */
+  summary?: string;
 }
 
 /* ─── Mock data — represents AI-generated artifacts across the app ─── */
@@ -56,6 +58,7 @@ const ITEMS: LibraryItem[] = [
     createdAt: 'Today',
     pages: 12,
     ratio: '3/4',
+    summary: 'Root-cause synthesis across 47 driver complaints — ID verification, multi-stop handoffs, refund disputes.',
   },
   {
     id: 'a2',
@@ -65,6 +68,7 @@ const ITEMS: LibraryItem[] = [
     createdAt: 'Today',
     pages: 18,
     ratio: '4/3',
+    summary: 'Quarterly review: dwell-time -18%, mispick rate down to 2.1%, V4 rollout readiness.',
   },
   {
     id: 'a3',
@@ -74,6 +78,7 @@ const ITEMS: LibraryItem[] = [
     createdAt: 'Yesterday',
     pages: 3,
     ratio: '1/1',
+    summary: '7 action items assigned — owners, due dates, linked tickets.',
   },
   {
     id: 'a5',
@@ -83,6 +88,7 @@ const ITEMS: LibraryItem[] = [
     createdAt: '2 days ago',
     duration: '2:14',
     ratio: '4/3',
+    summary: 'Step-by-step screen recording of the new driver onboarding flow.',
   },
   {
     id: 'a6',
@@ -92,6 +98,7 @@ const ITEMS: LibraryItem[] = [
     createdAt: '2 days ago',
     pages: 4,
     ratio: '4/3',
+    summary: '4 sheets: dwell time, mispick rate, driver NPS, weekly rollup.',
   },
   {
     id: 'a7',
@@ -101,6 +108,7 @@ const ITEMS: LibraryItem[] = [
     createdAt: '3 days ago',
     pages: 2,
     ratio: '3/4',
+    summary: 'Agenda, attendees, review criteria, and pre-read links for Thursday\'s UX review.',
   },
   {
     id: 'a8',
@@ -110,6 +118,7 @@ const ITEMS: LibraryItem[] = [
     createdAt: '4 days ago',
     duration: '0:48',
     ratio: '9/16',
+    summary: 'Clipped highlights from 5 driver interviews on alcohol-delivery friction.',
   },
   {
     id: 'a10',
@@ -119,6 +128,7 @@ const ITEMS: LibraryItem[] = [
     createdAt: 'Last week',
     pages: 24,
     ratio: '4/3',
+    summary: 'Company-wide Q1 OKR status: 3 on-track, 2 at risk, 1 missed — with owner commentary.',
   },
   {
     id: 'a11',
@@ -128,6 +138,7 @@ const ITEMS: LibraryItem[] = [
     createdAt: 'Last week',
     pages: 9,
     ratio: '4/5',
+    summary: 'Legal and compliance findings across 9 state jurisdictions, recommendations per region.',
   },
 ];
 
@@ -145,22 +156,23 @@ const FILTERS: { id: FilterId; label: string; Icon: typeof FileText | null }[] =
   { id: 'note', label: 'Notes', Icon: StickyNote },
 ];
 
+/* Vivid, high-brightness palette — matches Figma's colorful card style (e.g. #f06a6a). */
 const TYPE_META: Record<ArtifactType, { label: string; Icon: typeof FileText; tint: string }> = {
-  report:       { label: 'Report',       Icon: FileText,        tint: '#7652B9' },
-  presentation: { label: 'Presentation', Icon: Presentation,    tint: '#B46470' },
-  image:        { label: 'Image',        Icon: ImageIcon,       tint: '#CA9D8C' },
-  video:        { label: 'Video',        Icon: Video,           tint: '#3171FF' },
-  document:     { label: 'Document',     Icon: FileIcon,        tint: '#028901' },
-  spreadsheet:  { label: 'Spreadsheet',  Icon: FileSpreadsheet, tint: '#34A853' },
-  note:         { label: 'Note',         Icon: StickyNote,      tint: '#F2A93B' },
+  report:       { label: 'Report',       Icon: FileText,        tint: '#F06A6A' }, // coral red
+  presentation: { label: 'Presentation', Icon: Presentation,    tint: '#F59E42' }, // orange
+  image:        { label: 'Image',        Icon: ImageIcon,       tint: '#E879F9' }, // fuchsia
+  video:        { label: 'Video',        Icon: Video,           tint: '#3B82F6' }, // bright blue
+  document:     { label: 'Document',     Icon: FileIcon,        tint: '#14B8A6' }, // teal
+  spreadsheet:  { label: 'Spreadsheet',  Icon: FileSpreadsheet, tint: '#22C55E' }, // vivid green
+  note:         { label: 'Note',         Icon: StickyNote,      tint: '#FBBF24' }, // amber
 };
 
-/* ─── Item card — Pinterest-style tile with overlaid title ─── */
+/* ─── Item card — Figma-style (node 6417:25543): icon + title header with a
+       white bottom-divider, summary text below. Thumbnail items keep the
+       image-fill layout with the old bottom-title overlay. ─── */
 function LibraryCard({ item }: { item: LibraryItem }) {
   const meta = TYPE_META[item.type];
   const TypeIcon = meta.Icon;
-  // CSS columns: prevent splitting across columns and add bottom spacing.
-  // Hover: subtle lift via transform on inner wrapper.
   return (
     <div className="mb-3 break-inside-avoid">
       <div
@@ -171,18 +183,75 @@ function LibraryCard({ item }: { item: LibraryItem }) {
           boxShadow: '0 1px 2px rgba(20,39,64,0.06)',
         }}
       >
-        {/* Thumbnail or generated preview */}
         {item.thumbnail ? (
-          <img
-            src={item.thumbnail}
-            alt={item.title}
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-        ) : (
-          <div className="absolute inset-x-0 top-0 bottom-[48px] flex items-center justify-center pointer-events-none">
-            <div className="w-[30%] aspect-square">
-              <TypeIcon strokeWidth={1.6} style={{ color: '#fff', width: '100%', height: '100%' }} />
+          <>
+            <img
+              src={item.thumbnail}
+              alt={item.title}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            {/* Bottom title overlay for thumbnail items */}
+            <div className="absolute inset-x-0 bottom-0 px-3 pb-3 pointer-events-none">
+              <p
+                className="text-white"
+                style={{
+                  fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  lineHeight: '18px',
+                  letterSpacing: '-0.16px',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                }}
+              >
+                {item.title}
+              </p>
             </div>
+          </>
+        ) : (
+          <div className="absolute inset-0 p-3 flex flex-col gap-1">
+            {/* Header: icon + title + 1px white bottom divider */}
+            <div
+              className="flex flex-col gap-1 pb-2"
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.6)' }}
+            >
+              <TypeIcon size={24} strokeWidth={1.6} style={{ color: '#fff' }} />
+              <p
+                className="text-white"
+                style={{
+                  fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  lineHeight: '18px',
+                  letterSpacing: '-0.16px',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                }}
+              >
+                {item.title}
+              </p>
+            </div>
+
+            {item.summary && (
+              <p
+                style={{
+                  fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
+                  fontSize: 11,
+                  lineHeight: '15px',
+                  color: 'rgba(255,255,255,0.9)',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 8,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                }}
+              >
+                {item.summary}
+              </p>
+            )}
           </div>
         )}
 
@@ -221,26 +290,6 @@ function LibraryCard({ item }: { item: LibraryItem }) {
           >
             <MoreHorizontal size={14} />
           </button>
-        </div>
-
-        {/* Bottom title overlay — no gradient, no shadow */}
-        <div className="absolute inset-x-0 bottom-0 px-3 pb-3 pointer-events-none">
-          <p
-            className="text-white"
-            style={{
-              fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-              fontSize: 14,
-              fontWeight: 600,
-              lineHeight: '18px',
-              letterSpacing: '-0.16px',
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-            }}
-          >
-            {item.title}
-          </p>
         </div>
       </div>
     </div>
