@@ -1,4 +1,5 @@
-import { google } from 'googleapis';
+import { gmail } from '@googleapis/gmail';
+import { calendar } from '@googleapis/calendar';
 import { getOAuthClient, type GoogleConnectorId } from './google-auth.js';
 
 /** Card shapes mirror src/types.ts — these JSON blobs leave the server and
@@ -76,12 +77,12 @@ function normalizeIso(v: string | undefined): string | undefined {
 export interface GmailSearchArgs { query?: string; max_results?: number; }
 
 export async function searchGmail(args: GmailSearchArgs): Promise<ToolResult> {
-  const oauth2 = await requireClient('gmail');
-  const gmail = google.gmail({ version: 'v1', auth: oauth2 });
+  const auth = await requireClient('gmail');
+  const api = gmail({ version: 'v1', auth });
   const q = (args.query || '').toString();
   const max = Math.max(1, Math.min(args.max_results ?? 10, 20));
 
-  const listResp = await gmail.users.messages.list({
+  const listResp = await api.users.messages.list({
     userId: 'me',
     q: q || undefined,
     maxResults: max,
@@ -89,7 +90,7 @@ export async function searchGmail(args: GmailSearchArgs): Promise<ToolResult> {
   const ids = (listResp.data.messages || []).map((m) => m.id).filter((v): v is string => !!v);
 
   const hits = await Promise.all(ids.map(async (id) => {
-    const m = await gmail.users.messages.get({
+    const m = await api.users.messages.get({
       userId: 'me',
       id,
       format: 'metadata',
@@ -131,8 +132,8 @@ export async function searchGmail(args: GmailSearchArgs): Promise<ToolResult> {
 export interface SendEmailArgs { to?: string; subject?: string; body?: string; cc?: string; }
 
 export async function sendEmail(args: SendEmailArgs): Promise<ToolResult> {
-  const oauth2 = await requireClient('gmail');
-  const gmail = google.gmail({ version: 'v1', auth: oauth2 });
+  const auth = await requireClient('gmail');
+  const api = gmail({ version: 'v1', auth });
   const to = (args.to || '').toString().trim();
   const subject = (args.subject || '').toString();
   const body = (args.body || '').toString();
@@ -148,7 +149,7 @@ export async function sendEmail(args: SendEmailArgs): Promise<ToolResult> {
   ];
   const raw = `${headers.join('\r\n')}\r\n\r\n${body}`;
 
-  const resp = await gmail.users.messages.send({
+  const resp = await api.users.messages.send({
     userId: 'me',
     requestBody: { raw: encodeMessage(raw) },
   });
@@ -169,8 +170,8 @@ export async function sendEmail(args: SendEmailArgs): Promise<ToolResult> {
 export interface ListEventsArgs { time_min?: string; time_max?: string; max_results?: number; }
 
 export async function listCalendarEvents(args: ListEventsArgs): Promise<ToolResult> {
-  const oauth2 = await requireClient('google-cal');
-  const calendar = google.calendar({ version: 'v3', auth: oauth2 });
+  const auth = await requireClient('google-cal');
+  const api = calendar({ version: 'v3', auth });
 
   const now = new Date();
   const defaultMax = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -178,7 +179,7 @@ export async function listCalendarEvents(args: ListEventsArgs): Promise<ToolResu
   const timeMax = normalizeIso(args.time_max) || defaultMax.toISOString();
   const max = Math.max(1, Math.min(args.max_results ?? 10, 20));
 
-  const resp = await calendar.events.list({
+  const resp = await api.events.list({
     calendarId: 'primary',
     timeMin,
     timeMax,
@@ -227,8 +228,8 @@ export interface CreateEventArgs {
 }
 
 export async function createCalendarEvent(args: CreateEventArgs): Promise<ToolResult> {
-  const oauth2 = await requireClient('google-cal');
-  const calendar = google.calendar({ version: 'v3', auth: oauth2 });
+  const auth = await requireClient('google-cal');
+  const api = calendar({ version: 'v3', auth });
 
   const title = (args.title || 'Untitled event').toString();
   const startIso = normalizeIso(args.start_iso);
@@ -236,7 +237,7 @@ export async function createCalendarEvent(args: CreateEventArgs): Promise<ToolRe
   if (!startIso || !endIso) throw new Error('create_calendar_event requires start_iso and end_iso');
   const attendees = (args.attendees || []).map((e) => ({ email: e }));
 
-  const resp = await calendar.events.insert({
+  const resp = await api.events.insert({
     calendarId: 'primary',
     sendUpdates: 'all',
     requestBody: {

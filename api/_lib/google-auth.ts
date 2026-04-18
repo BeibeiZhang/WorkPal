@@ -1,5 +1,5 @@
-import { google } from 'googleapis';
-import type { OAuth2Client, Credentials } from 'google-auth-library';
+import { OAuth2Client, type Credentials } from 'google-auth-library';
+import { oauth2 } from '@googleapis/oauth2';
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { getConnector, setConnectorStatus } from './connector-store.js';
 
@@ -34,7 +34,7 @@ function requireEnv(): { clientId: string; clientSecret: string; redirectUri: st
 
 function newClient(): OAuth2Client {
   const { clientId, clientSecret, redirectUri } = requireEnv();
-  return new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+  return new OAuth2Client(clientId, clientSecret, redirectUri);
 }
 
 /* ─── Stateless CSRF state (HMAC-signed, 10 min TTL) ────────────────────
@@ -99,8 +99,8 @@ export function consumeState(token: string): GoogleConnectorId | null {
 /* ─── Auth URL / code exchange ────────────────────────────────────────── */
 
 export function getAuthUrl(connectorId: GoogleConnectorId, state: string): string {
-  const oauth2 = newClient();
-  return oauth2.generateAuthUrl({
+  const client = newClient();
+  return client.generateAuthUrl({
     access_type: 'offline',
     prompt: 'consent',
     scope: SCOPES[connectorId],
@@ -113,13 +113,13 @@ export interface ExchangedTokens extends Credentials {
 }
 
 export async function exchangeCode(code: string): Promise<ExchangedTokens> {
-  const oauth2 = newClient();
-  const { tokens } = await oauth2.getToken(code);
-  oauth2.setCredentials(tokens);
+  const client = newClient();
+  const { tokens } = await client.getToken(code);
+  client.setCredentials(tokens);
 
   let email: string | null = null;
   try {
-    const oauth2Api = google.oauth2({ version: 'v2', auth: oauth2 });
+    const oauth2Api = oauth2({ version: 'v2', auth: client });
     const userInfo = await oauth2Api.userinfo.get();
     email = userInfo.data.email ?? null;
   } catch (err) {
@@ -135,13 +135,13 @@ export async function getOAuthClient(connectorId: GoogleConnectorId): Promise<OA
   const row = await getConnector(connectorId);
   if (!row || row.status !== 'connected' || !row.tokens) return null;
 
-  const oauth2 = newClient();
-  oauth2.setCredentials(row.tokens as Credentials);
-  oauth2.on('tokens', (refreshed) => {
+  const client = newClient();
+  client.setCredentials(row.tokens as Credentials);
+  client.on('tokens', (refreshed) => {
     const merged = { ...(row.tokens as Credentials), ...refreshed };
     void setConnectorStatus(connectorId, 'connected', merged).catch((err) =>
       console.error(`Failed to persist refreshed tokens for ${connectorId}`, err),
     );
   });
-  return oauth2;
+  return client;
 }
