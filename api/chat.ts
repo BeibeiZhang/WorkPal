@@ -1,6 +1,17 @@
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam, ChatCompletionTool } from 'openai/resources/chat/completions';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { listConnectors } from './_lib/connector-store.js';
+import {
+  searchGmail,
+  sendEmail,
+  listCalendarEvents,
+  createCalendarEvent,
+  humanLabel,
+  ConnectorNotConnectedError,
+  type CardJson,
+  type ToolResult,
+} from './_lib/google-tools.js';
 
 export const config = { maxDuration: 60 };
 
@@ -229,11 +240,84 @@ const WEB_SEARCH_TOOL: ChatCompletionTool = {
   },
 };
 
+const SEARCH_GMAIL_TOOL: ChatCompletionTool = {
+  type: 'function',
+  function: {
+    name: 'search_gmail',
+    description: 'Search the user\'s Gmail inbox for messages matching a query. Use this whenever the user asks about their inbox, recent emails, unread messages, or messages from a specific person/topic — in any language. Returns a compact list of matching threads (from, subject, date, snippet). After the tool returns, write a brief text summary referencing the top 3-5 results in the user\'s language.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Gmail search query using Gmail\'s search syntax (e.g. "from:alice newer_than:7d", "subject:invoice", "is:unread", "is:important newer_than:1d"). Keep it specific; empty string returns the most recent messages.' },
+        max_results: { type: 'integer', description: 'How many messages to return, 1-20. Default 10.', minimum: 1, maximum: 20 },
+      },
+      required: ['query'],
+    },
+  },
+};
+
+const SEND_EMAIL_TOOL: ChatCompletionTool = {
+  type: 'function',
+  function: {
+    name: 'send_email',
+    description: 'Send an email from the user\'s Gmail account. ONLY call this when the user explicitly asks to send an email and has confirmed the recipient, subject, and body. Do NOT guess recipients. After the tool returns, confirm the send briefly.',
+    parameters: {
+      type: 'object',
+      properties: {
+        to: { type: 'string', description: 'Recipient email address.' },
+        subject: { type: 'string', description: 'Email subject line.' },
+        body: { type: 'string', description: 'Plain-text email body.' },
+        cc: { type: 'string', description: 'Optional comma-separated CC addresses.' },
+      },
+      required: ['to', 'subject', 'body'],
+    },
+  },
+};
+
+const LIST_EVENTS_TOOL: ChatCompletionTool = {
+  type: 'function',
+  function: {
+    name: 'list_calendar_events',
+    description: 'List upcoming events from the user\'s primary Google Calendar. Call this whenever the user asks what\'s on their schedule, what meetings are coming up, what they have this week, or any similar question — in any language. Defaults to the next 7 days if no range is given.',
+    parameters: {
+      type: 'object',
+      properties: {
+        time_min: { type: 'string', description: 'ISO-8601 start of the window (inclusive). Defaults to now.' },
+        time_max: { type: 'string', description: 'ISO-8601 end of the window (exclusive). Defaults to now + 7 days.' },
+        max_results: { type: 'integer', description: 'Maximum events to return, 1-20. Default 10.', minimum: 1, maximum: 20 },
+      },
+      required: [],
+    },
+  },
+};
+
+const CREATE_EVENT_TOOL: ChatCompletionTool = {
+  type: 'function',
+  function: {
+    name: 'create_calendar_event',
+    description: 'Create a new event on the user\'s primary Google Calendar. Use this when the user asks to schedule a meeting, book time, or add an event. Confirms attendees via Google\'s own invite emails (sendUpdates=all).',
+    parameters: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Event title / summary.' },
+        start_iso: { type: 'string', description: 'ISO-8601 start datetime with timezone, e.g. "2026-04-18T15:00:00-07:00".' },
+        end_iso: { type: 'string', description: 'ISO-8601 end datetime with timezone.' },
+        attendees: { type: 'array', items: { type: 'string' }, description: 'Optional list of attendee email addresses.' },
+        location: { type: 'string', description: 'Optional location — physical or meeting URL.' },
+        description: { type: 'string', description: 'Optional meeting description / agenda.' },
+      },
+      required: ['title', 'start_iso', 'end_iso'],
+    },
+  },
+};
+
 const SYSTEM_PROMPT = `You are WorkPal, an AI workplace assistant. You help users with meeting summaries, task management, research, scheduling, and general work productivity. Be concise, helpful, and professional. Respond in the same language the user uses.
 
 When a user attaches an image, describe what you visually observe — subjects, setting, composition, mood, visible text, style — so the user can work with the content. For photos of people, describe visible attributes (expression, clothing, hair, pose, background) without attempting to identify or guess who the person is. Never respond that you "cannot see" or "cannot describe" an attached image; the image is present and you are able to describe it.
 
-For any question about current prices, product specs, news, live statistics, official-website content, or anything that may have changed since your training, you MUST call the web_search tool. Do NOT guess, do NOT say "I cannot browse the web," and do NOT tell the user to check the website themselves — you have web_search, use it. After the tool returns, write a concise answer in the user's language that synthesizes the findings. The UI renders source chips from the tool results automatically, so you do not need to paste raw URLs.`;
+For any question about current prices, product specs, news, live statistics, official-website content, or anything that may have changed since your training, you MUST call the web_search tool. Do NOT guess, do NOT say "I cannot browse the web," and do NOT tell the user to check the website themselves — you have web_search, use it. After the tool returns, write a concise answer in the user's language that synthesizes the findings. The UI renders source chips from the tool results automatically, so you do not need to paste raw URLs.
+
+CONNECTED TOOLS: When Gmail or Google Calendar tools are in your tool list, that means the user has already connected their Google account — use these tools directly for any inbox or calendar question. Call search_gmail for inbox questions ("what emails do I have", "messages from X", "重要邮件"), list_calendar_events for schedule questions ("what's on my calendar", "meetings this week", "下周有什么会"), send_email to send email (only after the user confirms recipient/subject/body), and create_calendar_event to schedule. Never respond with "I don't have access to your email/calendar" when these tools are available — that text is forbidden. If a Gmail or Calendar tool is NOT in your tool list, then (and only then) tell the user the connector is not connected and suggest they visit the Connectors page.`;
 
 function toOpenAIMessage(msg: ChatMessage): ChatCompletionMessageParam {
   if (msg.role === 'user' && msg.images && msg.images.length > 0) {
@@ -257,6 +341,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { messages, model = 'gpt-4o-mini' } = (req.body ?? {}) as {
     messages?: ChatMessage[];
     model?: string;
+    mode?: string;
   };
 
   if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -280,12 +365,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (process.env.YOUTUBE_API_KEY) tools.push(VIDEO_SEARCH_TOOL);
   if (process.env.TAVILY_API_KEY) tools.push(WEB_SEARCH_TOOL);
 
+  // Gmail/Calendar tools are exposed whenever the connector is connected —
+  // in both Chat and Tasks modes, since users naturally ask about their
+  // inbox/schedule without explicitly switching modes.
+  let gmailOn = false;
+  let calOn = false;
+  try {
+    const connectors = await listConnectors();
+    gmailOn = connectors.find((c) => c.id === 'gmail')?.status === 'connected';
+    calOn = connectors.find((c) => c.id === 'google-cal')?.status === 'connected';
+  } catch (err) {
+    console.warn('Could not read connectors for tool gating', err);
+  }
+  if (gmailOn) tools.push(SEARCH_GMAIL_TOOL, SEND_EMAIL_TOOL);
+  if (calOn) tools.push(LIST_EVENTS_TOOL, CREATE_EVENT_TOOL);
+
   const write = (chunk: unknown) => {
     res.write(`data: ${JSON.stringify(chunk)}\n\n`);
   };
 
+  // Tell the model today's date so relative dates resolve correctly.
+  const today = new Date();
+  const todayLabel = today.toLocaleDateString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+  });
+  const systemPrompt = `${SYSTEM_PROMPT}\n\nCurrent date: ${todayLabel} (ISO ${today.toISOString().slice(0, 10)}). Use this for any relative date the user mentions — "tomorrow", "next week", "下周", etc. Always include a timezone in ISO datetimes you pass to calendar tools (Z for UTC, or ±HH:MM).`;
+
   const baseMessages: ChatCompletionMessageParam[] = [
-    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'system', content: systemPrompt },
     ...messages.map(toOpenAIMessage),
   ];
 
@@ -324,40 +431,87 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       images: string[];
     }> = [];
 
+    // Gmail/Calendar tool results — fed into the follow-up pass so the model
+    // can synthesize a text answer referencing specific emails/events.
+    const googleCalls: Array<{
+      id: string;
+      name: string;
+      rawArgs: string;
+      result: ToolResult | { error: string };
+    }> = [];
+
     for (const tc of toolCallsBuffer) {
-      let args: { query?: string; count?: number; max_results?: number } = {};
+      let args: Record<string, unknown> = {};
       try { args = JSON.parse(tc.function.arguments); } catch { /* invalid JSON — treat as empty */ }
-      if (tc.function.name === 'search_images') {
-        const images = await searchImages(args.query || '', args.count || 4);
+      const name = tc.function.name;
+      if (name === 'search_images') {
+        const images = await searchImages((args.query as string) || '', (args.count as number) || 4);
         if (images.length > 0) write({ type: 'images', images });
-      } else if (tc.function.name === 'search_videos') {
-        const videos = await searchVideos(args.query || '', args.count || 5);
+      } else if (name === 'search_videos') {
+        const videos = await searchVideos((args.query as string) || '', (args.count as number) || 5);
         if (videos.length > 0) write({ type: 'videos', videos });
-      } else if (tc.function.name === 'web_search') {
-        const resp = await searchWeb(args.query || '', args.max_results || 5);
+      } else if (name === 'web_search') {
+        const resp = await searchWeb((args.query as string) || '', (args.max_results as number) || 5);
         if (resp.results.length > 0) write({ type: 'web_results', results: resp.results });
         webCalls.push({
           id: tc.id,
-          name: tc.function.name,
+          name,
           rawArgs: tc.function.arguments || '{}',
           results: resp.results,
           images: resp.images,
         });
+      } else if (name === 'search_gmail' || name === 'send_email' || name === 'list_calendar_events' || name === 'create_calendar_event') {
+        const stepId = tc.id || `call_${Math.random().toString(36).slice(2, 10)}`;
+        write({ type: 'tool_active', name });
+        write({ type: 'task_step', step: { id: stepId, label: humanLabel(name, tc.function.arguments || '{}'), status: 'active' } });
+        try {
+          let result: ToolResult;
+          if (name === 'search_gmail') result = await searchGmail(args as Parameters<typeof searchGmail>[0]);
+          else if (name === 'send_email') result = await sendEmail(args as Parameters<typeof sendEmail>[0]);
+          else if (name === 'list_calendar_events') result = await listCalendarEvents(args as Parameters<typeof listCalendarEvents>[0]);
+          else result = await createCalendarEvent(args as Parameters<typeof createCalendarEvent>[0]);
+
+          write({ type: 'card', card: result.card as CardJson });
+          write({ type: 'task_step', step: { id: stepId, label: humanLabel(name, tc.function.arguments || '{}'), status: 'completed' } });
+          // Read-only tools with non-empty results skip the second-pass synthesis
+          // (avoids duplicating bullet lists in text). Empty results DO get
+          // synthesis so the model can say "You have no meetings" in the
+          // user's language.
+          const isReadOnly = name === 'search_gmail' || name === 'list_calendar_events';
+          const data = result.data as { events?: unknown[]; hits?: unknown[] } | undefined;
+          const isEmpty = name === 'list_calendar_events'
+            ? !data?.events || data.events.length === 0
+            : name === 'search_gmail'
+              ? !data?.hits || data.hits.length === 0
+              : false;
+          if (!isReadOnly || isEmpty) {
+            googleCalls.push({ id: stepId, name, rawArgs: tc.function.arguments || '{}', result });
+          }
+        } catch (err) {
+          console.error(`[tool ${name}] failed with args=${tc.function.arguments}`, err);
+          const errMsg = err instanceof ConnectorNotConnectedError
+            ? `${name === 'search_gmail' || name === 'send_email' ? 'Gmail' : 'Google Calendar'} is not connected. Ask the user to connect it on the Connectors page.`
+            : err instanceof Error ? err.message : 'Tool failed';
+          write({ type: 'task_step', step: { id: stepId, label: humanLabel(name, tc.function.arguments || '{}'), status: 'completed' } });
+          googleCalls.push({ id: stepId, name, rawArgs: tc.function.arguments || '{}', result: { error: errMsg } });
+        }
       }
     }
 
-    if (webCalls.length > 0) {
-      const followupMessages: ChatCompletionMessageParam[] = [
-        ...baseMessages,
-        {
-          role: 'assistant',
-          content: null,
-          tool_calls: webCalls.map((c) => ({
-            id: c.id || `call_${Math.random().toString(36).slice(2, 10)}`,
-            type: 'function' as const,
-            function: { name: c.name, arguments: c.rawArgs },
-          })),
-        },
+    if (webCalls.length > 0 || googleCalls.length > 0) {
+      const toolCallBlocks = [
+        ...webCalls.map((c) => ({
+          id: c.id || `call_${Math.random().toString(36).slice(2, 10)}`,
+          name: c.name,
+          rawArgs: c.rawArgs,
+        })),
+        ...googleCalls.map((c) => ({
+          id: c.id,
+          name: c.name,
+          rawArgs: c.rawArgs,
+        })),
+      ];
+      const toolResponseBlocks: ChatCompletionMessageParam[] = [
         ...webCalls.map((c) => ({
           role: 'tool' as const,
           tool_call_id: c.id || `call_${Math.random().toString(36).slice(2, 10)}`,
@@ -365,6 +519,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             results: c.results.map((r) => ({ title: r.title, url: r.url, content: r.content })),
           }),
         })),
+        ...googleCalls.map((c) => {
+          const content = 'error' in c.result
+            ? JSON.stringify({ error: c.result.error })
+            : JSON.stringify({ data: c.result.data });
+          return { role: 'tool' as const, tool_call_id: c.id, content };
+        }),
+      ];
+
+      const followupMessages: ChatCompletionMessageParam[] = [
+        ...baseMessages,
+        {
+          role: 'assistant',
+          content: null,
+          tool_calls: toolCallBlocks.map((c) => ({
+            id: c.id,
+            type: 'function' as const,
+            function: { name: c.name, arguments: c.rawArgs },
+          })),
+        },
+        ...toolResponseBlocks,
       ];
 
       const followup = await openai.chat.completions.create({

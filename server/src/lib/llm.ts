@@ -203,7 +203,7 @@ When a user attaches an image, describe what you visually observe — subjects, 
 
 For any question about current prices, product specs, news, live statistics, official-website content, or anything that may have changed since your training, you MUST call the web_search tool. Do NOT guess, do NOT say "I cannot browse the web," and do NOT tell the user to check the website themselves — you have web_search, use it. After the tool returns, write a concise answer in the user's language that synthesizes the findings. The UI renders source chips from the tool results automatically, so you do not need to paste raw URLs.
 
-TASK MODE: When the user is in Tasks mode and Gmail or Google Calendar tools are available, prefer these real tools over guessing. Call search_gmail for inbox questions, list_calendar_events for schedule questions, send_email to send email (only when the user has confirmed intent and provided recipient/subject/body), and create_calendar_event to schedule a new meeting. If a tool the user seems to want is not in your tool list, tell them politely that the connector is not connected and suggest they visit the Connectors page.`;
+CONNECTED TOOLS: When Gmail or Google Calendar tools are in your tool list, that means the user has already connected their Google account — use these tools directly for any inbox or calendar question. Call search_gmail for inbox questions ("what emails do I have", "messages from X", "重要邮件"), list_calendar_events for schedule questions ("what's on my calendar", "meetings this week", "下周有什么会"), send_email to send email (only after the user confirms recipient/subject/body), and create_calendar_event to schedule. Never respond with "I don't have access to your email/calendar" when these tools are available — that text is forbidden. If a Gmail or Calendar tool is NOT in your tool list, then (and only then) tell the user the connector is not connected and suggest they visit the Connectors page.`;
 
 function toOpenAIMessage(msg: ChatMessage): ChatCompletionMessageParam {
   // Only user messages can carry images. Assistant/system stay text-only.
@@ -232,24 +232,25 @@ export async function* streamChat(
   if (isVideoSearchConfigured()) toolList.push(VIDEO_SEARCH_TOOL);
   if (isWebSearchConfigured()) toolList.push(WEB_SEARCH_TOOL);
 
-  // Gmail + Calendar tools are gated by both mode=Tasks and a connected
-  // integration. Without the connector (or in Chat mode) the model can't
-  // see the tools at all, so it falls back to plain text.
+  // Gmail + Calendar tools are exposed whenever the connector is connected,
+  // in both Chat and Tasks modes — users naturally ask about their inbox or
+  // calendar without first switching modes. Without the connector the tools
+  // are hidden entirely so the model falls back to plain text.
   let gmailOn = false;
   let calOn = false;
-  if (mode === 'Tasks') {
-    try {
-      const connectors = await listConnectors();
-      gmailOn = connectors.find((c) => c.id === 'gmail')?.status === 'connected';
-      calOn = connectors.find((c) => c.id === 'google-cal')?.status === 'connected';
-    } catch (err) {
-      // If the connectors table isn't reachable, skip silently — Gmail/Cal
-      // tools won't be exposed but all the non-Google tools still work.
-      console.warn('Could not read connectors for mode gating', err);
-    }
-    if (gmailOn) toolList.push(SEARCH_GMAIL_TOOL, SEND_EMAIL_TOOL);
-    if (calOn) toolList.push(LIST_EVENTS_TOOL, CREATE_EVENT_TOOL);
+  try {
+    const connectors = await listConnectors();
+    gmailOn = connectors.find((c) => c.id === 'gmail')?.status === 'connected';
+    calOn = connectors.find((c) => c.id === 'google-cal')?.status === 'connected';
+  } catch (err) {
+    // If the connectors table isn't reachable, skip silently — Gmail/Cal
+    // tools won't be exposed but all the non-Google tools still work.
+    console.warn('Could not read connectors for tool gating', err);
   }
+  if (gmailOn) toolList.push(SEARCH_GMAIL_TOOL, SEND_EMAIL_TOOL);
+  if (calOn) toolList.push(LIST_EVENTS_TOOL, CREATE_EVENT_TOOL);
+  // Silence unused-param warning; `mode` is still accepted for forward compat.
+  void mode;
 
   const tools = toolList.length > 0 ? toolList : undefined;
 
