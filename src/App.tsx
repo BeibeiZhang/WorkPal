@@ -13,7 +13,7 @@ import LibraryPage from './components/LibraryPage';
 import MemoryPage from './components/MemoryPage';
 import NewProjectDialog from './components/NewProjectDialog';
 import { SplitView } from './components/shared';
-import { Chat, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleCard, ImageResult, VideoResult, WebResult, MemoryEntry, MemoryKind, CardData, ChangeEntry, PermissionRequest } from './types';
+import { Chat, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleCard, ImageResult, VideoResult, WebResult, MemoryEntry, MemoryKind, CardData, ChangeEntry, ChangeKind, PermissionRequest } from './types';
 import PermissionPrompt from './components/PermissionPrompt';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
 import { INITIAL_CHATS } from './data';
@@ -469,6 +469,61 @@ const getCanFitPanel = () => {
   return available - sidebarW - MAIN_CONTENT_MIN >= CONTEXT_PANEL_MIN;
 };
 
+/* ── Claude Agent SDK tool-call mapping (5.4c) ──────────────────────────── */
+// Tool boundaries, kept as Sets so adding a future file-mutating tool is a
+// one-line change — no scattered `if name === ...`.
+const CREATE_TOOLS = new Set(['Write']);
+const EDIT_TOOLS = new Set(['Edit', 'MultiEdit', 'NotebookEdit']);
+
+const TOOL_LABEL_MAX = 50;
+
+function basename(p: string): string {
+  const i = p.lastIndexOf('/');
+  return i === -1 ? p : p.slice(i + 1);
+}
+
+function truncate(s: string, max: number = TOOL_LABEL_MAX): string {
+  if (s.length <= max) return s;
+  return s.slice(0, max - 1) + '…';
+}
+
+/** Human-readable label for a tool_use in the inspector's Progress list.
+ *  Capped at ~50 chars to fit the one-line row. */
+function deriveToolStepLabel(name: string, input: unknown): string {
+  const inp = input && typeof input === 'object' ? (input as Record<string, unknown>) : {};
+  const filePath = typeof inp.file_path === 'string' ? inp.file_path : '';
+  if (CREATE_TOOLS.has(name) && filePath) return truncate(`Create ${basename(filePath)}`);
+  if (EDIT_TOOLS.has(name) && filePath) return truncate(`Edit ${basename(filePath)}`);
+  if (name === 'Read' && filePath) return truncate(`Read ${basename(filePath)}`);
+  if (name === 'Bash') {
+    const cmd = typeof inp.command === 'string' ? inp.command : '';
+    return truncate(`Bash: ${cmd.slice(0, 40)}`);
+  }
+  if (name === 'Glob' || name === 'Grep') {
+    const pattern = typeof inp.pattern === 'string' ? inp.pattern : '';
+    return truncate(`Search: ${pattern}`);
+  }
+  return truncate(name);
+}
+
+/** Map a tool_use to a Changes entry. Only file-mutating tools — Read / Bash /
+ *  Glob / Grep etc. show up in Progress but not in Changes. Label is the full
+ *  file_path so the user sees it's under /tmp/workpal-sandbox today and
+ *  automatically under ~/WorkPal/... once 5.4e switches cwd. Known gap:
+ *  Bash-invoked writes (`echo ... > file`) don't surface here — parsing
+ *  arbitrary shell is out of scope for 5.4c. */
+function deriveChangeFromToolUse(
+  name: string,
+  input: unknown,
+): { kind: ChangeKind; label: string } | null {
+  const inp = input && typeof input === 'object' ? (input as Record<string, unknown>) : {};
+  const filePath = typeof inp.file_path === 'string' ? inp.file_path : '';
+  if (!filePath) return null;
+  if (CREATE_TOOLS.has(name)) return { kind: 'create', label: filePath };
+  if (EDIT_TOOLS.has(name)) return { kind: 'edit', label: filePath };
+  return null;
+}
+
 
 export default function App() {
   const [initialChatState] = useState(getInitialChatState);
@@ -862,10 +917,11 @@ export default function App() {
     }
   }, [chats, projects, memories, addMessage, openInspector]);
 
-  // Phase 5.4b — Claude Agent SDK path. Picked by src/lib/intentRouter when
-  // the user's message contains a code/file keyword. 5.4b streams text-only;
-  // tool_use → inspector mapping lands in 5.4c. Attachments / project docs /
-  // memory block intentionally not wired here yet.
+  // Phase 5.4b/5.4c — Claude Agent SDK path. Picked by src/lib/intentRouter
+  // when the user's message contains a code/file keyword. 5.4b: text streaming.
+  // 5.4c: tool_use flips `hasInspector`, appends Changes entries for file
+  // mutations, and drives the Progress list via tool_use/tool_result pairing.
+  // Attachments / project docs / memory block intentionally not wired here yet.
   const streamFromClaudeAPI = useCallback(async (chatId: string, userText: string) => {
     const chat = chats.find(c => c.id === chatId);
     const previousMessages = (chat?.messages || [])
@@ -901,10 +957,31 @@ export default function App() {
               ),
             };
           }));
+        } else if (chunk.type === 'tool_use') {
+          // First tool call in this chat → mark hasInspector + open the panel.
+          // The model deciding to reach for a tool IS the "this is work" signal.
+          openInspector(chatId);
+          setActiveTools(prev => prev.includes(chunk.name) ? prev : [...prev, chunk.name]);
+          // Defensive: if the SDK ever emits a tool_use without an id, fall back
+          // to a unique synthetic id so this step doesn't mass-match any later
+          // empty-id tool_result (which would wrongly complete other steps).
+          const stepId = chunk.id || `fallback-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+          setTaskSteps(prev => [
+            ...prev,
+            { id: stepId, label: deriveToolStepLabel(chunk.name, chunk.input), status: 'active' },
+          ]);
+          const change = deriveChangeFromToolUse(chunk.name, chunk.input);
+          if (change) addChange(chatId, change);
+        } else if (chunk.type === 'tool_result') {
+          // Flip the matching Progress step to completed. Error state (isError)
+          // deliberately not reflected in the UI yet — that's a 5.5 concern.
+          setTaskSteps(prev => prev.map(s =>
+            s.id === chunk.toolUseId ? { ...s, status: 'completed' } : s
+          ));
         } else if (chunk.type === 'error') {
           fullContent = `Sorry, something went wrong: ${chunk.content}`;
         }
-        // claude_done: usage/cost — ignored in 5.4b, surfaced in a later phase.
+        // claude_done: usage/cost — ignored for now.
       }
       setChats(prev => prev.map(c => {
         if (c.id !== chatId) return c;
@@ -932,7 +1009,7 @@ export default function App() {
         };
       }));
     }
-  }, [chats, addMessage]);
+  }, [chats, addMessage, openInspector, addChange]);
 
   // Auto-respond when opening ux-meeting chat with only the user message
   useEffect(() => {

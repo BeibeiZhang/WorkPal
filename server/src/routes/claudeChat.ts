@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { mkdir } from 'node:fs/promises';
-import { runClaudeCode } from '../lib/claudeCode.js';
+import { runClaudeCode, shapeToolUse, shapeToolResult } from '../lib/claudeCode.js';
 
 const router = Router();
 
@@ -11,9 +11,10 @@ const SANDBOX_CWD = '/tmp/workpal-sandbox';
 //
 // Filter rules (Phase 5.4 shared decisions):
 //   system.*       → drop (hook_started / hook_response / init noise)
-//   assistant      → forward text blocks as { type:'text', content }
+//   assistant      → text blocks → { type:'text', content };
+//                    tool_use blocks → { type:'tool_use', id, name, input }  (5.4c)
+//   user           → tool_result blocks → { type:'tool_result', toolUseId, isError, summary }  (5.4c)
 //   result         → forward as { type:'claude_done', usage, cost }
-//   user (tools)   → TODO(5.4c) — tool_use / tool_result mapping
 //   errors         → forward as { type:'error', content }
 router.post('/claude-chat', async (req, res) => {
   const { prompt, sessionId, sessionFolder } = req.body as {
@@ -68,18 +69,41 @@ router.post('/claude-chat', async (req, res) => {
                 if (text.length > 0) {
                   send({ type: 'text', content: text });
                 }
+                continue;
               }
-              // tool_use blocks live here too — TODO(5.4c) forward them.
+              // tool_use blocks are interleaved with text in the same assistant
+              // turn — the model decides "I'll write a file" then emits a
+              // tool_use block. Forward them as-is; the frontend maps them to
+              // inspector state (Progress / Tools active / Changes).
+              const toolUse = shapeToolUse(block);
+              if (toolUse) {
+                send({ type: 'tool_use', ...toolUse });
+                console.log(`[claude-chat] tool_use name=${toolUse.name}`);
+              }
             }
           }
           console.log('[claude-chat] assistant');
           break;
         }
 
-        case 'user':
-          // tool_result blocks ride on user messages. TODO(5.4c) surface them
-          // to the inspector. 5.4b: text-only, so drop.
+        case 'user': {
+          // tool_result blocks ride on user messages (the SDK replays them
+          // to us as synthetic user turns). Forward each one so the frontend
+          // can flip the matching Progress step from active → completed.
+          const blocks = (msg as { message?: { content?: unknown } }).message?.content;
+          if (Array.isArray(blocks)) {
+            for (const block of blocks) {
+              const result = shapeToolResult(block);
+              if (result) {
+                send({ type: 'tool_result', ...result });
+                console.log(
+                  `[claude-chat] tool_result ${result.isError ? 'err' : 'ok'}`,
+                );
+              }
+            }
+          }
           break;
+        }
 
         case 'result': {
           const r = msg as { usage?: unknown; total_cost_usd?: unknown };

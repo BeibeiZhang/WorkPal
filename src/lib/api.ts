@@ -27,7 +27,11 @@ export type StreamChunk =
   | { type: 'task_step'; step: TaskStepPayload }
   | { type: 'tool_active'; name: string }
   | { type: 'done'; content: string }
-  // Claude Agent SDK final usage/cost. Tool_use / tool_result chunks land in 5.4c.
+  // Claude Agent SDK tool-call events (5.4c). `id` pairs a tool_use with its
+  // matching tool_result so the frontend can flip Progress steps by id.
+  | { type: 'tool_use'; id: string; name: string; input: unknown }
+  | { type: 'tool_result'; toolUseId: string; isError: boolean; summary: string }
+  // Claude Agent SDK final usage/cost.
   | { type: 'claude_done'; usage?: unknown; cost?: unknown }
   | { type: 'error'; content: string };
 

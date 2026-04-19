@@ -8,8 +8,8 @@
 | 5.2 Fix single-session "New project…" missing | ✅ Done | `101c0c6` (PR #67) |
 | 5.3 Lazy folder materialization (frontend) | ✅ Done | `101c0c6` (PR #67) |
 | 5.4a Spawn SDK subprocess + log stream | ✅ Done | `0ff403b` (PR #68) |
-| **5.4b SSE + intent routing** | ⏳ **Next** | — |
-| 5.4c tool_use → inspector + Changes | ⏳ Pending | — |
+| 5.4b SSE + intent routing | ✅ Done | `9fc9365` (PR #69) |
+| **5.4c tool_use → inspector + Changes** | ⏳ **Next** | — |
 | 5.4d PermissionPrompt wiring | ⏳ Pending | — |
 | 5.4e Lazy mkdir + open-in-Finder | ⏳ Pending | — |
 | 5.5 Auto-commit + real Undo via git | ⏳ After 5.4 | — |
@@ -84,6 +84,15 @@ POST /api/claude-chat
 ```
 
 For 5.4b–5.4c, cwd can stay in a sandbox (`/tmp/workpal-sandbox/`). 5.4e switches to real `sessionFolder`.
+
+### Permission mode (5.4c → 5.4d transition)
+
+Without a `canUseTool` callback, the SDK denies Write/Edit/MultiEdit by
+default, which blocks any real tool execution in the sandbox. 5.4c sets
+`permissionMode: 'acceptEdits'` as a temporary shim so acceptance tests can
+run end-to-end. This is safe because cwd is a `/tmp/` sandbox. **5.4d
+removes this line** and replaces it with a real `canUseTool` bridge to the
+frontend PermissionPrompt modal.
 
 ### SDK event filtering (learned from 5.4a testing)
 
