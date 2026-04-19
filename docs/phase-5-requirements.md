@@ -13,6 +13,7 @@
 | 5.4d PermissionPrompt wiring | ✅ Done | `6683788`+`04d2591` (PR #71) |
 | 5.4e Lazy mkdir + open-in-Finder | ✅ Done | `1b64629`+`f02cfd4` (PR #73) |
 | 5.5 Auto-commit + real Undo via git | ✅ Done | `ed29387`+`742d6fb` (PR #75) |
+| 5.6 Ghost-entry drop + Always-allow drain (optional polish) | ✅ Done | `ea086b6` (PR #78) |
 | **Phase 5 complete** | 🎉 | — |
 
 ---
@@ -278,12 +279,12 @@ Two P1 bugs landed in the initial PR and were fixed in `742d6fb` before merge. R
 
 ---
 
-## Deferred polish (optional 5.6 — not blocking anything)
+## 5.6 polish — shipped in PR #78
 
-Surfaced during 5.5 testing but not worth blocking on; pick these up if there's slack before Phase 6.
+Both items were picked up as optional polish between Phase 5 and Phase 6. Shipped clean; no regressions.
 
-- **Ghost Change entries for failed writes.** Claude's first attempt to write a file often targets a wrong path (`/root/hello.txt`, `/repo/...`) and fails; the tool_use lands a Change entry in the inspector that never gets a commit. LIFO correctly suppresses its Undo button, but the row stays visible forever. Options: drop the entry on matching `tool_result.isError=true`, or visually dim + label it "Failed write" so the user understands it wasn't applied.
-- **"Always allow" first-hit miss on queued permission_requests.** When Claude emits multiple file-writes in one turn, their `permission_request` chunks arrive back-to-back; clicking "Always allow" on the first modal doesn't cover the already-queued second one, so the user sees a second modal even though they meant "blanket approve." Root cause is timing (`approvedScopesRef` gets set after the second request is already in `pendingPermissions`), not the ref itself. Drain the queue on Always-allow set, or auto-approve queued items whose scope now matches.
+- **Ghost Change entries for failed writes** — drop entry on matching `tool_result.isError=true`. Mirrors the backend's existing `pendingWrites.delete` cleanup. Inspector now only shows real, commit-backed changes.
+- **"Always allow" queue drain** — on click, drain every already-queued `pendingPermissions` entry whose scope now matches the just-approved one. **Note discovered during testing**: the SDK is strictly serial, so in practice the queue only has 1 entry at click time and the drain path rarely activates (the existing `approvedScopesRef.current.has()` check at chunk arrival covers the observable behavior). The drain code is defensive — it handles a race that'd surface if the SDK ever shifts to parallel `canUseTool` or if another frontend code path starts queueing permissions. Safe to keep; no behavioral regression.
 
 ## Phase 6 preview (starts after Phase 5 fully shipped)
 
