@@ -5,8 +5,8 @@
 | Step | Status | Commit / PR |
 |---|---|---|
 | 6.1 Project base folder init | ✅ Done | `8aa722a` (PR #80) |
-| **6.2 Session via git worktree** | ⏳ **Next** | — |
-| 6.3 Complete Session + diff preview + FF merge | ⏳ Pending | — |
+| 6.2 Session via git worktree | ✅ Done | `b48c606` (PR #81) |
+| **6.3 Complete Session + diff preview + FF merge** | ⏳ **Next** | — |
 | 6.4 Conflict detect + CLI hand-off | ⏳ Pending | — |
 | 6.5 Orphan worktree reaper | ⏳ Pending | — |
 
@@ -196,11 +196,85 @@ Not fs clone.
 
 ---
 
-## 6.3 — Complete Session + diff preview + FF merge (⏳ pending)
+## 6.3 — Complete Session + diff preview + FF merge (⏳ **next**)
 
-Sketch only; detail in "Context from 6.2" once 6.2 merges.
+**Goal**: User clicks "Complete Session" in the inspector. Modal shows which files this session changed (path + added/modified/deleted + insertion/deletion counts). User approves → `git merge --ff-only session/<slug>` from the project base. Session branch stays around until 6.5 reaper cleans it. Non-FF failures log a clean error and (for 6.4) surface a copyable CLI command.
 
-**Goal**: "Complete Session" button in inspector → `POST /api/session/complete` computes diff of session branch vs project base, returns file list + changes. Frontend shows modal; on approve, `POST /api/session/merge` runs `git merge --ff-only`.
+### Context from 6.2 (read before starting 6.3)
+
+- **Helpers to reuse** — do not re-derive:
+  - `WORKPAL_ROOT` from `server/src/lib/paths.ts`
+  - `resolveProjectFolder` / `initProjectIfNeeded` from `server/src/lib/project.ts`
+  - `SESSION_BRANCH_RE` / `worktreeAddIfNeeded` / `worktreeRemoveIfEmpty` from `server/src/lib/git.ts`
+  - The pattern `resolveSessionFolder` + cross-project containment check from `claudeChat.ts` (the "sessionFolder must live under ~/WorkPal/<projectSlug>/sessions/" guard added in 6.2) — **copy this guard to 6.3's endpoints**, a client could still mismatch projectSlug with a session folder pointing elsewhere.
+
+- **Branch name derivation for 6.3**: `branchName = 'session/' + basename(sessionFolder.replace(/\/+$/, ''))` — same formula 6.2 uses. Validate via `SESSION_BRANCH_RE` before passing to any git command. Don't accept a raw `branchName` field from the client (would bypass the regex contract) — always re-derive from `sessionFolder`.
+
+- **6.3 must hard-exclude Phase 5 legacy sessions**: sessions without a `projectSlug` don't have a worktree, don't have a `session/<slug>` branch — they have their own per-session `.git/` dir. "Complete Session" is a no-op concept for them. Two enforcement points:
+  - **Frontend**: only render the "Complete Session" button when `chat.projectId` is set (and the project exists)
+  - **Backend**: `/api/session/complete` and `/api/session/merge` both 400 when `projectSlug` is missing from the body, with bilingual error
+
+- **Merge happens in the project base repo, not the worktree** — `git -C <projectPath> merge --ff-only session/<slug>`. The worktree stays checked out on its session branch; the project's main HEAD advances. Don't `cd` into the worktree for merge.
+
+- **What does NOT happen on merge (yet)**:
+  - The worktree folder on disk is **kept** (session "completed" state; 6.5 reaper handles cleanup later)
+  - The session branch is **kept** (same reason)
+  - The chat UI moves the session into a "completed" visual state — decide the exact UX with Beibei before impl (default: no sidebar change, just a checkmark + disable "Complete Session" button re-click)
+  - No commit on top of main beyond the FF advance — we're literally replaying the session's commits into main's history linearly
+
+- **FF vs non-FF**: `--ff-only` refuses if main has advanced since the session branched. In practice main only advances via prior Complete Session merges. So non-FF means **another session was completed between this session's creation and its Complete Session click, and the two diverged**. 6.4 handles the CLI hand-off; 6.3 just reports the failure clearly (status 409 "conflict / not fast-forwardable", bilingual error) so 6.4 can build the UI on top.
+
+- **Diff shape — minimal, not a full diff viewer** (principle #2 subtract): return `Array<{path, status: 'A'|'M'|'D', insertions, deletions}>` from `git diff --numstat --name-status main...session/<slug>`. Frontend renders a row per file. No inline diff content, no expand-to-view. User wants real diff → they go CLI. If Beibei wants per-file expandable diff later, that's Phase 7+.
+
+- **Commit messages are verbose** (Phase 5 format: `Session <sid8> – Write – <abs-path>`). Don't surface these in the diff preview — the file path is what the user cares about. Use `basename(path)` for the visual label, full path on hover.
+
+- **Bilingual error shape stays `"English / 中文"`** — every new 400/409 error must follow.
+
+### Scope (expand into change list for review before writing code)
+
+**Backend** (`server/src/lib/git.ts` + new `server/src/routes/session.ts`):
+
+- New helper `diffSessionVsBase(projectPath, branchName) → Promise<Array<{path, status, insertions, deletions}>>` — wraps `git -C <projectPath> diff --numstat --name-status main...<branchName>`. Parse stdout into the typed array. Empty array = nothing to merge.
+- New helper `mergeSessionFFOnly(projectPath, branchName) → Promise<{ok: true, commit: string} | {ok: false, reason: 'not-ff' | 'other', message: string}>` — wraps `git -C <projectPath> merge --ff-only <branchName>`. Distinguish "non-fast-forward" stderr (returns `ok: false, reason: 'not-ff'`) from other failures (returns `ok: false, reason: 'other'`).
+- New route `POST /api/session/complete` — body `{projectSlug, sessionFolder}`; validates both via existing guards + cross-project containment; derives branchName; validates via `SESSION_BRANCH_RE`; returns `{files: [...]}` or 400 on any validation failure
+- New route `POST /api/session/merge` — same validation shape; calls `mergeSessionFFOnly`; 200 on success with new HEAD hash, 409 with bilingual `"Session cannot be fast-forwarded..."` on non-FF, 500 otherwise
+
+**Frontend** (`src/lib/api.ts` + `src/components/TaskContextPanel.tsx` + possibly a new modal):
+
+- `src/lib/api.ts`: `postSessionComplete(projectSlug, sessionFolder)` and `postSessionMerge(projectSlug, sessionFolder)` — same shape as `postUndoChange`, return discriminated result types
+- `TaskContextPanel.tsx`: "Complete Session" button at the bottom of the panel, **only rendered when `chat.projectId` is set and chat has `folderMaterialized` = true** (nothing to complete if no files were written)
+- New `CompleteSessionModal.tsx` (or inline in App): file-list rows (basename, colored icon per status, +N/-N stats), Cancel + Merge buttons
+- On Merge success: close modal, disable the Complete Session button, optional toast "N commits merged to main"
+- On Merge failure with `reason: 'not-ff'`: show error message + a copyable CLI command string `cd ~/WorkPal/<projectSlug>/ && git merge session/<slug>` (this is the seed of 6.4's work — 6.3 renders the bare string; 6.4 adds the copy-to-clipboard polish)
+- On other failure: error in modal, don't close
+
+### Acceptance tests (live-test, high-risk per principle #12 — I will run these)
+
+- [ ] Session with 3 writes (a.txt, b.txt, c.txt) → click Complete Session → modal shows 3 rows with correct status + stats → approve → `git log main` shows 3 session commits now reachable from main's HEAD
+- [ ] After merge, clicking Complete Session again on the same session → modal shows empty diff (nothing to merge); button behavior TBD (disable? "Already completed"?)
+- [ ] Session with a file edit + a file delete → modal shows `M` and `D` rows correctly
+- [ ] Phase 5 legacy chat (no project) → "Complete Session" button does not render
+- [ ] Call `/api/session/complete` without `projectSlug` → 400 bilingual
+- [ ] Call `/api/session/merge` with branchName injection (bad sessionFolder basename) → 400 bilingual via regex
+- [ ] Two sessions under one project, complete A first → main advances. Then try to complete B → (depending on B's commits) 200 FF OR 409 non-FF. If 409, error message contains the right CLI command
+- [ ] Cross-project containment: projectSlug A + sessionFolder under project B → 400 bilingual (6.2's guard carries forward)
+- [ ] Pure Q&A session that got its worktree cleaned up in finally → backend can't find branch; return bilingual 404 or appropriate error; button shouldn't have been renderable anyway
+
+### Decisions to lock with Beibei before impl writes code
+
+1. **Post-merge UX** — what does the chat's "completed" state look like?
+   - (a) No visual change except disabling "Complete Session" re-click
+   - (b) Checkmark badge next to the chat title in sidebar
+   - (c) Move chat from Recents to a "Completed" section under the project
+   - My recommendation: **(a)** simplest, doesn't force a new sidebar pattern. (b)/(c) can be Phase 7+ polish.
+
+2. **Diff rendering per-file** — basename + status icon + stats only, no inline diff content, right? (Confirms principle #2 subtract.)
+
+3. **Merge button placement** — modal Cancel+Merge buttons, or the modal lets user continue to inspect files before a separate "Merge" confirmation? I'd do single-step (Cancel/Merge directly in modal — user has already committed mentally when they clicked Complete Session).
+
+4. **Empty-diff behavior** — session with no commits (possible if Phase 5 legacy didn't migrate, but ruled out by gating; actually reachable only if session made ZERO file writes and materialization is misreported). Show "Nothing to merge" modal? Or disable the button upstream? I'd disable the button via `folderMaterialized === true` gate.
+
+5. **Commit message after FF merge** — none; `--ff-only` is a pointer move, not a new merge commit. Users don't see a "Merge session X" commit on main — they see the session's individual commits linearly. Is this desirable, or do we want a no-ff merge commit for audit? My default: keep FF-only, cleaner log. But Beibei call.
 
 ---
 
@@ -239,32 +313,26 @@ Paste the block below into a fresh Cowork impl window. The impl agent will pick 
 ```
 git pull
 
-你是做 6.2 的 Cowork impl session。
+你是做 6.3 的 Cowork impl session。
 
-请先读 docs/phase-6-requirements.md —— 整个 Phase 6 的 shared decisions (D1–D5) + 6.2 的 "Context from 6.1" 都锁在里面了,不要重议。**D2 原本的 branch name 正则在 Context from 6.1 里被显式 supersede 了**,按新的最小拒绝集走。也扫一眼 docs/principles.md(15 条原则)。
+请先读 docs/phase-6-requirements.md —— 整个 Phase 6 的 shared decisions (D1–D5) + 6.2 的 "Context from 6.1" + 6.3 的 "Context from 6.2" 都在里面,**按原则 #5 不要重议**。也扫一眼 docs/principles.md(15 条原则)。
 
-6.2 的 scope:session folder 从 "Phase 5 per-session git init" 切换到 "project 的 git worktree"。Phase 5 的 auto-commit / Undo 行为原地保留,只是 cwd 现在是 worktree。
+6.3 的 scope:"Complete Session" 按钮 → diff preview modal → `git merge --ff-only` session 分支进 project main。非 FF 只报错,**不在 app 里做 3-way merge/冲突编辑**(6.4 会补 CLI 提示)。
 
 做之前先列具体改动点给我 review,不要直接写代码,重点给我这几样:
-- `worktreeAdd` 函数签名 + 具体命令 argv
-- **branch name 正则的具体提案**(Context from 6.1 里说 supersede D2,你提新的,我 lock)
-- `claudeChat.ts` 的分支逻辑:project-owned vs legacy 两条路径的确切决策点
-- **mkdir 顺序的分支**:project-owned 要跳过 eager mkdir(不然 `worktree add` 会报 "path exists"),legacy 保留
-- 前端 request body 新增 `projectSlug` 的推导方式(应该用 App.tsx:396 的 slugify)
-- 你打算写哪些单元测试 / 手测脚本,怎么覆盖 "并发两个 session" 这条 acceptance test
+- `diffSessionVsBase` 和 `mergeSessionFFOnly` 的签名 + 具体 git 命令 argv + 返回类型
+- 两个新 route(`/api/session/complete`、`/api/session/merge`)的输入验证链路:`resolveProjectFolder` + cross-project 容器检查 + `SESSION_BRANCH_RE` 都必须命中,400 走哪条路径
+- **文档里 "Decisions to lock" 那 5 条**(post-merge UX、diff 渲染粒度、单步 vs 两步确认、empty-diff 行为、FF-only vs no-ff commit style)—— 你对每条的推荐 + 理由,我挑 locks
+- 前端:CompleteSession 按钮条件渲染(`chat.projectId && folderMaterialized`)、modal 结构、失败态 CLI 命令字符串怎么拼
+- 测试覆盖:单元测试(diff parsing / merge result 解析)+ 手测脚本(两个 session 按序 complete,验证 FF 和非 FF 两条路径)
 
-改动点过了 review 再写,按文档里 6.2 Acceptance tests 手测通过再开 PR。
+改动点过了 review 再写,按文档里 6.3 Acceptance tests 手测通过再开 PR。
 
 跑 dev:
 - 前端 `npm run dev -- --port 2010`(主 session 占 2006,避开)
 - 后端需要时 `cd server && unset ANTHROPIC_API_KEY && npm run dev`(shell 会注入空 ANTHROPIC_API_KEY,这步 unset 必须;backend 3001 无状态共享)
 
-**高风险项(async + git + 文件系统 + 并发),按原则 #12 我会 live test,必测。**PR 开了在 planning session 说一声,我会跑:
-- 单 project 单 session → worktree + session branch + commit 只在 session branch
-- 单 project 双并发 session → 两个 worktree 两个 branch 互不影响,Undo 不交叉
-- 纯 Q&A session in project → 无 worktree 创建,finally rmdir 仍工作
-- 旧 legacy 路径(chat 无 project)→ 仍然按 Phase 5 行为
-- 路径/branch 注入尝试 → 被正则拦住
+**高风险项(git merge 语义 + 跨 session 状态 + 两个新 REST endpoint),按原则 #12 我会 live test,必测。**PR 开了在 planning session 说一声,我会跑文档里 9 条 acceptance tests,包括 FF 成功路径、非 FF 409 路径、legacy 不渲染、cross-project 混配拦截、注入拦截等。
 
 测完按原则 #13 清场:kill backend + preview_stop、清掉测试 project folder + 用 `git worktree prune` 回收临时 worktree,不留 zombie。
 ```
