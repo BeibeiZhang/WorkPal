@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import chatRouter from './routes/chat.js';
+import claudeChatRouter from './routes/claudeChat.js';
 import memoryRouter from './routes/memory.js';
 import connectorsRouter from './routes/connectors.js';
 
@@ -16,6 +17,7 @@ app.use(express.json({ limit: '50mb' }));
 
 // API routes
 app.use('/api', chatRouter);
+app.use('/api', claudeChatRouter);
 app.use('/api', memoryRouter);
 app.use('/api', connectorsRouter);
 
@@ -30,6 +32,9 @@ app.listen(PORT, () => {
   // Check API key configuration
   if (!process.env.OPENAI_API_KEY) {
     console.warn('⚠️  OPENAI_API_KEY not set — LLM calls will fail');
+  }
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.warn('⚠️  ANTHROPIC_API_KEY not set — /api/claude-chat will fail');
   }
   if (process.env.UNSPLASH_ACCESS_KEY) {
     console.log('✅ UNSPLASH_ACCESS_KEY loaded — search_images tool is active');
