@@ -4,8 +4,8 @@
 
 | Step | Status | Commit / PR |
 |---|---|---|
-| **6.1 Project base folder init** | ⏳ **Next** | — |
-| 6.2 Session via git worktree | ⏳ Pending | — |
+| 6.1 Project base folder init | ✅ Done | `8aa722a` (PR #80) |
+| **6.2 Session via git worktree** | ⏳ **Next** | — |
 | 6.3 Complete Session + diff preview + FF merge | ⏳ Pending | — |
 | 6.4 Conflict detect + CLI hand-off | ⏳ Pending | — |
 | 6.5 Orphan worktree reaper | ⏳ Pending | — |
@@ -151,16 +151,40 @@ Not fs clone.
 
 ---
 
-## 6.2 — Session via git worktree (⏳ pending)
+## 6.2 — Session via git worktree (⏳ **next**)
 
 **Goal**: Replace Phase 5's "session folder gets its own `git init`" with "session folder is a `git worktree add` of the project's `session/<slug>` branch". Auto-commit / Undo / all Phase 5 behaviors work unchanged inside the worktree.
 
-### Scope (sketch — expand after 6.1 merges)
+### Context from 6.1 (read before starting 6.2)
 
-- `server/src/lib/git.ts` gains `worktreeAdd(projectPath, sessionPath, branchName)` wrapping `git -C <projectPath> worktree add <sessionPath> -b <branchName>`
-- `server/src/routes/claudeChat.ts`: on first file-write `tool_use`, if the chat has a `projectSlug`, call `worktreeAdd` instead of `initIfNeeded(sessionFolder)`. Keep Phase 5's legacy path as fallback when chat has no project.
-- Branch name: `session/<session-slug>`, validated against the allow-list regex
-- 5.5 auto-commit runs inside the worktree, commits land on the session branch — project base `git log` stays clean until 6.3 merges
+- **Reuse, don't duplicate**: `resolveProjectFolder` lives in `server/src/lib/project.ts:27`; `initProjectIfNeeded` at `project.ts:83`. 6.2's backend code should import these — do not re-derive. Same for `WORKPAL_ROOT` — import from `server/src/lib/paths.ts`, never inline `pathResolve(homedir(), 'WorkPal')`.
+
+- **`mkdir` vs `worktree add` ordering — the tricky bit**: Phase 5's `claudeChat.ts` eagerly `mkdir -p workingDir` at request start because the Claude Agent SDK spawns `child_process.spawn(..., { cwd })` and throws ENOENT if cwd doesn't exist. But `git worktree add <path>` **requires `<path>` to NOT exist** — it creates the dir itself. For 6.2 the order for a project-owned chat's first file-write `tool_use` is:
+  1. `await initProjectIfNeeded(projectPath)` — defensive, idempotent; catches the race where the user sends a message immediately after project creation before the frontend's fire-and-forget `/project/init` POST has landed.
+  2. `git worktree add -b session/<slug> <sessionPath>` — git creates `<sessionPath>`.
+  3. Any subsequent SDK spawn already has cwd present.
+
+  **Do NOT eagerly `mkdir sessionPath` before `worktree add`**. The Phase 5 eager-mkdir at request start must branch on project-owned vs legacy: project-owned → skip mkdir (worktree add will create it); legacy → keep the Phase 5 mkdir behavior.
+
+- **Frontend request body needs `projectSlug`**: `/api/claude-chat` currently receives only `sessionFolder`. 6.2 must add `projectSlug` (derived with the existing `slugify` at `src/App.tsx:396`, matching what went to `/project/init` in 6.1). Backend branches on presence:
+  - `projectSlug` present → worktree path (use `resolveProjectFolder` on it, then worktree add)
+  - `projectSlug` absent → legacy Phase 5 path (`initIfNeeded(sessionFolder)` per-session git repo)
+
+- **Branch name regex — D2's original proposal conflicts with Phase 5 slug reality; relax it**: the shared-decisions `Security` block proposed `/^session\/[a-zA-Z0-9._-]+$/`. This rejects Phase 5 session slugs containing CJK (observed in 5.5 testing: `2026-04-19-生成一个关于云的俳句`). Since branch names pass through `execFile('git', [...])` there's **no shell interpretation** — injection via branch names is not the threat. The real threats are (a) slashes that break our `session/` namespace contract, (b) whitespace / NUL / control chars that break git parsing, (c) git's own reserved chars (`~^:?*[`, leading/trailing `.`, `..`, lock-file suffix `.lock`). Propose a concrete regex in the 6.2 change list and I'll lock it — this **supersedes D2's original text**. Minimum must-reject set: `/`, `\0`, whitespace, `:`, `~`, `^`, `?`, `*`, `[`, `..`, trailing `.lock`. Git's `git check-ref-format` is the authoritative reference if you want to match it byte-for-byte.
+
+- **Frontend patterns from 6.1 are reusable**: fire-and-forget + idempotent backend + `useEffect` hook. But 6.2 likely **doesn't need a new frontend POST** — worktree creation is backend-lazy on the first file-write `tool_use`, same trigger as `folderMaterialized`. Just replace the `initIfNeeded(workingDir)` call with the branching init-project-then-worktree-add logic. The frontend only has to add `projectSlug` to the `/claude-chat` body.
+
+- **Bilingual error shape stays `"English text / 中文文本"`** (single line, `/` separator) — 6.1 used it consistently across `resolveProjectFolder` and route handlers. Keep the format.
+
+### Scope (expand into change list for review before writing code)
+
+- `server/src/lib/git.ts` gains `worktreeAdd(projectPath, sessionPath, branchName)` wrapping `execFile('git', ['-C', projectPath, 'worktree', 'add', sessionPath, '-b', branchName])`. Caller is responsible for validating `branchName` against the regex (see above).
+- `server/src/routes/claudeChat.ts`:
+  - Extend request body type to include optional `projectSlug: string`
+  - Branch the eager mkdir: legacy keeps it, project-owned skips it
+  - On first file-write `tool_use`: if `projectSlug`, defensively `initProjectIfNeeded(projectPath)` then `worktreeAdd(...)`; else fall back to Phase 5 `initIfNeeded(sessionFolder)`
+- Frontend `src/App.tsx`: when streaming to `/claude-chat`, include `projectSlug: chat.projectId ? slugify(projects.find(p=>p.id===chat.projectId)?.name) : undefined`
+- 5.5 auto-commit runs inside the worktree; commits land on `session/<slug>` branch; project `main` stays clean until 6.3
 
 ### Acceptance tests (sketch)
 
@@ -215,29 +239,34 @@ Paste the block below into a fresh Cowork impl window. The impl agent will pick 
 ```
 git pull
 
-你是做 6.1 的 Cowork impl session。
+你是做 6.2 的 Cowork impl session。
 
-请先读 docs/phase-6-requirements.md —— 整个 Phase 6 的 shared decisions (D1–D5) 都锁在里面了,不要重议。也扫一眼 docs/principles.md(15 条原则,和 Phase 5/6 决策深度挂钩)。
+请先读 docs/phase-6-requirements.md —— 整个 Phase 6 的 shared decisions (D1–D5) + 6.2 的 "Context from 6.1" 都锁在里面了,不要重议。**D2 原本的 branch name 正则在 Context from 6.1 里被显式 supersede 了**,按新的最小拒绝集走。也扫一眼 docs/principles.md(15 条原则)。
 
-6.1 的 scope:Project base folder init。新建/首次进入 project 时初始化 git repo + baseline commit。幂等。
+6.2 的 scope:session folder 从 "Phase 5 per-session git init" 切换到 "project 的 git worktree"。Phase 5 的 auto-commit / Undo 行为原地保留,只是 cwd 现在是 worktree。
 
-做之前先列具体改动点给我 review,不要直接写代码:
-- 新文件 server/src/lib/project.ts(resolveProjectFolder + initProjectIfNeeded)
-- 新 route POST /api/project/init
-- 前端 hook 点:NewProjectDialog 成功后 + existing project 首次打开
-- 路径守卫:复用 claudeChat.ts 里 resolveSessionFolder 的 shape,改成 project 层
-- Identity 复用 server/src/lib/git.ts 里 workpal@local / WorkPal,用 git config --local
-- 基线 commit 用 --allow-empty,消息 "WorkPal project baseline"
+做之前先列具体改动点给我 review,不要直接写代码,重点给我这几样:
+- `worktreeAdd` 函数签名 + 具体命令 argv
+- **branch name 正则的具体提案**(Context from 6.1 里说 supersede D2,你提新的,我 lock)
+- `claudeChat.ts` 的分支逻辑:project-owned vs legacy 两条路径的确切决策点
+- **mkdir 顺序的分支**:project-owned 要跳过 eager mkdir(不然 `worktree add` 会报 "path exists"),legacy 保留
+- 前端 request body 新增 `projectSlug` 的推导方式(应该用 App.tsx:396 的 slugify)
+- 你打算写哪些单元测试 / 手测脚本,怎么覆盖 "并发两个 session" 这条 acceptance test
 
-改动点过了 review 再写,按文档里 6.1 Acceptance tests 手测通过再开 PR。
+改动点过了 review 再写,按文档里 6.2 Acceptance tests 手测通过再开 PR。
 
 跑 dev:
 - 前端 `npm run dev -- --port 2010`(主 session 占 2006,避开)
 - 后端需要时 `cd server && unset ANTHROPIC_API_KEY && npm run dev`(shell 会注入空 ANTHROPIC_API_KEY,这步 unset 必须;backend 3001 无状态共享)
 
-高风险项(异步/git/文件路径),按原则 #12 我会 live test。PR 开了在 planning session 说一声。
+**高风险项(async + git + 文件系统 + 并发),按原则 #12 我会 live test,必测。**PR 开了在 planning session 说一声,我会跑:
+- 单 project 单 session → worktree + session branch + commit 只在 session branch
+- 单 project 双并发 session → 两个 worktree 两个 branch 互不影响,Undo 不交叉
+- 纯 Q&A session in project → 无 worktree 创建,finally rmdir 仍工作
+- 旧 legacy 路径(chat 无 project)→ 仍然按 Phase 5 行为
+- 路径/branch 注入尝试 → 被正则拦住
 
-测完按原则 #13 清场:kill backend + preview_stop、清掉测试 project folder,不留 zombie。
+测完按原则 #13 清场:kill backend + preview_stop、清掉测试 project folder + 用 `git worktree prune` 回收临时 worktree,不留 zombie。
 ```
 
 ---
