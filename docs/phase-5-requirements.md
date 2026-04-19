@@ -10,8 +10,8 @@
 | 5.4a Spawn SDK subprocess + log stream | ✅ Done | `0ff403b` (PR #68) |
 | 5.4b SSE + intent routing | ✅ Done | `9fc9365` (PR #69) |
 | 5.4c tool_use → inspector + Changes | ✅ Done | `757be62` (PR #70) |
-| **5.4d PermissionPrompt wiring** | ⏳ **Next** | — |
-| 5.4e Lazy mkdir + open-in-Finder | ⏳ Pending | — |
+| 5.4d PermissionPrompt wiring | ✅ Done | `6683788`+`04d2591` (PR #71) |
+| **5.4e Lazy mkdir + open-in-Finder** | ⏳ **Next** | — |
 | 5.5 Auto-commit + real Undo via git | ⏳ After 5.4 | — |
 
 ---
@@ -158,7 +158,7 @@ The SDK yields internal housekeeping events the user doesn't care about. **Filte
 
 ---
 
-## 5.4d — PermissionPrompt wiring (**next up**)
+## 5.4d — PermissionPrompt wiring ✅ (merged)
 
 **Goal**: SDK's `canUseTool` callback bridges to the existing frontend `PermissionPrompt` modal. Replace the 5.4c `permissionMode: 'acceptEdits'` shim.
 
@@ -192,22 +192,35 @@ The SDK yields internal housekeeping events the user doesn't care about. **Filte
 
 ---
 
-## 5.4e — Lazy mkdir + open in Finder
+## 5.4e — Lazy mkdir + open in Finder (**next up**)
 
 **Goal**: session folder only materializes on first real Write/Edit. Chip click opens Finder.
 
+### Context from 5.4d (read before starting)
+
+- `cwd` is currently hardcoded to `/tmp/workpal-sandbox` in `server/src/routes/claudeChat.ts`. 5.4e replaces this with the real `Chat.sessionFolder` the frontend sends. The request body already carries `sessionFolder` (wired in 5.4a shape, ignored in 5.4b–5.4d). Just start reading it.
+- The `mkdir -p` that currently runs eagerly on every request (line ~130 in `claudeChat.ts`) must become **lazy** — defer until the SDK actually emits a `tool_use` for Write/Edit/MultiEdit/NotebookEdit. Pure Q&A sessions must leave disk untouched.
+- Frontend already has `Chat.folderMaterialized: boolean` (from 5.3). Flip it to `true` the moment a file-mutating `tool_use` chunk arrives — that's what gates the folder chip rendering.
+- `approvedScopes` is a `useRef` (not `useState`) from 5.4d's race fix. 5.4e's folder-click handler should follow the same pattern if it needs any "remember this" cache — don't regress by using useState.
+- Permission scope for file-write is `dirname(file_path)` (see `deriveTargetScope` in `claudeChat.ts`). When cwd moves from `/tmp/workpal-sandbox` to a real per-session folder, the scope strings change — don't hard-code sandbox paths anywhere.
+- Path expansion: `Chat.sessionFolder` strings may include `~` (e.g. `~/WorkPal/foo/sessions/bar`). Server must expand these to absolute paths before `mkdir`/`cwd` (node doesn't auto-expand `~`).
+
 ### Scope
 
-- `server/src/lib/claudeCode.ts` — resolve cwd = real `Chat.sessionFolder`; `mkdir -p` only on first Write/Edit `tool_use`
-- New `POST /api/claude-chat/open-folder` — body `{sessionId}` → on darwin, spawn `open <path>`
-- `src/App.tsx` — first Write/Edit flips `chat.folderMaterialized=true`; folder chip click → POST `/open-folder`
+- `server/src/lib/claudeCode.ts` — no major changes expected (cwd already plumbed through `ClaudeCodeRequest`)
+- `server/src/routes/claudeChat.ts` — stop using `SANDBOX_CWD`; resolve cwd from request body's `sessionFolder` (expanding `~`); only `mkdir -p` when first Write/Edit/MultiEdit/NotebookEdit `tool_use` lands for a given session
+- New `POST /api/claude-chat/open-folder` — body `{sessionFolder}` → on darwin, spawn `open <resolvedPath>`; return 400 if path escapes `~/WorkPal/` (basic path-traversal guard)
+- `src/App.tsx` — on first file-mutating `tool_use` chunk, flip `chat.folderMaterialized=true`; folder chip click handler → POST to `/api/claude-chat/open-folder`
+- `src/components/ChatPanel.tsx` — folder chip is already rendered (from 5.3); just wire the click to the new POST
 
 ### Acceptance tests
 
-- [ ] Pure Q&A → `ls ~/WorkPal/` unchanged
-- [ ] File creation → folder appears at real path matching the chip text
-- [ ] Chip click → Finder opens at that path
-- [ ] Multiple sessions → each has its own folder, no cross-contamination
+- [ ] Pure Q&A in a fresh session ("翻译 hello") → `ls ~/WorkPal/` shows **no new folder**, no folder chip renders
+- [ ] "写个 hello.txt" in a fresh session → the real session folder appears on disk, chip becomes clickable
+- [ ] Click folder chip → Finder opens at the exact path shown in the chip
+- [ ] Two concurrent sessions → each writes into its own folder, no cross-contamination (use two browser tabs or two chats)
+- [ ] Path-traversal attempt via malformed `sessionFolder` POST → rejected (400)
+- [ ] `permission_request` scope now reports the real folder path (not `/tmp/workpal-sandbox`)
 
 ---
 
@@ -265,14 +278,14 @@ After 5.4–5.5 are shipped:
 ```
 请先读 docs/phase-5-requirements.md 了解进度和下一步。
 
-当前要做：5.4d — PermissionPrompt wiring。
+当前要做：5.4e — Lazy mkdir + open-in-Finder。
 
-文档里已经锁定了 shared decisions（关键词列表、sessionFolder 用法、SDK 事件过滤规则、
-5.4c→5.4d 的 permissionMode 移除规则）+ 5.4d "Context from 5.4c" 一节的注意事项
-（删 acceptEdits shim、用 halt kind、sessionId 作为 resolver map key、tool→kind 映射表）。
+文档里已经锁定了 shared decisions + 5.4e "Context from 5.4d" 一节的注意事项
+（真实 sessionFolder 替换沙盒 cwd、mkdir 延迟到首次 file-mutating tool_use、
+~ 路径展开、approvedScopes 继续用 useRef 模式、open-folder 接口加路径越狱防护）。
 请遵守。
 
-做之前先列具体改动点给我确认，按 5.4d 的 Acceptance tests 跑通后再开 PR。
+做之前先列具体改动点给我确认，按 5.4e 的 Acceptance tests 跑通后再开 PR。
 ```
 
 Paste this in a fresh Cowork session — the agent will pick up without needing more context.
