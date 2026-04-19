@@ -12,7 +12,8 @@
 | 5.4c tool_use → inspector + Changes | ✅ Done | `757be62` (PR #70) |
 | 5.4d PermissionPrompt wiring | ✅ Done | `6683788`+`04d2591` (PR #71) |
 | 5.4e Lazy mkdir + open-in-Finder | ✅ Done | `1b64629`+`f02cfd4` (PR #73) |
-| **5.5 Auto-commit + real Undo via git** | ⏳ **Next** | — |
+| 5.5 Auto-commit + real Undo via git | ✅ Done | `ed29387`+`742d6fb` (PR #75) |
+| **Phase 5 complete** | 🎉 | — |
 
 ---
 
@@ -224,9 +225,16 @@ The SDK yields internal housekeeping events the user doesn't care about. **Filte
 
 ---
 
-## 5.5 — Auto-commit + real Undo (**next up**)
+## 5.5 — Auto-commit + real Undo ✅ (merged)
 
 **Depends on real folders existing** (satisfied after 5.4e).
+
+### Lessons from 5.5 testing (PR #75 round-trip)
+
+Two P1 bugs landed in the initial PR and were fixed in `742d6fb` before merge. Record them here so any future sibling work (5.6 polish, Phase 6) doesn't re-introduce them.
+
+- **`git add -A` over-commits when Claude emits multiple file-writes in one assistant turn.** The SDK executes all file-writes before yielding their `tool_result` batch; by the time our loop calls `commitAfterTool` for write #1, write #2's file is already on disk and `git add -A` stages both. Write #1's commit contained both files; write #2's commit was empty (`--allow-empty`). Fix: commit by explicit path (`git add -- <filePath>`) + drop `--allow-empty` + skip commit entirely when `git diff --cached --quiet` says there's no diff. Every future commit path that touches `server/src/lib/git.ts` must keep this invariant: **one commit ⇔ one tool's file edit**.
+- **Fresh-chat closure race in `streamFromClaudeAPI`.** handleSend did `setChats(... sessionFolder ...)` then called `streamFromClaudeAPI(chatId, text)` in the same render tick; the callback's closure read stale chats (no sessionFolder), POST hit backend with empty `sessionFolder`, 400. Existed since 5.4e but acceptance tests always sent their first message through a pre-seeded chat so it never surfaced. Fix: handleSend passes the freshly-computed `sessionFolder` as an argument; callback prefers the override. **If you add new state that backend needs and the frontend computes it at handleSend time, pass it by argument — do not round-trip through chat state in the same tick.**
 
 ### Context from 5.4e (read before starting)
 
@@ -270,12 +278,21 @@ The SDK yields internal housekeeping events the user doesn't care about. **Filte
 
 ---
 
-## Phase 6 preview (NOT for this phase)
+## Deferred polish (optional 5.6 — not blocking anything)
 
-After 5.4–5.5 are shipped:
-- One git worktree per session → real isolation for concurrent work
+Surfaced during 5.5 testing but not worth blocking on; pick these up if there's slack before Phase 6.
+
+- **Ghost Change entries for failed writes.** Claude's first attempt to write a file often targets a wrong path (`/root/hello.txt`, `/repo/...`) and fails; the tool_use lands a Change entry in the inspector that never gets a commit. LIFO correctly suppresses its Undo button, but the row stays visible forever. Options: drop the entry on matching `tool_result.isError=true`, or visually dim + label it "Failed write" so the user understands it wasn't applied.
+- **"Always allow" first-hit miss on queued permission_requests.** When Claude emits multiple file-writes in one turn, their `permission_request` chunks arrive back-to-back; clicking "Always allow" on the first modal doesn't cover the already-queued second one, so the user sees a second modal even though they meant "blanket approve." Root cause is timing (`approvedScopesRef` gets set after the second request is already in `pendingPermissions`), not the ref itself. Drain the queue on Always-allow set, or auto-approve queued items whose scope now matches.
+
+## Phase 6 preview (starts after Phase 5 fully shipped)
+
+With 5.5 merged, Phase 5 is done. Phase 6 is the next substantial unit of work — NOT started yet, scope below is just a sketch for planning:
+
+- One git worktree per session → real isolation for concurrent work (today 5.5 gives you one git repo per session folder, but two sessions editing the SAME project's session folder still step on each other)
 - User-initiated merge back to Project base folder
 - Conflict resolution UI
+- Probably want a small Phase 6 requirements doc (same pattern as this one) once we're ready to start.
 
 ---
 
@@ -291,20 +308,7 @@ After 5.4–5.5 are shipped:
 
 ## First message template for a new Cowork session
 
-```
-请先读 docs/phase-5-requirements.md 了解进度和下一步。
-
-当前要做：5.5 — Auto-commit + 真 Undo via git。
-
-文档里已经锁定了 shared decisions + 5.5 "Context from 5.4e" 一节的注意事项
-（git init 的时机跟着 folderMaterialized 走、仅在 tool_result 非 error 时 commit、
-Claude 首次写错路径不要提交、复用 resolveSessionFolder 守卫 undo 接口、
-Undo UI 已存在只接 handler）。请遵守。
-
-做之前先列具体改动点给我确认，按 5.5 的 Acceptance tests 跑通后再开 PR。
-```
-
-Paste this in a fresh Cowork session — the agent will pick up without needing more context.
+Phase 5 is complete. No current "next step" is locked in — the planning session picks the next scope (5.6 polish, Phase 6, or something else) based on product priorities, then writes a fresh first-message here.
 
 ---
 
