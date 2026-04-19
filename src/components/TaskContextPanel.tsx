@@ -26,8 +26,14 @@ interface TaskContextPanelProps {
    *  show an empty state instead of stale placeholders. */
   useDemoDefaults?: boolean;
   /** Cosmetic filesystem path shown above the Folder file list so the user
-   *  can see where WorkPal would be working. No real mkdir happens yet. */
+   *  can see where WorkPal is working. The Folder card is only rendered once
+   *  the session folder has been materialized on disk (see
+   *  `folderMaterialized`) — until then we keep the inspector silent about
+   *  a workspace that doesn't exist. */
   folderPath?: string;
+  /** True once the backend has `mkdir -p`'d the session folder (first
+   *  Write/Edit tool call). Hides the Folder card while still false. */
+  folderMaterialized?: boolean;
   /** Auto-commit log — rendered at the top of the panel. Each entry shows a
    *  kind-specific icon and an Undo button. Empty = no changes yet. */
   changes?: ChangeEntry[];
@@ -129,6 +135,7 @@ export default function TaskContextPanel({
   fullScreen = false,
   useDemoDefaults = false,
   folderPath,
+  folderMaterialized = false,
   changes,
   onUndoChange,
 }: TaskContextPanelProps) {
@@ -251,35 +258,39 @@ export default function TaskContextPanel({
           )}
         </SideCard>
 
-        {/* Folder */}
-        <SideCard title="Folder" defaultOpen>
-          <div className="flex flex-col gap-2">
-            {folderPath && (
-              <div
-                className="px-2 py-1 rounded font-mono text-[12px] leading-[16px] text-text-secondary truncate"
-                style={{ background: 'var(--color-bg-hover)' }}
-                title={folderPath}
-              >
-                {folderPath}
-              </div>
-            )}
-            {folderList.length === 0 ? (
-              <p className="text-[13px] text-text-secondary px-1">No files in this task.</p>
-            ) : (
-              <div className="flex flex-col gap-1">
-                {folderList.map((f) => (
-                  <button
-                    key={f.name}
-                    className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-bg-hover transition-colors text-left"
-                  >
-                    <File size={16} className="text-text-primary shrink-0" />
-                    <span className="text-[13px] text-text-primary truncate">{f.name}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </SideCard>
+        {/* Folder — hidden until the backend actually mkdir's the workspace
+            on the first Write/Edit tool call. Pure conversation sessions
+            never show this card. */}
+        {folderMaterialized && (
+          <SideCard title="Folder" defaultOpen>
+            <div className="flex flex-col gap-2">
+              {folderPath && (
+                <div
+                  className="px-2 py-1 rounded font-mono text-[12px] leading-[16px] text-text-secondary truncate"
+                  style={{ background: 'var(--color-bg-hover)' }}
+                  title={folderPath}
+                >
+                  {folderPath}
+                </div>
+              )}
+              {folderList.length === 0 ? (
+                <p className="text-[13px] text-text-secondary px-1">No files in this task.</p>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  {folderList.map((f) => (
+                    <button
+                      key={f.name}
+                      className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-bg-hover transition-colors text-left"
+                    >
+                      <File size={16} className="text-text-primary shrink-0" />
+                      <span className="text-[13px] text-text-primary truncate">{f.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </SideCard>
+        )}
 
         {/* Context */}
         <SideCard title="Context" defaultOpen>

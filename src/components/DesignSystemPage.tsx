@@ -1462,7 +1462,7 @@ function LiveDetailPanel() {
 }
 
 function LiveTaskContextPanel() {
-  return <TaskContextPanel onClose={() => {}} />;
+  return <TaskContextPanel onClose={() => {}} useDemoDefaults folderMaterialized folderPath="~/WorkPal/2026-04-18-alcohol-delivery-issues/" />;
 }
 
 function LiveNewProjectDialog() {

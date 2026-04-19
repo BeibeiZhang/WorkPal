@@ -26,6 +26,7 @@ export const INITIAL_CHATS: Chat[] = [
     messages: [],
     hasInspector: true,
     sessionFolder: '~/WorkPal/2026-04-18-alcohol-delivery-issues/',
+    folderMaterialized: true,
   },
   {
     id: 'ux-meeting',

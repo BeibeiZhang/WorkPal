@@ -250,7 +250,7 @@ export default function ChatPanel({
       <HeaderBar
         sidebarOpen={sidebarOpen}
         onToggleSidebar={onToggleSidebar}
-        headerLeft={chat?.sessionFolder ? <FolderChip path={chat.sessionFolder} /> : undefined}
+        headerLeft={chat?.sessionFolder && chat?.folderMaterialized ? <FolderChip path={chat.sessionFolder} /> : undefined}
         headerRight={contextToggleButton}
         onNewChat={onNewChat}
       />
