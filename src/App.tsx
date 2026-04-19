@@ -17,7 +17,7 @@ import { Chat, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleC
 import PermissionPrompt from './components/PermissionPrompt';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
 import { INITIAL_CHATS } from './data';
-import { streamChat, streamClaudeChat } from './lib/api';
+import { postClaudePermissionDecision, streamChat, streamClaudeChat } from './lib/api';
 import { shouldUseClaudeCode } from './lib/intentRouter';
 import { buildAttachmentContextBlock, buildImageDescriptionBlock } from './lib/attachments';
 import {
@@ -571,10 +571,24 @@ export default function App() {
   // no localStorage, no cross-reload persistence. changes is keyed by chat
   // id so each session has its own log.
   const [changes, setChanges] = useState<Record<string, ChangeEntry[]>>({});
-  /** Active modal permission request. When non-null the PermissionPrompt is
-   *  rendered; the `resolve` callback is wired from whoever called
-   *  `requestPermission()` so they can await the user's decision. */
-  const [pendingPermission, setPendingPermission] = useState<(PermissionRequest & { resolve: (allow: boolean) => void }) | null>(null);
+  /** FIFO queue of permission requests awaiting the user's decision. The
+   *  modal renders the head; on resolution the head is shifted off and the
+   *  next entry (if any) flows in. A queue is needed — not a single slot —
+   *  because two concurrent Claude SDK sessions can each hit canUseTool
+   *  before the user resolves the first, and overwriting the slot would
+   *  silently drop the earlier prompt and leak its SDK promise.
+   *
+   *  Two flavors live in the queue:
+   *  1. Local-flow permissions (e.g. alcohol-delivery demo) carry a
+   *     `resolve(allow)` callback that finishes the awaited Promise.
+   *  2. Bridge permissions (5.4d Claude SDK) carry `bridge: {chatId, requestId}`
+   *     instead — the modal handlers POST the decision back to the server. */
+  type PendingPerm = PermissionRequest & {
+    resolve: (allow: boolean) => void;
+    bridge?: { chatId: string; requestId: string };
+  };
+  const [pendingPermissions, setPendingPermissions] = useState<PendingPerm[]>([]);
+  const pendingPermission = pendingPermissions[0] ?? null;
   /** "Always allow" memory — session-only Set of "{kind}:{scope}" strings.
    *  Subsequent requests matching a stored entry skip the modal. */
   const [approvedScopes, setApprovedScopes] = useState<Set<string>>(() => new Set());
@@ -669,11 +683,10 @@ export default function App() {
     const scopeKey = `${req.kind}:${req.scope}`;
     if (approvedScopes.has(scopeKey)) return Promise.resolve(true);
     return new Promise<boolean>(resolve => {
-      setPendingPermission({
-        ...req,
-        id: `perm-${Date.now()}`,
-        resolve,
-      });
+      setPendingPermissions(prev => [
+        ...prev,
+        { ...req, id: `perm-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, resolve },
+      ]);
     });
   }, [approvedScopes]);
 
@@ -978,6 +991,29 @@ export default function App() {
           setTaskSteps(prev => prev.map(s =>
             s.id === chunk.toolUseId ? { ...s, status: 'completed' } : s
           ));
+        } else if (chunk.type === 'permission_request') {
+          // 5.4d bridge: server parked a SDK canUseTool resolver under
+          // chunk.requestId. If the user has already granted "Always allow"
+          // for this scope this session, auto-POST allow without surfacing
+          // the modal (acceptance test #6). Otherwise enqueue a
+          // bridge-flavored prompt — the modal handlers POST the user's
+          // decision back to the same requestId.
+          const scopeKey = `${chunk.kind}:${chunk.scope}`;
+          if (approvedScopes.has(scopeKey)) {
+            void postClaudePermissionDecision(chunk.requestId, chatId, 'allow');
+          } else {
+            setPendingPermissions(prev => [
+              ...prev,
+              {
+                id: chunk.requestId,
+                kind: chunk.kind,
+                target: chunk.target,
+                scope: chunk.scope,
+                resolve: () => {/* no-op for bridge — decision goes via POST */},
+                bridge: { chatId, requestId: chunk.requestId },
+              },
+            ]);
+          }
         } else if (chunk.type === 'error') {
           fullContent = `Sorry, something went wrong: ${chunk.content}`;
         }
@@ -1009,7 +1045,7 @@ export default function App() {
         };
       }));
     }
-  }, [chats, addMessage, openInspector, addChange]);
+  }, [chats, addMessage, openInspector, addChange, approvedScopes]);
 
   // Auto-respond when opening ux-meeting chat with only the user message
   useEffect(() => {
@@ -2173,27 +2209,62 @@ export default function App() {
       {/* Memory password prompt (rendered by useMemoryAuth) */}
       {passwordModal}
 
-      {/* Phase 4 permission gate — any call to requestPermission() surfaces
-          here as a modal; the Promise resolves once the user picks. */}
+      {/* Phase 4 permission gate — any call to requestPermission() (or 5.4d
+          SDK bridge `permission_request` chunk) surfaces here as a modal.
+          For local-flow prompts the Promise resolver finishes the awaited
+          call; for bridge prompts we POST the decision back to the server
+          so the parked SDK canUseTool resolver unblocks. */}
       <PermissionPrompt
         request={pendingPermission}
-        onAllow={(req) => {
-          pendingPermission?.resolve(true);
-          setPendingPermission(null);
-          void req; // keep lint quiet; the resolve handler closes over it
+        onAllow={() => {
+          if (!pendingPermission) return;
+          if (pendingPermission.bridge) {
+            void postClaudePermissionDecision(
+              pendingPermission.bridge.requestId,
+              pendingPermission.bridge.chatId,
+              'allow',
+            );
+          } else {
+            pendingPermission.resolve(true);
+          }
+          setPendingPermissions(prev => prev.slice(1));
         }}
         onAlwaysAllow={(req) => {
+          if (!pendingPermission) return;
           setApprovedScopes(prev => {
             const next = new Set(prev);
             next.add(`${req.kind}:${req.scope}`);
             return next;
           });
-          pendingPermission?.resolve(true);
-          setPendingPermission(null);
+          if (pendingPermission.bridge) {
+            void postClaudePermissionDecision(
+              pendingPermission.bridge.requestId,
+              pendingPermission.bridge.chatId,
+              'allow',
+            );
+          } else {
+            pendingPermission.resolve(true);
+          }
+          setPendingPermissions(prev => prev.slice(1));
         }}
         onCancel={() => {
-          pendingPermission?.resolve(false);
-          setPendingPermission(null);
+          if (!pendingPermission) return;
+          if (pendingPermission.bridge) {
+            void postClaudePermissionDecision(
+              pendingPermission.bridge.requestId,
+              pendingPermission.bridge.chatId,
+              'deny',
+            );
+            // Per 5.4d acceptance: leave a halt entry in Changes so the user
+            // sees the cancelled tool didn't vanish silently.
+            addChange(pendingPermission.bridge.chatId, {
+              kind: 'halt',
+              label: `Task stopped: permission denied for ${pendingPermission.target}`,
+            });
+          } else {
+            pendingPermission.resolve(false);
+          }
+          setPendingPermissions(prev => prev.slice(1));
         }}
       />
 

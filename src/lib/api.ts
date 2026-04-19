@@ -1,4 +1,4 @@
-import type { CardData, ImageResult, VideoResult, WebResult } from '../types';
+import type { CardData, ImageResult, PermissionKind, VideoResult, WebResult } from '../types';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -31,6 +31,19 @@ export type StreamChunk =
   // matching tool_result so the frontend can flip Progress steps by id.
   | { type: 'tool_use'; id: string; name: string; input: unknown }
   | { type: 'tool_result'; toolUseId: string; isError: boolean; summary: string }
+  // 5.4d: SDK canUseTool bridge. The server parks a resolver per requestId
+  // and waits for POST /claude-chat/permission/:requestId with allow|deny.
+  // The frontend renders the existing PermissionPrompt modal driven by these
+  // fields and POSTs the user's decision back via postClaudePermissionDecision.
+  | {
+      type: 'permission_request';
+      requestId: string;
+      tool: string;
+      kind: PermissionKind;
+      target: string;
+      scope: string;
+      input: unknown;
+    }
   // Claude Agent SDK final usage/cost.
   | { type: 'claude_done'; usage?: unknown; cost?: unknown }
   | { type: 'error'; content: string };
@@ -96,6 +109,29 @@ export async function* streamClaudeChat(opts: {
   }
 
   yield* parseSSE(reader);
+}
+
+/** 5.4d: POST the user's PermissionPrompt decision back to the server, which
+ *  unblocks the SDK's canUseTool callback parked under this requestId. Fire-
+ *  and-forget — the SDK will surface any follow-up (tool_result, halt) over
+ *  the same SSE stream that's already in flight. */
+export async function postClaudePermissionDecision(
+  requestId: string,
+  sessionId: string,
+  decision: 'allow' | 'deny',
+): Promise<void> {
+  try {
+    await fetch(`/api/claude-chat/permission/${encodeURIComponent(requestId)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decision, sessionId }),
+    });
+  } catch (err) {
+    // The user has already made their choice — there's nothing actionable on a
+    // network failure. The SDK will eventually time out / be cancelled when
+    // the SSE stream closes, which the server cleans up via req.on('close').
+    console.warn('Failed to POST permission decision:', err);
+  }
 }
 
 async function* parseSSE(

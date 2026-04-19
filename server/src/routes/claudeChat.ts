@@ -1,11 +1,99 @@
 import { Router } from 'express';
 import { mkdir } from 'node:fs/promises';
+import { dirname } from 'node:path';
+import type { CanUseTool, PermissionResult } from '@anthropic-ai/claude-agent-sdk';
 import { runClaudeCode, shapeToolUse, shapeToolResult } from '../lib/claudeCode.js';
 
 const router = Router();
 
 // 5.4b cwd sandbox — real sessionFolder lands in 5.4e.
 const SANDBOX_CWD = '/tmp/workpal-sandbox';
+
+/* ── 5.4d permission bridge ───────────────────────────────────────────────
+ *
+ * Each canUseTool invocation registers a resolver in this Map and SSE-emits a
+ * `permission_request` chunk. The frontend POSTs the user's decision to
+ * /claude-chat/permission/:requestId, which looks up the resolver and unblocks
+ * the SDK. requestIds are sessionId-prefixed so two concurrent chats can't
+ * collide; sessionId is also stored on the entry as a defense-in-depth check
+ * against a misrouted POST.
+ */
+type Resolver = {
+  sessionId: string;
+  /** Closes over the original tool input + the SDK promise resolver, so the
+   *  POST handler only has to pass a decision string. allow → echo the
+   *  original input back to the SDK so the tool runs with what Claude asked
+   *  for; deny → surface a short message that Claude sees. */
+  decide: (decision: 'allow' | 'deny') => void;
+};
+
+const resolverMap = new Map<string, Resolver>();
+
+/** Frontend-facing kind for the PermissionPrompt modal. Mirrors src/types.ts
+ *  `PermissionKind`. Kept as a string union here to avoid pulling React types
+ *  into the server. */
+type PermissionKind = 'file-read' | 'file-write' | 'command' | 'external-url';
+
+/** Map an SDK tool name to the modal kind. The fallback is `command`, the
+ *  most cautious copy ("Allow Claude to run this command?"). Any new
+ *  file-mutating tool the SDK ships should be added to FILE_WRITE_TOOLS so
+ *  it surfaces with the right wording. */
+const FILE_WRITE_TOOLS = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit']);
+const FILE_READ_TOOLS = new Set(['Read']);
+const EXTERNAL_URL_TOOLS = new Set(['WebFetch', 'WebSearch']);
+
+function toolToKind(toolName: string): PermissionKind {
+  if (FILE_WRITE_TOOLS.has(toolName)) return 'file-write';
+  if (FILE_READ_TOOLS.has(toolName)) return 'file-read';
+  if (EXTERNAL_URL_TOOLS.has(toolName)) return 'external-url';
+  return 'command';
+}
+
+function strField(input: Record<string, unknown>, key: string): string {
+  const v = input[key];
+  return typeof v === 'string' ? v : '';
+}
+
+function originOf(url: string): string {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return url;
+  }
+}
+
+/** Derive { target, scope } from the tool input. `target` is the exact thing
+ *  we ask the user to approve (rendered verbatim in the prompt body). `scope`
+ *  is the bucket the "Always allow" cache is keyed by — coarser than target
+ *  so a single approval covers a session's worth of related calls (e.g. all
+ *  writes inside the session folder, all GETs to the same origin). */
+function deriveTargetScope(
+  kind: PermissionKind,
+  toolName: string,
+  input: Record<string, unknown>,
+): { target: string; scope: string } {
+  if (kind === 'file-write') {
+    const path = strField(input, 'file_path') || strField(input, 'notebook_path');
+    if (path) return { target: path, scope: dirname(path) || path };
+  }
+  if (kind === 'file-read') {
+    const path = strField(input, 'file_path');
+    if (path) return { target: path, scope: path };
+  }
+  if (kind === 'command') {
+    const cmd = strField(input, 'command');
+    if (cmd) return { target: cmd, scope: cmd };
+  }
+  if (kind === 'external-url') {
+    const url = strField(input, 'url') || strField(input, 'query');
+    if (url) return { target: url, scope: originOf(url) };
+  }
+  // Fallback when the input shape is unfamiliar: surface the tool name + a
+  // JSON snapshot so the user still has something to inspect, and key the
+  // cache by the tool name so blanket approval is at least possible.
+  const snap = JSON.stringify(input).slice(0, 120);
+  return { target: `${toolName}: ${snap}`, scope: toolName };
+}
 
 // POST /api/claude-chat — SSE stream of Claude Agent SDK events.
 //
@@ -16,6 +104,10 @@ const SANDBOX_CWD = '/tmp/workpal-sandbox';
 //   user           → tool_result blocks → { type:'tool_result', toolUseId, isError, summary }  (5.4c)
 //   result         → forward as { type:'claude_done', usage, cost }
 //   errors         → forward as { type:'error', content }
+//
+// 5.4d adds:
+//   canUseTool     → SSE-send { type:'permission_request', requestId, ... }
+//                    and await POST /claude-chat/permission/:requestId.
 router.post('/claude-chat', async (req, res) => {
   const { prompt, sessionId, sessionFolder } = req.body as {
     prompt?: string;
@@ -37,7 +129,8 @@ router.post('/claude-chat', async (req, res) => {
   const workingDir = SANDBOX_CWD;
   await mkdir(workingDir, { recursive: true });
 
-  console.log(`[claude-chat] start session=${sessionId ?? '-'} cwd=${workingDir}`);
+  const sid = sessionId ?? `nosid-${Date.now()}`;
+  console.log(`[claude-chat] start session=${sid} cwd=${workingDir}`);
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -48,8 +141,56 @@ router.post('/claude-chat', async (req, res) => {
     res.write(`data: ${JSON.stringify(chunk)}\n\n`);
   };
 
+  /** Track which requestIds belong to this session so a mid-flight client
+   *  disconnect (req close) can drain them with a synthetic deny — otherwise
+   *  the SDK would block forever waiting on a Promise that never resolves. */
+  const myRequests = new Set<string>();
+
+  const canUseTool: CanUseTool = (toolName, input) => {
+    const kind = toolToKind(toolName);
+    const { target, scope } = deriveTargetScope(kind, toolName, input);
+    const requestId = `${sid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+    return new Promise<PermissionResult>((resolve) => {
+      resolverMap.set(requestId, {
+        sessionId: sid,
+        decide: (decision) => {
+          resolverMap.delete(requestId);
+          myRequests.delete(requestId);
+          if (decision === 'allow') {
+            resolve({ behavior: 'allow', updatedInput: input });
+          } else {
+            resolve({ behavior: 'deny', message: 'User denied this action' });
+          }
+        },
+      });
+      myRequests.add(requestId);
+
+      send({
+        type: 'permission_request',
+        requestId,
+        tool: toolName,
+        kind,
+        target,
+        scope,
+        input,
+      });
+      console.log(`[claude-chat] permission_request id=${requestId} tool=${toolName} kind=${kind}`);
+    });
+  };
+
+  // Cleanup on client disconnect — synthetic deny so the SDK exits cleanly.
+  req.on('close', () => {
+    if (myRequests.size === 0) return;
+    console.log(`[claude-chat] client closed, draining ${myRequests.size} pending permission(s)`);
+    for (const requestId of [...myRequests]) {
+      const entry = resolverMap.get(requestId);
+      if (entry) entry.decide('deny');
+    }
+  });
+
   try {
-    for await (const msg of runClaudeCode({ prompt, cwd: workingDir, sessionId })) {
+    for await (const msg of runClaudeCode({ prompt, cwd: workingDir, sessionId, canUseTool })) {
       switch (msg.type) {
         case 'system':
           // hook_started / hook_response / init — internal housekeeping.
@@ -125,6 +266,36 @@ router.post('/claude-chat', async (req, res) => {
   } finally {
     res.end();
   }
+});
+
+// 5.4d: frontend POSTs the user's modal decision here. Looks up the resolver
+// the canUseTool callback parked, validates the sessionId (defense-in-depth
+// against a misrouted/forged POST), and unblocks the SDK with allow or deny.
+router.post('/claude-chat/permission/:requestId', (req, res) => {
+  const { requestId } = req.params;
+  const { decision, sessionId } = req.body as {
+    decision?: 'allow' | 'deny';
+    sessionId?: string;
+  };
+
+  if (decision !== 'allow' && decision !== 'deny') {
+    res.status(400).json({ error: 'decision must be "allow" or "deny"' });
+    return;
+  }
+
+  const entry = resolverMap.get(requestId);
+  if (!entry) {
+    res.status(404).json({ error: 'unknown or already-resolved requestId' });
+    return;
+  }
+  if (sessionId && sessionId !== entry.sessionId) {
+    res.status(403).json({ error: 'sessionId mismatch' });
+    return;
+  }
+
+  entry.decide(decision);
+  console.log(`[claude-chat] permission resolved id=${requestId} decision=${decision}`);
+  res.json({ ok: true });
 });
 
 export default router;
