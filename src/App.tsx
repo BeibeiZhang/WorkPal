@@ -1077,11 +1077,25 @@ export default function App() {
           const change = deriveChangeFromToolUse(chunk.name, chunk.input);
           if (change) addChange(chatId, { ...change, toolUseId: chunk.id });
         } else if (chunk.type === 'tool_result') {
-          // Flip the matching Progress step to completed. Error state (isError)
-          // deliberately not reflected in the UI yet — that's a 5.5 concern.
+          // Flip the matching Progress step to completed.
           setTaskSteps(prev => prev.map(s =>
             s.id === chunk.toolUseId ? { ...s, status: 'completed' } : s
           ));
+          // 5.6: Claude often retries file writes at wrong paths (/root/,
+          // /repo/) before landing on the real session folder. Each failed
+          // attempt produces a tool_use that lands a Change entry which
+          // never gets a commit (backend drops it from pendingWrites on
+          // isError=true). Mirror that cleanup in the UI so the inspector
+          // only shows real, recoverable file changes.
+          if (chunk.isError) {
+            setChanges(prev => {
+              const list = prev[chatId];
+              if (!list) return prev;
+              const filtered = list.filter(c => c.toolUseId !== chunk.toolUseId);
+              if (filtered.length === list.length) return prev;
+              return { ...prev, [chatId]: filtered };
+            });
+          }
         } else if (chunk.type === 'commit') {
           // 5.5: server auto-committed this file-write's disk state. Stamp the
           // matching Change entry with the commit hash so LIFO Undo lights up.
@@ -2348,17 +2362,33 @@ export default function App() {
           if (!pendingPermission) return;
           // Ref mutation, not setState — the in-flight stream's for-await
           // loop needs to see this before its next permission_request lands.
-          approvedScopesRef.current.add(`${req.kind}:${req.scope}`);
-          if (pendingPermission.bridge) {
-            void postClaudePermissionDecision(
-              pendingPermission.bridge.requestId,
-              pendingPermission.bridge.chatId,
-              'allow',
-            );
-          } else {
-            pendingPermission.resolve(true);
+          const scopeKey = `${req.kind}:${req.scope}`;
+          approvedScopesRef.current.add(scopeKey);
+          // 5.6: drain every already-queued entry whose scope now matches —
+          // including the head the user just clicked on. Without this, a
+          // second same-scope permission_request that arrived between the
+          // first modal showing and this click stays in the queue and pops
+          // a redundant modal even though the user meant "blanket approve."
+          // Any NEW chunks arriving mid-click already bypass the queue via
+          // the ref check at streamFromClaudeAPI's permission_request branch,
+          // so we only need to drain what was queued at click time.
+          const toApprove = pendingPermissions.filter(
+            p => `${p.kind}:${p.scope}` === scopeKey,
+          );
+          for (const p of toApprove) {
+            if (p.bridge) {
+              void postClaudePermissionDecision(
+                p.bridge.requestId,
+                p.bridge.chatId,
+                'allow',
+              );
+            } else {
+              p.resolve(true);
+            }
           }
-          setPendingPermissions(prev => prev.slice(1));
+          setPendingPermissions(prev =>
+            prev.filter(p => `${p.kind}:${p.scope}` !== scopeKey),
+          );
         }}
         onCancel={() => {
           if (!pendingPermission) return;
