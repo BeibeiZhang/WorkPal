@@ -8,8 +8,8 @@
 | 5.2 Fix single-session "New project…" missing | ✅ Done | `101c0c6` (PR #67) |
 | 5.3 Lazy folder materialization (frontend) | ✅ Done | `101c0c6` (PR #67) |
 | 5.4a Spawn SDK subprocess + log stream | ✅ Done | `0ff403b` (PR #68) |
-| **5.4b SSE + intent routing** | ⏳ **Next** | — |
-| 5.4c tool_use → inspector + Changes | ⏳ Pending | — |
+| 5.4b SSE + intent routing | ✅ Done | `9fc9365` (PR #69) |
+| **5.4c tool_use → inspector + Changes** | ⏳ **Next** | — |
 | 5.4d PermissionPrompt wiring | ⏳ Pending | — |
 | 5.4e Lazy mkdir + open-in-Finder | ⏳ Pending | — |
 | 5.5 Auto-commit + real Undo via git | ⏳ After 5.4 | — |
@@ -101,7 +101,7 @@ The SDK yields internal housekeeping events the user doesn't care about. **Filte
 
 ---
 
-## 5.4b — SSE + intent routing (**next up**)
+## 5.4b — SSE + intent routing ✅ (merged)
 
 **Goal**: real Claude responses appear in chat bubbles. OpenAI path for non-tool chat stays intact. No tool mapping yet — just text.
 
@@ -124,9 +124,15 @@ The SDK yields internal housekeeping events the user doesn't care about. **Filte
 
 ---
 
-## 5.4c — tool_use → inspector + Changes
+## 5.4c — tool_use → inspector + Changes (**next up**)
 
 **Goal**: Write/Edit tool calls flip `hasInspector` and appear in Changes card. Still sandboxed cwd (no real disk writes outside `/tmp/`).
+
+### Context from 5.4b (read before starting)
+
+- `handleSend` in `App.tsx` currently bypasses the Claude path when `attachments?.length` is truthy. **Don't fix that in 5.4c** — the attachment question (should Claude path accept images? how?) is deferred until after 5.4e. Note it in the PR description.
+- SDK `tool_use` blocks arrive inside `assistant.message.content` arrays alongside `text` blocks. The 5.4b filter already iterates those — extend the existing loop rather than adding a new event case.
+- SDK `tool_result` blocks arrive inside `user` messages. 5.4b currently drops the whole `user` case — now route these through.
 
 ### Scope
 
@@ -236,11 +242,13 @@ After 5.4–5.5 are shipped:
 ```
 请先读 docs/phase-5-requirements.md 了解进度和下一步。
 
-当前要做：5.4b — SSE + 意图路由。
+当前要做：5.4c — tool_use → inspector + Changes。
 
-文档里已经锁定了 shared decisions（关键词列表、sessionFolder 用法、SDK 事件过滤规则），请遵守。
+文档里已经锁定了 shared decisions（关键词列表、sessionFolder 用法、SDK 事件过滤规则）+
+5.4c "Context from 5.4b" 一节的注意事项（附件分支别碰、tool_use 在 assistant.content 里、
+tool_result 在 user 消息里）。请遵守。
 
-做之前先列具体改动点给我确认，按 5.4b 的 Acceptance tests 跑通后再开 PR。
+做之前先列具体改动点给我确认，按 5.4c 的 Acceptance tests 跑通后再开 PR。
 ```
 
 Paste this in a fresh Cowork session — the agent will pick up without needing more context.
