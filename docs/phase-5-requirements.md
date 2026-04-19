@@ -85,6 +85,15 @@ POST /api/claude-chat
 
 For 5.4b–5.4c, cwd can stay in a sandbox (`/tmp/workpal-sandbox/`). 5.4e switches to real `sessionFolder`.
 
+### Permission mode (5.4c → 5.4d transition)
+
+Without a `canUseTool` callback, the SDK denies Write/Edit/MultiEdit by
+default, which blocks any real tool execution in the sandbox. 5.4c sets
+`permissionMode: 'acceptEdits'` as a temporary shim so acceptance tests can
+run end-to-end. This is safe because cwd is a `/tmp/` sandbox. **5.4d
+removes this line** and replaces it with a real `canUseTool` bridge to the
+frontend PermissionPrompt modal.
+
 ### SDK event filtering (learned from 5.4a testing)
 
 The SDK yields internal housekeeping events the user doesn't care about. **Filter these out before SSE-forwarding to the frontend** in 5.4b:
