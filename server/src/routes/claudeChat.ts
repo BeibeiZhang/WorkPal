@@ -1,11 +1,19 @@
 import { Router } from 'express';
 import { mkdir, rmdir } from 'node:fs/promises';
-import { dirname, resolve as pathResolve, sep } from 'node:path';
+import { basename, dirname, resolve as pathResolve, sep } from 'node:path';
 import { homedir } from 'node:os';
 import { spawn } from 'node:child_process';
 import type { CanUseTool, PermissionResult } from '@anthropic-ai/claude-agent-sdk';
 import { runClaudeCode, shapeToolUse, shapeToolResult } from '../lib/claudeCode.js';
-import { commitAfterTool, initIfNeeded, undoLastCommit } from '../lib/git.js';
+import {
+  commitAfterTool,
+  initIfNeeded,
+  SESSION_BRANCH_RE,
+  undoLastCommit,
+  worktreeAddIfNeeded,
+  worktreeRemoveIfEmpty,
+} from '../lib/git.js';
+import { initProjectIfNeeded, resolveProjectFolder } from '../lib/project.js';
 import { WORKPAL_ROOT } from '../lib/paths.js';
 
 const router = Router();
@@ -135,10 +143,11 @@ function deriveTargetScope(
 //   canUseTool     → SSE-send { type:'permission_request', requestId, ... }
 //                    and await POST /claude-chat/permission/:requestId.
 router.post('/claude-chat', async (req, res) => {
-  const { prompt, sessionId, sessionFolder } = req.body as {
+  const { prompt, sessionId, sessionFolder, projectSlug } = req.body as {
     prompt?: string;
     sessionId?: string;
     sessionFolder?: string;
+    projectSlug?: string;
     messages?: unknown;
   };
 
@@ -157,36 +166,132 @@ router.post('/claude-chat', async (req, res) => {
   }
   const workingDir = folderCheck.resolved;
 
-  // 5.4e: mkdir eagerly — Claude Agent SDK spawns its native binary with
-  // cwd=workingDir, and `child_process.spawn` throws ENOENT (surfaced by the
-  // SDK as a misleading "native binary not found") if cwd doesn't exist at
-  // spawn time. So "pure Q&A leaves disk clean" is enforced at the END of the
-  // request instead: if `folderMaterialized` is still false in finally, the
-  // folder was never used and we rmdir it. Known minor leak: nested paths
-  // like ~/WorkPal/{project}/sessions/{slug}/ in a brand-new project leave
-  // intermediate empty dirs behind (common case is a single-level flat path,
-  // unaffected). Walk-up cleanup would risk deleting user-created dirs.
-  try {
-    await mkdir(workingDir, { recursive: true });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error(`[claude-chat] mkdir failed for ${workingDir}:`, message);
-    res.status(500).json({ error: `Failed to prepare session folder: ${message}` });
-    return;
+  // 6.2: project-owned branch if the frontend sent a projectSlug alongside
+  // the sessionFolder. Validate both + derive the branch name up front so
+  // any input failure is a 400 before we touch the filesystem.
+  let isProjectOwned = false;
+  let projectPath: string | null = null;
+  let branchName: string | null = null;
+  if (typeof projectSlug === 'string' && projectSlug.length > 0) {
+    const projectCheck = resolveProjectFolder(projectSlug);
+    if (!projectCheck.ok) {
+      res.status(400).json({ error: projectCheck.reason });
+      return;
+    }
+    projectPath = projectCheck.resolved;
+    // Containment check: the session folder must live under
+    // <projectPath>/sessions/. Stops a client from pairing projectSlug A with
+    // a sessionFolder pointing into project B's tree — that would land a
+    // worktree in A's branch namespace at B's filesystem path, a confusing
+    // cross-project state even if `resolveSessionFolder` alone would accept
+    // it (both paths live under ~/WorkPal/). Principle #9: UI path == real
+    // path == git path; this blocks the mismatch shape.
+    const expectedParent = pathResolve(projectPath, 'sessions') + sep;
+    if (!workingDir.startsWith(expectedParent)) {
+      res.status(400).json({
+        error:
+          'sessionFolder must live under ~/WorkPal/<projectSlug>/sessions/ / sessionFolder 必须在 ~/WorkPal/<projectSlug>/sessions/ 下',
+      });
+      return;
+    }
+    // Branch name = session/<last path segment>. Strip any trailing slash
+    // first so `foo/` and `foo` produce the same basename — matches how the
+    // frontend's sessionFolder chip renders the path.
+    const sessionSlug = basename(workingDir.replace(/\/+$/, ''));
+    branchName = `session/${sessionSlug}`;
+    if (!SESSION_BRANCH_RE.test(branchName)) {
+      res.status(400).json({
+        error:
+          'sessionFolder slug contains characters not allowed in a git branch name / sessionFolder slug 含有不能用于 git 分支名的字符',
+      });
+      return;
+    }
+    isProjectOwned = true;
   }
 
-  // True once a file-mutating tool_use lands — gates the finally-block rmdir
-  // (false = folder stayed empty = remove it) and matches the frontend's
-  // chip-visibility flag.
+  // 6.2: cleanup strategy for this request's finally block.
+  //   'worktree' → `git worktree remove` + `git branch -D` (project-owned
+  //                success path; empty session collapses back to zero
+  //                on-disk state without leaving a stray branch behind)
+  //   'rmdir'    → plain `rmdir workingDir` (Phase 5 legacy path AND the
+  //                project-owned degraded fallback where worktree add threw
+  //                and we mkdir'd a plain dir to keep SDK spawn alive)
+  let cleanupMode: 'worktree' | 'rmdir' = 'rmdir';
+
+  // 5.4e eager-mkdir constraint carried forward: the SDK spawns child
+  // processes with `cwd=workingDir` at request start, and `child_process.spawn`
+  // throws ENOENT if cwd doesn't exist (surfaced as a misleading "native
+  // binary not found"). Phase 5's compromise was eager mkdir + finally-rmdir.
+  // 6.2 continues that compromise, but the eager step is now either a
+  // worktree add (project-owned: creates the leaf dir itself) or a plain
+  // mkdir (legacy). We can't defer the worktree to the first file-write
+  // tool_use the way the lazy principle would want — by the time a
+  // tool_use arrives the SDK has already spawned.
+  //
+  // 5.5 also moves here for the project-owned path: once `worktreeAdd`
+  // succeeds we set `gitReady = true` without waiting for a file-write.
+  // Legacy stays lazy (no repo until first file-write) so pure Q&A legacy
+  // sessions don't leave a `.git/` behind after the finally rmdir.
+  let gitReady = false;
+
+  if (isProjectOwned && projectPath && branchName) {
+    try {
+      // Defensive: catches the race where the user sends a message the same
+      // tick NewProjectDialog fired `/project/init` — our POST might not have
+      // landed yet. initProjectIfNeeded is idempotent (`.git` probe), so
+      // calling it on every project-owned request costs one stat() past the
+      // first init.
+      await initProjectIfNeeded(projectPath);
+      // git worktree add doesn't create intermediate directories, so the
+      // <project>/sessions/ parent has to exist. Leaf is left absent —
+      // worktree add creates it.
+      await mkdir(dirname(workingDir), { recursive: true });
+      await worktreeAddIfNeeded(projectPath, workingDir, branchName);
+      gitReady = true;
+      cleanupMode = 'worktree';
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`[claude-chat] worktree setup failed for ${workingDir}: ${message}`);
+      // Degraded fallback: SDK still needs a valid cwd, so mkdir a plain dir.
+      // gitReady stays false → no commits for this request. cleanupMode stays
+      // 'rmdir' → finally wipes the plain dir if still empty. We don't pivot
+      // to per-session `git init` here — silently swapping project-owned
+      // semantics for legacy semantics mid-request would be a surprise, and
+      // the Phase 5 precedent was "init failed → no git backup, stream lives".
+      try {
+        await mkdir(workingDir, { recursive: true });
+      } catch (mkErr) {
+        const mkMessage = mkErr instanceof Error ? mkErr.message : String(mkErr);
+        console.error(`[claude-chat] fallback mkdir failed for ${workingDir}:`, mkMessage);
+        res.status(500).json({ error: `Failed to prepare session folder: ${mkMessage}` });
+        return;
+      }
+    }
+  } else {
+    // Legacy Phase 5 path: plain mkdir, lazy `initIfNeeded` fires later on
+    // the first file-write tool_use. Known minor leak preserved — nested
+    // paths under a brand-new project would leave intermediate empty dirs
+    // after finally rmdir, but 6.2 doesn't introduce that case for legacy
+    // (project-owned sessions go through the branch above).
+    try {
+      await mkdir(workingDir, { recursive: true });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`[claude-chat] mkdir failed for ${workingDir}:`, message);
+      res.status(500).json({ error: `Failed to prepare session folder: ${message}` });
+      return;
+    }
+  }
+
+  // True once a file-mutating tool_use lands — gates the finally-block
+  // cleanup (false = folder stayed empty = remove worktree or rmdir) and
+  // matches the frontend's chip-visibility flag.
   let folderMaterialized = false;
 
-  // 5.5: git auto-commit. True after the first successful `initIfNeeded` in
-  // this request. Flipped to false (and stays false) if init throws — that
-  // degrades this session to "no git backup" instead of tearing down the SSE
-  // stream: the user's file writes still succeed, they just lose Undo for
-  // this request. Pending file-write tool_uses register here so the matching
-  // tool_result (which only carries tool_use_id) can decide whether to commit.
-  let gitReady = false;
+  // 5.5: git auto-commit pipeline. Legacy sessions init lazily on the first
+  // file-write; project-owned already set `gitReady=true` in the block above.
+  // Pending file-write tool_uses register here so the matching tool_result
+  // (which only carries tool_use_id) can decide whether to commit.
   const pendingWrites = new Map<string, { toolName: string; filePath: string }>();
 
   const sid = sessionId ?? `nosid-${Date.now()}`;
@@ -288,13 +393,19 @@ router.post('/claude-chat', async (req, res) => {
                   folderMaterialized = true;
                   console.log(`[claude-chat] folder used by ${toolUse.name}`);
                 }
-                // 5.5: lazy `git init` on the first file-write tool_use.
+                // 5.5: lazy `git init` on the first file-write tool_use —
+                // legacy (no projectSlug) path only. Project-owned requests
+                // pre-init via the worktree add block at request start, so
+                // `gitReady` is already true by the time any tool_use lands;
+                // 6.2 deliberately does NOT fall back to per-session init for
+                // project-owned requests whose worktree add failed (see the
+                // request-start block's "degraded fallback" comment).
                 // `git init` is idempotent at this layer (initIfNeeded checks
                 // for .git first) so running it on every file-write would be
                 // safe, but gating on gitReady saves a disk access per tool.
                 // A failure here degrades to "no git backup for this request":
                 // log, leave gitReady=false, let the SDK stream keep running.
-                if (isFileWrite && !gitReady) {
+                if (isFileWrite && !gitReady && !isProjectOwned) {
                   try {
                     await initIfNeeded(workingDir);
                     gitReady = true;
@@ -410,18 +521,28 @@ router.post('/claude-chat', async (req, res) => {
     send({ type: 'error', content: message });
   } finally {
     // 5.4e: "pure Q&A leaves disk clean" — if no file-mutating tool_use arrived,
-    // the folder is still empty; rmdir it. rmdir throws ENOTEMPTY for folders
-    // Claude actually wrote into (e.g. on a race where folderMaterialized
-    // hasn't flipped yet), so user data can't be accidentally deleted here —
-    // the folder is preserved whenever it holds any content.
+    // the folder is still empty. Branch on cleanup mode:
+    //   'worktree' → remove the worktree + delete the empty session branch so
+    //               the project's branch list doesn't accumulate dead entries
+    //               for Q&A sessions. worktreeRemoveIfEmpty is best-effort
+    //               and swallows non-fatal errors (same policy as rmdir below).
+    //   'rmdir'   → Phase 5 path. rmdir throws ENOTEMPTY for folders Claude
+    //               actually wrote into (race on folderMaterialized), so user
+    //               data can't be accidentally deleted here — the folder is
+    //               preserved whenever it holds any content.
     if (!folderMaterialized) {
-      try {
-        await rmdir(workingDir);
-        console.log(`[claude-chat] rmdir clean ${workingDir}`);
-      } catch (err) {
-        const e = err as NodeJS.ErrnoException;
-        if (e.code !== 'ENOTEMPTY' && e.code !== 'ENOENT') {
-          console.warn(`[claude-chat] rmdir ${workingDir} failed: ${e.message}`);
+      if (cleanupMode === 'worktree' && projectPath && branchName) {
+        await worktreeRemoveIfEmpty(projectPath, workingDir, branchName);
+        console.log(`[claude-chat] worktree removed ${workingDir} (branch ${branchName})`);
+      } else {
+        try {
+          await rmdir(workingDir);
+          console.log(`[claude-chat] rmdir clean ${workingDir}`);
+        } catch (err) {
+          const e = err as NodeJS.ErrnoException;
+          if (e.code !== 'ENOTEMPTY' && e.code !== 'ENOENT') {
+            console.warn(`[claude-chat] rmdir ${workingDir} failed: ${e.message}`);
+          }
         }
       }
     }

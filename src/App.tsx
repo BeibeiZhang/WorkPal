@@ -1085,12 +1085,25 @@ export default function App() {
       isLoading: true,
     });
 
+    // 6.2: project-owned chats pass their project's slug alongside sessionFolder
+    // so the backend can `git worktree add -b session/<slug>` at request start.
+    // `slugify(project.name)` matches what built the sessionFolder (via
+    // nestFolderUnderProject / buildSessionFolder) and what went to
+    // /project/init in 6.1 — principle #9, the same slug flows from UI to git.
+    // Chats outside any project (chat.projectId === undefined) leave this
+    // undefined and the backend falls back to Phase 5's per-session git init.
+    const project = chat?.projectId
+      ? projects.find(p => p.id === chat.projectId)
+      : null;
+    const projectSlug = project ? slugify(project.name) : undefined;
+
     try {
       let fullContent = '';
       for await (const chunk of streamClaudeChat({
         prompt: userText,
         sessionId: chatId,
         sessionFolder: overrideSessionFolder ?? chat?.sessionFolder,
+        projectSlug,
         messages: history,
       })) {
         if (chunk.type === 'text') {
@@ -1214,7 +1227,7 @@ export default function App() {
         };
       }));
     }
-  }, [chats, addMessage, openInspector, addChange, stampCommit]);
+  }, [chats, projects, addMessage, openInspector, addChange, stampCommit]);
 
   // Auto-respond when opening ux-meeting chat with only the user message
   useEffect(() => {
