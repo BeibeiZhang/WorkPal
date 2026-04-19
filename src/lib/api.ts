@@ -134,6 +134,25 @@ export async function postClaudePermissionDecision(
   }
 }
 
+/** 5.4e: ask the backend to reveal the session folder in Finder. The server
+ *  re-validates the path with the same resolveSessionFolder() used by the chat
+ *  route, so a malformed string here is rejected instead of launching Finder
+ *  outside ~/WorkPal/. Resolves true on success, false if the server rejected
+ *  the path or the spawn failed — caller decides whether to surface feedback. */
+export async function postOpenFolder(sessionFolder: string): Promise<boolean> {
+  try {
+    const res = await fetch('/api/claude-chat/open-folder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionFolder }),
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn('Failed to open folder:', err);
+    return false;
+  }
+}
+
 async function* parseSSE(
   reader: ReadableStreamDefaultReader<Uint8Array>,
 ): AsyncGenerator<StreamChunk> {
