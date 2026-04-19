@@ -17,7 +17,8 @@ import { Chat, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleC
 import PermissionPrompt from './components/PermissionPrompt';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
 import { INITIAL_CHATS } from './data';
-import { streamChat } from './lib/api';
+import { streamChat, streamClaudeChat } from './lib/api';
+import { shouldUseClaudeCode } from './lib/intentRouter';
 import { buildAttachmentContextBlock, buildImageDescriptionBlock } from './lib/attachments';
 import {
   loadMemoriesCache,
@@ -861,6 +862,78 @@ export default function App() {
     }
   }, [chats, projects, memories, addMessage, openInspector]);
 
+  // Phase 5.4b — Claude Agent SDK path. Picked by src/lib/intentRouter when
+  // the user's message contains a code/file keyword. 5.4b streams text-only;
+  // tool_use → inspector mapping lands in 5.4c. Attachments / project docs /
+  // memory block intentionally not wired here yet.
+  const streamFromClaudeAPI = useCallback(async (chatId: string, userText: string) => {
+    const chat = chats.find(c => c.id === chatId);
+    const previousMessages = (chat?.messages || [])
+      .filter(m => !m.isLoading)
+      .map(m => ({ role: m.role, content: m.content }));
+    const history = [...previousMessages, { role: 'user' as const, content: userText }];
+
+    const assistantId = nextId();
+    addMessage(chatId, {
+      id: assistantId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      isLoading: true,
+    });
+
+    try {
+      let fullContent = '';
+      for await (const chunk of streamClaudeChat({
+        prompt: userText,
+        sessionId: chatId,
+        sessionFolder: chat?.sessionFolder,
+        messages: history,
+      })) {
+        if (chunk.type === 'text') {
+          fullContent += chunk.content;
+          setChats(prev => prev.map(c => {
+            if (c.id !== chatId) return c;
+            return {
+              ...c,
+              messages: c.messages.map(m =>
+                m.id === assistantId ? { ...m, content: fullContent, isLoading: true } : m
+              ),
+            };
+          }));
+        } else if (chunk.type === 'error') {
+          fullContent = `Sorry, something went wrong: ${chunk.content}`;
+        }
+        // claude_done: usage/cost — ignored in 5.4b, surfaced in a later phase.
+      }
+      setChats(prev => prev.map(c => {
+        if (c.id !== chatId) return c;
+        return {
+          ...c,
+          messages: c.messages.map(m =>
+            m.id === assistantId
+              ? { ...m, content: fullContent || 'No response received.', isLoading: false }
+              : m
+          ),
+          lastMessage: fullContent || 'No response received.',
+          timestamp: new Date(),
+        };
+      }));
+    } catch {
+      setChats(prev => prev.map(c => {
+        if (c.id !== chatId) return c;
+        return {
+          ...c,
+          messages: c.messages.map(m =>
+            m.id === assistantId
+              ? { ...m, content: 'Failed to connect to AI. Is the server running?', isLoading: false }
+              : m
+          ),
+        };
+      }));
+    }
+  }, [chats, addMessage]);
+
   // Auto-respond when opening ux-meeting chat with only the user message
   useEffect(() => {
     if (!activeChat) return;
@@ -1078,10 +1151,15 @@ export default function App() {
       } else {
         setVoicePendingText(text);
       }
+    } else if (!attachments?.length && shouldUseClaudeCode(text)) {
+      // 5.4b keyword router — code/file intents go to Claude Agent SDK. Skip
+      // when attachments are present since the Claude path doesn't wire them
+      // yet; OpenAI still handles those.
+      streamFromClaudeAPI(chatId, text);
     } else {
       streamFromAPI(chatId, text, attachments);
     }
-  }, [activeChatId, activeChat, showTypingThenRespond, streamFromAPI, runAlcoholDeliveryFlow, voiceModeActive]);
+  }, [activeChatId, activeChat, showTypingThenRespond, streamFromAPI, streamFromClaudeAPI, runAlcoholDeliveryFlow, voiceModeActive]);
 
   const handleChipClick = useCallback((chip: ActionChip) => {
     // Treat chip click as a user message

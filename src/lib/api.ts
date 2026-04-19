@@ -27,6 +27,8 @@ export type StreamChunk =
   | { type: 'task_step'; step: TaskStepPayload }
   | { type: 'tool_active'; name: string }
   | { type: 'done'; content: string }
+  // Claude Agent SDK final usage/cost. Tool_use / tool_result chunks land in 5.4c.
+  | { type: 'claude_done'; usage?: unknown; cost?: unknown }
   | { type: 'error'; content: string };
 
 /**
@@ -58,6 +60,43 @@ export async function* streamChat(
     return;
   }
 
+  yield* parseSSE(reader);
+}
+
+/**
+ * Stream a Claude Agent SDK response from /api/claude-chat.
+ * Keyword-routed here by src/lib/intentRouter.ts (5.4b). In 5.4b this only
+ * yields text/claude_done/error chunks — tool_use → inspector mapping is 5.4c.
+ */
+export async function* streamClaudeChat(opts: {
+  prompt: string;
+  sessionId: string;
+  sessionFolder?: string;
+  messages: ChatMessage[];
+}): AsyncGenerator<StreamChunk> {
+  const res = await fetch('/api/claude-chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(opts),
+  });
+
+  if (!res.ok) {
+    yield { type: 'error', content: `API error: ${res.status}` };
+    return;
+  }
+
+  const reader = res.body?.getReader();
+  if (!reader) {
+    yield { type: 'error', content: 'No response stream' };
+    return;
+  }
+
+  yield* parseSSE(reader);
+}
+
+async function* parseSSE(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+): AsyncGenerator<StreamChunk> {
   const decoder = new TextDecoder();
   let buffer = '';
 
