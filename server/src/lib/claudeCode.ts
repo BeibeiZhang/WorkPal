@@ -1,4 +1,4 @@
-import { query, type SDKMessage } from '@anthropic-ai/claude-agent-sdk';
+import { query, type CanUseTool, type SDKMessage } from '@anthropic-ai/claude-agent-sdk';
 
 export interface ClaudeCodeRequest {
   prompt: string;
@@ -6,6 +6,13 @@ export interface ClaudeCodeRequest {
   /** WorkPal chat id. NOT forwarded to the SDK (which requires a UUID) —
    *  kept here for the 5.4d permission-resolver Map keyed by chat. */
   sessionId?: string;
+  /** 5.4d permission bridge. When set, the SDK calls this for every tool that
+   *  isn't pre-approved by allow rules; the route's implementation forwards
+   *  the request to the frontend PermissionPrompt modal over SSE and awaits
+   *  the user's decision. Omit during tests / dev to fall back to the SDK's
+   *  default `default` mode (which denies anything that would normally prompt
+   *  on the CLI). */
+  canUseTool?: CanUseTool;
 }
 
 export async function* runClaudeCode(
@@ -15,11 +22,10 @@ export async function* runClaudeCode(
     prompt: req.prompt,
     options: {
       cwd: req.cwd,
-      // 5.4c shim: auto-allow Write/Edit/MultiEdit so sandbox acceptance tests
-      // can run without a permission bridge. Replaced in 5.4d by `canUseTool`
-      // that routes to the frontend PermissionPrompt modal. Safe here because
-      // cwd is a tmp sandbox; 5.4e points at the real session folder.
-      permissionMode: 'acceptEdits',
+      // 5.4d: no permissionMode override — runs in `default` so every tool not
+      // pre-approved by allow rules falls through to canUseTool, which the
+      // route bridges to the frontend modal.
+      canUseTool: req.canUseTool,
     },
   });
 }
