@@ -122,6 +122,7 @@ function loadChats(): Chat[] {
         messages: c.messages.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) })),
         hasInspector: c.hasInspector ?? seedById[c.id]?.hasInspector,
         sessionFolder: c.sessionFolder ?? seedById[c.id]?.sessionFolder,
+        folderMaterialized: c.folderMaterialized ?? seedById[c.id]?.folderMaterialized,
       }));
     }
   } catch { /* ignore corrupted data */ }
@@ -1664,30 +1665,6 @@ export default function App() {
     });
   }, [projects]);
 
-  // Batch version of handleMoveChat — every selected chat moves into the same
-  // existing project. Folder paths are re-nested per chat so each keeps its
-  // own `{date}-{slug}` leaf under `sessions/`.
-  const handleBulkMoveToProject = useCallback((chatIds: string[], projectId: string) => {
-    const project = projects.find(p => p.id === projectId);
-    if (!project) return;
-    const idSet = new Set(chatIds);
-    setChats(prev => prev.map(c => {
-      if (!idSet.has(c.id)) return c;
-      return {
-        ...c,
-        projectId,
-        sessionFolder: nestFolderUnderProject(c.sessionFolder, project.name, c.title),
-      };
-    }));
-  }, [projects]);
-
-  // Open the promote dialog pre-filled for the selected chats. On confirm,
-  // `handlePromoteToProject` creates a new project and moves all of them in.
-  const handleBulkPromoteToProject = useCallback((chatIds: string[]) => {
-    if (chatIds.length === 0) return;
-    setPromotingChatIds(chatIds);
-  }, []);
-
   // Voice mode: close session
   const handleVoiceModeClose = useCallback(() => {
     setVoiceModeActive(false);
@@ -1799,8 +1776,6 @@ export default function App() {
                   onDeleteProject={handleDeleteProject}
                   onMoveChat={handleMoveChat}
                   onPromoteChat={(id) => setPromotingChatIds([id])}
-                  onBulkMoveToProject={handleBulkMoveToProject}
-                  onBulkPromoteToProject={handleBulkPromoteToProject}
                   isDark={isDark}
                   onToggleDark={() => setIsDark(d => !d)}
                   onToggleSidebar={() => setSidebarOpen(o => !o)}
@@ -1830,6 +1805,7 @@ export default function App() {
                       onDeleteChat={handleDeleteChat}
                       onDeleteProject={handleDeleteProject}
                       onMoveChat={handleMoveChat}
+                      onPromoteChat={(id) => setPromotingChatIds([id])}
                       isDark={isDark}
                       onToggleDark={() => setIsDark(d => !d)}
                       onToggleSidebar={() => setSidebarOpen(o => !o)}
@@ -1956,6 +1932,7 @@ export default function App() {
                       useDemoDefaults={isDemo}
                       fullScreen={overlay}
                       folderPath={activeChat?.sessionFolder}
+                      folderMaterialized={activeChat?.folderMaterialized ?? false}
                       changes={activeChat ? changes[activeChat.id] : undefined}
                       onUndoChange={activeChat ? (id) => handleUndoChange(activeChat.id, id) : undefined}
                     />
@@ -2005,23 +1982,17 @@ export default function App() {
       </div>
 
       {/* New Project Dialog — doubles as the "Promote to Project" dialog when
-          `promotingChatIds` is set. Works for a single row (from RowMoreMenu)
-          or a batch (from the multi-select action bar). */}
+          `promotingChatIds` is set. Single-session promote only (from the
+          Recents row menu). */}
       {(() => {
-        const promotingChats = promotingChatIds && promotingChatIds.length > 0
-          ? chats.filter(c => promotingChatIds.includes(c.id))
-          : [];
-        const isPromote = promotingChats.length > 0;
+        const promotingChat = promotingChatIds && promotingChatIds.length > 0
+          ? chats.find(c => c.id === promotingChatIds[0])
+          : undefined;
+        const isPromote = !!promotingChat;
         const dialogOpen = newProjectOpen || isPromote;
-        // For batch promote: seed the name from the first chat and the folder
-        // suggestion from the hypothetical project (root-level, no sessions/
-        // leaf — each chat will get its own leaf when nested on confirm).
-        const first = promotingChats[0];
-        const suggestedName = isPromote ? first.title : undefined;
-        const suggestedFolder = isPromote
-          ? (promotingChats.length > 1
-              ? `~/WorkPal/${slugify(first.title)}/`
-              : nestFolderUnderProject(first.sessionFolder, first.title, first.title))
+        const suggestedName = promotingChat?.title;
+        const suggestedFolder = promotingChat
+          ? nestFolderUnderProject(promotingChat.sessionFolder, promotingChat.title, promotingChat.title)
           : undefined;
         return (
           <NewProjectDialog
@@ -2029,14 +2000,13 @@ export default function App() {
             mode={isPromote ? 'promote' : 'create'}
             suggestedName={suggestedName}
             suggestedFolder={suggestedFolder}
-            chatCount={isPromote ? promotingChats.length : undefined}
             onClose={() => {
               if (isPromote) setPromotingChatIds(null);
               else setNewProjectOpen(false);
             }}
             onCreate={(name, description, folder) => {
-              if (isPromote) {
-                handlePromoteToProject(promotingChats.map(c => c.id), name, description, folder);
+              if (isPromote && promotingChat) {
+                handlePromoteToProject([promotingChat.id], name, description, folder);
               } else {
                 handleCreateProject(name, description);
               }

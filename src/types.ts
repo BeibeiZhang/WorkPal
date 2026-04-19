@@ -165,9 +165,16 @@ export interface Chat {
    *  chat header's folder chip. Auto-generated from the session title on the
    *  first send (e.g. `~/WorkPal/2026-04-18-alcohol-delivery-issues/`). Once
    *  a session is promoted to a project it becomes
-   *  `~/WorkPal/{project-slug}/sessions/{session-slug}/`. No real filesystem
-   *  mkdir happens yet — that lives on the future Claude Code CLI backend. */
+   *  `~/WorkPal/{project-slug}/sessions/{session-slug}/`. The path is
+   *  pre-computed so the promote flow and migration logic have something to
+   *  re-nest, but no real mkdir happens until `folderMaterialized` flips. */
   sessionFolder?: string;
+  /** Flips to `true` the first time the AI calls a Write/Edit tool in this
+   *  chat — at that point the Claude Code backend actually creates the
+   *  session folder on disk. Until then the chat is pure conversation and
+   *  the folder chip / inspector Folder card stay hidden to avoid suggesting
+   *  a workspace that doesn't exist. */
+  folderMaterialized?: boolean;
 }
 
 export interface App {

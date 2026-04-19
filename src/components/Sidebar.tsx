@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Chat, Attachment } from '../types';
-import { LayoutDashboard, SquarePen, Link, BookOpen, Brain, FolderPlus, ChevronDown, Search, Palette, PanelLeft, MoreHorizontal, Trash2, FolderInput, Check, Sparkles, FolderUp } from 'lucide-react';
+import { LayoutDashboard, SquarePen, Link, BookOpen, Brain, FolderPlus, ChevronDown, Search, Palette, PanelLeft, MoreHorizontal, Trash2, FolderInput, Check, Sparkles } from 'lucide-react';
 import { iconSun, iconMoon } from '../assets';
 
 /**
@@ -25,8 +25,8 @@ function RowMoreMenu({
   currentProjectId?: string;
   /** Invoked with a project id, or null to remove from any project. */
   onMove?: (projectId: string | null) => void;
-  /** Open the "Promote to Project" dialog for this row. Only shown when the
-   *  row isn't already filed under a project. One-way per Phase 2 spec. */
+  /** Open the "Promote to Project" dialog for this row. Surfaced as the
+   *  "New project…" entry at the bottom of the Move submenu. */
   onPromote?: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -67,7 +67,10 @@ function RowMoreMenu({
     if (!open) setMoveOpen(false);
   }, [open]);
 
-  const canMove = !!moveTargets && !!onMove;
+  // Move submenu surfaces three things: existing projects to move into,
+  // "Remove from project" (when currently filed), and "New project…" (via
+  // onPromote). Available if any of those are actionable.
+  const canMove = !!onMove && (!!moveTargets || !!onPromote);
 
   return (
     <div
@@ -100,17 +103,6 @@ function RowMoreMenu({
         >
           {!moveOpen ? (
             <>
-              {onPromote && (
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); onPromote(); setOpen(false); }}
-                  className="mx-1 px-3 py-2 flex items-center gap-2 text-left text-[14px] leading-[18px] text-text-primary hover:bg-bg-hover transition-colors rounded-lg"
-                  style={{ width: 'calc(100% - 8px)' }}
-                >
-                  <FolderUp size={14} />
-                  <span className="flex-1">Promote to new project</span>
-                </button>
-              )}
               {canMove && (
                 <button
                   type="button"
@@ -145,7 +137,7 @@ function RowMoreMenu({
                 <span>Back</span>
               </button>
               <div className="h-px my-1 mx-2" style={{ background: 'var(--color-stroke-outline)' }} />
-              {moveTargets!.map(p => {
+              {moveTargets?.map(p => {
                 const isCurrent = currentProjectId === p.id;
                 return (
                   <button
@@ -161,15 +153,28 @@ function RowMoreMenu({
                 );
               })}
               {currentProjectId && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onMove!(null); setOpen(false); setMoveOpen(false); }}
+                  className="mx-1 px-3 py-2 flex items-center gap-2 text-left text-[14px] leading-[18px] text-text-primary hover:bg-bg-hover transition-colors rounded-lg"
+                  style={{ width: 'calc(100% - 8px)' }}
+                >
+                  <span className="flex-1">Remove from project</span>
+                </button>
+              )}
+              {onPromote && (
                 <>
-                  <div className="h-px my-1 mx-2" style={{ background: 'var(--color-stroke-outline)' }} />
+                  {(moveTargets?.length || currentProjectId) && (
+                    <div className="h-px my-1 mx-2" style={{ background: 'var(--color-stroke-outline)' }} />
+                  )}
                   <button
                     type="button"
-                    onClick={(e) => { e.stopPropagation(); onMove!(null); setOpen(false); setMoveOpen(false); }}
+                    onClick={(e) => { e.stopPropagation(); onPromote(); setOpen(false); setMoveOpen(false); }}
                     className="mx-1 px-3 py-2 flex items-center gap-2 text-left text-[14px] leading-[18px] text-text-primary hover:bg-bg-hover transition-colors rounded-lg"
                     style={{ width: 'calc(100% - 8px)' }}
                   >
-                    <span className="flex-1">Remove from project</span>
+                    <FolderPlus size={14} />
+                    <span className="flex-1">New project…</span>
                   </button>
                 </>
               )}
@@ -324,12 +329,6 @@ interface SidebarProps {
   /** Open the "Promote to Project" dialog for the given chat. Shown on the
    *  row menu only for chats that don't already belong to a project. */
   onPromoteChat?: (chatId: string) => void;
-  /** Batch-move the selected chats into an existing project. The multi-select
-   *  action bar calls this; the single-row menu keeps using onMoveChat. */
-  onBulkMoveToProject?: (chatIds: string[], projectId: string) => void;
-  /** Batch-promote the selected chats into a brand-new project. Opens the
-   *  promote dialog preloaded with the selection count. */
-  onBulkPromoteToProject?: (chatIds: string[]) => void;
   isDark: boolean;
   onToggleDark: () => void;
   onToggleSidebar?: () => void;
@@ -436,41 +435,9 @@ export function MiniSidebar({ activeView, activeChatId, onChatSelect, onViewChan
   );
 }
 
-export default function Sidebar({ chats, activeChatId, activeView, activeProjectId, projects, onChatSelect, onNewChat, onNewProject, onProjectSelect, onViewChange, onDeleteChat, onDeleteProject, onMoveChat, onPromoteChat, onBulkMoveToProject, onBulkPromoteToProject, isDark, onToggleDark, onToggleSidebar }: SidebarProps) {
+export default function Sidebar({ chats, activeChatId, activeView, activeProjectId, projects, onChatSelect, onNewChat, onNewProject, onProjectSelect, onViewChange, onDeleteChat, onDeleteProject, onMoveChat, onPromoteChat, isDark, onToggleDark, onToggleSidebar }: SidebarProps) {
   const [projectsOpen, setProjectsOpen] = useState(true);
   const [recentsOpen, setRecentsOpen] = useState(true);
-  // Multi-select: while any row is checked we render checkboxes on all rows
-  // (persistent, not hover-only) so the user can see the selection and keep
-  // toggling without re-finding the affordance. Esc clears.
-  const [selectedChatIds, setSelectedChatIds] = useState<Set<string>>(() => new Set());
-  const [moveMenuOpen, setMoveMenuOpen] = useState(false);
-  const moveMenuRef = useRef<HTMLDivElement>(null);
-  const inSelectMode = selectedChatIds.size > 0;
-  const clearSelection = () => { setSelectedChatIds(new Set()); setMoveMenuOpen(false); };
-  const toggleSelected = (chatId: string) => {
-    setSelectedChatIds(prev => {
-      const next = new Set(prev);
-      if (next.has(chatId)) next.delete(chatId);
-      else next.add(chatId);
-      return next;
-    });
-  };
-  // Esc exits select mode; close the move menu on outside click.
-  useEffect(() => {
-    if (!inSelectMode) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') clearSelection(); };
-    const onClick = (e: MouseEvent) => {
-      if (!moveMenuOpen) return;
-      if (moveMenuRef.current?.contains(e.target as Node)) return;
-      setMoveMenuOpen(false);
-    };
-    document.addEventListener('keydown', onKey);
-    document.addEventListener('mousedown', onClick);
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.removeEventListener('mousedown', onClick);
-    };
-  }, [inSelectMode, moveMenuOpen]);
 
   // Hide drafts (and any leftover empty "New Session" entries from older
   // sessions in localStorage) from the Recents list — they live under the
@@ -608,37 +575,12 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
 
           {recentsOpen && filteredChats.map(chat => {
             const isActive = activeChatId === chat.id && activeView === 'chat';
-            const isSelected = selectedChatIds.has(chat.id);
-            const showCheckbox = !!onBulkMoveToProject;
             return (
               <div key={chat.id} className="relative group">
-                {/* Hover-visible checkbox. Stays visible while any row is
-                    selected so the user can see the active selection without
-                    re-hovering each row. Sits absolute above the nav button
-                    so the two can be siblings (no nested buttons). */}
-                {showCheckbox && (
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); toggleSelected(chat.id); }}
-                    aria-label={isSelected ? 'Unselect session' : 'Select session'}
-                    aria-pressed={isSelected}
-                    className={`absolute left-3 top-1/2 -translate-y-1/2 z-10 w-5 h-5 rounded-[4px] flex items-center justify-center transition-opacity ${
-                      isSelected || inSelectMode
-                        ? 'opacity-100'
-                        : 'opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus:opacity-100 focus:pointer-events-auto'
-                    }`}
-                    style={{
-                      background: isSelected ? '#3171ff' : 'var(--color-bg-page)',
-                      border: `1.5px solid ${isSelected ? '#3171ff' : 'var(--color-stroke-outline)'}`,
-                    }}
-                  >
-                    {isSelected && <Check size={12} className="text-white" strokeWidth={3} />}
-                  </button>
-                )}
                 <button
-                  onClick={() => inSelectMode ? toggleSelected(chat.id) : onChatSelect(chat.id)}
-                  className={`flex items-center gap-4 w-full ${showCheckbox ? 'pl-10' : 'pl-4'} pr-10 py-2 rounded-full transition-colors text-left ${
-                    isActive ? 'gradient-ring' : isSelected ? 'bg-bg-hover' : 'hover:bg-bg-hover'
+                  onClick={() => onChatSelect(chat.id)}
+                  className={`flex items-center gap-4 w-full pl-4 pr-10 py-2 rounded-full transition-colors text-left ${
+                    isActive ? 'gradient-ring' : 'hover:bg-bg-hover'
                   }`}
                 >
                   <span
@@ -648,13 +590,13 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
                     {chat.title}
                   </span>
                 </button>
-                {onDeleteChat && !inSelectMode && (
+                {onDeleteChat && (
                   <RowMoreMenu
                     onDelete={() => onDeleteChat(chat.id)}
                     moveTargets={onMoveChat && projects.length > 0 ? projects.map(p => ({ id: p.id, name: p.name })) : undefined}
                     currentProjectId={chat.projectId}
                     onMove={onMoveChat ? (projectId) => onMoveChat(chat.id, projectId) : undefined}
-                    onPromote={onPromoteChat && !chat.projectId ? () => onPromoteChat(chat.id) : undefined}
+                    onPromote={onPromoteChat ? () => onPromoteChat(chat.id) : undefined}
                   />
                 )}
               </div>
@@ -663,77 +605,6 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
         </div>
 
       </div>
-
-      {/* Multi-select action bar — only rendered while at least one row is
-          selected. Sits above the account footer; Esc also clears selection. */}
-      {inSelectMode && onBulkMoveToProject && (
-        <div
-          className="shrink-0 px-4 py-3 border-t flex flex-col gap-2"
-          style={{ background: 'var(--color-bg-page)', borderColor: 'var(--color-stroke-outline)' }}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[13px] font-semibold text-text-primary">
-              {selectedChatIds.size} selected
-            </span>
-            <button
-              type="button"
-              onClick={clearSelection}
-              className="text-[13px] text-text-secondary hover:text-text-primary"
-            >
-              Cancel
-            </button>
-          </div>
-          <div ref={moveMenuRef} className="relative">
-            <button
-              type="button"
-              onClick={() => setMoveMenuOpen(o => !o)}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border text-[14px] leading-[18px] text-text-primary hover:bg-bg-hover transition-colors"
-              style={{ borderColor: 'var(--color-stroke-outline)' }}
-            >
-              <FolderInput size={14} />
-              <span className="flex-1 text-left">Move to project</span>
-              <ChevronDown size={12} className={moveMenuOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
-            </button>
-            {moveMenuOpen && (
-              <div
-                className="absolute bottom-full left-0 right-0 mb-2 rounded-xl py-1 border shadow-lg z-50"
-                style={{ background: 'var(--color-bg-page)', borderColor: 'var(--color-stroke-outline)' }}
-              >
-                {projects.map(p => {
-                  const chatIds = [...selectedChatIds];
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => { onBulkMoveToProject(chatIds, p.id); clearSelection(); }}
-                      className="mx-1 px-3 py-2 w-[calc(100%-8px)] flex items-center gap-2 text-left text-[14px] leading-[18px] text-text-primary hover:bg-bg-hover transition-colors rounded-lg truncate"
-                    >
-                      <span className="flex-1 truncate">{p.name}</span>
-                    </button>
-                  );
-                })}
-                {projects.length > 0 && (
-                  <div className="h-px my-1 mx-2" style={{ background: 'var(--color-stroke-outline)' }} />
-                )}
-                {onBulkPromoteToProject && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const chatIds = [...selectedChatIds];
-                      onBulkPromoteToProject(chatIds);
-                      clearSelection();
-                    }}
-                    className="mx-1 px-3 py-2 w-[calc(100%-8px)] flex items-center gap-2 text-left text-[14px] leading-[18px] text-text-primary hover:bg-bg-hover transition-colors rounded-lg"
-                  >
-                    <FolderPlus size={14} />
-                    <span className="flex-1">New project…</span>
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Account footer */}
       <div

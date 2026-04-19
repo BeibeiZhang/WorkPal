@@ -18,9 +18,6 @@ interface NewProjectDialogProps {
   suggestedName?: string;
   /** Pre-fill for the folder field (promote mode only). */
   suggestedFolder?: string;
-  /** Number of sessions being grouped in promote mode. When > 1 the dialog
-   *  switches to a batch-promote subtitle (e.g. "Group 3 sessions…"). */
-  chatCount?: number;
 }
 
 export default function NewProjectDialog({
@@ -30,7 +27,6 @@ export default function NewProjectDialog({
   mode = 'create',
   suggestedName,
   suggestedFolder,
-  chatCount,
 }: NewProjectDialogProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -89,15 +85,11 @@ export default function NewProjectDialog({
           className="text-[22px] font-bold text-text-primary tracking-[-0.43px] mb-2"
           style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
         >
-          {isPromote
-            ? (chatCount && chatCount > 1 ? `Group ${chatCount} sessions` : 'Promote to Project')
-            : 'New Project'}
+          {isPromote ? 'Promote to Project' : 'New Project'}
         </h2>
         {isPromote && (
           <p className="text-[13px] text-text-secondary mb-6 leading-[18px]">
-            {chatCount && chatCount > 1
-              ? `Turn these ${chatCount} sessions into a shared project. Each session keeps its own subfolder — nothing gets merged.`
-              : 'Turn this session into a project — future sessions can share its folder and context.'}
+            Turn this session into a project — future sessions can share its folder and context.
           </p>
         )}
         {!isPromote && <div className="mb-4" />}
