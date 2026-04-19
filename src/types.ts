@@ -197,8 +197,20 @@ export interface ChangeEntry {
   label: string;
   timestamp: Date;
   /** True once the user clicks Undo. The row stays in the list but greyed
-   *  with an "Undone" tag; no real file revert happens. */
+   *  with an "Undone" tag. Entries backed by `commit` also get a real
+   *  `git reset --hard HEAD~1` on disk; demo entries flip cosmetically. */
   undone?: boolean;
+  /** 5.5: Claude Agent SDK tool_use.id that produced this entry. Used to
+   *  correlate the later `commit` SSE chunk back to the right row. Absent on
+   *  demo/simulated entries. */
+  toolUseId?: string;
+  /** 5.5: git commit hash set once the backend commits the disk state after
+   *  a successful file-write tool_result. Its presence is also the signal
+   *  that this entry is undoable (vs. a halt entry or a failed write). */
+  commit?: string;
+  /** 5.5: transient error message surfaced inline under the row when an Undo
+   *  POST fails. Cleared after 5s by the component's auto-dismiss timer. */
+  undoError?: string;
 }
 
 /** Surface the AI needs permission for. Drives the prompt's title and scope

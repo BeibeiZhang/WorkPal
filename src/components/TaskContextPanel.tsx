@@ -162,45 +162,69 @@ export default function TaskContextPanel({
 
         {/* Changes — auto-commit log (Phase 4). Only renders when at least
              one change has happened; hidden otherwise so the panel stays
-             uncluttered in simple sessions. */}
-        {changes && changes.length > 0 && (
+             uncluttered in simple sessions.
+             5.5 LIFO rule: once any entry has a real `commit` (Claude-backed
+             chat), the Undo button lives only on the latest !undone committed
+             row. Once that row is undone, the row above it becomes the new
+             tip and its Undo appears on hover. Demo chats (no commits
+             anywhere) keep the legacy "every non-halt !undone row shows
+             Undo" behavior — cosmetic flips only. */}
+        {changes && changes.length > 0 && (() => {
+          const anyCommitted = changes.some(c => !!c.commit);
+          let undoableIdx = -1;
+          if (anyCommitted) {
+            for (let i = changes.length - 1; i >= 0; i--) {
+              const c = changes[i];
+              if (c.commit && !c.undone) { undoableIdx = i; break; }
+            }
+          }
+          return (
           <SideCard title="Changes" defaultOpen>
             <div className="flex flex-col gap-1">
-              {changes.map(change => {
+              {changes.map((change, idx) => {
                 const Icon = CHANGE_ICON[change.kind];
                 const color = CHANGE_COLOR[change.kind];
+                const showUndo = !!onUndoChange && !change.undone && change.kind !== 'halt'
+                  && (anyCommitted ? idx === undoableIdx : true);
                 return (
-                  <div
-                    key={change.id}
-                    className={`group flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-bg-hover transition-colors ${change.undone ? 'opacity-50' : ''}`}
-                  >
-                    <Icon size={16} className="shrink-0" style={{ color }} />
-                    <div className="flex-1 min-w-0">
-                      <div className={`text-[13px] text-text-primary truncate ${change.undone ? 'line-through' : ''}`}>
-                        {change.label}
+                  <div key={change.id} className="flex flex-col">
+                    <div
+                      className={`group flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-bg-hover transition-colors ${change.undone ? 'opacity-50' : ''}`}
+                    >
+                      <Icon size={16} className="shrink-0" style={{ color }} />
+                      <div className="flex-1 min-w-0">
+                        <div className={`text-[13px] text-text-primary truncate ${change.undone ? 'line-through' : ''}`}>
+                          {change.label}
+                        </div>
+                        <div className="text-[11px] text-text-secondary">
+                          {relativeTime(change.timestamp)}
+                          {change.undone && ' · Undone'}
+                        </div>
                       </div>
-                      <div className="text-[11px] text-text-secondary">
-                        {relativeTime(change.timestamp)}
-                        {change.undone && ' · Undone'}
-                      </div>
+                      {showUndo && (
+                        <button
+                          type="button"
+                          onClick={() => onUndoChange!(change.id)}
+                          aria-label={`Undo ${change.label}`}
+                          className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-bg-page transition-opacity text-text-primary"
+                          title="Undo"
+                        >
+                          <Undo2 size={14} />
+                        </button>
+                      )}
                     </div>
-                    {onUndoChange && !change.undone && change.kind !== 'halt' && (
-                      <button
-                        type="button"
-                        onClick={() => onUndoChange(change.id)}
-                        aria-label={`Undo ${change.label}`}
-                        className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-bg-page transition-opacity text-text-primary"
-                        title="Undo"
-                      >
-                        <Undo2 size={14} />
-                      </button>
+                    {change.undoError && (
+                      <div className="px-3 pb-1 text-[11px]" style={{ color: '#B42318' }}>
+                        Undo failed: {change.undoError}
+                      </div>
                     )}
                   </div>
                 );
               })}
             </div>
           </SideCard>
-        )}
+          );
+        })()}
 
         {/* Progress */}
         <SideCard title="Progress" defaultOpen>
