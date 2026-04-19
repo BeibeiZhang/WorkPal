@@ -191,10 +191,10 @@ Scan this first. Subsections §2.1–§2.7 have the deeper reference.
 | `InsightCard` | Card | "Maya's insight" card with actions | `title`, `body`, `actions?` |
 | `TaskProgressCard` | Card | Collapsible progress card with step list | `title`, `steps`, `defaultOpen?` |
 | `ProgressBar` | Data viz | Horizontal bar 0–100 | `value`, `label?` |
-| `LabeledBar` | Data viz | Labeled bar with category color | `label`, `value`, `color` |
+| `CategoryBreakdown` | Data viz | Stacked % bar + color-dot legend | `categories: {label,pct,color}[]` |
 | `CircularProgress` | Data viz | SVG ring, auto-sized | `value`, `size?`, `children` |
 | `StepIndicator` | Data viz | done / in-progress / pending step glyph | `status` |
-| `AreaChart` | Data viz | SVG area chart, responsive, smoothed | `data`, `width?`, `height?` |
+| `MultiLineChart` | Data viz | Responsive SVG chart, 1+ smooth series, optional gradient stroke | `series`, `labels`, `height?` |
 
 **Decision shortcut:** button → `PrimaryButton`/`SecondaryButton`/`TertiaryButton`. Pill → `StatusTag` (semantic) / `FilterChip` (toggle) / `Tag` (neutral). Layout → `PageLayout` (full page) / `SplitView` (+ side panel) / `HeaderBar` (bare header only).
 
@@ -230,10 +230,10 @@ Scan this first. Subsections §2.1–§2.7 have the deeper reference.
 | Component | Purpose |
 |---|---|
 | `ProgressBar` | Horizontal bar 0–100 · optional label |
-| `LabeledBar` | Labeled bar with category color |
+| `CategoryBreakdown` | Stacked % bar + color-dot legend (stress / workload breakdowns) |
 | `CircularProgress` | SVG ring, auto-sized to children |
 | `StepIndicator` | `done` / `in-progress` / `pending` step glyph |
-| `AreaChart` | SVG area chart, responsive, Catmull-Rom smoothing |
+| `MultiLineChart` | Responsive SVG chart, 1+ smooth series, optional gradient stroke |
 | `MetricCard` | Centered label + big number + subtitle |
 
 ### 2.5 Rows & cards
@@ -314,10 +314,11 @@ Need a card?
   └─ progress + steps                  → TaskProgressCard
 
 Need data viz?
-  └─ linear 0–100                      → ProgressBar / LabeledBar
+  └─ linear 0–100                      → ProgressBar
+  └─ % breakdown (categories → 100%)   → CategoryBreakdown
   └─ ring                              → CircularProgress
   └─ step glyph                        → StepIndicator
-  └─ time series                       → AreaChart
+  └─ time series                       → MultiLineChart
 
 Nothing fits? → build in shared.tsx, register in Review Queue.
 ```

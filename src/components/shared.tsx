@@ -699,24 +699,34 @@ export function ProgressBar({
   );
 }
 
-/* ─── 3. LabeledBar (stress / category bars) ─── */
-export function LabeledBar({
-  label,
-  pct,
-  color,
+/* ─── 3. CategoryBreakdown — stacked % bar + color-dot legend ───
+   Used for stress analysis / workload breakdowns where every category adds
+   up to a whole. One visual (stacked bar) + one legend row; kept as a pair
+   because they share the same color mapping. */
+export function CategoryBreakdown({
+  categories,
 }: {
-  label: string;
-  pct: number;
-  color: string;
+  categories: Array<{ label: string; pct: number; color: string }>;
 }) {
   return (
-    <div className="mb-2.5">
-      <div className="flex justify-between mb-1">
-        <span className="text-[14px] text-text-primary">{label}</span>
-        <span className="text-[14px] font-bold text-text-primary">{pct}%</span>
+    <div>
+      <div className="flex h-[10px] rounded-full overflow-hidden mb-3">
+        {categories.map((c, i) => (
+          <div
+            key={i}
+            className="h-full transition-[width] duration-700"
+            style={{ width: `${c.pct}%`, background: c.color }}
+          />
+        ))}
       </div>
-      <div className="h-[5px] rounded-full bg-bg-hover overflow-hidden">
-        <div className="h-full rounded-full transition-[width] duration-700" style={{ width: `${pct}%`, background: color }} />
+      <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+        {categories.map((c, i) => (
+          <div key={i} className="flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-full shrink-0" style={{ background: c.color }} />
+            <span className="text-[13px] text-text-secondary">{c.label}</span>
+            <span className="text-[13px] font-bold text-text-primary">{c.pct}%</span>
+          </div>
+        ))}
       </div>
     </div>
   );

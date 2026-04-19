@@ -13,10 +13,10 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
-  SectionTitle as SharedSectionTitle, ProgressBar, LabeledBar, CircularProgress,
+  SectionTitle as SharedSectionTitle, ProgressBar, CategoryBreakdown, CircularProgress,
   TimePill, StepIndicator, Tag, FilterChip, PrimaryButton, SecondaryButton, TertiaryButton,
   SolutionRow, SummaryFooter,
-  MetricCard, InsightCard, AreaChart, TaskProgressCard, ReviewItemCard,
+  MetricCard, InsightCard, MultiLineChart, TaskProgressCard, ReviewItemCard,
   StatusTag, ConnectorCard, HealthDimensionRow, SearchBox, PageLayout,
   HeaderBar, SplitView, SidePanelHeader, SideCard, ToolbarPill,
   ToolbarIconButton, ToolbarSegmented, Tooltip,
@@ -543,11 +543,11 @@ const SEARCH_INDEX: SearchEntry[] = [
   { tab: 'components', section: 'Components · Shared Primitives', name: 'ConnectorCard', description: 'Compact row for an integration — logo + name + Connect / Connected.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'CircularProgress', description: 'SVG circle progress with centered text overlay.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'ProgressBar', description: 'Determinate progress bar with optional label.' },
-  { tab: 'components', section: 'Components · Shared Primitives', name: 'LabeledBar', description: 'Thin bar with label + percentage, custom color per category.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'CategoryBreakdown', description: 'Stacked percentage bar + color-dot legend for breakdowns like stress analysis.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'StepIndicator', description: 'Done (check) / in-progress (filled dot) / pending (empty circle).' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'MetricCard', description: 'Large centered number with title and subtitle.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'InsightCard', description: 'Sparkle icon + body + action buttons.' },
-  { tab: 'components', section: 'Components · Shared Primitives', name: 'AreaChart', description: 'SVG area chart with gradient fill and data points.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'MultiLineChart', description: 'SVG line chart with 1+ series, gradient strokes, and hover dots.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'TaskProgressCard', description: 'Clickable progress card that expands to show step list.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'ReviewItemCard', description: 'Needs-review card with metadata, time pill, action button.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'HealthDimensionRow', description: 'Icon + label/desc + auto-colored status pill by value/target.' },
@@ -1738,15 +1738,18 @@ function ComponentsTab() {
       ),
     },
     {
-      name: 'LabeledBar',
-      description: 'Thin bar with label + percentage. Custom color per category.',
-      usedIn: ['Overview stress / workload rows'],
+      name: 'CategoryBreakdown',
+      description: 'Stacked percentage bar + color-dot legend. One visual unit for breakdowns where every category adds up to a whole.',
+      usedIn: ['Overview stress analysis'],
       preview: (
-        <div>
-          <LabeledBar label="Deadline pressure" pct={35} color="#EF4444" />
-          <LabeledBar label="Keeping up with AI" pct={28} color="#F59E0B" />
-          <LabeledBar label="Cross-team alignment" pct={22} color="#7652B9" />
-        </div>
+        <CategoryBreakdown
+          categories={[
+            { label: 'Deadline pressure', pct: 35, color: '#EF4444' },
+            { label: 'Keeping up with AI', pct: 28, color: '#F59E0B' },
+            { label: 'Cross-team alignment', pct: 22, color: '#7652B9' },
+            { label: 'Context switching', pct: 15, color: '#3171ff' },
+          ]}
+        />
       ),
     },
     {
@@ -1785,11 +1788,27 @@ function ComponentsTab() {
       ),
     },
     {
-      name: 'AreaChart',
-      description: 'SVG area chart with gradient fill, data points, and labels.',
-      usedIn: ['Overview trend chart'],
+      name: 'MultiLineChart',
+      description: 'Responsive SVG chart with 1+ smooth line series. Each series can have a solid color, a vertical stroke gradient (for threshold coloring), or an area fill.',
+      usedIn: ['Overview weekly trend chart (Energy / Sleep / Stress)'],
       preview: (
-        <AreaChart data={[{ label: 'M', value: 85 }, { label: 'T', value: 72 }, { label: 'W', value: 65 }, { label: 'T', value: 78 }, { label: 'F', value: 60 }, { label: 'S', value: 90 }]} color="#3171ff" height={70} gradientId="libAreaGrad" />
+        <MultiLineChart
+          height={160}
+          labels={['M', 'T', 'W', 'T', 'F', 'S', 'S']}
+          series={[
+            { data: [{ label: 'M', value: 72 }, { label: 'T', value: 78 }, { label: 'W', value: 85 }, { label: 'T', value: 70 }, { label: 'F', value: 88 }, { label: 'S', value: 92 }, { label: 'S', value: 95 }], color: '#3171ff' },
+            { data: [{ label: 'M', value: 65 }, { label: 'T', value: 60 }, { label: 'W', value: 72 }, { label: 'T', value: 55 }, { label: 'F', value: 68 }, { label: 'S', value: 80 }, { label: 'S', value: 85 }], color: '#8B5CF6' },
+            {
+              data: [{ label: 'M', value: 48 }, { label: 'T', value: 52 }, { label: 'W', value: 35 }, { label: 'T', value: 62 }, { label: 'F', value: 42 }, { label: 'S', value: 28 }, { label: 'S', value: 25 }],
+              color: '#028901',
+              strokeGradient: [
+                { offset: '0%', color: '#DC2626' },
+                { offset: '50%', color: '#D97706' },
+                { offset: '100%', color: '#028901' },
+              ],
+            },
+          ]}
+        />
       ),
     },
     {

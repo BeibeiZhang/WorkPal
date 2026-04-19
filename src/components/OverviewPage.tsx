@@ -10,7 +10,7 @@ import {
   SectionTitle,
   Tag, SolutionRow, SummaryFooter, PrimaryButton, TertiaryButton,
   MetricCard, InsightCard, MultiLineChart, TaskProgressCard, ReviewItemCard,
-  HealthDimensionRow, PageLayout,
+  HealthDimensionRow, PageLayout, CategoryBreakdown,
 } from './shared';
 
 /* ═══════════════════════════════════════════════════════════════
@@ -318,22 +318,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                       <Brain size={14} className="text-text-primary" /> Stress Analysis
                     </div>
 
-                    {/* Stacked bar */}
-                    <div className="flex h-[10px] rounded-full overflow-hidden mb-3">
-                      {STRESS_SOURCES.map((s, i) => (
-                        <div key={i} className="h-full transition-[width] duration-700" style={{ width: `${s.pct}%`, background: s.color }} />
-                      ))}
-                    </div>
-                    {/* Legend */}
-                    <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-                      {STRESS_SOURCES.map((s, i) => (
-                        <div key={i} className="flex items-center gap-1.5">
-                          <div className="w-2 h-2 rounded-full shrink-0" style={{ background: s.color }} />
-                          <span className="text-[13px] text-text-secondary">{s.label}</span>
-                          <span className="text-[13px] font-bold text-text-primary">{s.pct}%</span>
-                        </div>
-                      ))}
-                    </div>
+                    <CategoryBreakdown categories={STRESS_SOURCES} />
 
                     <div className="mt-4 pt-3.5 border-t border-stroke-outline">
                       <div className="text-[14px] font-bold text-text-primary mb-2.5">Stephen's Solutions</div>
