@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import {
   Menu, LayoutDashboard, Plus, Link, BookOpen, Search, ChevronDown,
   ChevronRight, Code2, FileCode2, FileText, FolderOpen, FolderPlus,
@@ -2146,6 +2146,16 @@ function AgentVideoRow({
   const isActive  = status === 'active';
   const isPaused  = status === 'paused';
   const isDeleted = status === 'deleted';
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Keep the preview in sync with `status`. HTMLVideoElement doesn't react to
+  // autoPlay prop changes after mount, so we drive play/pause imperatively.
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    if (isActive) el.play().catch(() => { /* autoplay may be blocked; harmless */ });
+    else el.pause();
+  }, [isActive]);
 
   return (
     <div
@@ -2154,17 +2164,24 @@ function AgentVideoRow({
     >
       {/* Looping preview — muted thumbnail */}
       <div
-        className="w-[72px] h-[72px] rounded-full overflow-hidden shrink-0"
+        className="w-[72px] h-[72px] rounded-full overflow-hidden shrink-0 relative"
         style={{ background: previewBg }}
       >
         <video
+          ref={videoRef}
           src={src}
-          autoPlay
+          autoPlay={isActive}
           loop
           muted
           playsInline
           className="w-full h-full object-cover"
+          style={{ opacity: isActive ? 1 : 0.4 }}
         />
+        {isPaused && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
+            <Pause size={24} className="text-white" />
+          </div>
+        )}
       </div>
 
       {/* Metadata */}

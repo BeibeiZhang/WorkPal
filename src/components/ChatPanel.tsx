@@ -86,16 +86,20 @@ function WelcomeState({ isDark, selectedAvatarId, onAvatarChange }: { isDark?: b
   const { getStatus } = useAgentVideoStatus();
 
   // Active pools, filtered by current status (paused/deleted videos are skipped).
-  // Falls back to the full pool if every video is disabled, so the welcome
-  // state never renders an empty <video> tag.
-  const lightPool = useMemo(() => {
-    const active = selectedAgent.videos.filter(v => v.mode === 'light' && getStatus(v.src) === 'active');
-    return active.length ? active.map(v => v.src) : selectedAgent.videos.filter(v => v.mode === 'light').map(v => v.src);
-  }, [selectedAgent.id, getStatus]);
-  const darkPool = useMemo(() => {
-    const active = selectedAgent.videos.filter(v => v.mode === 'dark' && getStatus(v.src) === 'active');
-    return active.length ? active.map(v => v.src) : selectedAgent.videos.filter(v => v.mode === 'dark').map(v => v.src);
-  }, [selectedAgent.id, getStatus]);
+  // If every video in a mode is disabled, the pool is empty and the render
+  // path falls back to a static avatar image — we honor the user's intent.
+  const lightPool = useMemo(
+    () => selectedAgent.videos
+      .filter(v => v.mode === 'light' && getStatus(v.src) === 'active')
+      .map(v => v.src),
+    [selectedAgent.id, getStatus],
+  );
+  const darkPool = useMemo(
+    () => selectedAgent.videos
+      .filter(v => v.mode === 'dark' && getStatus(v.src) === 'active')
+      .map(v => v.src),
+    [selectedAgent.id, getStatus],
+  );
 
   // Pick a random video index once per avatar selection (separate for light/dark)
   const lightIdx = useMemo(
@@ -149,16 +153,35 @@ function WelcomeState({ isDark, selectedAvatarId, onAvatarChange }: { isDark?: b
           >
             {/* Blue tint overlay on hover */}
             <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10" style={{ background: 'rgba(49,113,255,0.1)' }} />
-            <video
-              ref={videoRef}
-              key={`${selectedAgent.id}-${isDark ? 'dark' : 'light'}-${(isDark ? darkPool : lightPool)[isDark ? darkIdx : lightIdx]}`}
-              src={isDark ? darkPool[darkIdx] : lightPool[lightIdx]}
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="w-full h-full object-cover relative"
-            />
+            {(() => {
+              const pool = isDark ? darkPool : lightPool;
+              const idx = isDark ? darkIdx : lightIdx;
+              const src = pool[idx];
+              // No active videos for this mode → user paused/deleted them all.
+              // Fall back to the static avatar so the welcome state still has
+              // a face, but never plays something the user disabled.
+              if (!src) {
+                return (
+                  <img
+                    src={selectedAgent.avatar}
+                    alt={selectedAgent.name}
+                    className="w-full h-full object-cover relative"
+                  />
+                );
+              }
+              return (
+                <video
+                  ref={videoRef}
+                  key={`${selectedAgent.id}-${isDark ? 'dark' : 'light'}-${src}`}
+                  src={src}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="w-full h-full object-cover relative"
+                />
+              );
+            })()}
           </div>
         </button>
       )}
