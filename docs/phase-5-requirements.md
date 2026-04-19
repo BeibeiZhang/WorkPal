@@ -9,8 +9,8 @@
 | 5.3 Lazy folder materialization (frontend) | ✅ Done | `101c0c6` (PR #67) |
 | 5.4a Spawn SDK subprocess + log stream | ✅ Done | `0ff403b` (PR #68) |
 | 5.4b SSE + intent routing | ✅ Done | `9fc9365` (PR #69) |
-| **5.4c tool_use → inspector + Changes** | ⏳ **Next** | — |
-| 5.4d PermissionPrompt wiring | ⏳ Pending | — |
+| 5.4c tool_use → inspector + Changes | ✅ Done | `757be62` (PR #70) |
+| **5.4d PermissionPrompt wiring** | ⏳ **Next** | — |
 | 5.4e Lazy mkdir + open-in-Finder | ⏳ Pending | — |
 | 5.5 Auto-commit + real Undo via git | ⏳ After 5.4 | — |
 
@@ -133,7 +133,7 @@ The SDK yields internal housekeeping events the user doesn't care about. **Filte
 
 ---
 
-## 5.4c — tool_use → inspector + Changes (**next up**)
+## 5.4c — tool_use → inspector + Changes ✅ (merged)
 
 **Goal**: Write/Edit tool calls flip `hasInspector` and appear in Changes card. Still sandboxed cwd (no real disk writes outside `/tmp/`).
 
@@ -158,23 +158,37 @@ The SDK yields internal housekeeping events the user doesn't care about. **Filte
 
 ---
 
-## 5.4d — PermissionPrompt wiring
+## 5.4d — PermissionPrompt wiring (**next up**)
 
-**Goal**: SDK's `canUseTool` callback bridges to the existing frontend `PermissionPrompt` modal.
+**Goal**: SDK's `canUseTool` callback bridges to the existing frontend `PermissionPrompt` modal. Replace the 5.4c `permissionMode: 'acceptEdits'` shim.
+
+### Context from 5.4c (read before starting)
+
+- **Remove** `permissionMode: 'acceptEdits'` from `server/src/lib/claudeCode.ts` (added in 5.4c as a temporary shim). The `canUseTool` callback replaces it; leaving both wired is confusing.
+- Changes card entries get appended on `tool_use` (before tool_result arrives). For 5.4d, when user clicks Cancel → the cancelled tool should still leave a visible trace. The existing V3 UI supports `kind: 'halt'` for this — reuse it rather than inventing a new kind.
+- `sessionId` flows through the request body (from 5.4a shape). Use it as the key for the resolver Map so concurrent sessions don't cross-wire permission requests.
+- Existing `PermissionPrompt` component (`src/components/PermissionPrompt.tsx`) supports 4 scope kinds: `file-write`, `file-read`, `command`, `external-url`. The 5.4d bridge should map SDK tool names to these:
+  - `Write` / `Edit` / `MultiEdit` / `NotebookEdit` → `file-write`
+  - `Read` → `file-read`
+  - `Bash` → `command`
+  - `WebFetch` / `WebSearch` → `external-url`
+  - Anything else → default to `command` (safest fallback)
 
 ### Scope
 
-- `server/src/lib/claudeCode.ts` — pass `canUseTool` into SDK options; implementation emits `permission_request` SSE event `{requestId, tool, input}` and awaits a Promise
+- `server/src/lib/claudeCode.ts` — remove `permissionMode: 'acceptEdits'`; pass `canUseTool` into SDK options; implementation emits `permission_request` SSE event `{requestId, tool, input, kind}` and awaits a Promise
 - New `POST /api/claude-chat/permission/:requestId` — body `{decision:'allow'|'deny'}`; resolves the awaiting Promise
-- In-memory `Map<requestId, resolver>` (isolated by sessionId)
-- `src/App.tsx` — on `permission_request` show existing `PermissionPrompt`; on user choice POST decision back
+- In-memory `Map<requestId, resolver>` (scoped per `sessionId` for isolation)
+- `src/App.tsx` — on `permission_request` chunk, show existing `PermissionPrompt` with the right kind; on user choice POST decision back. On deny, append a `kind:'halt'` Change entry for visibility.
 
 ### Acceptance tests
 
-- [ ] "读我桌面的 report.pdf" → PermissionPrompt appears
-- [ ] Allow → SDK continues, tool_result arrives
-- [ ] Cancel → SDK halts gracefully, halt entry added to Changes (existing UI)
-- [ ] Multiple sessions in flight → permission requests isolated by sessionId
+- [ ] "读我桌面的 report.pdf" → PermissionPrompt appears with kind=`file-read`
+- [ ] "创建 hello.txt" → PermissionPrompt appears with kind=`file-write` (no longer auto-accepted)
+- [ ] Allow → SDK continues, tool_result arrives, Progress step completes
+- [ ] Cancel → SDK halts gracefully, halt entry added to Changes
+- [ ] Two sessions in flight → each gets its own PermissionPrompt, decisions don't cross-wire
+- [ ] Always allow → next same-scope request in the same session skips the modal
 
 ---
 
@@ -251,13 +265,14 @@ After 5.4–5.5 are shipped:
 ```
 请先读 docs/phase-5-requirements.md 了解进度和下一步。
 
-当前要做：5.4c — tool_use → inspector + Changes。
+当前要做：5.4d — PermissionPrompt wiring。
 
-文档里已经锁定了 shared decisions（关键词列表、sessionFolder 用法、SDK 事件过滤规则）+
-5.4c "Context from 5.4b" 一节的注意事项（附件分支别碰、tool_use 在 assistant.content 里、
-tool_result 在 user 消息里）。请遵守。
+文档里已经锁定了 shared decisions（关键词列表、sessionFolder 用法、SDK 事件过滤规则、
+5.4c→5.4d 的 permissionMode 移除规则）+ 5.4d "Context from 5.4c" 一节的注意事项
+（删 acceptEdits shim、用 halt kind、sessionId 作为 resolver map key、tool→kind 映射表）。
+请遵守。
 
-做之前先列具体改动点给我确认，按 5.4c 的 Acceptance tests 跑通后再开 PR。
+做之前先列具体改动点给我确认，按 5.4d 的 Acceptance tests 跑通后再开 PR。
 ```
 
 Paste this in a fresh Cowork session — the agent will pick up without needing more context.
