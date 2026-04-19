@@ -212,6 +212,22 @@ function AvatarMenu({ compact = false, activeView, activeChatId, onViewChange, o
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  /** Small grace period on mouse-leave so the cursor can cross the 8px gap
+   *  between the avatar and the menu (mb-2 below) without the menu snapping
+   *  shut mid-traverse. Cleared if the cursor re-enters either surface. */
+  const closeTimerRef = useRef<number | null>(null);
+
+  const cancelClose = () => {
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  };
+  const scheduleClose = () => {
+    cancelClose();
+    closeTimerRef.current = window.setTimeout(() => setOpen(false), 150);
+  };
+  useEffect(() => () => cancelClose(), []);
 
   useEffect(() => {
     if (!open) return;
@@ -241,7 +257,11 @@ function AvatarMenu({ compact = false, activeView, activeChatId, onViewChange, o
   ];
 
   return (
-    <div className={compact ? 'relative' : 'relative flex-1 min-w-0'}>
+    <div
+      className={compact ? 'relative' : 'relative flex-1 min-w-0'}
+      onMouseEnter={() => { cancelClose(); setOpen(true); }}
+      onMouseLeave={scheduleClose}
+    >
       <button
         ref={btnRef}
         type="button"
