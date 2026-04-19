@@ -93,6 +93,13 @@ export async function* streamClaudeChat(opts: {
   prompt: string;
   sessionId: string;
   sessionFolder?: string;
+  /** 6.2: when the chat lives under a project, the frontend sends the
+   *  `slugify(project.name)` that built its sessionFolder. Presence flips
+   *  the backend into worktree mode (init project repo if needed, `git
+   *  worktree add -b session/<slug>` at request start). Absent for chats
+   *  outside any project — server falls back to Phase 5's per-session git
+   *  init on first file-write. */
+  projectSlug?: string;
   messages: ChatMessage[];
 }): AsyncGenerator<StreamChunk> {
   const res = await fetch('/api/claude-chat', {
