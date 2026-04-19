@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
+import { useLocation, useNavigate, useMatch } from 'react-router-dom';
 import Sidebar, { MiniSidebar } from './components/Sidebar';
 import type { Project } from './components/Sidebar';
 import ChatPanel from './components/ChatPanel';
@@ -528,15 +529,33 @@ function deriveChangeFromToolUse(
 export default function App() {
   const [initialChatState] = useState(getInitialChatState);
   const [chats, setChats] = useState<Chat[]>(initialChatState.chats);
-  const [activeChatId, setActiveChatId] = useState<string>(initialChatState.activeChatId);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isDark, setIsDark] = useState(false);
   const [selectedAvatarId, setSelectedAvatarId] = useState('white-man');
   const [detailOpen, setDetailOpen] = useState(false);
   const [onboardingDone, setOnboardingDone] = useState(() => localStorage.getItem('workpal-onboarding-done') === 'true');
-  const [activeView, setActiveView] = useState<'chat' | 'connectors' | 'design-system' | 'overview' | 'library' | 'memory'>('chat');
   const [projects, setProjects] = useState<Project[]>(loadProjects);
-  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+
+  // Routing: URL is the source of truth for active view / chat / project.
+  // `rootChatId` is the one piece of state not derivable from URL — it's
+  // which chat the `/` route shows (my-workpal welcome, or a draft after
+  // "New Session"). Drafts deliberately don't get their own URL.
+  const location = useLocation();
+  const navigate = useNavigate();
+  const chatMatch = useMatch('/chat/:chatId');
+  const projectMatch = useMatch('/project/:projectId');
+  const [rootChatId, setRootChatId] = useState<string>(initialChatState.activeChatId);
+
+  type ViewName = 'chat' | 'connectors' | 'design-system' | 'overview' | 'library' | 'memory';
+  const activeView: ViewName =
+    location.pathname === '/overview' ? 'overview'
+    : location.pathname === '/connectors' ? 'connectors'
+    : location.pathname === '/design-system' ? 'design-system'
+    : location.pathname === '/library' ? 'library'
+    : location.pathname === '/memory' ? 'memory'
+    : 'chat';
+  const activeChatId = chatMatch?.params.chatId ?? rootChatId;
+  const activeProjectId = projectMatch?.params.projectId ?? null;
   const [newProjectOpen, setNewProjectOpen] = useState(false);
   /** Chat ids currently being promoted to a project. null = dialog closed,
    *  non-empty array = open the dialog pre-filled from those chats. Single
@@ -644,6 +663,22 @@ export default function App() {
       .catch((err) => { console.warn('Memory sync failed:', err); });
     return () => { cancelled = true; };
   }, []);
+
+  // Deep-link fallback: if the URL points to a chat/project that no longer
+  // exists (stale bookmark, deleted chat), redirect to `/` rather than
+  // rendering a broken empty state.
+  useEffect(() => {
+    if (chatMatch && !chats.some(c => c.id === chatMatch.params.chatId)) {
+      console.warn('Unknown chat id in URL, redirecting to /:', chatMatch.params.chatId);
+      navigate('/', { replace: true });
+    }
+  }, [chatMatch, chats, navigate]);
+  useEffect(() => {
+    if (projectMatch && !projects.some(p => p.id === projectMatch.params.projectId)) {
+      console.warn('Unknown project id in URL, redirecting to /:', projectMatch.params.projectId);
+      navigate('/', { replace: true });
+    }
+  }, [projectMatch, projects, navigate]);
 
   const activeChat = chats.find(c => c.id === activeChatId) || null;
 
@@ -1327,6 +1362,12 @@ export default function App() {
         setChats(prev => prev.map(c =>
           c.id === chatId ? { ...c, title: derivedTitle, lastMessage: text, timestamp: new Date(), isDraft: false, sessionFolder: c.sessionFolder ?? sessionFolder } : c
         ));
+        // Draft graduation: swap `/` for `/chat/:id` with replace so the back
+        // button doesn't bounce between draft-empty and draft-sent. my-workpal
+        // is the exception — the welcome chat always lives at `/`.
+        if (chatId !== 'my-workpal' && !chatMatch) {
+          navigate(`/chat/${chatId}`, { replace: true });
+        }
       } else {
         // No active chat at all — create a new one
         chatId = `chat-${Date.now()}`;
@@ -1339,7 +1380,7 @@ export default function App() {
           sessionFolder,
         };
         setChats(prev => [newChat, ...prev.filter(c => c.id !== 'my-workpal'), prev.find(c => c.id === 'my-workpal')!]);
-        setActiveChatId(chatId);
+        navigate(`/chat/${chatId}`);
       }
     }
 
@@ -1397,7 +1438,7 @@ export default function App() {
     } else {
       streamFromAPI(chatId, text, attachments);
     }
-  }, [activeChatId, activeChat, showTypingThenRespond, streamFromAPI, streamFromClaudeAPI, runAlcoholDeliveryFlow, voiceModeActive]);
+  }, [activeChatId, activeChat, showTypingThenRespond, streamFromAPI, streamFromClaudeAPI, runAlcoholDeliveryFlow, voiceModeActive, navigate, chatMatch]);
 
   const handleChipClick = useCallback((chip: ActionChip) => {
     // Treat chip click as a user message
@@ -1635,7 +1676,10 @@ export default function App() {
         timestamp: new Date(),
       };
     }));
-    setActiveChatId(chatId);
+    // Onboarding lives at `/` (the welcome chat), so we just make sure
+    // rootChatId points at my-workpal — no navigate needed since the
+    // Onboarding component is already rendered at `/`.
+    setRootChatId(chatId);
 
     // Step 3: Show "Creating your agent..." card
     const loadingId = nextId();
@@ -1691,11 +1735,11 @@ export default function App() {
       // "New Session" repeatedly should not pile up empty drafts.
       const existingDraft = prev.find(c => c.isDraft);
       if (existingDraft) {
-        setActiveChatId(existingDraft.id);
+        setRootChatId(existingDraft.id);
         return prev;
       }
       const newId = `chat-${Date.now()}`;
-      setActiveChatId(newId);
+      setRootChatId(newId);
       return [{
         id: newId,
         title: 'New Session',
@@ -1705,12 +1749,11 @@ export default function App() {
         isDraft: true,
       }, ...prev];
     });
-    // New Session is a fresh root-level chat — leave any project view so
-    // the draft shows in the main chat pane, and let the user file it into
-    // a project later via the Recents row's menu.
-    setActiveProjectId(null);
-    setActiveView('chat');
-  }, []);
+    // Drafts deliberately live at `/` (not their own URL) — see routing plan.
+    // Once the user sends their first message, handleSend navigates to
+    // `/chat/:id` with replace so history stays clean.
+    navigate('/');
+  }, [navigate]);
 
   const handleChatSelect = useCallback((id: string) => {
     // Reset onboarding every time "My WorkPal" is clicked (demo mode)
@@ -1742,15 +1785,18 @@ export default function App() {
     // prevents old chatroom's progress from bleeding into the next one.
     setTaskSteps([]);
     setActiveTools([]);
-    setActiveChatId(id);
-    setActiveProjectId(null);
-    setActiveView('chat');
-  }, [chats]);
+    // my-workpal is the welcome chat at `/`, not a normal /chat/:id.
+    if (id === 'my-workpal') {
+      setRootChatId('my-workpal');
+      navigate('/');
+    } else {
+      navigate(`/chat/${id}`);
+    }
+  }, [chats, navigate]);
 
   const handleProjectSelect = useCallback((id: string) => {
-    setActiveProjectId(id);
-    setActiveView('chat'); // reset view
-  }, []);
+    navigate(`/project/${id}`);
+  }, [navigate]);
 
   // Create a new chat inside a project, then send the first message. Invoked
   // when the user types into the project page's input.
@@ -1787,9 +1833,7 @@ export default function App() {
     // Insert at the top so it appears first in both root Recents and the
     // project's Recents list.
     setChats(prev => [newChat, ...prev]);
-    setActiveChatId(chatId);
-    setActiveProjectId(null);
-    setActiveView('chat');
+    navigate(`/chat/${chatId}`);
     setContextPanelOpen(false);
     setTaskSteps([]);
     setActiveTools([]);
@@ -1797,7 +1841,7 @@ export default function App() {
     // closure inside streamFromAPI hasn't committed the new chat yet. The
     // inspector panel auto-opens when the model calls its first tool.
     streamFromAPI(chatId, text, attachments, projectId);
-  }, [streamFromAPI, projects]);
+  }, [streamFromAPI, projects, navigate]);
 
   const handleCreateProject = useCallback((name: string, description: string) => {
     const newProject: Project = {
@@ -1836,9 +1880,8 @@ export default function App() {
       return { ...c, projectId, sessionFolder: nested };
     }));
     setPromotingChatIds(null);
-    setActiveProjectId(projectId);
-    setActiveView('chat');
-  }, [chats]);
+    navigate(`/project/${projectId}`);
+  }, [chats, navigate]);
 
   const handleDeleteChat = useCallback((id: string) => {
     setChats(prev => {
@@ -1855,19 +1898,18 @@ export default function App() {
         messages: [],
         isDraft: true,
       };
-      setActiveChatId(newDraftId);
-      setActiveView('chat');
+      setRootChatId(newDraftId);
+      navigate('/');
       return [draft, ...remaining];
     });
-  }, [activeChatId]);
+  }, [activeChatId, navigate]);
 
   const handleDeleteProject = useCallback((id: string) => {
     setProjects(prev => prev.filter(p => p.id !== id));
     if (activeProjectId === id) {
-      setActiveProjectId(null);
-      setActiveView('chat');
+      navigate('/');
     }
-  }, [activeProjectId]);
+  }, [activeProjectId, navigate]);
 
   // Add one or more files to a project's shared reference files. The caller
   // (ProjectPage) has already converted the FileList → Attachment[] via
@@ -2070,7 +2112,7 @@ export default function App() {
                 <MiniSidebar
                   activeView={activeView}
                   activeChatId={activeChatId}
-                  onViewChange={(view) => { setActiveView(view); setActiveProjectId(null); }}
+                  onViewChange={(view) => navigate(view === 'chat' ? '/' : `/${view}`)}
                   onChatSelect={handleChatSelect}
                   onNewChat={handleNewChat}
                   onToggleSidebar={() => setSidebarOpen(o => !o)}
@@ -2087,7 +2129,7 @@ export default function App() {
                   onNewChat={handleNewChat}
                   onNewProject={() => setNewProjectOpen(true)}
                   onProjectSelect={handleProjectSelect}
-                  onViewChange={(view) => { setActiveView(view); setActiveProjectId(null); }}
+                  onViewChange={(view) => navigate(view === 'chat' ? '/' : `/${view}`)}
                   onDeleteChat={handleDeleteChat}
                   onDeleteProject={handleDeleteProject}
                   onMoveChat={handleMoveChat}
@@ -2117,7 +2159,7 @@ export default function App() {
                       onNewChat={() => { handleNewChat(); if (closeOnNav) setSidebarOpen(false); }}
                       onNewProject={() => setNewProjectOpen(true)}
                       onProjectSelect={(id) => { handleProjectSelect(id); if (closeOnNav) setSidebarOpen(false); }}
-                      onViewChange={(view) => { setActiveView(view); setActiveProjectId(null); if (closeOnNav) setSidebarOpen(false); }}
+                      onViewChange={(view) => { navigate(view === 'chat' ? '/' : `/${view}`); if (closeOnNav) setSidebarOpen(false); }}
                       onDeleteChat={handleDeleteChat}
                       onDeleteProject={handleDeleteProject}
                       onMoveChat={handleMoveChat}

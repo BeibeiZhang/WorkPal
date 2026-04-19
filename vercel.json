@@ -1,5 +1,6 @@
 {
   "rewrites": [
-    { "source": "/api/connectors/:id/:action", "destination": "/api/connectors?id=:id&action=:action" }
+    { "source": "/api/connectors/:id/:action", "destination": "/api/connectors?id=:id&action=:action" },
+    { "source": "/((?!api).*)", "destination": "/index.html" }
   ]
 }
