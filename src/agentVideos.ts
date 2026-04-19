@@ -2,7 +2,18 @@ import { useCallback, useEffect, useState } from 'react';
 import { avatarAsianWoman, avatarBlackWoman, avatarWhiteMan } from './assets';
 
 export type AgentVideoMode = 'light' | 'dark';
-export type VideoStatus = 'active' | 'paused' | 'deleted';
+
+/* Status model
+ *   active   — in rotation, can play in WelcomeState
+ *   inactive — soft pause: file still on disk, skipped from rotation
+ *   deleted  — the .mp4 was physically removed from public/animations/
+ *              via DELETE /api/animations/:filename. Hidden from the DS
+ *              list AND filtered out of the rotation pool. We persist the
+ *              status (rather than just "the file is gone") so that the
+ *              AGENTS array — which is hardcoded data — knows to skip the
+ *              entry on subsequent loads without 404'ing on the missing
+ *              <video src>. */
+export type VideoStatus = 'active' | 'inactive' | 'deleted';
 
 export type AgentVideo = {
   src: string;
@@ -56,11 +67,27 @@ const STORAGE_KEY    = 'workpal-agent-video-status';
 const CHANGE_EVENT   = 'workpal-agent-video-status-change';
 type StatusMap       = Record<string, VideoStatus>;
 
+/** Map legacy status values written by an earlier 3-state UI ('paused' was
+ *  the old name for 'inactive'). Keeps users who already configured their
+ *  pool from being reset back to all-active on first load after the rename. */
+function normalizeStatus(raw: string): VideoStatus | null {
+  if (raw === 'active' || raw === 'inactive' || raw === 'deleted') return raw;
+  if (raw === 'paused') return 'inactive';
+  return null;
+}
+
 function loadMap(): StatusMap {
   if (typeof window === 'undefined') return {};
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, string>;
+    const out: StatusMap = {};
+    for (const [k, v] of Object.entries(parsed)) {
+      const norm = normalizeStatus(v);
+      if (norm) out[k] = norm;
+    }
+    return out;
   } catch {
     return {};
   }

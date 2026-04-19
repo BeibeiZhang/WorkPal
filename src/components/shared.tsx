@@ -650,6 +650,67 @@ export function ToolbarSegmented<T extends string>({
   );
 }
 
+/* ─── 0i. Switch ───
+ * Binary segmented toggle. Same connected-pill visual language as
+ * `ToolbarSegmented` (one outer border, segments share it, selected segment
+ * uses `--color-selected-*`), but:
+ *   - smaller height (h-8) — fits inside a row of metadata, not a toolbar.
+ *   - both segments always show their label (no icon-only collapse).
+ *   - generic over the value type so it's reusable for any binary control,
+ *     not just Active|Inactive.
+ *
+ * Lives in the Design System Review Queue until promoted. Originally built
+ * for AgentVideoRow's Active/Inactive control on the Agent Videos tab.
+ */
+export function Switch<T extends string>({
+  value,
+  onChange,
+  segments,
+  ariaLabel,
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  segments: { value: T; label: string }[];
+  ariaLabel?: string;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label={ariaLabel}
+      className="inline-flex items-center rounded-full border border-stroke-outline h-8 shrink-0"
+    >
+      {segments.map((seg, i, arr) => {
+        const isSelected = value === seg.value;
+        const isFirst = i === 0;
+        const isLast = i === arr.length - 1;
+        return (
+          <button
+            key={seg.value}
+            type="button"
+            role="radio"
+            aria-checked={isSelected}
+            onClick={() => {
+              if (!isSelected) onChange(seg.value);
+            }}
+            className={`h-full px-3 text-[12px] transition-colors ${
+              isSelected
+                ? 'cursor-default'
+                : 'text-text-primary hover:bg-bg-hover cursor-pointer'
+            }`}
+            style={{
+              backgroundColor: isSelected ? 'var(--color-selected-bg)' : undefined,
+              color: isSelected ? 'var(--color-selected-text)' : undefined,
+              borderRadius: isFirst ? '9999px 0 0 9999px' : isLast ? '0 9999px 9999px 0' : '0',
+            }}
+          >
+            {seg.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 /* ─── 1. SectionTitle ─── */
 export function SectionTitle({
   emoji,

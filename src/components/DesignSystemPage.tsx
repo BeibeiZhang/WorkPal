@@ -9,7 +9,7 @@ import {
   AlertTriangle, Check, Clock, BadgeCheck, XCircle, Send, Smile, Eye,
   Download, File, Presentation, Video, Image as ImageIcon, FileSpreadsheet,
   StickyNote, Ticket, Mail, MoreHorizontal, Sparkles, Play, Timer, User,
-  Globe, ArrowLeft, Sun, Pause, Trash2, RotateCcw,
+  Globe, ArrowLeft, Sun, Pause, Trash2,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -19,8 +19,9 @@ import {
   MetricCard, InsightCard, MultiLineChart, TaskProgressCard, ReviewItemCard,
   StatusTag, ConnectorCard, HealthDimensionRow, SearchBox, PageLayout,
   HeaderBar, SplitView, SidePanelHeader, SideCard, ToolbarPill,
-  ToolbarIconButton, ToolbarSegmented, Tooltip,
+  ToolbarIconButton, ToolbarSegmented, Tooltip, Switch,
 } from './shared';
+import { useMemoryAuth } from '../lib/useMemoryAuth';
 // Live imports — every "real" component that ships in the app.
 // Rendering these here (not screenshots) means a foundations change
 // shows up in this page the same way it shows up everywhere else.
@@ -39,7 +40,7 @@ import ConnectorsPage from './ConnectorsPage';
 import ComingSoonPage from './ComingSoonPage';
 import Onboarding from './Onboarding';
 import type { Chat, Message, CardData } from '../types';
-import { AGENTS, useAgentVideoStatus, type VideoStatus } from '../agentVideos';
+import { AGENTS, useAgentVideoStatus, type AgentVideo, type VideoStatus } from '../agentVideos';
 
 interface DesignSystemPageProps {
   sidebarOpen: boolean;
@@ -62,7 +63,7 @@ const TABS: { id: TabId; label: string; hint: string }[] = [
   { id: 'principles',   label: 'Principles & Requirements',   hint: 'Rules and guidelines I follow when building' },
   { id: 'layouts',      label: 'Layout Templates',            hint: 'Layout shells we use across the app' },
   { id: 'components',   label: 'Component Library',           hint: 'All shared components, states, and where they are used' },
-  { id: 'agent-videos', label: 'Agent Videos',                hint: 'Videos used by the welcome-state avatars. Pause to temporarily skip, delete to remove from rotation.' },
+  { id: 'agent-videos', label: 'Agent Videos',                hint: 'Videos used by the welcome-state avatars. Toggle Active/Inactive to skip from rotation, or trash to physically delete from disk.' },
   { id: 'review',       label: 'Review Queue',                hint: 'New components awaiting your approval' },
 ];
 
@@ -2123,11 +2124,20 @@ function ComponentsTab() {
 
 /* ═══════════════════════════════════════════════════
    Tab 5 — Agent Videos
-   Media assets used by the welcome-state avatars. Each
-   row shows a looping preview, current status, and
-   controls to pause, resume, or delete. State is
-   persisted to localStorage and ChatPanel filters its
-   random-pick pool by active status.
+   Media assets used by the welcome-state avatars.
+   Two user-facing actions per row:
+     - Switch [Active | Inactive] — flips localStorage
+       state. Inactive = file kept on disk but skipped
+       from the random pool. ChatPanel honors this in
+       real time via the same useAgentVideoStatus hook.
+     - Trash — physically removes the .mp4 from
+       public/animations/ via DELETE /api/animations/.
+       Permanent: the row disappears from this tab and
+       the AGENTS array entry becomes unrenderable on
+       reload (the 'deleted' status flag persists in
+       localStorage so we don't try to play a missing
+       file). Gated by MEMORY_PASSWORD because it
+       mutates disk.
    ═══════════════════════════════════════════════════ */
 
 function AgentVideoRow({
@@ -2135,18 +2145,19 @@ function AgentVideoRow({
   mode,
   status,
   onSetStatus,
+  onDelete,
 }: {
   src: string;
   mode: 'light' | 'dark';
   status: VideoStatus;
   onSetStatus: (next: VideoStatus) => void;
+  onDelete: () => void | Promise<void>;
 }) {
-  const fileName = src.split('/').pop() ?? src;
+  const fileName  = src.split('/').pop() ?? src;
   const previewBg = mode === 'dark' ? '#1B1B1B' : 'var(--color-bg-hover)';
   const isActive  = status === 'active';
-  const isPaused  = status === 'paused';
-  const isDeleted = status === 'deleted';
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRef  = useRef<HTMLVideoElement>(null);
+  const [busy, setBusy] = useState(false);
 
   // Keep the preview in sync with `status`. HTMLVideoElement doesn't react to
   // autoPlay prop changes after mount, so we drive play/pause imperatively.
@@ -2157,85 +2168,82 @@ function AgentVideoRow({
     else el.pause();
   }, [isActive]);
 
+  const handleDelete = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await onDelete();
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div
-      className="rounded-2xl border border-stroke-outline p-4 flex items-center gap-4"
-      style={{ background: 'var(--color-bg-page)', opacity: isDeleted ? 0.55 : 1 }}
+      className="rounded-2xl border border-stroke-outline p-4 flex flex-col sm:flex-row sm:items-center gap-4"
+      style={{ background: 'var(--color-bg-page)' }}
     >
-      {/* Looping preview — muted thumbnail */}
-      <div
-        className="w-[72px] h-[72px] rounded-full overflow-hidden shrink-0 relative"
-        style={{ background: previewBg }}
-      >
-        <video
-          ref={videoRef}
-          src={src}
-          autoPlay={isActive}
-          loop
-          muted
-          playsInline
-          className="w-full h-full object-cover"
-          style={{ opacity: isActive ? 1 : 0.4 }}
-        />
-        {isPaused && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
-            <Pause size={24} className="text-white" />
-          </div>
-        )}
-      </div>
-
-      {/* Metadata */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1 flex-wrap">
-          <span className="text-[13px] font-mono text-text-primary truncate">{fileName}</span>
-          <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary capitalize">
-            {mode}
-          </span>
-          {isActive  && <StatusTag variant="success"   label="Active"  size="sm" showIcon={false} />}
-          {isPaused  && <StatusTag variant="pending"   label="Paused"  size="sm" showIcon={false} />}
-          {isDeleted && <StatusTag variant="failed"    label="Deleted" size="sm" showIcon={false} />}
+      {/* Video + metadata cluster — always horizontal, takes the leading
+       *  space. Below the sm breakpoint the controls drop to a second row,
+       *  so this cluster can keep its natural `gap-4` without competing
+       *  with the Switch for width. */}
+      <div className="flex items-center gap-4 flex-1 min-w-0">
+        {/* Looping preview — muted thumbnail */}
+        <div
+          className="w-[72px] h-[72px] rounded-full overflow-hidden shrink-0 relative"
+          style={{ background: previewBg }}
+        >
+          <video
+            ref={videoRef}
+            src={src}
+            autoPlay={isActive}
+            loop
+            muted
+            playsInline
+            className="w-full h-full object-cover"
+            style={{ opacity: isActive ? 1 : 0.4 }}
+          />
+          {!isActive && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
+              <Pause size={24} className="text-white" />
+            </div>
+          )}
         </div>
-        <p className="text-[11px] text-text-secondary font-mono truncate">{src}</p>
+
+        {/* Metadata */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <span className="text-[13px] font-mono text-text-primary truncate">{fileName}</span>
+            <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary capitalize">
+              {mode}
+            </span>
+          </div>
+          <p className="text-[11px] text-text-secondary font-mono truncate">{src}</p>
+        </div>
       </div>
 
-      {/* Controls */}
-      <div className="flex items-center gap-2 shrink-0">
-        {isActive && (
-          <button
-            onClick={() => onSetStatus('paused')}
-            className="h-8 px-3 rounded-full border border-stroke-outline text-[12px] text-text-primary hover:bg-bg-hover transition-colors flex items-center gap-1.5"
-            aria-label="Pause video"
-          >
-            <Pause size={12} /> Pause
-          </button>
-        )}
-        {isPaused && (
-          <button
-            onClick={() => onSetStatus('active')}
-            className="h-8 px-3 rounded-full border border-stroke-outline text-[12px] text-text-primary hover:bg-bg-hover transition-colors flex items-center gap-1.5"
-            aria-label="Resume video"
-          >
-            <Play size={12} /> Resume
-          </button>
-        )}
-        {isDeleted ? (
-          <button
-            onClick={() => onSetStatus('active')}
-            className="h-8 px-3 rounded-full border border-stroke-outline text-[12px] text-text-primary hover:bg-bg-hover transition-colors flex items-center gap-1.5"
-            aria-label="Restore video"
-          >
-            <RotateCcw size={12} /> Restore
-          </button>
-        ) : (
-          <button
-            onClick={() => onSetStatus('deleted')}
-            className="h-8 w-8 rounded-full border border-stroke-outline text-text-primary hover:bg-bg-hover transition-colors flex items-center justify-center"
-            aria-label="Delete video"
-            title="Delete"
-          >
-            <Trash2 size={14} />
-          </button>
-        )}
+      {/* Controls — wraps below on narrow screens (<sm) and aligns to the
+       *  same left edge as the video so the row reads as two stacked
+       *  sub-rows rather than orphaned floating buttons. */}
+      <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+        <Switch<'active' | 'inactive'>
+          value={isActive ? 'active' : 'inactive'}
+          onChange={next => onSetStatus(next)}
+          segments={[
+            { value: 'active',   label: 'Active'   },
+            { value: 'inactive', label: 'Inactive' },
+          ]}
+          ariaLabel={`Activation state for ${fileName}`}
+        />
+        <button
+          onClick={handleDelete}
+          disabled={busy}
+          className="h-8 w-8 rounded-full border border-stroke-outline text-text-primary hover:bg-bg-hover transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+          aria-label={`Delete ${fileName} from disk`}
+          title="Delete file from disk"
+        >
+          <Trash2 size={14} />
+        </button>
       </div>
     </div>
   );
@@ -2243,22 +2251,58 @@ function AgentVideoRow({
 
 function AgentVideosTab() {
   const { getStatus, setStatus } = useAgentVideoStatus();
+  const { ensurePassword, passwordModal } = useMemoryAuth();
 
   const totals = useMemo(() => {
-    let active = 0, paused = 0, deleted = 0;
+    let active = 0, inactive = 0, deleted = 0;
     for (const agent of AGENTS) {
       for (const v of agent.videos) {
         const s = getStatus(v.src);
-        if (s === 'active')  active++;
-        else if (s === 'paused')  paused++;
-        else deleted++;
+        if (s === 'active')        active++;
+        else if (s === 'inactive') inactive++;
+        else                       deleted++;
       }
     }
-    return { active, paused, deleted, total: active + paused + deleted };
+    return { active, inactive, deleted, total: active + inactive + deleted };
   }, [getStatus]);
+
+  /** Confirm + password-prompt + DELETE call. Sets status to 'deleted' on
+   *  success so the row falls out of the rendered list (and ChatPanel's
+   *  active-pool filter keeps skipping the now-missing file). */
+  const handleDelete = async (src: string) => {
+    const fileName = src.split('/').pop() ?? src;
+    if (!window.confirm(`Permanently delete ${fileName} from disk?\n\nThis cannot be undone.`)) return;
+    let pw: string;
+    try {
+      pw = await ensurePassword({ message: 'Enter the memory password to delete this animation file.' });
+    } catch {
+      return; // user cancelled
+    }
+    try {
+      const res = await fetch(`/api/animations/${encodeURIComponent(fileName)}`, {
+        method:  'DELETE',
+        headers: { 'x-memory-password': pw },
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        window.alert(`Delete failed: ${body.error ?? res.statusText}`);
+        return;
+      }
+      setStatus(src, 'deleted');
+    } catch (err) {
+      window.alert(`Delete failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  };
+
+  /** Drop deleted entries — they're physically gone, no point rendering a
+   *  broken `<video src>` for them. */
+  const visibleVideos = (mode: 'light' | 'dark', videos: AgentVideo[]) =>
+    videos.filter(v => v.mode === mode && getStatus(v.src) !== 'deleted');
 
   return (
     <div>
+      {passwordModal}
+
       {/* Intro card */}
       <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
         <div className="flex items-center gap-2 mb-2">
@@ -2267,21 +2311,24 @@ function AgentVideosTab() {
         </div>
         <p className="text-[13px] text-text-primary leading-[20px] mb-3">
           Each agent has a pool of idle videos that play in the welcome state of a new chat. One is picked at random per
-          session (separately for light / dark mode). Use the controls below to <strong>pause</strong> a video (keep it in
-          the list but skip it during picks) or <strong>delete</strong> it (remove it from the rotation entirely). State
-          persists in your browser and applies everywhere the avatar renders.
+          session (separately for light / dark mode). The toggle on each row flips between <strong>Active</strong>{' '}
+          (in rotation) and <strong>Inactive</strong> (skipped). State persists in your browser and applies in real time
+          everywhere the avatar renders. The trash icon <strong>physically deletes</strong> the .mp4 from{' '}
+          <code className="font-mono text-[12px]">public/animations/</code> on disk — permanent, gated by your memory
+          password.
         </p>
         <div className="flex flex-wrap gap-2">
-          <StatusTag variant="success" label={`${totals.active} active`}  size="sm" showIcon={false} />
-          <StatusTag variant="pending" label={`${totals.paused} paused`}  size="sm" showIcon={false} />
-          <StatusTag variant="failed"  label={`${totals.deleted} deleted`} size="sm" showIcon={false} />
+          <StatusTag variant="success" label={`${totals.active} active`}    size="sm" showIcon={false} />
+          <StatusTag variant="pending" label={`${totals.inactive} inactive`} size="sm" showIcon={false} />
+          <StatusTag variant="failed"  label={`${totals.deleted} deleted`}   size="sm" showIcon={false} />
           <span className="text-[12px] text-text-secondary self-center">of {totals.total} total</span>
         </div>
       </div>
 
       {AGENTS.map(agent => {
-        const lightVideos = agent.videos.filter(v => v.mode === 'light');
-        const darkVideos  = agent.videos.filter(v => v.mode === 'dark');
+        const lightVideos = visibleVideos('light', agent.videos);
+        const darkVideos  = visibleVideos('dark',  agent.videos);
+        if (lightVideos.length === 0 && darkVideos.length === 0) return null;
         return (
           <div key={agent.id} className="mb-8">
             <div className="flex items-center gap-3 mb-4">
@@ -2310,6 +2357,7 @@ function AgentVideosTab() {
                       mode="light"
                       status={getStatus(v.src)}
                       onSetStatus={next => setStatus(v.src, next)}
+                      onDelete={() => handleDelete(v.src)}
                     />
                   ))}
                 </div>
@@ -2330,6 +2378,7 @@ function AgentVideosTab() {
                       mode="dark"
                       status={getStatus(v.src)}
                       onSetStatus={next => setStatus(v.src, next)}
+                      onDelete={() => handleDelete(v.src)}
                     />
                   ))}
                 </div>
@@ -2371,6 +2420,22 @@ function ToolbarSegmentedPreview() {
         { value: 'Tasks', icon: <CheckSquare  size={16} className="shrink-0" />, label: 'Tasks' },
         { value: 'Code',  icon: <Code2        size={16} className="shrink-0" />, label: 'Code'  },
       ]}
+    />
+  );
+}
+
+/** Stateful preview for Switch (it's a controlled component). */
+function SwitchPreview() {
+  const [v, setV] = useState<'active' | 'inactive'>('active');
+  return (
+    <Switch<'active' | 'inactive'>
+      value={v}
+      onChange={setV}
+      segments={[
+        { value: 'active',   label: 'Active'   },
+        { value: 'inactive', label: 'Inactive' },
+      ]}
+      ariaLabel="Switch demo"
     />
   );
 }
@@ -2448,6 +2513,22 @@ function ReviewTab() {
           <ToolbarSegmentedPreview />
           <span className="text-[13px] text-text-secondary">
             Click a segment — selected widens to show its label, others show tooltip on hover.
+          </span>
+        </div>
+      ),
+      status: 'pending',
+    },
+    {
+      id: 'switch',
+      name: 'Switch',
+      builtFor: 'Binary state toggle that lives inside a row of metadata. Originally built for AgentVideoRow on the Agent Videos tab — each row needs an Active|Inactive flip that reads at a glance and is easy to operate without ambiguity (vs a single-button "Pause" that requires reading the icon to know the current state).',
+      reason: 'Same connected-pill visual language as ToolbarSegmented (one outer border, shared inner segments, --color-selected-* tokens), but smaller (h-8) so it fits in a compact row, and both segments always show their label (no icon-only collapse — a binary control is unambiguous only when both options are visible). Generic over the value type so it can be reused for any binary control.',
+      closestExisting: 'ToolbarSegmented (wrong size for non-toolbar contexts; uses icon-only collapse for unselected segments which obscures binary state) and FilterChip pair (wrong: unconnected, no clear "this is one mutually-exclusive control" affordance).',
+      preview: (
+        <div className="flex flex-wrap items-center gap-3">
+          <SwitchPreview />
+          <span className="text-[13px] text-text-secondary">
+            Click either segment — selected uses --color-selected-bg / --color-selected-text.
           </span>
         </div>
       ),
