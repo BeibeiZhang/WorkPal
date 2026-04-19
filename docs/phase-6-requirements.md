@@ -41,6 +41,7 @@ UX vocabulary stays user-friendly per principle #3 — users see "chat session" 
 - **Path-traversal guards** on every new endpoint that accepts path-like input (principle #7)
 - **Lazy create + finally cleanup** — no eager creation of "maybe needed" state (principle #6)
 - **Frontend-generated paths flow through unchanged** — UI path = backend path = git path (principle #9)
+- **`WORKPAL_ROOT` constant lives in `server/src/lib/paths.ts`** (6.1) — every path-accepting endpoint must import from this single source, not re-derive `pathResolve(homedir(), 'WorkPal')` locally. Principle #5 — one shared decision, one home.
 
 ---
 
@@ -100,6 +101,10 @@ Not fs clone.
 - ❌ Branch visualization UI / cherry-pick / multi-session parallel preview
 - ❌ Renaming "Project" → "Repo" or any vocabulary shuffle (UI vocabulary is final per Phase 4/5)
 - ❌ Exposing "task" in user-facing copy (principle #3)
+
+### Known limitations (explicit — tracked but deliberately not fixed in Phase 6)
+
+- ⚠️ **Project-slug collisions**: `slugify(projectName)` on the frontend can map two different project names to the same slug (e.g. "Test Alpha" and "test-alpha" both → `test-alpha`), causing both projects to share one `~/WorkPal/<slug>/` folder and git repo. Pre-existing since Phase 5's path nesting shipped; deferred out of 6.1 scope. **Flag for a future step** (likely Phase 7): either enforce unique project slugs at create time on the frontend, or make the backend return a conflict error that the UI disambiguates with a numeric suffix. Not a 6.X blocker — the current worst case is "two visually distinct projects write into one folder," which reads as "shared context" rather than data loss.
 
 ---
 

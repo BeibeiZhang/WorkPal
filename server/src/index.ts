@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import chatRouter from './routes/chat.js';
 import claudeChatRouter from './routes/claudeChat.js';
+import projectRouter from './routes/project.js';
 import memoryRouter from './routes/memory.js';
 import connectorsRouter from './routes/connectors.js';
 import animationsRouter from './routes/animations.js';
@@ -20,6 +21,7 @@ app.use(express.json({ limit: '50mb' }));
 // API routes
 app.use('/api', chatRouter);
 app.use('/api', claudeChatRouter);
+app.use('/api', projectRouter);
 app.use('/api', memoryRouter);
 app.use('/api', connectorsRouter);
 app.use('/api', animationsRouter);

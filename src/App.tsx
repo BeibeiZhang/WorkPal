@@ -18,7 +18,7 @@ import { Chat, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleC
 import PermissionPrompt from './components/PermissionPrompt';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
 import { INITIAL_CHATS } from './data';
-import { postClaudePermissionDecision, postOpenFolder, postUndoChange, streamChat, streamClaudeChat } from './lib/api';
+import { postClaudePermissionDecision, postInitProject, postOpenFolder, postUndoChange, streamChat, streamClaudeChat } from './lib/api';
 import { shouldUseClaudeCode } from './lib/intentRouter';
 import { buildAttachmentContextBlock, buildImageDescriptionBlock } from './lib/attachments';
 import {
@@ -679,6 +679,24 @@ export default function App() {
       navigate('/', { replace: true });
     }
   }, [projectMatch, projects, navigate]);
+
+  // 6.1: first-time-entering-a-project hook. Fires `postInitProject` every
+  // time `activeProjectId` transitions to a valid project, which subsumes
+  // direct navigation, deep links, page reloads, and `handlePromoteToProject`
+  // (which also calls init explicitly as belt-and-braces). Backend is
+  // idempotent, so duplicate POSTs are cheap. Covers the "existing project
+  // without .git" case where the folder predates Phase 6 — first entry after
+  // upgrade lazily initializes it. Principle #6: lazy, on-demand creation.
+  useEffect(() => {
+    if (!activeProjectId) return;
+    const project = projects.find(p => p.id === activeProjectId);
+    if (!project) return;
+    void postInitProject(slugify(project.name)).then(result => {
+      if (!result.ok) {
+        console.warn(`[project-init] open failed: ${result.error}`);
+      }
+    });
+  }, [activeProjectId, projects]);
 
   const activeChat = chats.find(c => c.id === activeChatId) || null;
 
@@ -1851,6 +1869,16 @@ export default function App() {
     };
     setProjects(prev => [...prev, newProject]);
     setNewProjectOpen(false);
+    // 6.1: fire-and-forget project folder init on create. User may not
+    // navigate into the project right away (no navigate() here), so the
+    // activeProjectId useEffect below won't catch this case — kick it
+    // explicitly. Backend is idempotent; failure only costs us a warn since
+    // the useEffect will retry next time the user opens this project.
+    void postInitProject(slugify(name)).then(result => {
+      if (!result.ok) {
+        console.warn(`[project-init] create failed: ${result.error}`);
+      }
+    });
   }, []);
 
   /** Promote one or more sessions into a brand-new project. Creates the
@@ -1880,6 +1908,17 @@ export default function App() {
       return { ...c, projectId, sessionFolder: nested };
     }));
     setPromotingChatIds(null);
+    // 6.1: belt-and-braces project init. The navigate() below will trigger
+    // the activeProjectId useEffect, which also fires init — but firing here
+    // too means the backend is priming the folder while React is still mid-
+    // render, so by the time the user's first session write happens the repo
+    // is guaranteed ready. Idempotent on the backend so the double fire is
+    // a no-op past the first call.
+    void postInitProject(slugify(name)).then(result => {
+      if (!result.ok) {
+        console.warn(`[project-init] promote failed: ${result.error}`);
+      }
+    });
     navigate(`/project/${projectId}`);
   }, [chats, navigate]);
 

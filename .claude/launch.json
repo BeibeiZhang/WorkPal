@@ -8,6 +8,12 @@
       "port": 2006
     },
     {
+      "name": "WorkPal Dev 2010",
+      "runtimeExecutable": "/usr/local/bin/node",
+      "runtimeArgs": ["/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/.claude/worktrees/admiring-vaughan-f19752/node_modules/vite/bin/vite.js", "--port", "2010", "--strictPort"],
+      "port": 2010
+    },
+    {
       "name": "WorkPal Backend",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "server", "run", "dev"],
