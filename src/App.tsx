@@ -1005,7 +1005,18 @@ export default function App() {
   // 5.4c: tool_use flips `hasInspector`, appends Changes entries for file
   // mutations, and drives the Progress list via tool_use/tool_result pairing.
   // Attachments / project docs / memory block intentionally not wired here yet.
-  const streamFromClaudeAPI = useCallback(async (chatId: string, userText: string) => {
+  const streamFromClaudeAPI = useCallback(async (
+    chatId: string,
+    userText: string,
+    // Fresh chats mint their sessionFolder in handleSend the same tick they
+    // call this function, which is before React has flushed the setChats that
+    // stores it. Reading `chat?.sessionFolder` from this closure would see
+    // the pre-flush value (undefined) and the server would reject the request
+    // with a 400. Accepting an override lets handleSend hand the freshly-
+    // computed path straight through; established chats rely on the closure
+    // lookup like before.
+    overrideSessionFolder?: string,
+  ) => {
     const chat = chats.find(c => c.id === chatId);
     const previousMessages = (chat?.messages || [])
       .filter(m => !m.isLoading)
@@ -1026,7 +1037,7 @@ export default function App() {
       for await (const chunk of streamClaudeChat({
         prompt: userText,
         sessionId: chatId,
-        sessionFolder: chat?.sessionFolder,
+        sessionFolder: overrideSessionFolder ?? chat?.sessionFolder,
         messages: history,
       })) {
         if (chunk.type === 'text') {
@@ -1276,6 +1287,12 @@ export default function App() {
 
     // Find or create active chat
     let chatId = activeChatId;
+    // Track the sessionFolder this send WILL use. Computed synchronously here
+    // so we can hand it directly to streamFromClaudeAPI instead of relying on
+    // React flushing the setChats below before the async function's closure
+    // snapshot captures `chats`. Defaults to the existing chat's value and
+    // only gets overwritten in the fresh-chat branch.
+    let sessionFolderForSend = activeChat?.sessionFolder;
 
     // If on welcome screen or empty session, update the existing chat's title
     if (!activeChat || activeChat.messages.length === 0) {
@@ -1286,6 +1303,9 @@ export default function App() {
       // Auto-generate the session folder on first send. The slug comes from
       // the derived title, not the chat id, so it's meaningful to humans.
       const sessionFolder = buildSessionFolder(titleSource || 'session');
+      // Mirror the `?? sessionFolder` fallback used in setChats below so the
+      // value we forward matches what the chat will end up with.
+      sessionFolderForSend = activeChat?.sessionFolder ?? sessionFolder;
       if (activeChat && activeChat.messages.length === 0) {
         // Reuse existing empty chat (e.g. "New Session") and update its title.
         // Promote it from draft → recent so it shows up in the Recents list.
@@ -1359,7 +1379,7 @@ export default function App() {
       // 5.4b keyword router — code/file intents go to Claude Agent SDK. Skip
       // when attachments are present since the Claude path doesn't wire them
       // yet; OpenAI still handles those.
-      streamFromClaudeAPI(chatId, text);
+      streamFromClaudeAPI(chatId, text, sessionFolderForSend);
     } else {
       streamFromAPI(chatId, text, attachments);
     }

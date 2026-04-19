@@ -192,7 +192,7 @@ router.post('/claude-chat', async (req, res) => {
   // this request. Pending file-write tool_uses register here so the matching
   // tool_result (which only carries tool_use_id) can decide whether to commit.
   let gitReady = false;
-  const pendingWrites = new Map<string, { toolName: string; summary: string }>();
+  const pendingWrites = new Map<string, { toolName: string; filePath: string }>();
 
   const sid = sessionId ?? `nosid-${Date.now()}`;
   console.log(`[claude-chat] start session=${sid} cwd=${workingDir}`);
@@ -311,15 +311,19 @@ router.post('/claude-chat', async (req, res) => {
                 // Register write inputs so the matching tool_result (which
                 // carries only tool_use_id) can decide whether to commit.
                 // Only file-write tools enter this map — Read/Bash/etc. never
-                // trigger a commit even on success.
+                // trigger a commit even on success. If neither file_path nor
+                // notebook_path is set (shouldn't happen for a well-formed
+                // SDK tool_use, but defensive), we skip registration: better
+                // to miss a commit than to stage an empty path.
                 if (isFileWrite && gitReady) {
                   const inp = (toolUse.input && typeof toolUse.input === 'object'
                     ? toolUse.input as Record<string, unknown>
                     : {});
-                  const summary = strField(inp, 'file_path')
-                    || strField(inp, 'notebook_path')
-                    || toolUse.name;
-                  pendingWrites.set(toolUse.id, { toolName: toolUse.name, summary });
+                  const filePath = strField(inp, 'file_path')
+                    || strField(inp, 'notebook_path');
+                  if (filePath) {
+                    pendingWrites.set(toolUse.id, { toolName: toolUse.name, filePath });
+                  }
                 }
                 send({ type: 'tool_use', ...toolUse });
                 console.log(`[claude-chat] tool_use name=${toolUse.name}`);
@@ -357,13 +361,22 @@ router.post('/claude-chat', async (req, res) => {
               if (pending && !result.isError && gitReady) {
                 pendingWrites.delete(result.toolUseId);
                 try {
-                  const { commit } = await commitAfterTool(workingDir, {
+                  const committed = await commitAfterTool(workingDir, {
                     sessionId: sid,
                     toolName: pending.toolName,
-                    summary: pending.summary,
+                    filePath: pending.filePath,
                   });
-                  send({ type: 'commit', toolUseId: result.toolUseId, commit });
-                  console.log(`[claude-chat] commit ${commit.slice(0, 7)} (${pending.toolName})`);
+                  if (committed) {
+                    send({ type: 'commit', toolUseId: result.toolUseId, commit: committed.commit });
+                    console.log(`[claude-chat] commit ${committed.commit.slice(0, 7)} (${pending.toolName})`);
+                  } else {
+                    // commitAfterTool returned null → the targeted add staged
+                    // no diff (e.g. Edit with identical contents). Skip the
+                    // commit chunk so the frontend entry stays without an
+                    // Undo affordance rather than lighting up a button that
+                    // would silently no-op on click.
+                    console.log(`[claude-chat] commit skipped (no diff) ${pending.toolName} ${pending.filePath}`);
+                  }
                 } catch (err) {
                   const m = err instanceof Error ? err.message : String(err);
                   console.error(`[claude-chat] commit failed: ${m}`);
