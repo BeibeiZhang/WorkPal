@@ -11,8 +11,8 @@
 | 5.4b SSE + intent routing | ✅ Done | `9fc9365` (PR #69) |
 | 5.4c tool_use → inspector + Changes | ✅ Done | `757be62` (PR #70) |
 | 5.4d PermissionPrompt wiring | ✅ Done | `6683788`+`04d2591` (PR #71) |
-| **5.4e Lazy mkdir + open-in-Finder** | ⏳ **Next** | — |
-| 5.5 Auto-commit + real Undo via git | ⏳ After 5.4 | — |
+| 5.4e Lazy mkdir + open-in-Finder | ✅ Done | `1b64629`+`f02cfd4` (PR #73) |
+| **5.5 Auto-commit + real Undo via git** | ⏳ **Next** | — |
 
 ---
 
@@ -192,7 +192,7 @@ The SDK yields internal housekeeping events the user doesn't care about. **Filte
 
 ---
 
-## 5.4e — Lazy mkdir + open in Finder (**next up**)
+## 5.4e — Lazy mkdir + open in Finder ✅ (merged)
 
 **Goal**: session folder only materializes on first real Write/Edit. Chip click opens Finder.
 
@@ -224,22 +224,38 @@ The SDK yields internal housekeeping events the user doesn't care about. **Filte
 
 ---
 
-## 5.5 — Auto-commit + real Undo (after 5.4e)
+## 5.5 — Auto-commit + real Undo (**next up**)
 
-**Depends on real folders existing.**
+**Depends on real folders existing** (satisfied after 5.4e).
+
+### Context from 5.4e (read before starting)
+
+- Session folders are created **eagerly** at request start in `server/src/routes/claudeChat.ts` (line ~160, `await mkdir(workingDir, { recursive: true })`). This is where `git init` should go — one shot, same place that sets up the session's working directory. Skip `git init` if `.git` already exists (re-open of the same session).
+- **Eager mkdir means pure Q&A also gets a session folder** — but the `finally` block calls `rmdir(workingDir)` which fails with `ENOTEMPTY` when any content (including `.git/`) exists. **You'll need to update the cleanup logic**: for pure-Q&A sessions where `folderMaterialized` stayed false, ALSO skip `git init` so rmdir still works. Do git init only when the first Write/Edit/MultiEdit/NotebookEdit `tool_use` arrives (same trigger as `folderMaterialized`).
+- `folderMaterialized` is a **request-scoped boolean** in `claudeChat.ts`. Reuse it as the gate for git init so the two invariants stay aligned: "folder has content" ⇔ "folder is a git repo" ⇔ "chip renders".
+- `FILE_WRITE_TOOLS` Set already exists in `claudeChat.ts` — use that same Set to decide both "materialize folder" and "git commit after this tool_result".
+- SDK binary needs cwd existing (hard lesson from 5.4e). `git init` happens AFTER `mkdir`, so cwd already exists — no new spawn-order issues.
+- Claude's first Write often goes to a wrong path (`/root/`, `/repo/`, `/home/user/`) and fails — THEN retries at the real session folder. **Don't commit on the failed attempts**. Gate the commit on `tool_result` with `isError === false`, not on `tool_use`.
+- V3 Changes card already has an Undo button that flips the entry to "Undone". 5.5 just needs to wire it to a new `POST /api/claude-chat/undo` endpoint. Don't redesign the UI.
 
 ### Scope
 
-- New `server/src/lib/git.ts`
-- Session folder's first `mkdir` → auto `git init`
-- After each Write/Edit/Delete tool call → `git add . && git commit -m "Session {id} – {tool} – {step description}"`
-- Undo handler: `git reset --hard HEAD~1` → flip Change entry to Undone (UI already done in V3)
+- New `server/src/lib/git.ts` — small helpers: `initIfNeeded(cwd)`, `commitAfterTool(cwd, toolName, summary)`, `undoLastCommit(cwd)` (wraps `git reset --hard HEAD~1`). All use `child_process.execFile('git', [...], { cwd })`.
+- `server/src/routes/claudeChat.ts`:
+  - On first file-mutating `tool_use` (same trigger as `folderMaterialized = true`): `await initIfNeeded(workingDir)` right after `await mkdir`
+  - On `tool_result` with `isError === false` for a file-mutating tool: `await commitAfterTool(...)` with a clear message (`Session {sid} – {toolName} – {summary}`)
+  - Log commits the same way `tool_use` is logged (one line each)
+- New `POST /api/claude-chat/undo` — body `{sessionFolder, changeId}` → validate `sessionFolder` through `resolveSessionFolder` (reuse the guard), run `undoLastCommit`, return `{ok:true, commit:<new HEAD hash>}`.
+- `src/App.tsx` — wire the existing `onUndo` handler in the Changes card to POST to `/undo`. On success, flip the Change entry to `Undone` (UI already renders this state). On failure, show an error chip in the Changes card row.
 
 ### Acceptance tests
 
-- [ ] AI writes file → commit appears on disk, Change entry appears in UI
-- [ ] Click Undo → file reverted on disk, commit reverted, entry grays out + strikethrough
-- [ ] Undo works in reverse order (latest first)
+- [ ] AI writes file → `cd session-folder && git log` shows a commit with a clear message; Change entry appears in UI
+- [ ] Click Undo on the entry → file reverted on disk, `git log` shows one fewer commit, entry grays out + strikethrough
+- [ ] Undo works in reverse order (latest first) — click Undo on the most recent, the one before it becomes undoable
+- [ ] Cancel/denied Write does **not** produce a commit (the failed attempt shouldn't be undoable)
+- [ ] Pure Q&A session → no `.git` dir appears, rmdir still cleans up the empty folder
+- [ ] Two concurrent sessions → each has its own `.git`, Undo in one doesn't affect the other
 
 ---
 
@@ -278,14 +294,14 @@ After 5.4–5.5 are shipped:
 ```
 请先读 docs/phase-5-requirements.md 了解进度和下一步。
 
-当前要做：5.4e — Lazy mkdir + open-in-Finder。
+当前要做：5.5 — Auto-commit + 真 Undo via git。
 
-文档里已经锁定了 shared decisions + 5.4e "Context from 5.4d" 一节的注意事项
-（真实 sessionFolder 替换沙盒 cwd、mkdir 延迟到首次 file-mutating tool_use、
-~ 路径展开、approvedScopes 继续用 useRef 模式、open-folder 接口加路径越狱防护）。
-请遵守。
+文档里已经锁定了 shared decisions + 5.5 "Context from 5.4e" 一节的注意事项
+（git init 的时机跟着 folderMaterialized 走、仅在 tool_result 非 error 时 commit、
+Claude 首次写错路径不要提交、复用 resolveSessionFolder 守卫 undo 接口、
+Undo UI 已存在只接 handler）。请遵守。
 
-做之前先列具体改动点给我确认，按 5.4e 的 Acceptance tests 跑通后再开 PR。
+做之前先列具体改动点给我确认，按 5.5 的 Acceptance tests 跑通后再开 PR。
 ```
 
 Paste this in a fresh Cowork session — the agent will pick up without needing more context.
