@@ -3,6 +3,7 @@ import {
   ChevronRight, ChevronDown, ChevronUp,
   Brain, Volume2, Briefcase, Home, Smile,
   Moon, Zap, Gauge, BarChart3, Search,
+  Pause, Play, ExternalLink, CalendarClock, MessageCircle, FolderClosed,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -20,19 +21,45 @@ interface OverviewPageProps {
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
   onNewChat?: () => void;
+  /** Jump into a chat or project — the Dashboard's review/in-progress items
+   *  and scheduled tasks link back to the session that produced them via a
+   *  small source chip. */
+  onOpenChat?: (chatId: string) => void;
+  onOpenProject?: (projectId: string) => void;
 }
 
 /* ── Data ── */
 
-const REVIEW_ITEMS = [
-  { title: 'UX meeting summary — 6 action items extracted', source: 'Zoom → Docs', type: 'Document', time: 'Ready 3 min ago', urgent: true, humanTime: '~5 min' },
-  { title: '3 Jira tickets drafted from design feedback', source: 'Docs → Jira', type: 'Tickets', time: 'Ready 1h ago', urgent: false, humanTime: '~8 min' },
-  { title: 'Weekly stakeholder email draft', source: 'Gmail', type: 'Email', time: 'Ready 2h ago', urgent: false, humanTime: '~3 min' },
+type SourceKind = 'chat' | 'project';
+type Source = { kind: SourceKind; id: string; label: string };
+
+const REVIEW_ITEMS: Array<{ title: string; source: string; type: string; time: string; urgent: boolean; humanTime: string; from?: Source }> = [
+  { title: 'UX meeting summary — 6 action items extracted', source: 'Zoom → Docs', type: 'Document', time: 'Ready 3 min ago', urgent: true, humanTime: '~5 min', from: { kind: 'chat', id: 'ux-meeting', label: 'UX Meeting Minutes' } },
+  { title: '3 Jira tickets drafted from design feedback', source: 'Docs → Jira', type: 'Tickets', time: 'Ready 1h ago', urgent: false, humanTime: '~8 min', from: { kind: 'chat', id: 'alcohol-delivery', label: 'Alcohol Delivery Issues' } },
+  { title: 'Weekly stakeholder email draft', source: 'Gmail', type: 'Email', time: 'Ready 2h ago', urgent: false, humanTime: '~3 min', from: { kind: 'project', id: 'proj-1', label: 'Agent Design' } },
 ];
 
-const IN_PROGRESS: Array<{ title: string; progress: number; eta: string; steps: string; icon: LucideIcon }> = [
-  { title: 'Analyzing Q2 design metrics report', progress: 62, eta: '~8 min', steps: 'Pulling data from Sheets → Building charts → Formatting', icon: BarChart3 },
-  { title: 'Researching competitor onboarding flows', progress: 35, eta: '~20 min', steps: 'Scanning 4 competitor apps → Extracting screenshots → Compiling', icon: Search },
+const IN_PROGRESS: Array<{ title: string; progress: number; eta: string; steps: string; icon: LucideIcon; from?: Source }> = [
+  { title: 'Analyzing Q2 design metrics report', progress: 62, eta: '~8 min', steps: 'Pulling data from Sheets → Building charts → Formatting', icon: BarChart3, from: { kind: 'project', id: 'proj-1', label: 'Agent Design' } },
+  { title: 'Researching competitor onboarding flows', progress: 35, eta: '~20 min', steps: 'Scanning 4 competitor apps → Extracting screenshots → Compiling', icon: Search, from: { kind: 'chat', id: 'alcohol-delivery', label: 'Alcohol Delivery Issues' } },
+];
+
+/** Mock scheduled automations. Not persisted, not real cron — the dashboard
+ *  is purely a status surface per Phase 3 spec (no creation entry point here;
+ *  users set these up inside a chat). */
+const SCHEDULED: Array<{
+  id: string;
+  name: string;
+  cron: string;
+  lastRun: string;
+  nextRun: string;
+  paused?: boolean;
+  from?: Source;
+}> = [
+  { id: 's1', name: 'Weekly Spark driver incident digest', cron: 'Every Monday · 9:00 AM', lastRun: '2 days ago', nextRun: 'Tomorrow 9:00 AM', from: { kind: 'chat', id: 'alcohol-delivery', label: 'Alcohol Delivery Issues' } },
+  { id: 's2', name: 'Daily design component audit', cron: 'Weekdays · 6:00 PM', lastRun: '18h ago', nextRun: 'Today 6:00 PM', from: { kind: 'project', id: 'proj-1', label: 'Agent Design' } },
+  { id: 's3', name: 'Monthly competitor UX snapshot', cron: '1st of month · 10:00 AM', lastRun: 'Apr 1', nextRun: 'May 1', from: { kind: 'project', id: 'proj-1', label: 'Agent Design' } },
+  { id: 's4', name: 'Morning briefing email', cron: 'Every day · 8:30 AM', lastRun: 'Today', nextRun: 'Tomorrow 8:30 AM' },
 ];
 
 const HEALTH_DIMENSIONS: Array<{
@@ -124,9 +151,42 @@ const TYPE_CONFIG: Record<string, { emoji: string; classes: string }> = {
 
 /* ── Main Component ── */
 
-export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat }: OverviewPageProps) {
+/** Small pill linking a dashboard row back to its source session or project.
+ *  Click = navigate. Rendered inside items in Needs Your Eyes, Agents at
+ *  Work, and Scheduled so the user can always jump to the origin. */
+function SourceChip({ source, onOpenChat, onOpenProject }: { source: Source; onOpenChat?: (id: string) => void; onOpenProject?: (id: string) => void }) {
+  const Icon = source.kind === 'project' ? FolderClosed : MessageCircle;
+  const handler = source.kind === 'project' ? onOpenProject : onOpenChat;
+  return (
+    <button
+      type="button"
+      onClick={() => handler?.(source.id)}
+      className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-stroke-outline hover:bg-bg-hover transition-colors text-[12px] leading-[16px] text-text-primary max-w-[220px]"
+      title={`Open ${source.label}`}
+    >
+      <Icon size={12} className="shrink-0" />
+      <span className="truncate">{source.label}</span>
+    </button>
+  );
+}
+
+export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, onOpenChat, onOpenProject }: OverviewPageProps) {
   const videoSrc = '/animations/avatar.mp4';
   const [isSpeaking, setIsSpeaking] = useState(false);
+  /** Paused state is cosmetic — there's no real scheduler. Pausing just
+   *  flips the icon so the demo can show the pause→resume toggle. */
+  const [pausedTasks, setPausedTasks] = useState<Set<number>>(() => new Set());
+  const [pausedSchedules, setPausedSchedules] = useState<Set<string>>(() => new Set());
+  const togglePauseTask = (i: number) => setPausedTasks(prev => {
+    const next = new Set(prev);
+    if (next.has(i)) next.delete(i); else next.add(i);
+    return next;
+  });
+  const togglePauseSchedule = (id: string) => setPausedSchedules(prev => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
 
   const GREETING_TEXT = "Good morning, Beibei! Today feels like a steady day. Your life commitments are all locked in — 2 hours family time, 7 hours sleep, check. I've protected your 9 to 11am focus block, and today's workload is light. I finished your meeting notes and drafted 3 tickets — review them whenever you're ready.";
 
@@ -302,16 +362,23 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat }
 
             <div className="flex flex-col">
               {REVIEW_ITEMS.map((item, i) => (
-                <ReviewItemCard
-                  key={i}
-                  title={item.title}
-                  source={item.source}
-                  type={item.type}
-                  time={item.time}
-                  humanTime={item.humanTime}
-                  done={reviewDone[i] || false}
-                  onToggle={() => setReviewDone(p => ({ ...p, [i]: !p[i] }))}
-                />
+                <div key={i}>
+                  <ReviewItemCard
+                    title={item.title}
+                    source={item.source}
+                    type={item.type}
+                    time={item.time}
+                    humanTime={item.humanTime}
+                    done={reviewDone[i] || false}
+                    onToggle={() => setReviewDone(p => ({ ...p, [i]: !p[i] }))}
+                  />
+                  {item.from && (
+                    <div className="pl-12 pb-3 -mt-1 flex items-center gap-2">
+                      <span className="text-[12px] text-text-secondary">From</span>
+                      <SourceChip source={item.from} onOpenChat={onOpenChat} onOpenProject={onOpenProject} />
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </div>
@@ -321,18 +388,104 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat }
             <SectionTitle emoji="" title="Agents at Work" count={IN_PROGRESS.length} size={20} />
 
             <div className="flex flex-col">
-              {IN_PROGRESS.map((task, i) => (
-                <TaskProgressCard
-                  key={i}
-                  title={task.title}
-                  progress={task.progress}
-                  eta={task.eta}
-                  steps={task.steps.split(' → ')}
-                  icon={task.icon}
-                  expanded={expandedProgress === i}
-                  onClick={() => setExpandedProgress(expandedProgress === i ? null : i)}
-                />
-              ))}
+              {IN_PROGRESS.map((task, i) => {
+                const isPaused = pausedTasks.has(i);
+                return (
+                  <div key={i}>
+                    <TaskProgressCard
+                      title={task.title}
+                      progress={task.progress}
+                      eta={isPaused ? 'Paused' : task.eta}
+                      steps={task.steps.split(' → ')}
+                      icon={task.icon}
+                      expanded={expandedProgress === i}
+                      onClick={() => setExpandedProgress(expandedProgress === i ? null : i)}
+                    />
+                    <div className="pl-12 pb-3 -mt-1 flex items-center gap-2 flex-wrap">
+                      {task.from && (
+                        <SourceChip source={task.from} onOpenChat={onOpenChat} onOpenProject={onOpenProject} />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => togglePauseTask(i)}
+                        aria-label={isPaused ? 'Resume task' : 'Pause task'}
+                        className="flex items-center gap-1 px-2 py-1 rounded-full border border-stroke-outline hover:bg-bg-hover transition-colors text-[12px] text-text-primary"
+                      >
+                        {isPaused ? <Play size={12} /> : <Pause size={12} />}
+                        <span>{isPaused ? 'Resume' : 'Pause'}</span>
+                      </button>
+                      {task.from?.kind === 'chat' && (
+                        <button
+                          type="button"
+                          onClick={() => onOpenChat?.(task.from!.id)}
+                          aria-label="Open source session"
+                          className="flex items-center gap-1 px-2 py-1 rounded-full border border-stroke-outline hover:bg-bg-hover transition-colors text-[12px] text-text-primary"
+                        >
+                          <ExternalLink size={12} />
+                          <span>Open session</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ━━━ 4b. SCHEDULED ━━━ */}
+          <div className="mb-12">
+            <SectionTitle emoji="" title="Scheduled" count={SCHEDULED.length} size={20} />
+            <div className="flex flex-col">
+              {SCHEDULED.map(job => {
+                const isPaused = pausedSchedules.has(job.id);
+                return (
+                  <div key={job.id} className="py-4 border-b border-dashed border-stroke-outline last:border-0">
+                    <div className="flex items-start gap-3.5">
+                      <CalendarClock size={22} strokeWidth={1.75} className={`shrink-0 icon-theme ${isPaused ? 'text-text-secondary' : 'text-text-primary'}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className={`text-[14px] font-bold text-text-primary ${isPaused ? 'opacity-60' : ''}`}>{job.name}</div>
+                        <div className="text-[13px] text-text-primary mt-0.5">
+                          {job.cron} · Last run {job.lastRun} · {isPaused ? 'Paused' : `Next ${job.nextRun}`}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="pl-[34px] pt-2 flex items-center gap-2 flex-wrap">
+                      {job.from && (
+                        <SourceChip source={job.from} onOpenChat={onOpenChat} onOpenProject={onOpenProject} />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => togglePauseSchedule(job.id)}
+                        aria-label={isPaused ? 'Resume schedule' : 'Pause schedule'}
+                        className="flex items-center gap-1 px-2 py-1 rounded-full border border-stroke-outline hover:bg-bg-hover transition-colors text-[12px] text-text-primary"
+                      >
+                        {isPaused ? <Play size={12} /> : <Pause size={12} />}
+                        <span>{isPaused ? 'Resume' : 'Pause'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { /* cosmetic — no real scheduler to trigger */ }}
+                        aria-label="Run now"
+                        className="flex items-center gap-1 px-2 py-1 rounded-full border border-stroke-outline hover:bg-bg-hover transition-colors text-[12px] text-text-primary"
+                      >
+                        <Play size={12} />
+                        <span>Run now</span>
+                      </button>
+                      {job.from?.kind === 'chat' && (
+                        <button
+                          type="button"
+                          onClick={() => onOpenChat?.(job.from!.id)}
+                          aria-label="Open source session"
+                          className="flex items-center gap-1 px-2 py-1 rounded-full border border-stroke-outline hover:bg-bg-hover transition-colors text-[12px] text-text-primary"
+                        >
+                          <ExternalLink size={12} />
+                          <span>Open session</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 

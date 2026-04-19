@@ -3,17 +3,17 @@ import { Project } from './Sidebar';
 import ChatInput from './ChatInput';
 import {
   ChevronDown, ChevronRight, Star, MoreVertical, PanelRight,
-  FileCode2, MessageCircle, CheckSquare, Code2, Pen, File, Plus, X,
+  FileCode2, MessageCircle, Pen, File, Plus, X,
   MonitorPlay, Presentation,
 } from 'lucide-react';
 import { FilterChip, PageLayout, SearchBox, SideCard, SidePanelHeader, SplitView } from './shared';
-import type { Chat, ChatMode, Attachment } from '../types';
+import type { Chat, Attachment } from '../types';
 import { filesToAttachments, formatFileSize } from '../lib/attachments';
 
 interface ProjectPageProps {
   project: Project;
   chats: Chat[];
-  onCreateChat: (projectId: string, mode: ChatMode, text: string, attachments?: Attachment[]) => void;
+  onCreateChat: (projectId: string, text: string, attachments?: Attachment[]) => void;
   onOpenChat: (chatId: string) => void;
   /** Add reference files to the project — their content gets prepended to
    *  every AI request in any chat scoped here. */
@@ -35,15 +35,6 @@ function formatRelative(date: Date): string {
   return `${days} day${days > 1 ? 's' : ''} ago`;
 }
 
-/** ChatInput uses the plural "Tasks" label for its mode; the Recents filter
- *  uses the shorter "Task" label. Bridge the two so stored chats slot into
- *  the filter correctly. */
-function modeToRecentType(mode: ChatMode | undefined): RecentType {
-  if (mode === 'Tasks') return 'Task';
-  if (mode === 'Code') return 'Code';
-  return 'Chat';
-}
-
 /* ── Demo data ── */
 type OutputType = 'All' | 'Web' | 'Slides' | 'Image' | 'Video';
 
@@ -56,15 +47,12 @@ interface OutputItem {
 
 const OUTPUT_FILTERS: OutputType[] = ['All', 'Web', 'Slides', 'Image', 'Video'];
 
-type RecentType = 'Chat' | 'Task' | 'Code';
-
 interface RecentItem {
   id: string;
   title: string;
   description: string;
   time: string;
   outputTag?: string;
-  type: RecentType;
 }
 
 interface ProjectContent {
@@ -92,7 +80,6 @@ const PROJECT_CONTENT: Record<string, ProjectContent> = {
         description: 'Analyzed Grok, ChatGPT, Claude and Gemini UX patterns for navigation, onbo',
         time: '5 hour ago',
         outputTag: 'Agent Design Component Library',
-        type: 'Chat',
       },
       {
         id: '2',
@@ -100,14 +87,12 @@ const PROJECT_CONTENT: Record<string, ProjectContent> = {
         description: 'Collected product screenshots for AI information architecture flow diagram ar',
         time: '18hour ago',
         outputTag: 'AI product info flow',
-        type: 'Task',
       },
       {
         id: '3',
         title: 'Refactor agent response parser module',
         description: 'Restructured the streaming response handler to support multi-turn agent conversations and tool calls...',
         time: '1 day ago',
-        type: 'Code',
       },
       {
         id: '4',
@@ -115,14 +100,12 @@ const PROJECT_CONTENT: Record<string, ProjectContent> = {
         description: 'Created a reusable matrix of agent card variants covering status, size, and interaction states...',
         time: '1 day ago',
         outputTag: 'Agent Design Component Library',
-        type: 'Task',
       },
       {
         id: '5',
         title: 'Fix streaming indicator z-index in chat panel',
         description: 'Resolved layering issue where the typing indicator overlapped the action chip bar during long responses...',
         time: '2 days ago',
-        type: 'Code',
       },
       {
         id: '6',
@@ -130,14 +113,12 @@ const PROJECT_CONTENT: Record<string, ProjectContent> = {
         description: 'Reviewed interaction patterns across 6 AI agent products including reasoning visibility and tool use flows...',
         time: '3 days ago',
         outputTag: 'competitive analysis',
-        type: 'Chat',
       },
       {
         id: '7',
         title: 'Implement dark mode token mapping for agent cards',
         description: 'Added CSS variable overrides and Tailwind config for all agent card components in dark theme...',
         time: '4 days ago',
-        type: 'Code',
       },
     ],
     contextLabel: 'Agent Design',
@@ -159,7 +140,6 @@ const PROJECT_CONTENT: Record<string, ProjectContent> = {
         description: 'Documented all 7 steps in the existing Spark driver signup, from app download to first scheduled shift...',
         time: '3 hour ago',
         outputTag: 'Onboarding Flow Wireframes',
-        type: 'Chat',
       },
       {
         id: '2',
@@ -167,14 +147,12 @@ const PROJECT_CONTENT: Record<string, ProjectContent> = {
         description: 'Pulled funnel metrics from Amplitude for the past 90 days and flagged the vehicle verification step as the biggest leak...',
         time: '12 hour ago',
         outputTag: 'Driver Persona Deck',
-        type: 'Task',
       },
       {
         id: '3',
         title: 'Implement progressive disclosure for tutorial screens',
         description: 'Refactored the tutorial carousel to lazy-load step content and remember progress across app sessions...',
         time: '1 day ago',
-        type: 'Code',
       },
       {
         id: '4',
@@ -182,14 +160,12 @@ const PROJECT_CONTENT: Record<string, ProjectContent> = {
         description: 'Coded interview notes from new and lapsed drivers to identify the top friction points in the current flow...',
         time: '2 days ago',
         outputTag: 'Driver Persona Deck',
-        type: 'Chat',
       },
       {
         id: '5',
         title: 'Build form validation for vehicle info step',
         description: 'Added inline validation, license-plate format checks, and real-time error states for the vehicle entry screen...',
         time: '2 days ago',
-        type: 'Code',
       },
       {
         id: '6',
@@ -197,7 +173,6 @@ const PROJECT_CONTENT: Record<string, ProjectContent> = {
         description: 'Wrote a 5-email drip covering first delivery tips, payout setup, and support channels for newly approved drivers...',
         time: '3 days ago',
         outputTag: 'New Driver Landing Page',
-        type: 'Task',
       },
       {
         id: '7',
@@ -205,7 +180,6 @@ const PROJECT_CONTENT: Record<string, ProjectContent> = {
         description: 'Captured screen recordings of competitor signup journeys and benchmarked step counts, time-to-complete, and verification UX...',
         time: '4 days ago',
         outputTag: 'Onboarding Flow Wireframes',
-        type: 'Chat',
       },
     ],
     contextLabel: 'Spark Driver Research',
@@ -215,26 +189,14 @@ const PROJECT_CONTENT: Record<string, ProjectContent> = {
 
 const FALLBACK_CONTENT = PROJECT_CONTENT['proj-1'];
 
-const TYPE_ICON: Record<RecentType, typeof MessageCircle> = {
-  Chat: MessageCircle,
-  Task: CheckSquare,
-  Code: Code2,
-};
-
-const FILTER_OPTIONS = ['All', 'Chat', 'Task', 'Code'] as const;
-
 export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, onAddFiles, onRemoveFile, sidebarOpen, onToggleSidebar }: ProjectPageProps) {
   const content = PROJECT_CONTENT[project.id] ?? FALLBACK_CONTENT;
-  const [recentsFilter, setRecentsFilter] = useState<string>('All');
   const [outputFilter, setOutputFilter] = useState<OutputType>('All');
   const [selectedOutputId, setSelectedOutputId] = useState<string>(content.defaultSelectedOutputId);
   const [outputOpen, setOutputOpen] = useState(true);
   const [recentsOpen, setRecentsOpen] = useState(true);
   const [search, setSearch] = useState('');
   const [infoPanelOpen, setInfoPanelOpen] = useState(true);
-  // Mode the user picks on the footer input. The ChatInput's forceMode syncs
-  // this as the initial value on mount; onModeChange keeps it in sync.
-  const [inputMode, setInputMode] = useState<ChatMode>('Chat');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileError, setFileError] = useState<string | null>(null);
 
@@ -255,7 +217,6 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
   // Reset selected output when switching projects
   useEffect(() => {
     setSelectedOutputId(content.defaultSelectedOutputId);
-    setRecentsFilter('All');
     setOutputFilter('All');
     setSearch('');
   }, [project.id, content.defaultSelectedOutputId]);
@@ -274,7 +235,6 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
       title: c.title,
       description: c.lastMessage || c.messages[0]?.content || '',
       time: formatRelative(c.timestamp),
-      type: modeToRecentType(c.mode),
       isReal: true as const,
     }));
 
@@ -284,10 +244,9 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
     ...content.recents.map(r => ({ ...r, isReal: false })),
   ];
 
-  const filteredRecents = combinedRecents.filter(r => {
-    if (recentsFilter !== 'All' && r.type !== recentsFilter) return false;
-    return matchesSearch(r.title) || matchesSearch(r.description) || matchesSearch(r.outputTag ?? '');
-  });
+  const filteredRecents = combinedRecents.filter(r =>
+    matchesSearch(r.title) || matchesSearch(r.description) || matchesSearch(r.outputTag ?? ''),
+  );
 
   const filteredOutputs = content.outputs.filter(o => {
     if (outputFilter !== 'All' && o.type !== outputFilter) return false;
@@ -297,7 +256,7 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
   const handleSend = (text: string, attachments?: Attachment[]) => {
     const trimmed = text.trim();
     if (!trimmed && !(attachments && attachments.length)) return;
-    onCreateChat(project.id, inputMode, trimmed, attachments);
+    onCreateChat(project.id, trimmed, attachments);
   };
 
   return (
@@ -442,8 +401,6 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
         footer={
           <ChatInput
             onSend={handleSend}
-            onModeChange={(m) => setInputMode(m)}
-            forceMode={inputMode}
             chatKey={`project-${project.id}`}
             placeholder="What would you like to work on in this project?"
           />
@@ -524,22 +481,9 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
 
                 {recentsOpen && (
                   <>
-                    {/* Recents filter chips */}
-                    <div className="flex gap-2">
-                      {FILTER_OPTIONS.map(f => (
-                        <FilterChip
-                          key={f}
-                          label={f}
-                          active={recentsFilter === f}
-                          onClick={() => setRecentsFilter(f)}
-                        />
-                      ))}
-                    </div>
-
                     {/* Recent items */}
                     <div className="flex flex-col">
                       {filteredRecents.map(r => {
-                        const Icon = TYPE_ICON[r.type];
                         // Only real chats are wired up for now. Demo rows stay
                         // visual-only so the page keeps its showcase content.
                         const isReal = r.isReal === true;
@@ -552,7 +496,7 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                             }`}
                           >
                             <div className="flex items-center justify-center shrink-0 mt-px text-text-primary">
-                              <Icon size={18} />
+                              <MessageCircle size={18} />
                             </div>
                             <div className="flex-1 min-w-0 flex flex-col gap-1.5">
                               <div className="flex items-center justify-between gap-3">

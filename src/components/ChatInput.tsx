@@ -1,10 +1,8 @@
 import { useState, useRef, useEffect, KeyboardEvent } from 'react';
 import { FileText, X } from 'lucide-react';
-import { iconGoals, iconDoc16, iconBarChart, iconAdd, iconPhoto, iconCamera, iconUpload, iconSend, iconSendActive, iconChevronDown } from '../assets';
+import { iconGoals, iconDoc16, iconBarChart, iconAdd, iconPhoto, iconCamera, iconUpload, iconSend, iconSendActive } from '../assets';
 import { ActionChip, Attachment } from '../types';
-import { ToolbarPill, ToolbarIconButton, ToolbarSegmented, Tooltip } from './shared';
-
-type InputMode = 'Chat' | 'Tasks' | 'Code';
+import { ToolbarIconButton, Tooltip } from './shared';
 
 const CHIP_ICONS: Record<string, string> = {
   'Create performance goals': iconGoals,
@@ -18,15 +16,11 @@ interface ChatInputProps {
   quickChips?: string[];
   actionChips?: ActionChip[];
   onChipClick?: (chip: ActionChip) => void;
-  onModeChange?: (mode: 'Chat' | 'Tasks' | 'Code') => void;
-  chatOnly?: boolean;
   isAiResponding?: boolean;
-  /** Identifier for the active chat — when this changes, draftValue/forceMode are re-applied. */
+  /** Identifier for the active chat — when this changes, draftValue is re-applied. */
   chatKey?: string;
   /** Value to populate the input with when chatKey changes. */
   draftValue?: string;
-  /** Mode to force when chatKey changes. */
-  forceMode?: InputMode;
   /** Force the send button into its active state even when the input is empty. Click still calls onSend (with empty string if no text). */
   forceSendActive?: boolean;
   /** Open real-time voice mode (OpenAI Realtime API) */
@@ -70,33 +64,6 @@ function IconImg({ src, alt, noTheme, size = 24 }: { src: string; alt: string; n
   );
 }
 
-/** 16×16 inline SVG icons for mode selector */
-function ChatIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 w-[24px] h-[24px] md:w-[16px] md:h-[16px]">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    </svg>
-  );
-}
-
-function TasksIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 w-[24px] h-[24px] md:w-[16px] md:h-[16px]">
-      <path d="M9 11l3 3L22 4" />
-      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-    </svg>
-  );
-}
-
-function CodeIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 w-[24px] h-[24px] md:w-[16px] md:h-[16px]">
-      <polyline points="16 18 22 12 16 6" />
-      <polyline points="8 6 2 12 8 18" />
-    </svg>
-  );
-}
-
 function VoiceIcon16() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 w-[24px] h-[24px] md:w-[16px] md:h-[16px]">
@@ -108,20 +75,6 @@ function VoiceIcon16() {
     </svg>
   );
 }
-
-const MODE_ICONS: Record<InputMode, () => JSX.Element> = {
-  Chat: ChatIcon,
-  Tasks: TasksIcon,
-  Code: CodeIcon,
-};
-
-/** Simulated folder options */
-const FOLDER_OPTIONS = [
-  '~/Projects/WorkPal',
-  '~/Documents',
-  '~/Desktop',
-  '~/Downloads',
-];
 
 /** Per-attachment cap (8MB) and per-message cap (10 files). Keeps localStorage
  *  and in-memory data URLs manageable for a frontend-only prototype. */
@@ -146,31 +99,20 @@ function readFileAsDataUrl(file: File): Promise<string> {
 let attachmentIdCounter = 0;
 const nextAttachmentId = () => `att-${Date.now()}-${++attachmentIdCounter}`;
 
-/** Simulated branch options */
-const BRANCH_OPTIONS = ['main', 'develop', 'feature/chat-input', 'fix/ui-polish'];
-
-export default function ChatInput({ onSend, placeholder = 'Message WorkPal', quickChips, actionChips, onChipClick, onModeChange, chatOnly, chatKey, draftValue, forceMode, forceSendActive, onVoiceMode, voiceModeActive }: ChatInputProps) {
+export default function ChatInput({ onSend, placeholder = 'Message WorkPal', quickChips, actionChips, onChipClick, chatKey, draftValue, forceSendActive, onVoiceMode, voiceModeActive }: ChatInputProps) {
   const [value, setValue] = useState(() => draftValue ?? '');
   const [focused, setFocused] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
-  const [mode, setMode] = useState<InputMode>(() => forceMode ?? 'Chat');
-  const [folder, setFolder] = useState(FOLDER_OPTIONS[0]);
-  const [showFolderMenu, setShowFolderMenu] = useState(false);
-  const [branch, setBranch] = useState(BRANCH_OPTIONS[0]);
-  const [showBranchMenu, setShowBranchMenu] = useState(false);
-  const [useWorktree, setUseWorktree] = useState(false);
   const [isMultiline, setIsMultiline] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [attachError, setAttachError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const attachRef = useRef<HTMLDivElement>(null);
-  const folderRef = useRef<HTMLDivElement>(null);
-  const branchRef = useRef<HTMLDivElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Sync draft value + forced mode whenever the active chat changes
+  // Sync draft value whenever the active chat changes
   const lastChatKeyRef = useRef<string | undefined>(chatKey);
   useEffect(() => {
     if (chatKey === lastChatKeyRef.current) return;
@@ -178,11 +120,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
     setValue(draftValue ?? '');
     setAttachments([]);
     setAttachError(null);
-    if (forceMode && forceMode !== mode) {
-      setMode(forceMode);
-      onModeChange?.(forceMode);
-    }
-  }, [chatKey, draftValue, forceMode, mode, onModeChange]);
+  }, [chatKey, draftValue]);
 
   // Auto-dismiss the inline attach error after a few seconds
   useEffect(() => {
@@ -205,22 +143,17 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
     setIsMultiline(ta.scrollHeight > 30);
   }, [value]);
 
-  // Close popups on outside click
+  // Close the attach popup on outside click
   useEffect(() => {
+    if (!showAttachMenu) return;
     const handleClick = (e: MouseEvent) => {
-      if (showAttachMenu && attachRef.current && !attachRef.current.contains(e.target as Node)) {
+      if (attachRef.current && !attachRef.current.contains(e.target as Node)) {
         setShowAttachMenu(false);
-      }
-      if (showFolderMenu && folderRef.current && !folderRef.current.contains(e.target as Node)) {
-        setShowFolderMenu(false);
-      }
-      if (showBranchMenu && branchRef.current && !branchRef.current.contains(e.target as Node)) {
-        setShowBranchMenu(false);
       }
     };
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
-  }, [showAttachMenu, showFolderMenu, showBranchMenu]);
+  }, [showAttachMenu]);
 
   const handleSend = () => {
     const trimmed = value.trim();
@@ -309,12 +242,6 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
       textareaRef.current.style.height = 'auto';
       textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + 'px';
     }
-  };
-
-  const closeAllMenus = () => {
-    setShowAttachMenu(false);
-    setShowFolderMenu(false);
-    setShowBranchMenu(false);
   };
 
   const canSend = value.trim().length > 0 || attachments.length > 0;
@@ -522,16 +449,18 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
         </div>
       </div>
 
-      {/* Toolbar — separate row */}
+      {/* Toolbar — single attach button. The mode selector + folder / branch /
+          worktree pickers used to live here; they were removed so that chat is
+          the only input surface and the AI decides when to escalate to a full
+          task (see App.tsx → inspector panel auto-opens on the first tool
+          call). */}
       <div className="flex items-center relative">
-        {/* Left tools — + button, Mode selector, mode-specific options */}
         <div className="flex items-center gap-3 md:gap-2 flex-wrap min-w-0">
-          {/* + Attach button with border and popup */}
           <div ref={attachRef} className="relative">
             <Tooltip label="Attach">
               <ToolbarIconButton
                 ariaLabel="Attach"
-                onClick={() => { setShowAttachMenu(v => !v); setShowFolderMenu(false); setShowBranchMenu(false); }}
+                onClick={() => setShowAttachMenu(v => !v)}
               >
                 <span className="toolbar-icon-scale"><IconImg src={iconAdd} alt="Add" size={16} /></span>
               </ToolbarIconButton>
@@ -570,113 +499,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
               </div>
             )}
           </div>
-
-          {/* Mode selector — segmented pill, selected segment is blue */}
-          <ToolbarSegmented<InputMode>
-            value={mode}
-            onChange={m => { setMode(m); onModeChange?.(m); closeAllMenus(); }}
-            segments={(['Chat', 'Tasks', 'Code'] as InputMode[]).map(m => {
-              const Icon = MODE_ICONS[m];
-              const isDisabled = !!chatOnly && m !== 'Chat';
-              return {
-                value: m,
-                icon: <Icon />,
-                label: m,
-                disabled: isDisabled,
-                disabledTooltip: isDisabled ? `${m} (not available)` : undefined,
-              };
-            })}
-          />
-
-          {/* Mode-specific options */}
-          {(mode === 'Tasks' || mode === 'Code') && (
-            <div ref={folderRef} className="relative">
-              <ToolbarPill
-                onClick={() => { setShowFolderMenu(v => !v); setShowBranchMenu(false); setShowAttachMenu(false); }}
-                className="max-w-[270px] md:max-w-[180px]"
-                leading={
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 w-[24px] h-[24px] md:w-[16px] md:h-[16px]">
-                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                  </svg>
-                }
-                trailing={<img src={iconChevronDown} alt="" className="w-[18px] h-[18px] md:w-3 md:h-3 icon-theme shrink-0" />}
-              >
-                {folder}
-              </ToolbarPill>
-              {showFolderMenu && (
-                <div className="absolute bottom-full left-0 mb-3 md:mb-2 w-[336px] md:w-56 bg-bg-page border border-stroke-outline rounded-2xl md:rounded-xl shadow-lg py-3 md:py-2 z-50">
-                  {FOLDER_OPTIONS.map(f => (
-                    <button
-                      key={f}
-                      onClick={() => { setFolder(f); setShowFolderMenu(false); }}
-                      className={`w-full flex items-center justify-between px-6 md:px-4 py-3 md:py-2 text-[18px] md:text-xs transition-colors cursor-pointer ${
-                        folder === f ? 'text-text-primary font-medium' : 'text-text-secondary hover:bg-bg-hover'
-                      }`}
-                    >
-                      <span className="truncate">{f}</span>
-                      {folder === f && <span className="gradient-text font-semibold text-[18px] md:text-xs">✓</span>}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {mode === 'Code' && (
-            <>
-              {/* Branch selector */}
-              <div ref={branchRef} className="relative">
-                <ToolbarPill
-                  onClick={() => { setShowBranchMenu(v => !v); setShowFolderMenu(false); setShowAttachMenu(false); }}
-                  className="max-w-[240px] md:max-w-[160px]"
-                  leading={
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 w-[24px] h-[24px] md:w-[16px] md:h-[16px]">
-                      <line x1="6" y1="3" x2="6" y2="15" />
-                      <circle cx="18" cy="6" r="3" />
-                      <circle cx="6" cy="18" r="3" />
-                      <path d="M18 9a9 9 0 0 1-9 9" />
-                    </svg>
-                  }
-                  trailing={<img src={iconChevronDown} alt="" className="w-[18px] h-[18px] md:w-3 md:h-3 icon-theme shrink-0" />}
-                >
-                  {branch}
-                </ToolbarPill>
-                {showBranchMenu && (
-                  <div className="absolute bottom-full left-0 mb-3 md:mb-2 w-[312px] md:w-52 bg-bg-page border border-stroke-outline rounded-2xl md:rounded-xl shadow-lg py-3 md:py-2 z-50">
-                    {BRANCH_OPTIONS.map(b => (
-                      <button
-                        key={b}
-                        onClick={() => { setBranch(b); setShowBranchMenu(false); }}
-                        className={`w-full flex items-center justify-between px-6 md:px-4 py-3 md:py-2 text-[18px] md:text-xs transition-colors cursor-pointer ${
-                          branch === b ? 'text-text-primary font-medium' : 'text-text-secondary hover:bg-bg-hover'
-                        }`}
-                      >
-                        <span className="truncate">{b}</span>
-                        {branch === b && <span className="gradient-text font-semibold text-[18px] md:text-xs">✓</span>}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Worktree checkbox */}
-              <ToolbarPill
-                as="label"
-                leading={
-                  <input
-                    type="checkbox"
-                    checked={useWorktree}
-                    onChange={e => setUseWorktree(e.target.checked)}
-                    className="worktree-checkbox w-[21px] h-[21px] md:w-3.5 md:h-3.5 rounded cursor-pointer"
-                  />
-                }
-              >
-                Worktree
-              </ToolbarPill>
-            </>
-          )}
         </div>
-
       </div>
     </div>
   );

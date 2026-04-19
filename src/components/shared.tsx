@@ -23,11 +23,15 @@ import { type ReactNode, useEffect, useRef, useState, useLayoutEffect } from 're
 export function HeaderBar({
   sidebarOpen = true,
   onToggleSidebar,
+  headerLeft,
   headerRight,
   onNewChat,
 }: {
   sidebarOpen?: boolean;
   onToggleSidebar?: () => void;
+  /** Optional content aligned to the left, right after the sidebar toggle.
+   *  Used by ChatPanel to show the session folder chip. */
+  headerLeft?: ReactNode;
   headerRight?: ReactNode;
   onNewChat?: () => void;
 }) {
@@ -43,6 +47,7 @@ export function HeaderBar({
           <PanelLeft size={20} />
         </button>
       )}
+      {headerLeft}
       {hasRight && (
         <div className="ml-auto flex items-center gap-2">
           {onNewChat && (

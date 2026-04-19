@@ -13,7 +13,8 @@ import LibraryPage from './components/LibraryPage';
 import MemoryPage from './components/MemoryPage';
 import NewProjectDialog from './components/NewProjectDialog';
 import { SplitView } from './components/shared';
-import { Chat, ChatMode, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleCard, ImageResult, VideoResult, WebResult, MemoryEntry, MemoryKind, CardData } from './types';
+import { Chat, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleCard, ImageResult, VideoResult, WebResult, MemoryEntry, MemoryKind, CardData, ChangeEntry, PermissionRequest } from './types';
+import PermissionPrompt from './components/PermissionPrompt';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
 import { INITIAL_CHATS } from './data';
 import { streamChat } from './lib/api';
@@ -109,10 +110,18 @@ function loadChats(): Chat[] {
         seen.add(c.id);
         return true;
       });
-      return deduped.map((c: any) => ({
+      // Backfill new seed fields so cached visitors get Phase 2 behavior
+      // without wiping their real chats. Keep this list narrow — every
+      // entry here is a documented field added post-v2 storage key.
+      const seedById: Record<string, Partial<Chat>> = Object.fromEntries(
+        INITIAL_CHATS.map(c => [c.id, c]),
+      );
+      return deduped.map((c: any): Chat => ({
         ...c,
         timestamp: new Date(c.timestamp),
         messages: c.messages.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) })),
+        hasInspector: c.hasInspector ?? seedById[c.id]?.hasInspector,
+        sessionFolder: c.sessionFolder ?? seedById[c.id]?.sessionFolder,
       }));
     }
   } catch { /* ignore corrupted data */ }
@@ -363,6 +372,56 @@ function findLastIndex<T>(arr: T[], predicate: (item: T) => boolean): number {
 let msgIdCounter = 100;
 const nextId = () => String(++msgIdCounter);
 
+/** Cosmetic root for every session folder — matches what the future Claude
+ *  Code CLI backend will actually mkdir. Shown in the inspector's Folder card
+ *  and the chat header's folder chip. */
+const SESSION_FOLDER_ROOT = '~/WorkPal';
+
+/** `YYYY-MM-DD` for the `{date}-{slug}` prefix. Uses local time so the folder
+ *  name matches what the user sees on their clock. */
+function todayDateStamp(date: Date = new Date()): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/** Title → filesystem-safe slug. Lowercase, spaces → dashes, strips
+ *  punctuation, keeps CJK characters verbatim (they're valid in POSIX paths
+ *  and easier to scan than pinyin). Capped so long prompts don't produce
+ *  absurd paths. */
+function slugify(title: string): string {
+  const lower = title.trim().toLowerCase();
+  const cleaned = lower
+    // Replace any run of whitespace or unsafe-for-path chars with a dash.
+    // Keep letters/digits (incl. non-Latin), dashes, and underscores.
+    .replace(/[^\p{L}\p{N}_-]+/gu, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-{2,}/g, '-');
+  return cleaned.slice(0, 40).replace(/-+$/g, '') || 'session';
+}
+
+function buildSessionFolder(title: string, date: Date = new Date()): string {
+  return `${SESSION_FOLDER_ROOT}/${todayDateStamp(date)}-${slugify(title)}/`;
+}
+
+/** When a session is promoted to a project (or moved into one), its folder
+ *  nests as `~/WorkPal/{project-slug}/sessions/{session-slug}/`. Extracts the
+ *  session's existing `{date}-{slug}` piece so we don't rename the folder on
+ *  promote — only reparent it. */
+function nestFolderUnderProject(sessionFolder: string | undefined, projectName: string, sessionTitle: string, date: Date = new Date()): string {
+  const projectSlug = slugify(projectName);
+  let sessionSlug = `${todayDateStamp(date)}-${slugify(sessionTitle)}`;
+  if (sessionFolder) {
+    // Pull the last non-empty path segment out of the existing folder so we
+    // keep whatever the user already saw on screen.
+    const parts = sessionFolder.replace(/\/+$/, '').split('/');
+    const last = parts[parts.length - 1];
+    if (last) sessionSlug = last;
+  }
+  return `${SESSION_FOLDER_ROOT}/${projectSlug}/sessions/${sessionSlug}/`;
+}
+
 // Responsive panel hierarchy (priority-based collapse).
 //
 // Module minimum widths (per design):
@@ -419,13 +478,14 @@ export default function App() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [onboardingDone, setOnboardingDone] = useState(() => localStorage.getItem('workpal-onboarding-done') === 'true');
   const [activeView, setActiveView] = useState<'chat' | 'connectors' | 'design-system' | 'overview' | 'library' | 'memory'>('chat');
-  const [inputMode, setInputMode] = useState<'Chat' | 'Tasks' | 'Code'>('Chat');
-  const [taskModeMsgSent, setTaskModeMsgSent] = useState(false);
-  const [taskPanelPreviewing, setTaskPanelPreviewing] = useState(false);
-  const [_taskModeUserMsg, setTaskModeUserMsg] = useState('');
   const [projects, setProjects] = useState<Project[]>(loadProjects);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
+  /** Chat ids currently being promoted to a project. null = dialog closed,
+   *  non-empty array = open the dialog pre-filled from those chats. Single
+   *  element for the one-row "Promote to Project" menu, multiple for the
+   *  multi-select "New project…" action bar. */
+  const [promotingChatIds, setPromotingChatIds] = useState<string[] | null>(null);
   // Memory: persistent context about the user. Core + preference memories apply
   // to every chat; project-scoped memories apply only when a chat sits under
   // the matching project. Injected via buildMemoryBlock in streamFromAPI.
@@ -450,6 +510,17 @@ export default function App() {
   const [voiceModeActive, setVoiceModeActive] = useState(false);
   const [voicePendingText, setVoicePendingText] = useState<string | undefined>();
   const [voicePendingImages, setVoicePendingImages] = useState<string[] | undefined>();
+  // Phase 4: auto-commit log + permission gating. Both are session-only —
+  // no localStorage, no cross-reload persistence. changes is keyed by chat
+  // id so each session has its own log.
+  const [changes, setChanges] = useState<Record<string, ChangeEntry[]>>({});
+  /** Active modal permission request. When non-null the PermissionPrompt is
+   *  rendered; the `resolve` callback is wired from whoever called
+   *  `requestPermission()` so they can await the user's decision. */
+  const [pendingPermission, setPendingPermission] = useState<(PermissionRequest & { resolve: (allow: boolean) => void }) | null>(null);
+  /** "Always allow" memory — session-only Set of "{kind}:{scope}" strings.
+   *  Subsequent requests matching a stored entry skip the modal. */
+  const [approvedScopes, setApprovedScopes] = useState<Set<string>>(() => new Set());
 
   // Toggle dark class on root element
   useEffect(() => {
@@ -512,6 +583,54 @@ export default function App() {
     }));
   }, [updateChat]);
 
+  /** Append a change entry to the chat's log. Shown in the inspector's
+   *  Changes card. No real git commit happens — this is the UI surface for
+   *  the Phase 4 spec's auto-commit behavior. */
+  const addChange = useCallback((chatId: string, entry: Omit<ChangeEntry, 'id' | 'timestamp'>) => {
+    const full: ChangeEntry = {
+      ...entry,
+      id: `ch-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      timestamp: new Date(),
+    };
+    setChanges(prev => ({ ...prev, [chatId]: [...(prev[chatId] || []), full] }));
+  }, []);
+
+  /** Flip a Change entry to `undone: true`. Stays visible in the log greyed
+   *  out with an Undone tag. No real file revert. */
+  const handleUndoChange = useCallback((chatId: string, changeId: string) => {
+    setChanges(prev => {
+      const list = prev[chatId] || [];
+      return { ...prev, [chatId]: list.map(c => c.id === changeId ? { ...c, undone: true } : c) };
+    });
+  }, []);
+
+  /** Open the PermissionPrompt modal and await the user's decision. Returns
+   *  true on Allow / Always allow, false on Cancel. "Always allow" also
+   *  caches the scope so subsequent same-scope requests skip the modal for
+   *  this session. */
+  const requestPermission = useCallback((req: Omit<PermissionRequest, 'id'>): Promise<boolean> => {
+    const scopeKey = `${req.kind}:${req.scope}`;
+    if (approvedScopes.has(scopeKey)) return Promise.resolve(true);
+    return new Promise<boolean>(resolve => {
+      setPendingPermission({
+        ...req,
+        id: `perm-${Date.now()}`,
+        resolve,
+      });
+    });
+  }, [approvedScopes]);
+
+  /** Flip a chat into "inspector" state: persist `hasInspector: true` on the
+   *  chat (so reopens restore the panel) and open the right side panel. Called
+   *  the first time the AI decides to use a tool in a given chat — that's the
+   *  signal that this is real work, not just a chat. */
+  const openInspector = useCallback((chatId: string) => {
+    setChats(prev => prev.map(c =>
+      c.id === chatId && !c.hasInspector ? { ...c, hasInspector: true } : c
+    ));
+    setContextPanelOpen(true);
+  }, []);
+
   const showTypingThenRespond = useCallback((
     chatId: string,
     responses: Omit<Message, 'id' | 'timestamp' | 'role'>[],
@@ -557,11 +676,7 @@ export default function App() {
      *  chats closure hasn't committed yet, so we can't look up projectId via
      *  the chat row the way the post-submit path does. */
     projectIdOverride?: string,
-    /** Chat mode to forward to the backend — gates which tools the LLM sees.
-     *  Defaults to the current UI mode when not explicitly passed. */
-    modeOverride?: ChatMode,
   ) => {
-    const mode: ChatMode = modeOverride ?? inputMode;
     // Collect conversation history for context
     // We pass userText/attachments explicitly because setChats hasn't committed yet.
     // Historical messages forward their own image attachments too so the model keeps
@@ -620,7 +735,7 @@ export default function App() {
 
     try {
       let fullContent = '';
-      for await (const chunk of streamChat(history, undefined, mode)) {
+      for await (const chunk of streamChat(history)) {
         if (chunk.type === 'text') {
           fullContent += chunk.content;
           // Update the message in-place with streamed content
@@ -701,8 +816,13 @@ export default function App() {
             next[idx] = chunk.step;
             return next;
           });
+          // First tool signal in this chat → mark hasInspector + open the
+          // side panel. The model deciding to call a tool IS the "this is
+          // complex" signal, so we don't need a client-side heuristic.
+          openInspector(chatId);
         } else if (chunk.type === 'tool_active') {
           setActiveTools(prev => prev.includes(chunk.name) ? prev : [...prev, chunk.name]);
+          openInspector(chatId);
         } else if (chunk.type === 'error') {
           fullContent = `Sorry, something went wrong: ${chunk.content}`;
         }
@@ -738,7 +858,7 @@ export default function App() {
         };
       }));
     }
-  }, [chats, projects, memories, addMessage, inputMode]);
+  }, [chats, projects, memories, addMessage, openInspector]);
 
   // Auto-respond when opening ux-meeting chat with only the user message
   useEffect(() => {
@@ -751,66 +871,108 @@ export default function App() {
     }
   }, [activeChatId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Custom multi-step flow for the Alcohol Delivery Issues demo chat
-  const runAlcoholDeliveryFlow = useCallback((chatId: string) => {
+  // Custom multi-step flow for the Alcohol Delivery Issues demo chat.
+  // Phase 4: between step 1 and step 2 we pop a PermissionPrompt asking to
+  // read an external file. Allow → flow resumes; Cancel → flow halts with a
+  // Change entry "Task stopped: permission denied".
+  const runAlcoholDeliveryFlow = useCallback(async (chatId: string) => {
     const cardMsgId = nextId();
 
+    // Clear any prior changes so repeated runs of the demo start fresh.
+    setChanges(prev => ({ ...prev, [chatId]: [] }));
+
+    const sleep = (ms: number) => new Promise<void>(r => window.setTimeout(r, ms));
+
     // 1. Show in-progress research card after a short delay
-    setTimeout(() => {
-      setChats(prev => prev.map(c => {
-        if (c.id !== chatId) return c;
-        const inProgress: Message = {
-          id: cardMsgId,
-          role: 'assistant',
-          content: '',
-          timestamp: new Date(),
-          card: {
-            type: 'research',
-            title: 'Confirming citation',
-            summary: '',
-            status: 'in-progress',
-          },
-        };
-        return { ...c, messages: [...c.messages, inProgress], timestamp: new Date() };
-      }));
-    }, 300);
+    await sleep(300);
+    setChats(prev => prev.map(c => {
+      if (c.id !== chatId) return c;
+      const inProgress: Message = {
+        id: cardMsgId,
+        role: 'assistant',
+        content: '',
+        timestamp: new Date(),
+        card: {
+          type: 'research',
+          title: 'Confirming citation',
+          summary: '',
+          status: 'in-progress',
+        },
+      };
+      return { ...c, messages: [...c.messages, inProgress], timestamp: new Date() };
+    }));
 
-    // 2. Animate progress steps in the right panel
+    // 2. First progress step runs, then we gate step 2 behind permission.
     setAlcoholProgress(0);
-    setTimeout(() => setAlcoholProgress(1), 1300);
-    setTimeout(() => setAlcoholProgress(2), 2300);
-    setTimeout(() => setAlcoholProgress(3), 3300);
+    await sleep(1300);
 
-    // 3. Swap in-progress card → final report preview + chips
-    setTimeout(() => {
-      setAlcoholProgress(4);
+    const allowed = await requestPermission({
+      kind: 'file-read',
+      target: '~/Downloads/driver_reports.zip',
+      scope: '~/Downloads/driver_reports.zip',
+      reason: 'Needed to identify top pain points from the Spark driver incident archive.',
+    });
+    if (!allowed) {
+      addChange(chatId, {
+        kind: 'halt',
+        label: 'Task stopped: permission denied for ~/Downloads/driver_reports.zip',
+      });
       setChats(prev => prev.map(c => {
         if (c.id !== chatId) return c;
         const messages = c.messages.map(m =>
           m.id === cardMsgId
             ? {
                 ...m,
-                content: 'All done! Let me know if you\'d like some **recommendations** based on the report findings — or, if it makes sense, we can also **explore solutions** or even **set up a meeting** to discuss things further. 😊',
-                card: {
-                  type: 'research' as const,
-                  title: 'Summary Report: Spark Driver Alcohol',
-                  summary: 'Alcohol delivery introduces a higher regulatory and reputational risk for delivery platforms.',
-                },
-                chips: [
-                  { label: 'Set Up Meeting', action: 'set-up-meeting' },
-                  { label: 'Explore Solutions', action: 'explore-solutions' },
-                  { label: 'View Recommendations', action: 'view-recommendations' },
-                ],
+                content: 'I stopped here — I don\'t have permission to read `~/Downloads/driver_reports.zip`. Let me know if you\'d like to grant access or pick a different source.',
+                card: undefined,
               }
             : m
         );
         return { ...c, messages };
       }));
-    }, 4300);
-  }, []);
+      return;
+    }
+
+    // 3. Resume: steps 2 → 4 progress, file changes appear at step 3 and 4.
+    setAlcoholProgress(1);
+    await sleep(1000);
+    setAlcoholProgress(2);
+    await sleep(1000);
+    setAlcoholProgress(3);
+    addChange(chatId, { kind: 'create', label: 'summary-report.md' });
+    await sleep(1000);
+
+    // 4. Swap in-progress card → final report preview + chips, edit the file
+    setAlcoholProgress(4);
+    addChange(chatId, { kind: 'edit', label: 'summary-report.md (added recommendations)' });
+    setChats(prev => prev.map(c => {
+      if (c.id !== chatId) return c;
+      const messages = c.messages.map(m =>
+        m.id === cardMsgId
+          ? {
+              ...m,
+              content: 'All done! Let me know if you\'d like some **recommendations** based on the report findings — or, if it makes sense, we can also **explore solutions** or even **set up a meeting** to discuss things further. 😊',
+              card: {
+                type: 'research' as const,
+                title: 'Summary Report: Spark Driver Alcohol',
+                summary: 'Alcohol delivery introduces a higher regulatory and reputational risk for delivery platforms.',
+              },
+              chips: [
+                { label: 'Set Up Meeting', action: 'set-up-meeting' },
+                { label: 'Explore Solutions', action: 'explore-solutions' },
+                { label: 'View Recommendations', action: 'view-recommendations' },
+              ],
+            }
+          : m
+      );
+      return { ...c, messages };
+    }));
+  }, [requestPermission, addChange]);
 
   const handleSend = useCallback((text: string, attachments?: Attachment[]) => {
-    // Special-case the alcohol-delivery demo chat: keep title, run scripted flow
+    // Special-case the alcohol-delivery demo chat: keep title, run scripted
+    // flow, and auto-open the inspector (the demo is a scripted "complex task"
+    // — we don't wait for a real tool call to flip it on).
     if (activeChatId === 'alcohol-delivery') {
       const userMessage: Message = {
         id: nextId(),
@@ -821,33 +983,19 @@ export default function App() {
       };
       setChats(prev => prev.map(c =>
         c.id === 'alcohol-delivery'
-          ? { ...c, messages: [...c.messages, userMessage], lastMessage: text, timestamp: new Date() }
+          ? { ...c, messages: [...c.messages, userMessage], lastMessage: text, timestamp: new Date(), hasInspector: true }
           : c
       ));
-      setInputMode('Tasks');
-      setTaskModeMsgSent(true);
-      setTaskModeUserMsg(text);
-      if (getCanFitPanel()) {
-        // Desktop with room: open the inline panel directly (original behavior)
-        setContextPanelOpen(true);
-      } else {
-        // Narrow viewport: keep chat in focus, run a preview animation hint
-        setContextPanelOpen(false);
-        setTaskPanelPreviewing(true);
-        window.setTimeout(() => setTaskPanelPreviewing(false), 3000);
-      }
+      setContextPanelOpen(true);
       runAlcoholDeliveryFlow('alcohol-delivery');
       return;
     }
 
-    if (inputMode === 'Tasks') {
-      setTaskModeMsgSent(true);
-      setTaskModeUserMsg(text);
-      // Fresh send in Tasks mode — clear any prior live progress/tools so the
-      // right panel shows this task's work, not the previous one's.
-      setTaskSteps([]);
-      setActiveTools([]);
-    }
+    // Fresh send — clear any prior live progress/tools so the inspector panel
+    // shows this run's work, not the previous one's.
+    setTaskSteps([]);
+    setActiveTools([]);
+
     // Find or create active chat
     let chatId = activeChatId;
 
@@ -857,14 +1005,15 @@ export default function App() {
       const derivedTitle = titleSource
         ? titleSource.slice(0, 40) + (titleSource.length > 40 ? '...' : '')
         : 'New Session';
+      // Auto-generate the session folder on first send. The slug comes from
+      // the derived title, not the chat id, so it's meaningful to humans.
+      const sessionFolder = buildSessionFolder(titleSource || 'session');
       if (activeChat && activeChat.messages.length === 0) {
         // Reuse existing empty chat (e.g. "New Session") and update its title.
         // Promote it from draft → recent so it shows up in the Recents list.
-        // Also freeze the current inputMode onto the chat so reopens restore
-        // the right footer mode + side panel state.
         chatId = activeChat.id;
         setChats(prev => prev.map(c =>
-          c.id === chatId ? { ...c, title: derivedTitle, lastMessage: text, timestamp: new Date(), isDraft: false, mode: inputMode } : c
+          c.id === chatId ? { ...c, title: derivedTitle, lastMessage: text, timestamp: new Date(), isDraft: false, sessionFolder: c.sessionFolder ?? sessionFolder } : c
         ));
       } else {
         // No active chat at all — create a new one
@@ -875,7 +1024,7 @@ export default function App() {
           lastMessage: text,
           timestamp: new Date(),
           messages: [],
-          mode: inputMode,
+          sessionFolder,
         };
         setChats(prev => [newChat, ...prev.filter(c => c.id !== 'my-workpal'), prev.find(c => c.id === 'my-workpal')!]);
         setActiveChatId(chatId);
@@ -931,7 +1080,7 @@ export default function App() {
     } else {
       streamFromAPI(chatId, text, attachments);
     }
-  }, [activeChatId, activeChat, showTypingThenRespond, streamFromAPI, inputMode, voiceModeActive]);
+  }, [activeChatId, activeChat, showTypingThenRespond, streamFromAPI, runAlcoholDeliveryFlow, voiceModeActive]);
 
   const handleChipClick = useCallback((chip: ActionChip) => {
     // Treat chip click as a user message
@@ -1015,7 +1164,6 @@ export default function App() {
           timestamp: new Date(),
           chips: [
             { label: '🔗 Connect my tools', action: 'connect-tools' },
-            { label: '🚀 Start a task', action: 'start-task' },
             { label: '💬 Just chat', action: 'just-chat' },
           ],
         });
@@ -1265,24 +1413,18 @@ export default function App() {
       setAlcoholProgress(4);
       setDetailOpen(false);
       setContextPanelOpen(false);
-      setTaskPanelPreviewing(false);
     }
-    // Reset task-mode panel state, then re-apply based on the target chat's
-    // stored mode so a Task chat reopens with its right panel, and a Chat
-    // chat reopens without one.
+    // Re-open the inspector panel only for chats that already triggered it.
+    // An unsent chat (messages empty) stays quiet even if a previous session
+    // under the same id had the panel — the panel re-opens on the next tool
+    // call (or, for the alcohol-delivery demo, on the next send).
     const target = chats.find(c => c.id === id);
-    const isTaskChat = target?.mode === 'Tasks' && target.messages.length > 0;
-    setTaskModeMsgSent(isTaskChat);
-    if (isTaskChat) {
-      setContextPanelOpen(getCanFitPanel());
-    } else {
-      setContextPanelOpen(false);
-    }
+    const showInspector = !!target?.hasInspector && target.messages.length > 0;
+    setContextPanelOpen(showInspector && getCanFitPanel());
     // Streaming task progress is per-conversation-turn — clearing on switch
     // prevents old chatroom's progress from bleeding into the next one.
     setTaskSteps([]);
     setActiveTools([]);
-    if (target?.mode) setInputMode(target.mode);
     setActiveChatId(id);
     setActiveProjectId(null);
     setActiveView('chat');
@@ -1293,11 +1435,10 @@ export default function App() {
     setActiveView('chat'); // reset view
   }, []);
 
-  // Create a new chat inside a project with the chosen mode, then send the
-  // first message. Invoked when the user types into the project page's input.
+  // Create a new chat inside a project, then send the first message. Invoked
+  // when the user types into the project page's input.
   const handleCreateChatInProject = useCallback((
     projectId: string,
-    mode: ChatMode,
     text: string,
     attachments?: Attachment[],
   ) => {
@@ -1313,6 +1454,10 @@ export default function App() {
       timestamp: new Date(),
       ...(attachments && attachments.length ? { attachments } : {}),
     };
+    const project = projects.find(p => p.id === projectId);
+    const sessionFolder = project
+      ? nestFolderUnderProject(undefined, project.name, titleSource || 'session')
+      : buildSessionFolder(titleSource || 'session');
     const newChat: Chat = {
       id: chatId,
       title: derivedTitle,
@@ -1320,7 +1465,7 @@ export default function App() {
       timestamp: new Date(),
       messages: [userMessage],
       projectId,
-      mode,
+      sessionFolder,
     };
     // Insert at the top so it appears first in both root Recents and the
     // project's Recents list.
@@ -1328,23 +1473,14 @@ export default function App() {
     setActiveChatId(chatId);
     setActiveProjectId(null);
     setActiveView('chat');
-    setInputMode(mode);
-    if (mode === 'Tasks') {
-      setTaskModeMsgSent(true);
-      setTaskModeUserMsg(text);
-      setContextPanelOpen(getCanFitPanel());
-      setTaskSteps([]);
-      setActiveTools([]);
-    } else {
-      setTaskModeMsgSent(false);
-      setContextPanelOpen(false);
-    }
+    setContextPanelOpen(false);
+    setTaskSteps([]);
+    setActiveTools([]);
     // Stream the AI response — pass projectId explicitly because the chats
-    // closure inside streamFromAPI hasn't committed the new chat yet.
-    // Pass the mode override too so a Tasks-mode project chat starts with the
-    // right tool set even before setInputMode() commits.
-    streamFromAPI(chatId, text, attachments, projectId, mode);
-  }, [streamFromAPI]);
+    // closure inside streamFromAPI hasn't committed the new chat yet. The
+    // inspector panel auto-opens when the model calls its first tool.
+    streamFromAPI(chatId, text, attachments, projectId);
+  }, [streamFromAPI, projects]);
 
   const handleCreateProject = useCallback((name: string, description: string) => {
     const newProject: Project = {
@@ -1355,6 +1491,37 @@ export default function App() {
     setProjects(prev => [...prev, newProject]);
     setNewProjectOpen(false);
   }, []);
+
+  /** Promote one or more sessions into a brand-new project. Creates the
+   *  project, links each chat to it, nests every sessionFolder under the
+   *  project, and drops the user onto the new project's page. One-way — no
+   *  downgrade. For batch promote, the optional `folderOverride` is used as
+   *  the *project* folder (only the first chat honors it; the rest auto-nest
+   *  under the same project root via nestFolderUnderProject). */
+  const handlePromoteToProject = useCallback((chatIds: string[], name: string, description: string, folderOverride?: string) => {
+    if (chatIds.length === 0) return;
+    const idSet = new Set(chatIds);
+    const targets = chats.filter(c => idSet.has(c.id));
+    if (targets.length === 0) return;
+    const projectId = `proj-${Date.now()}`;
+    const newProject: Project = {
+      id: projectId,
+      name,
+      description: description || undefined,
+    };
+    const useOverride = folderOverride && folderOverride.length > 0 && targets.length === 1;
+    setProjects(prev => [...prev, newProject]);
+    setChats(prev => prev.map(c => {
+      if (!idSet.has(c.id)) return c;
+      const nested = useOverride
+        ? folderOverride!
+        : nestFolderUnderProject(c.sessionFolder, name, c.title);
+      return { ...c, projectId, sessionFolder: nested };
+    }));
+    setPromotingChatIds(null);
+    setActiveProjectId(projectId);
+    setActiveView('chat');
+  }, [chats]);
 
   const handleDeleteChat = useCallback((id: string) => {
     setChats(prev => {
@@ -1476,13 +1643,49 @@ export default function App() {
   }, [ensurePassword]);
 
   // Move a chat into a project (or out of any project when projectId is null).
-  // Triggered from the Recents row's 3-dot menu.
+  // Triggered from the Recents row's 3-dot menu. Also re-nests the cosmetic
+  // sessionFolder path so it matches the chat's new home.
   const handleMoveChat = useCallback((chatId: string, projectId: string | null) => {
-    setChats(prev => prev.map(c =>
-      c.id === chatId
-        ? { ...c, projectId: projectId ?? undefined }
-        : c
-    ));
+    setChats(prev => {
+      const chat = prev.find(c => c.id === chatId);
+      if (!chat) return prev;
+      const nextFolder = projectId
+        ? nestFolderUnderProject(
+            chat.sessionFolder,
+            projects.find(p => p.id === projectId)?.name ?? 'project',
+            chat.title,
+          )
+        : buildSessionFolder(chat.title);
+      return prev.map(c =>
+        c.id === chatId
+          ? { ...c, projectId: projectId ?? undefined, sessionFolder: nextFolder }
+          : c
+      );
+    });
+  }, [projects]);
+
+  // Batch version of handleMoveChat — every selected chat moves into the same
+  // existing project. Folder paths are re-nested per chat so each keeps its
+  // own `{date}-{slug}` leaf under `sessions/`.
+  const handleBulkMoveToProject = useCallback((chatIds: string[], projectId: string) => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+    const idSet = new Set(chatIds);
+    setChats(prev => prev.map(c => {
+      if (!idSet.has(c.id)) return c;
+      return {
+        ...c,
+        projectId,
+        sessionFolder: nestFolderUnderProject(c.sessionFolder, project.name, c.title),
+      };
+    }));
+  }, [projects]);
+
+  // Open the promote dialog pre-filled for the selected chats. On confirm,
+  // `handlePromoteToProject` creates a new project and moves all of them in.
+  const handleBulkPromoteToProject = useCallback((chatIds: string[]) => {
+    if (chatIds.length === 0) return;
+    setPromotingChatIds(chatIds);
   }, []);
 
   // Voice mode: close session
@@ -1595,6 +1798,9 @@ export default function App() {
                   onDeleteChat={handleDeleteChat}
                   onDeleteProject={handleDeleteProject}
                   onMoveChat={handleMoveChat}
+                  onPromoteChat={(id) => setPromotingChatIds([id])}
+                  onBulkMoveToProject={handleBulkMoveToProject}
+                  onBulkPromoteToProject={handleBulkPromoteToProject}
                   isDark={isDark}
                   onToggleDark={() => setIsDark(d => !d)}
                   onToggleSidebar={() => setSidebarOpen(o => !o)}
@@ -1663,6 +1869,8 @@ export default function App() {
             sidebarOpen={sidebarOpen || !isMobile}
             onToggleSidebar={() => setSidebarOpen(o => !o)}
             onNewChat={isMobile ? handleNewChat : undefined}
+            onOpenChat={handleChatSelect}
+            onOpenProject={handleProjectSelect}
           />
         ) : activeView === 'library' ? (
           <LibraryPage
@@ -1693,7 +1901,7 @@ export default function App() {
           // context panel when it opens Detail).
           const sideKind: 'detail' | 'context' | null =
             detailOpen ? 'detail'
-            : (inputMode === 'Tasks' && taskModeMsgSent && contextPanelOpen) ? 'context'
+            : (activeChat?.hasInspector && contextPanelOpen) ? 'context'
             : null;
           return (
             <SplitView
@@ -1747,6 +1955,9 @@ export default function App() {
                       toolsActive={liveTools}
                       useDemoDefaults={isDemo}
                       fullScreen={overlay}
+                      folderPath={activeChat?.sessionFolder}
+                      changes={activeChat ? changes[activeChat.id] : undefined}
+                      onUndoChange={activeChat ? (id) => handleUndoChange(activeChat.id, id) : undefined}
                     />
                   );
                 }
@@ -1771,13 +1982,11 @@ export default function App() {
                 isDark={isDark}
                 selectedAvatarId={selectedAvatarId}
                 onAvatarChange={setSelectedAvatarId}
-                onModeChange={(m) => { setInputMode(m); if (m !== 'Tasks') { setTaskModeMsgSent(false); setTaskModeUserMsg(''); } }}
-                showContextToggle={inputMode === 'Tasks' && taskModeMsgSent && !detailOpen}
+                showContextToggle={!!activeChat?.hasInspector && !detailOpen}
                 contextPanelOpen={contextPanelOpen}
                 onToggleContextPanel={() => setContextPanelOpen(o => !o)}
                 isAiResponding={isAiResponding}
                 draftValue={activeChat?.draftPrompt}
-                forceMode={activeChat?.id === 'alcohol-delivery' ? 'Tasks' : activeChat?.mode}
                 onNewChat={isMobile ? handleNewChat : undefined}
                 onVoiceMode={() => setVoiceModeActive(true)}
                 voiceModeActive={voiceModeActive}
@@ -1790,34 +1999,78 @@ export default function App() {
                 voicePendingImages={voicePendingImages}
                 onVoicePendingTextConsumed={() => { setVoicePendingText(undefined); setVoicePendingImages(undefined); }}
               />
-              {/* Task panel preview — slides in from right then back out (3s) */}
-              {taskPanelPreviewing && !contextPanelOpen && !detailOpen && (
-                <div
-                  className="absolute top-0 right-0 bottom-0 z-20 task-panel-preview pointer-events-none overflow-hidden"
-                  style={{ width: 'min(60vw, 504px)' }}
-                >
-                  <TaskContextPanel
-                    onClose={() => {}}
-                    progress={activeChatId === 'alcohol-delivery' ? buildAlcoholProgress(alcoholProgress) : undefined}
-                    useDemoDefaults={activeChatId === 'alcohol-delivery'}
-                    fullScreen
-                  />
-                </div>
-              )}
             </SplitView>
           );
         })()}
       </div>
 
-      {/* New Project Dialog */}
-      <NewProjectDialog
-        open={newProjectOpen}
-        onClose={() => setNewProjectOpen(false)}
-        onCreate={handleCreateProject}
-      />
+      {/* New Project Dialog — doubles as the "Promote to Project" dialog when
+          `promotingChatIds` is set. Works for a single row (from RowMoreMenu)
+          or a batch (from the multi-select action bar). */}
+      {(() => {
+        const promotingChats = promotingChatIds && promotingChatIds.length > 0
+          ? chats.filter(c => promotingChatIds.includes(c.id))
+          : [];
+        const isPromote = promotingChats.length > 0;
+        const dialogOpen = newProjectOpen || isPromote;
+        // For batch promote: seed the name from the first chat and the folder
+        // suggestion from the hypothetical project (root-level, no sessions/
+        // leaf — each chat will get its own leaf when nested on confirm).
+        const first = promotingChats[0];
+        const suggestedName = isPromote ? first.title : undefined;
+        const suggestedFolder = isPromote
+          ? (promotingChats.length > 1
+              ? `~/WorkPal/${slugify(first.title)}/`
+              : nestFolderUnderProject(first.sessionFolder, first.title, first.title))
+          : undefined;
+        return (
+          <NewProjectDialog
+            open={dialogOpen}
+            mode={isPromote ? 'promote' : 'create'}
+            suggestedName={suggestedName}
+            suggestedFolder={suggestedFolder}
+            chatCount={isPromote ? promotingChats.length : undefined}
+            onClose={() => {
+              if (isPromote) setPromotingChatIds(null);
+              else setNewProjectOpen(false);
+            }}
+            onCreate={(name, description, folder) => {
+              if (isPromote) {
+                handlePromoteToProject(promotingChats.map(c => c.id), name, description, folder);
+              } else {
+                handleCreateProject(name, description);
+              }
+            }}
+          />
+        );
+      })()}
 
       {/* Memory password prompt (rendered by useMemoryAuth) */}
       {passwordModal}
+
+      {/* Phase 4 permission gate — any call to requestPermission() surfaces
+          here as a modal; the Promise resolves once the user picks. */}
+      <PermissionPrompt
+        request={pendingPermission}
+        onAllow={(req) => {
+          pendingPermission?.resolve(true);
+          setPendingPermission(null);
+          void req; // keep lint quiet; the resolve handler closes over it
+        }}
+        onAlwaysAllow={(req) => {
+          setApprovedScopes(prev => {
+            const next = new Set(prev);
+            next.add(`${req.kind}:${req.scope}`);
+            return next;
+          });
+          pendingPermission?.resolve(true);
+          setPendingPermission(null);
+        }}
+        onCancel={() => {
+          pendingPermission?.resolve(false);
+          setPendingPermission(null);
+        }}
+      />
 
     </div>
   );

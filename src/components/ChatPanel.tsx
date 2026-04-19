@@ -1,11 +1,41 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { PanelRight } from 'lucide-react';
+import { PanelRight, FolderClosed, Check } from 'lucide-react';
 import { Chat, Message, ActionChip, Attachment, ImageResult, VideoResult, WebResult, CardData } from '../types';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import VoiceMode from './VoiceMode';
 import { HeaderBar } from './shared';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from '../assets';
+
+/** Copy-on-click chip showing the session's folder path. Click flips the
+ *  trailing icon to a checkmark for 1.5s so the user gets immediate feedback
+ *  that the clipboard write went through. */
+function FolderChip({ path }: { path: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleClick = async () => {
+    try {
+      await navigator.clipboard.writeText(path);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard API unavailable (e.g. insecure context) — fail silently */
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      aria-label={copied ? 'Folder path copied' : `Copy folder path ${path}`}
+      className="flex items-center gap-1.5 min-w-0 max-w-[320px] px-3 h-10 rounded-full border border-stroke-outline hover:bg-bg-hover transition-colors text-text-primary"
+      title={path}
+    >
+      {copied
+        ? <Check size={14} className="shrink-0 text-[#028901]" />
+        : <FolderClosed size={14} className="shrink-0" />}
+      <span className="font-mono text-[12px] leading-[16px] truncate">{path}</span>
+    </button>
+  );
+}
 
 interface ChatPanelProps {
   chat: Chat | null;
@@ -17,13 +47,11 @@ interface ChatPanelProps {
   isDark?: boolean;
   selectedAvatarId?: string;
   onAvatarChange?: (id: string) => void;
-  onModeChange?: (mode: 'Chat' | 'Tasks' | 'Code') => void;
   showContextToggle?: boolean;
   contextPanelOpen?: boolean;
   onToggleContextPanel?: () => void;
   isAiResponding?: boolean;
   draftValue?: string;
-  forceMode?: 'Chat' | 'Tasks' | 'Code';
   /** Mobile-only: shown as a "+" button in the header's right group. */
   onNewChat?: () => void;
   /** Open voice mode */
@@ -171,13 +199,11 @@ export default function ChatPanel({
   isDark,
   selectedAvatarId,
   onAvatarChange,
-  onModeChange,
   showContextToggle,
   contextPanelOpen,
   onToggleContextPanel,
   isAiResponding,
   draftValue,
-  forceMode,
   onNewChat,
   onVoiceMode,
   voiceModeActive,
@@ -217,6 +243,7 @@ export default function ChatPanel({
       <HeaderBar
         sidebarOpen={sidebarOpen}
         onToggleSidebar={onToggleSidebar}
+        headerLeft={chat?.sessionFolder ? <FolderChip path={chat.sessionFolder} /> : undefined}
         headerRight={contextToggleButton}
         onNewChat={onNewChat}
       />
@@ -269,11 +296,9 @@ export default function ChatPanel({
             quickChips={isNewChat && !chat?.draftPrompt ? WELCOME_CHIPS : undefined}
             actionChips={!isNewChat ? activeChips : undefined}
             onChipClick={onChipClick}
-            onModeChange={onModeChange}
             isAiResponding={isAiResponding}
             chatKey={chat?.id}
             draftValue={draftValue}
-            forceMode={forceMode}
             onVoiceMode={onVoiceMode}
             voiceModeActive={voiceModeActive}
           />
