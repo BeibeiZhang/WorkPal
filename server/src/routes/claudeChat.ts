@@ -6,14 +6,9 @@ import { spawn } from 'node:child_process';
 import type { CanUseTool, PermissionResult } from '@anthropic-ai/claude-agent-sdk';
 import { runClaudeCode, shapeToolUse, shapeToolResult } from '../lib/claudeCode.js';
 import { commitAfterTool, initIfNeeded, undoLastCommit } from '../lib/git.js';
+import { WORKPAL_ROOT } from '../lib/paths.js';
 
 const router = Router();
-
-/** 5.4e: real session folders live under ~/WorkPal/. Any resolved path must
- *  stay inside this root — both to prevent a malformed sessionFolder from
- *  writing elsewhere on disk, and to keep `open-folder` from spawning Finder
- *  outside the app's sandbox. */
-const WORKPAL_ROOT = pathResolve(homedir(), 'WorkPal');
 
 /** Expand a user-supplied sessionFolder to an absolute path inside WORKPAL_ROOT.
  *  Returns { ok: false, reason } if the input is missing, not a string, or

@@ -175,6 +175,40 @@ export async function postUndoChange(
   }
 }
 
+/** 6.1: make sure `~/WorkPal/<projectSlug>/` exists and has a git repo with a
+ *  baseline commit. Called fire-and-forget on project create (App.tsx's
+ *  `handleCreateProject` / `handlePromoteToProject`) and on project open
+ *  (useEffect on `activeProjectId`). Backend is idempotent so double-firing
+ *  is intentional — it means an existing project folder without `.git` gets
+ *  initialized the first time the user enters it after upgrade. Never throws:
+ *  a network failure resolves to `{ok:false, error}` so the caller can just
+ *  `console.warn` and move on. */
+export async function postInitProject(
+  projectSlug: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const res = await fetch('/api/project/init', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectSlug }),
+    });
+    if (!res.ok) {
+      const payload = await res.json().catch(() => ({}));
+      const error =
+        typeof (payload as { error?: unknown }).error === 'string'
+          ? (payload as { error: string }).error
+          : `Project init failed (${res.status})`;
+      return { ok: false, error };
+    }
+    return { ok: true };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : 'Network error',
+    };
+  }
+}
+
 /** 5.4e: ask the backend to reveal the session folder in Finder. The server
  *  re-validates the path with the same resolveSessionFolder() used by the chat
  *  route, so a malformed string here is rejected instead of launching Finder
