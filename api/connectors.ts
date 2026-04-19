@@ -3,15 +3,16 @@ import {
   clearTokens,
   listConnectors,
   setConnectorStatus,
-} from '../_lib/connector-store.js';
+} from './_lib/connector-store.js';
 
-/** Single catch-all handler for all /api/connectors* routes — keeps us
- *  under Vercel's Hobby-plan 12-function limit. Routes:
+/** Handles all /api/connectors* routes in one function to fit under Vercel's
+ *  Hobby-plan 12-function limit. Sub-paths are routed here by a rewrite in
+ *  vercel.json (/api/connectors/:id/:action → /api/connectors?id=…&action=…),
+ *  so we read id/action from req.query instead of filesystem routing.
  *    GET  /api/connectors                          → list
  *    POST /api/connectors/:id/connect              → mock-connect (password)
  *    POST /api/connectors/:id/disconnect           → disconnect (password)
- *  Gmail / Calendar require real OAuth — those are handled by
- *  /api/auth/google/*, not this route. */
+ *  Gmail / Calendar require real OAuth — handled by /api/auth/google/*. */
 const OAUTH_CONNECTORS = new Set(['gmail', 'google-cal']);
 
 function checkPassword(req: VercelRequest, res: VercelResponse): boolean {
@@ -28,22 +29,17 @@ function checkPassword(req: VercelRequest, res: VercelResponse): boolean {
   return true;
 }
 
-/** Vercel's optional catch-all ([[...path]]) returns req.query.path as:
- *   - undefined  → request was /api/connectors (bare)
- *   - string[]   → request was /api/connectors/<segments>
- *  Normalise to a string[] for easier matching below. */
-function parsePath(req: VercelRequest): string[] {
-  const p = req.query.path;
-  if (!p) return [];
-  return Array.isArray(p) ? p.map(String) : [String(p)];
+function strParam(v: unknown): string | undefined {
+  return typeof v === 'string' ? v : undefined;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
-    const segments = parsePath(req);
+    const id = strParam(req.query.id);
+    const action = strParam(req.query.action);
 
     // GET /api/connectors — list all (no auth required).
-    if (segments.length === 0) {
+    if (!id && !action) {
       if (req.method !== 'GET') {
         res.setHeader('Allow', 'GET');
         res.status(405).json({ error: 'Method not allowed' });
@@ -54,10 +50,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    // POST /api/connectors/:id/connect
-    // POST /api/connectors/:id/disconnect
-    if (segments.length === 2) {
-      const [id, action] = segments;
+    // POST /api/connectors/:id/:action
+    if (id && action) {
       if (req.method !== 'POST') {
         res.setHeader('Allow', 'POST');
         res.status(405).json({ error: 'Method not allowed' });
@@ -86,7 +80,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     res.status(404).json({ error: 'Not found' });
   } catch (err) {
-    console.error('/api/connectors/* failed', err);
+    console.error('/api/connectors failed', err);
     res.status(500).json({ error: 'Internal error' });
   }
 }
