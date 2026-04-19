@@ -9,7 +9,7 @@ import {
   AlertTriangle, Check, Clock, BadgeCheck, XCircle, Send, Smile, Eye,
   Download, File, Presentation, Video, Image as ImageIcon, FileSpreadsheet,
   StickyNote, Ticket, Mail, MoreHorizontal, Sparkles, Play, Timer, User,
-  Globe, ArrowLeft, Sun,
+  Globe, ArrowLeft, Sun, Pause, Trash2, RotateCcw,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -39,6 +39,7 @@ import ConnectorsPage from './ConnectorsPage';
 import ComingSoonPage from './ComingSoonPage';
 import Onboarding from './Onboarding';
 import type { Chat, Message, CardData } from '../types';
+import { AGENTS, useAgentVideoStatus, type VideoStatus } from '../agentVideos';
 
 interface DesignSystemPageProps {
   sidebarOpen: boolean;
@@ -54,14 +55,15 @@ function SectionTitle({ children, id }: { children: React.ReactNode; id?: string
   );
 }
 
-type TabId = 'foundations' | 'principles' | 'layouts' | 'components' | 'review';
+type TabId = 'foundations' | 'principles' | 'layouts' | 'components' | 'agent-videos' | 'review';
 
 const TABS: { id: TabId; label: string; hint: string }[] = [
-  { id: 'foundations', label: 'Foundations',                 hint: 'Color, typography, spacing, radius, and icons — the single source of truth everything else builds on' },
-  { id: 'principles',  label: 'Principles & Requirements',   hint: 'Rules and guidelines I follow when building' },
-  { id: 'layouts',     label: 'Layout Templates',            hint: 'Layout shells we use across the app' },
-  { id: 'components',  label: 'Component Library',           hint: 'All shared components, states, and where they are used' },
-  { id: 'review',      label: 'Review Queue',                hint: 'New components awaiting your approval' },
+  { id: 'foundations',  label: 'Foundations',                 hint: 'Color, typography, spacing, radius, and icons — the single source of truth everything else builds on' },
+  { id: 'principles',   label: 'Principles & Requirements',   hint: 'Rules and guidelines I follow when building' },
+  { id: 'layouts',      label: 'Layout Templates',            hint: 'Layout shells we use across the app' },
+  { id: 'components',   label: 'Component Library',           hint: 'All shared components, states, and where they are used' },
+  { id: 'agent-videos', label: 'Agent Videos',                hint: 'Videos used by the welcome-state avatars. Pause to temporarily skip, delete to remove from rotation.' },
+  { id: 'review',       label: 'Review Queue',                hint: 'New components awaiting your approval' },
 ];
 
 function SearchBoxDemo() {
@@ -173,9 +175,10 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
             {activeTab === 'principles' && <PrinciplesTab />}
 
 
-            {activeTab === 'layouts'    && <LayoutsTab />}
-            {activeTab === 'components' && <ComponentsTab />}
-            {activeTab === 'review'     && <ReviewTab />}
+            {activeTab === 'layouts'      && <LayoutsTab />}
+            {activeTab === 'components'   && <ComponentsTab />}
+            {activeTab === 'agent-videos' && <AgentVideosTab />}
+            {activeTab === 'review'       && <ReviewTab />}
           </>
         )}
     </PageLayout>
@@ -2100,7 +2103,211 @@ function ComponentsTab() {
 }
 
 /* ═══════════════════════════════════════════════════
-   Tab 4 — Review Queue
+   Tab 5 — Agent Videos
+   Media assets used by the welcome-state avatars. Each
+   row shows a looping preview, current status, and
+   controls to pause, resume, or delete. State is
+   persisted to localStorage and ChatPanel filters its
+   random-pick pool by active status.
+   ═══════════════════════════════════════════════════ */
+
+function AgentVideoRow({
+  src,
+  mode,
+  status,
+  onSetStatus,
+}: {
+  src: string;
+  mode: 'light' | 'dark';
+  status: VideoStatus;
+  onSetStatus: (next: VideoStatus) => void;
+}) {
+  const fileName = src.split('/').pop() ?? src;
+  const previewBg = mode === 'dark' ? '#1B1B1B' : 'var(--color-bg-hover)';
+  const isActive  = status === 'active';
+  const isPaused  = status === 'paused';
+  const isDeleted = status === 'deleted';
+
+  return (
+    <div
+      className="rounded-2xl border border-stroke-outline p-4 flex items-center gap-4"
+      style={{ background: 'var(--color-bg-page)', opacity: isDeleted ? 0.55 : 1 }}
+    >
+      {/* Looping preview — muted thumbnail */}
+      <div
+        className="w-[72px] h-[72px] rounded-full overflow-hidden shrink-0"
+        style={{ background: previewBg }}
+      >
+        <video
+          src={src}
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="w-full h-full object-cover"
+        />
+      </div>
+
+      {/* Metadata */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1 flex-wrap">
+          <span className="text-[13px] font-mono text-text-primary truncate">{fileName}</span>
+          <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary capitalize">
+            {mode}
+          </span>
+          {isActive  && <StatusTag variant="success"   label="Active"  size="sm" showIcon={false} />}
+          {isPaused  && <StatusTag variant="pending"   label="Paused"  size="sm" showIcon={false} />}
+          {isDeleted && <StatusTag variant="failed"    label="Deleted" size="sm" showIcon={false} />}
+        </div>
+        <p className="text-[11px] text-text-secondary font-mono truncate">{src}</p>
+      </div>
+
+      {/* Controls */}
+      <div className="flex items-center gap-2 shrink-0">
+        {isActive && (
+          <button
+            onClick={() => onSetStatus('paused')}
+            className="h-8 px-3 rounded-full border border-stroke-outline text-[12px] text-text-primary hover:bg-bg-hover transition-colors flex items-center gap-1.5"
+            aria-label="Pause video"
+          >
+            <Pause size={12} /> Pause
+          </button>
+        )}
+        {isPaused && (
+          <button
+            onClick={() => onSetStatus('active')}
+            className="h-8 px-3 rounded-full border border-stroke-outline text-[12px] text-text-primary hover:bg-bg-hover transition-colors flex items-center gap-1.5"
+            aria-label="Resume video"
+          >
+            <Play size={12} /> Resume
+          </button>
+        )}
+        {isDeleted ? (
+          <button
+            onClick={() => onSetStatus('active')}
+            className="h-8 px-3 rounded-full border border-stroke-outline text-[12px] text-text-primary hover:bg-bg-hover transition-colors flex items-center gap-1.5"
+            aria-label="Restore video"
+          >
+            <RotateCcw size={12} /> Restore
+          </button>
+        ) : (
+          <button
+            onClick={() => onSetStatus('deleted')}
+            className="h-8 w-8 rounded-full border border-stroke-outline text-text-primary hover:bg-bg-hover transition-colors flex items-center justify-center"
+            aria-label="Delete video"
+            title="Delete"
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AgentVideosTab() {
+  const { getStatus, setStatus } = useAgentVideoStatus();
+
+  const totals = useMemo(() => {
+    let active = 0, paused = 0, deleted = 0;
+    for (const agent of AGENTS) {
+      for (const v of agent.videos) {
+        const s = getStatus(v.src);
+        if (s === 'active')  active++;
+        else if (s === 'paused')  paused++;
+        else deleted++;
+      }
+    }
+    return { active, paused, deleted, total: active + paused + deleted };
+  }, [getStatus]);
+
+  return (
+    <div>
+      {/* Intro card */}
+      <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+        <div className="flex items-center gap-2 mb-2">
+          <Video size={16} className="text-text-primary" />
+          <span className="text-[16px] font-bold text-text-primary">Welcome-state avatar videos</span>
+        </div>
+        <p className="text-[13px] text-text-primary leading-[20px] mb-3">
+          Each agent has a pool of idle videos that play in the welcome state of a new chat. One is picked at random per
+          session (separately for light / dark mode). Use the controls below to <strong>pause</strong> a video (keep it in
+          the list but skip it during picks) or <strong>delete</strong> it (remove it from the rotation entirely). State
+          persists in your browser and applies everywhere the avatar renders.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <StatusTag variant="success" label={`${totals.active} active`}  size="sm" showIcon={false} />
+          <StatusTag variant="pending" label={`${totals.paused} paused`}  size="sm" showIcon={false} />
+          <StatusTag variant="failed"  label={`${totals.deleted} deleted`} size="sm" showIcon={false} />
+          <span className="text-[12px] text-text-secondary self-center">of {totals.total} total</span>
+        </div>
+      </div>
+
+      {AGENTS.map(agent => {
+        const lightVideos = agent.videos.filter(v => v.mode === 'light');
+        const darkVideos  = agent.videos.filter(v => v.mode === 'dark');
+        return (
+          <div key={agent.id} className="mb-8">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full overflow-hidden shrink-0" style={{ background: 'var(--color-bg-hover)' }}>
+                <img src={agent.avatar} alt={agent.name} className="w-full h-full object-cover" />
+              </div>
+              <div>
+                <h2 className="text-[18px] font-bold text-text-primary tracking-[-0.43px]">{agent.name}</h2>
+                <p className="text-[12px] text-text-secondary">
+                  {lightVideos.length} light · {darkVideos.length} dark
+                </p>
+              </div>
+            </div>
+
+            {lightVideos.length > 0 && (
+              <>
+                <div className="flex items-center gap-2 mb-2 mt-4">
+                  <Sun size={14} className="text-text-primary" />
+                  <span className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.5px]">Light mode</span>
+                </div>
+                <div className="flex flex-col gap-2 mb-4">
+                  {lightVideos.map(v => (
+                    <AgentVideoRow
+                      key={v.src}
+                      src={v.src}
+                      mode="light"
+                      status={getStatus(v.src)}
+                      onSetStatus={next => setStatus(v.src, next)}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {darkVideos.length > 0 && (
+              <>
+                <div className="flex items-center gap-2 mb-2 mt-4">
+                  <Moon size={14} className="text-text-primary" />
+                  <span className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.5px]">Dark mode</span>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {darkVideos.map(v => (
+                    <AgentVideoRow
+                      key={v.src}
+                      src={v.src}
+                      mode="dark"
+                      status={getStatus(v.src)}
+                      onSetStatus={next => setStatus(v.src, next)}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   Tab 6 — Review Queue
    New components built because no existing one could
    meet the need. Approve → promote to shared.tsx.
    Reject → remove, revert to existing component.
