@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useSyncExternalStore } from 'react';
+import { useState, useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import Sidebar, { MiniSidebar } from './components/Sidebar';
 import type { Project } from './components/Sidebar';
 import ChatPanel from './components/ChatPanel';
@@ -590,8 +590,17 @@ export default function App() {
   const [pendingPermissions, setPendingPermissions] = useState<PendingPerm[]>([]);
   const pendingPermission = pendingPermissions[0] ?? null;
   /** "Always allow" memory — session-only Set of "{kind}:{scope}" strings.
-   *  Subsequent requests matching a stored entry skip the modal. */
-  const [approvedScopes, setApprovedScopes] = useState<Set<string>>(() => new Set());
+   *  Subsequent requests matching a stored entry skip the modal.
+   *
+   *  Ref, not state: the Claude SDK stream's `for await` loop captures this
+   *  by closure and runs across multiple permission requests in a single
+   *  turn. If we stored it in useState, clicking "Always allow" would schedule
+   *  a re-render, but the already-running loop would keep seeing the old
+   *  Set and re-prompt on the very next same-scope request. A ref side-steps
+   *  the staleness — the loop reads .current each time, so the decision
+   *  lands on the same stream that the user just approved. No re-render is
+   *  needed because nothing in the UI tree reads this value directly. */
+  const approvedScopesRef = useRef<Set<string>>(new Set());
 
   // Toggle dark class on root element
   useEffect(() => {
@@ -681,14 +690,14 @@ export default function App() {
    *  this session. */
   const requestPermission = useCallback((req: Omit<PermissionRequest, 'id'>): Promise<boolean> => {
     const scopeKey = `${req.kind}:${req.scope}`;
-    if (approvedScopes.has(scopeKey)) return Promise.resolve(true);
+    if (approvedScopesRef.current.has(scopeKey)) return Promise.resolve(true);
     return new Promise<boolean>(resolve => {
       setPendingPermissions(prev => [
         ...prev,
         { ...req, id: `perm-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, resolve },
       ]);
     });
-  }, [approvedScopes]);
+  }, []);
 
   /** Flip a chat into "inspector" state: persist `hasInspector: true` on the
    *  chat (so reopens restore the panel) and open the right side panel. Called
@@ -998,8 +1007,13 @@ export default function App() {
           // the modal (acceptance test #6). Otherwise enqueue a
           // bridge-flavored prompt — the modal handlers POST the user's
           // decision back to the same requestId.
+          //
+          // Ref lookup (not closure): the user may click "Always allow"
+          // mid-stream, and we want the very next permission_request in
+          // this same loop to pick it up. A state closure would still be
+          // reading the pre-click Set here.
           const scopeKey = `${chunk.kind}:${chunk.scope}`;
-          if (approvedScopes.has(scopeKey)) {
+          if (approvedScopesRef.current.has(scopeKey)) {
             void postClaudePermissionDecision(chunk.requestId, chatId, 'allow');
           } else {
             setPendingPermissions(prev => [
@@ -1045,7 +1059,7 @@ export default function App() {
         };
       }));
     }
-  }, [chats, addMessage, openInspector, addChange, approvedScopes]);
+  }, [chats, addMessage, openInspector, addChange]);
 
   // Auto-respond when opening ux-meeting chat with only the user message
   useEffect(() => {
@@ -2231,11 +2245,9 @@ export default function App() {
         }}
         onAlwaysAllow={(req) => {
           if (!pendingPermission) return;
-          setApprovedScopes(prev => {
-            const next = new Set(prev);
-            next.add(`${req.kind}:${req.scope}`);
-            return next;
-          });
+          // Ref mutation, not setState — the in-flight stream's for-await
+          // loop needs to see this before its next permission_request lands.
+          approvedScopesRef.current.add(`${req.kind}:${req.scope}`);
           if (pendingPermission.bridge) {
             void postClaudePermissionDecision(
               pendingPermission.bridge.requestId,
