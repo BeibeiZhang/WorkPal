@@ -5,7 +5,7 @@ import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import VoiceMode from './VoiceMode';
 import { HeaderBar } from './shared';
-import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from '../assets';
+import { AGENTS, useAgentVideoStatus } from '../agentVideos';
 
 /** Copy-on-click chip showing the session's folder path. Click flips the
  *  trailing icon to a checkmark for 1.5s so the user gets immediate feedback
@@ -79,29 +79,36 @@ interface ChatPanelProps {
 
 const WELCOME_CHIPS = ['Create performance goals', 'Analyze doc(s)', 'Visualize data'];
 
-const AVATARS = [
-  { id: 'white-man', name: 'Stephen', src: avatarWhiteMan, alt: 'Stephen', videoLight: ['/animations/white-man-light.mp4', '/animations/white-man-thinking.mp4', '/animations/white-man-checkmark.mp4', '/animations/white-man-light-2.mp4', '/animations/white-man-light-3.mp4', '/animations/white-man-light-4.mp4'], videoDark: ['/animations/white-man-dark.mp4', '/animations/white-man-coffee.mp4'] },
-  { id: 'black-woman', name: 'Maya', src: avatarBlackWoman, alt: 'Maya', videoLight: ['/animations/black-woman-light.mp4'], videoDark: ['/animations/black-woman-dark.mp4'] },
-  { id: 'asian-woman', name: 'Mei', src: avatarAsianWoman, alt: 'Mei', videoLight: ['/animations/asian-woman-light.mp4'], videoDark: ['/animations/asian-woman-dark.mp4'] },
-];
-
 function WelcomeState({ isDark, selectedAvatarId, onAvatarChange }: { isDark?: boolean; selectedAvatarId?: string; onAvatarChange?: (id: string) => void }) {
   const [pickerOpen, setPickerOpen] = useState(false);
-  const selectedAvatar = AVATARS.find(a => a.id === selectedAvatarId) || AVATARS[0];
+  const selectedAgent = AGENTS.find(a => a.id === selectedAvatarId) || AGENTS[0];
   const videoRef = useRef<HTMLVideoElement>(null);
+  const { getStatus } = useAgentVideoStatus();
+
+  // Active pools, filtered by current status (paused/deleted videos are skipped).
+  // Falls back to the full pool if every video is disabled, so the welcome
+  // state never renders an empty <video> tag.
+  const lightPool = useMemo(() => {
+    const active = selectedAgent.videos.filter(v => v.mode === 'light' && getStatus(v.src) === 'active');
+    return active.length ? active.map(v => v.src) : selectedAgent.videos.filter(v => v.mode === 'light').map(v => v.src);
+  }, [selectedAgent.id, getStatus]);
+  const darkPool = useMemo(() => {
+    const active = selectedAgent.videos.filter(v => v.mode === 'dark' && getStatus(v.src) === 'active');
+    return active.length ? active.map(v => v.src) : selectedAgent.videos.filter(v => v.mode === 'dark').map(v => v.src);
+  }, [selectedAgent.id, getStatus]);
 
   // Pick a random video index once per avatar selection (separate for light/dark)
   const lightIdx = useMemo(
-    () => Math.floor(Math.random() * selectedAvatar.videoLight.length),
-    [selectedAvatar.id],
+    () => Math.floor(Math.random() * Math.max(1, lightPool.length)),
+    [selectedAgent.id, lightPool.length],
   );
   const darkIdx = useMemo(
-    () => Math.floor(Math.random() * selectedAvatar.videoDark.length),
-    [selectedAvatar.id],
+    () => Math.floor(Math.random() * Math.max(1, darkPool.length)),
+    [selectedAgent.id, darkPool.length],
   );
 
-  const handleSelect = (avatar: typeof AVATARS[number]) => {
-    onAvatarChange?.(avatar.id);
+  const handleSelect = (agent: typeof AGENTS[number]) => {
+    onAvatarChange?.(agent.id);
     setPickerOpen(false);
   };
 
@@ -116,17 +123,17 @@ function WelcomeState({ isDark, selectedAvatarId, onAvatarChange }: { isDark?: b
             boxShadow: '0px 1px 3px 0px rgba(1, 20, 80, 0.25)',
           }}
         >
-          {AVATARS.map(avatar => (
+          {AGENTS.map(agent => (
             <button
-              key={avatar.id}
-              onClick={() => handleSelect(avatar)}
+              key={agent.id}
+              onClick={() => handleSelect(agent)}
               className="w-[100px] h-[100px] rounded-full shrink-0 cursor-pointer relative group"
             >
               <div
                 className="absolute inset-0 rounded-full overflow-hidden transition-all group-hover:bg-[rgba(49,113,255,0.1)] group-active:border group-active:border-[#3171ff]"
                 style={{ background: 'var(--color-bg-hover)' }}
               >
-                <img src={avatar.src} alt={avatar.alt} className="w-full h-full object-cover" />
+                <img src={agent.avatar} alt={agent.name} className="w-full h-full object-cover" />
               </div>
             </button>
           ))}
@@ -144,8 +151,8 @@ function WelcomeState({ isDark, selectedAvatarId, onAvatarChange }: { isDark?: b
             <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10" style={{ background: 'rgba(49,113,255,0.1)' }} />
             <video
               ref={videoRef}
-              key={`${selectedAvatar.id}-${isDark ? 'dark' : 'light'}`}
-              src={isDark ? selectedAvatar.videoDark[darkIdx] : selectedAvatar.videoLight[lightIdx]}
+              key={`${selectedAgent.id}-${isDark ? 'dark' : 'light'}-${(isDark ? darkPool : lightPool)[isDark ? darkIdx : lightIdx]}`}
+              src={isDark ? darkPool[darkIdx] : lightPool[lightIdx]}
               autoPlay
               loop
               muted
