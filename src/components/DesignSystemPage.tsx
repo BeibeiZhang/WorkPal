@@ -2312,8 +2312,9 @@ function AgentVideosTab() {
         <p className="text-[13px] text-text-primary leading-[20px] mb-3">
           Each agent has a pool of idle videos that play in the welcome state of a new chat. One is picked at random per
           session (separately for light / dark mode). The toggle on each row flips between <strong>Active</strong>{' '}
-          (in rotation) and <strong>Inactive</strong> (skipped). State persists in your browser and applies in real time
-          everywhere the avatar renders. The trash icon <strong>physically deletes</strong> the .mp4 from{' '}
+          (in rotation) and <strong>Inactive</strong> (skipped). State syncs across browsers via the server (with a
+          local cache for offline use) and applies in real time everywhere the avatar renders. The trash icon{' '}
+          <strong>physically deletes</strong> the .mp4 from{' '}
           <code className="font-mono text-[12px]">public/animations/</code> on disk — permanent, gated by your memory
           password.
         </p>

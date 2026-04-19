@@ -6,6 +6,7 @@ import claudeChatRouter from './routes/claudeChat.js';
 import memoryRouter from './routes/memory.js';
 import connectorsRouter from './routes/connectors.js';
 import animationsRouter from './routes/animations.js';
+import agentVideoStatusRouter from './routes/agentVideoStatus.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -22,6 +23,7 @@ app.use('/api', claudeChatRouter);
 app.use('/api', memoryRouter);
 app.use('/api', connectorsRouter);
 app.use('/api', animationsRouter);
+app.use('/api', agentVideoStatusRouter);
 
 // Health check
 app.get('/health', (_req, res) => {
