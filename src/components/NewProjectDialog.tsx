@@ -6,29 +6,54 @@ import { PrimaryButton, TertiaryButton } from './shared';
 interface NewProjectDialogProps {
   open: boolean;
   onClose: () => void;
-  onCreate: (name: string, description: string) => void;
+  /** `description` is the third arg so existing callers keep working;
+   *  `folder` is only passed through for the `promote` mode. */
+  onCreate: (name: string, description: string, folder?: string) => void;
+  /** 'create' (default): blank "New Project" dialog triggered from the
+   *  sidebar's "New Project" button. 'promote': pre-filled from a session
+   *  that's being upgraded into a project — the header, CTA, and fields
+   *  adapt to that context. */
+  mode?: 'create' | 'promote';
+  /** Pre-fill for the name field. In promote mode this is the session title. */
+  suggestedName?: string;
+  /** Pre-fill for the folder field (promote mode only). */
+  suggestedFolder?: string;
+  /** Number of sessions being grouped in promote mode. When > 1 the dialog
+   *  switches to a batch-promote subtitle (e.g. "Group 3 sessions…"). */
+  chatCount?: number;
 }
 
-export default function NewProjectDialog({ open, onClose, onCreate }: NewProjectDialogProps) {
+export default function NewProjectDialog({
+  open,
+  onClose,
+  onCreate,
+  mode = 'create',
+  suggestedName,
+  suggestedFolder,
+  chatCount,
+}: NewProjectDialogProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [folder, setFolder] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
-      setName('');
+      setName(suggestedName ?? '');
       setDescription('');
+      setFolder(suggestedFolder ?? '');
       setTimeout(() => inputRef.current?.focus(), 100);
     }
-  }, [open]);
+  }, [open, suggestedName, suggestedFolder]);
 
   if (!open) return null;
 
   const canCreate = name.trim().length > 0;
+  const isPromote = mode === 'promote';
 
   const handleCreate = () => {
     if (canCreate) {
-      onCreate(name.trim(), description.trim());
+      onCreate(name.trim(), description.trim(), folder.trim() || undefined);
     }
   };
 
@@ -61,11 +86,21 @@ export default function NewProjectDialog({ open, onClose, onCreate }: NewProject
 
         {/* Header */}
         <h2
-          className="text-[22px] font-bold text-text-primary tracking-[-0.43px] mb-6"
+          className="text-[22px] font-bold text-text-primary tracking-[-0.43px] mb-2"
           style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
         >
-          New Project
+          {isPromote
+            ? (chatCount && chatCount > 1 ? `Group ${chatCount} sessions` : 'Promote to Project')
+            : 'New Project'}
         </h2>
+        {isPromote && (
+          <p className="text-[13px] text-text-secondary mb-6 leading-[18px]">
+            {chatCount && chatCount > 1
+              ? `Turn these ${chatCount} sessions into a shared project. Each session keeps its own subfolder — nothing gets merged.`
+              : 'Turn this session into a project — future sessions can share its folder and context.'}
+          </p>
+        )}
+        {!isPromote && <div className="mb-4" />}
 
         {/* Project Name */}
         <div className="mb-5">
@@ -92,7 +127,7 @@ export default function NewProjectDialog({ open, onClose, onCreate }: NewProject
         </div>
 
         {/* Description */}
-        <div className="mb-8">
+        <div className={isPromote ? 'mb-5' : 'mb-8'}>
           <label
             className="block text-[14px] font-medium text-text-primary mb-2 tracking-[-0.2px]"
             style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
@@ -115,10 +150,40 @@ export default function NewProjectDialog({ open, onClose, onCreate }: NewProject
           />
         </div>
 
+        {/* Folder (promote mode only) — cosmetic path, not validated or mkdir'd */}
+        {isPromote && (
+          <div className="mb-8">
+            <label
+              className="block text-[14px] font-medium text-text-primary mb-2 tracking-[-0.2px]"
+              style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
+            >
+              Folder
+              <span className="text-text-tertiary font-normal ml-1">(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={folder}
+              onChange={e => setFolder(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="~/WorkPal/my-project/"
+              className="w-full px-4 py-3 rounded-[4px] font-mono text-[14px] leading-[22px] text-text-primary placeholder-text-tertiary outline-none transition-colors"
+              style={{
+                background: 'var(--color-bg-hover)',
+                border: '1px solid var(--color-stroke-outline)',
+              }}
+            />
+            <p className="mt-1.5 text-[12px] leading-[16px] text-text-tertiary">
+              Leave blank to use the default under <span className="font-mono">~/WorkPal/</span>.
+            </p>
+          </div>
+        )}
+
         {/* Actions */}
         <div className="flex items-center gap-3">
           <TertiaryButton onClick={onClose} className="flex-1">Cancel</TertiaryButton>
-          <PrimaryButton onClick={handleCreate} disabled={!canCreate} className="flex-1">Create Project</PrimaryButton>
+          <PrimaryButton onClick={handleCreate} disabled={!canCreate} className="flex-1">
+            {isPromote ? 'Promote' : 'Create Project'}
+          </PrimaryButton>
         </div>
       </div>
     </div>,

@@ -139,7 +139,6 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
       footer={
         <ChatInput
           onSend={handleChatSend}
-          chatOnly
           forceSendActive={canProceed}
           placeholder={inputPlaceholder}
         />

@@ -1,4 +1,4 @@
-import type { CardData, ChatMode, ImageResult, VideoResult, WebResult } from '../types';
+import type { CardData, ImageResult, VideoResult, WebResult } from '../types';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -36,12 +36,15 @@ export type StreamChunk =
 export async function* streamChat(
   messages: ChatMessage[],
   model?: string,
-  mode?: ChatMode,
 ): AsyncGenerator<StreamChunk> {
   const res = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages, model, mode }),
+    // Always request the full tool set — the model decides whether to reach
+    // for Gmail/Calendar/search/etc. based on the user's message, and when it
+    // does, the frontend auto-opens the inspector panel on the first
+    // tool_active chunk. No need for a client-side "mode" toggle.
+    body: JSON.stringify({ messages, model, mode: 'Tasks' }),
   });
 
   if (!res.ok) {

@@ -1,5 +1,6 @@
-import { File, MessageCircle } from 'lucide-react';
+import { File, MessageCircle, FilePlus2, FilePen, FileMinus2, Undo2, ShieldOff } from 'lucide-react';
 import { SideCard, SidePanelHeader } from './shared';
+import type { ChangeEntry, ChangeKind } from '../types';
 
 /* ── Types ───────────────────────────────────────────── */
 
@@ -24,6 +25,41 @@ interface TaskContextPanelProps {
    *  every other case we render whatever the caller passes, and empty lists
    *  show an empty state instead of stale placeholders. */
   useDemoDefaults?: boolean;
+  /** Cosmetic filesystem path shown above the Folder file list so the user
+   *  can see where WorkPal would be working. No real mkdir happens yet. */
+  folderPath?: string;
+  /** Auto-commit log — rendered at the top of the panel. Each entry shows a
+   *  kind-specific icon and an Undo button. Empty = no changes yet. */
+  changes?: ChangeEntry[];
+  /** Flip a change to `undone: true`. The row stays visible (greyed, with an
+   *  "Undone" tag) so the user has a trail, but no real file revert happens. */
+  onUndoChange?: (id: string) => void;
+}
+
+const CHANGE_ICON: Record<ChangeKind, typeof File> = {
+  create: FilePlus2,
+  edit: FilePen,
+  delete: FileMinus2,
+  halt: ShieldOff,
+};
+
+const CHANGE_COLOR: Record<ChangeKind, string> = {
+  create: '#028901',
+  edit: '#3171ff',
+  delete: '#B42318',
+  halt: '#B42318',
+};
+
+function relativeTime(from: Date): string {
+  const delta = Math.max(0, Date.now() - from.getTime());
+  const s = Math.floor(delta / 1000);
+  if (s < 10) return 'just now';
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
 }
 
 /* ── Defaults (demo only) ─────────────────────────────── */
@@ -92,6 +128,9 @@ export default function TaskContextPanel({
   toolsActive,
   fullScreen = false,
   useDemoDefaults = false,
+  folderPath,
+  changes,
+  onUndoChange,
 }: TaskContextPanelProps) {
   // Demo chat falls back to the original scripted placeholders; real chats
   // render whatever the caller passes — an empty list shows the empty state.
@@ -113,6 +152,48 @@ export default function TaskContextPanel({
       <SidePanelHeader onClose={onClose} closeIcon="panel-right" closeLabel="Collapse panel" />
       {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto min-h-0 px-3 pb-6 flex flex-col gap-4 scrollbar-autohide">
+
+        {/* Changes — auto-commit log (Phase 4). Only renders when at least
+             one change has happened; hidden otherwise so the panel stays
+             uncluttered in simple sessions. */}
+        {changes && changes.length > 0 && (
+          <SideCard title="Changes" defaultOpen>
+            <div className="flex flex-col gap-1">
+              {changes.map(change => {
+                const Icon = CHANGE_ICON[change.kind];
+                const color = CHANGE_COLOR[change.kind];
+                return (
+                  <div
+                    key={change.id}
+                    className={`group flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-bg-hover transition-colors ${change.undone ? 'opacity-50' : ''}`}
+                  >
+                    <Icon size={16} className="shrink-0" style={{ color }} />
+                    <div className="flex-1 min-w-0">
+                      <div className={`text-[13px] text-text-primary truncate ${change.undone ? 'line-through' : ''}`}>
+                        {change.label}
+                      </div>
+                      <div className="text-[11px] text-text-secondary">
+                        {relativeTime(change.timestamp)}
+                        {change.undone && ' · Undone'}
+                      </div>
+                    </div>
+                    {onUndoChange && !change.undone && change.kind !== 'halt' && (
+                      <button
+                        type="button"
+                        onClick={() => onUndoChange(change.id)}
+                        aria-label={`Undo ${change.label}`}
+                        className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-bg-page transition-opacity text-text-primary"
+                        title="Undo"
+                      >
+                        <Undo2 size={14} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </SideCard>
+        )}
 
         {/* Progress */}
         <SideCard title="Progress" defaultOpen>
@@ -172,21 +253,32 @@ export default function TaskContextPanel({
 
         {/* Folder */}
         <SideCard title="Folder" defaultOpen>
-          {folderList.length === 0 ? (
-            <p className="text-[13px] text-text-secondary px-1">No files in this task.</p>
-          ) : (
-            <div className="flex flex-col gap-1">
-              {folderList.map((f) => (
-                <button
-                  key={f.name}
-                  className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-bg-hover transition-colors text-left"
-                >
-                  <File size={16} className="text-text-primary shrink-0" />
-                  <span className="text-[13px] text-text-primary truncate">{f.name}</span>
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="flex flex-col gap-2">
+            {folderPath && (
+              <div
+                className="px-2 py-1 rounded font-mono text-[12px] leading-[16px] text-text-secondary truncate"
+                style={{ background: 'var(--color-bg-hover)' }}
+                title={folderPath}
+              >
+                {folderPath}
+              </div>
+            )}
+            {folderList.length === 0 ? (
+              <p className="text-[13px] text-text-secondary px-1">No files in this task.</p>
+            ) : (
+              <div className="flex flex-col gap-1">
+                {folderList.map((f) => (
+                  <button
+                    key={f.name}
+                    className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-bg-hover transition-colors text-left"
+                  >
+                    <File size={16} className="text-text-primary shrink-0" />
+                    <span className="text-[13px] text-text-primary truncate">{f.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </SideCard>
 
         {/* Context */}

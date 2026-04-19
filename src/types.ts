@@ -140,8 +140,6 @@ export interface Message {
   webResults?: WebResult[];
 }
 
-export type ChatMode = 'Chat' | 'Tasks' | 'Code';
-
 export interface Chat {
   id: string;
   title: string;
@@ -158,10 +156,18 @@ export interface Chat {
   /** Project this chat belongs to. Unset for chats created outside any
    *  project (they only appear in the root Recents list). */
   projectId?: string;
-  /** Which conversation mode the chat was started in. Drives the right
-   *  panel (Task mode opens the context/workspace panel; Chat mode keeps
-   *  it closed). Preserved across reopens. */
-  mode?: ChatMode;
+  /** Set to `true` once the AI has invoked a tool in this chat — that's
+   *  the signal that the work is complex enough to warrant the inspector
+   *  panel (live progress + tool list). Preserved across reopens so the
+   *  panel re-appears when the user returns to the chat. */
+  hasInspector?: boolean;
+  /** Cosmetic filesystem path shown in the inspector Folder card and the
+   *  chat header's folder chip. Auto-generated from the session title on the
+   *  first send (e.g. `~/WorkPal/2026-04-18-alcohol-delivery-issues/`). Once
+   *  a session is promoted to a project it becomes
+   *  `~/WorkPal/{project-slug}/sessions/{session-slug}/`. No real filesystem
+   *  mkdir happens yet — that lives on the future Claude Code CLI backend. */
+  sessionFolder?: string;
 }
 
 export interface App {
@@ -169,6 +175,40 @@ export interface App {
   name: string;
   icon: string;
   color: string;
+}
+
+/** An entry in the inspector's Changes panel — one per file modification the
+ *  AI performed. Purely cosmetic in the prototype (no real git commit), but
+ *  modeled after the "auto-commit + undo" flow in the Phase 4 spec. */
+export type ChangeKind = 'create' | 'edit' | 'delete' | 'halt';
+
+export interface ChangeEntry {
+  id: string;
+  kind: ChangeKind;
+  /** Short label shown in the row — usually the file path, or a status note
+   *  for `kind: 'halt'` entries ("Task stopped: permission denied"). */
+  label: string;
+  timestamp: Date;
+  /** True once the user clicks Undo. The row stays in the list but greyed
+   *  with an "Undone" tag; no real file revert happens. */
+  undone?: boolean;
+}
+
+/** Surface the AI needs permission for. Drives the prompt's title and scope
+ *  wording so the user always knows what they're approving. */
+export type PermissionKind = 'file-read' | 'file-write' | 'command' | 'external-url';
+
+export interface PermissionRequest {
+  id: string;
+  kind: PermissionKind;
+  /** Exact target — file path, command string, or URL shown verbatim. */
+  target: string;
+  /** Scope the user's decision applies to. Example: for `file-write` the
+   *  scope is the folder name shown in the title ("change files in
+   *  "testing""). "Always allow" remembers this scope for the session. */
+  scope: string;
+  /** Optional one-sentence explanation of why the AI wants access. */
+  reason?: string;
 }
 
 /** Memory entry — persistent context about the user that gets injected into

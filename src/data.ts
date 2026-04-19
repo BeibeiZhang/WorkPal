@@ -24,6 +24,8 @@ export const INITIAL_CHATS: Chat[] = [
     isActive: true,
     draftPrompt: 'Find any reports about Spark drivers experiencing issues with alcohol deliveries and summarize the key pain points.',
     messages: [],
+    hasInspector: true,
+    sessionFolder: '~/WorkPal/2026-04-18-alcohol-delivery-issues/',
   },
   {
     id: 'ux-meeting',

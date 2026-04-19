@@ -31,6 +31,8 @@ import MessageCard from './MessageCard';
 import DetailPanel from './DetailPanel';
 import TaskContextPanel from './TaskContextPanel';
 import NewProjectDialog from './NewProjectDialog';
+import PermissionPrompt from './PermissionPrompt';
+import type { PermissionKind, PermissionRequest } from '../types';
 import OverviewPage from './OverviewPage';
 import LibraryPage from './LibraryPage';
 import ConnectorsPage from './ConnectorsPage';
@@ -552,7 +554,7 @@ const SEARCH_INDEX: SearchEntry[] = [
   { tab: 'components', section: 'Components · Shared Primitives', name: 'SearchBox', description: 'Responsive search input — desktop pill / mobile icon that expands on tap.' },
   // Components — chat & messaging
   { tab: 'components', section: 'Components · Chat & Messaging', name: 'ChatMessage', description: 'User / assistant chat bubble — markdown, chips, feedback bar.' },
-  { tab: 'components', section: 'Components · Chat & Messaging', name: 'ChatInput', description: 'Text composer with mode selector (Chat / Tasks / Code), voice input, attachments.' },
+  { tab: 'components', section: 'Components · Chat & Messaging', name: 'ChatInput', description: 'Text composer — textarea, attachment menu, voice input.' },
   { tab: 'components', section: 'Components · Chat & Messaging', name: 'MessageCard — 5 variants', description: 'Meeting / research / ticket / schedule / agent cards embedded in chat messages.' },
   // Components — navigation
   { tab: 'components', section: 'Components · Navigation', name: 'Sidebar', description: 'Full left navigation — search, links, projects, recents, theme toggle, profile.' },
@@ -561,6 +563,7 @@ const SEARCH_INDEX: SearchEntry[] = [
   { tab: 'components', section: 'Components · Side Panels & Dialogs', name: 'DetailPanel', description: 'Right-hand document panel with AI transform buttons.' },
   { tab: 'components', section: 'Components · Side Panels & Dialogs', name: 'TaskContextPanel', description: 'Progress steps + folder / context / tools for in-flight tasks.' },
   { tab: 'components', section: 'Components · Side Panels & Dialogs', name: 'NewProjectDialog', description: 'Modal for creating a new project (name + description).' },
+  { tab: 'components', section: 'Components · Side Panels & Dialogs', name: 'PermissionPrompt', description: 'Cowork-style permission gate — Cancel / Always allow / Allow, covers 4 kinds.' },
   // Components — project page shared layout
   { tab: 'components', section: 'Components · ProjectPage Shared Layout', name: 'PageLayout (ProjectPage)', description: 'Canonical page shell used by ProjectPage.' },
   { tab: 'components', section: 'Components · ProjectPage Shared Layout', name: 'SplitView (ProjectPage)', description: 'Main + collapsible side column with responsive overlay.' },
@@ -1470,6 +1473,85 @@ function LiveNewProjectDialog() {
   );
 }
 
+/** Live preview for PermissionPrompt across the 4 kinds it handles.
+ *  Each button opens the modal with a different payload so reviewers can see
+ *  how the title + body + target pill adapt to each scenario. */
+function LivePermissionPrompt() {
+  const [request, setRequest] = useState<PermissionRequest | null>(null);
+  const [lastDecision, setLastDecision] = useState<string | null>(null);
+  const variants: { kind: PermissionKind; label: string; payload: Omit<PermissionRequest, 'id'> }[] = [
+    {
+      kind: 'file-write',
+      label: 'file-write',
+      payload: {
+        kind: 'file-write',
+        target: '~/WorkPal/testing/',
+        scope: 'testing',
+        reason: 'Drafting migration scripts for the Agent Design component library.',
+      },
+    },
+    {
+      kind: 'file-read',
+      label: 'file-read',
+      payload: {
+        kind: 'file-read',
+        target: '~/Downloads/driver_reports.zip',
+        scope: '~/Downloads/driver_reports.zip',
+        reason: 'Needed to extract Q3 Spark driver incident data.',
+      },
+    },
+    {
+      kind: 'command',
+      label: 'command',
+      payload: {
+        kind: 'command',
+        target: 'npm run build && npm test',
+        scope: 'npm run build && npm test',
+      },
+    },
+    {
+      kind: 'external-url',
+      label: 'external-url',
+      payload: {
+        kind: 'external-url',
+        target: 'https://api.openai.com/v1/embeddings',
+        scope: 'api.openai.com',
+        reason: 'Generating embeddings for 412 support tickets.',
+      },
+    },
+  ];
+  const decide = (label: string) => {
+    setRequest(null);
+    setLastDecision(label);
+    window.setTimeout(() => setLastDecision(null), 2500);
+  };
+  return (
+    <div className="flex flex-col items-start gap-3">
+      <div className="flex flex-wrap gap-2">
+        {variants.map(v => (
+          <PrimaryButton key={v.kind} onClick={() => setRequest({ ...v.payload, id: `demo-${v.kind}` })}>
+            Try {v.label}
+          </PrimaryButton>
+        ))}
+      </div>
+      <p className="text-[12px] text-text-secondary">
+        Cancel / Always allow / Allow — mirrors the Claude Cowork permission prompt.
+      </p>
+      {lastDecision && (
+        <p className="text-[12px] text-text-primary" aria-live="polite">
+          Last decision: <span className="font-semibold">{lastDecision}</span>
+        </p>
+      )}
+      <PermissionPrompt
+        request={request}
+        onAllow={() => decide('Allow')}
+        onAlwaysAllow={() => decide('Always allow')}
+        onCancel={() => decide('Cancel')}
+      />
+    </div>
+  );
+}
+
 function LiveOnboarding() {
   return (
     <Onboarding
@@ -1789,8 +1871,8 @@ function ComponentsTab() {
     },
     {
       name: 'ChatInput',
-      description: 'Text composer with mode selector (Chat / Tasks / Code), voice input, and attachments. Real component; foundations updates propagate on reload.',
-      usedIn: ['ChatPanel', 'Onboarding (chatOnly)'],
+      description: 'Text composer — textarea, attachment menu, voice input. Single input surface: the AI decides when to escalate a message into a complex task and auto-opens the inspector panel.',
+      usedIn: ['ChatPanel', 'Onboarding', 'ProjectPage'],
       preview: <LiveChatInput />,
     },
     {
@@ -1848,8 +1930,8 @@ function ComponentsTab() {
     },
     {
       name: 'TaskContextPanel',
-      description: 'Progress steps + folder / context / tools file lists. Shows what WorkPal is doing for a task in flight.',
-      usedIn: ['ChatPanel (Tasks mode)'],
+      description: 'Inspector panel — progress steps + folder / context / tools file lists. Shows what WorkPal is doing for a task in flight. Auto-opens when the AI invokes its first tool in a chat.',
+      usedIn: ['ChatPanel (when AI uses a tool)'],
       preview: (
         <LivePreviewFrame height={560}>
           <LiveTaskContextPanel />
@@ -1861,6 +1943,12 @@ function ComponentsTab() {
       description: 'Modal for creating a new project (name + description). Click the button to live-open and close it.',
       usedIn: ['App (via Sidebar + New Project)'],
       preview: <LiveNewProjectDialog />,
+    },
+    {
+      name: 'PermissionPrompt',
+      description: 'Phase 4 permission gate — modeled on Claude Cowork. Cancel / Always allow / Allow, with scope-aware title and body across 4 kinds (file-write, file-read, command, external-url). Rendered via portal; Esc cancels.',
+      usedIn: ['App (requestPermission for tool use & external file access)'],
+      preview: <LivePermissionPrompt />,
     },
   ];
 
@@ -2049,7 +2137,7 @@ function ReviewTab() {
     {
       id: 'toolbar-pill',
       name: 'ToolbarPill',
-      builtFor: 'ChatInput toolbar row — folder picker (Tasks/Code mode), branch picker (Code mode), and Worktree checkbox (Code mode).',
+      builtFor: 'Toolbar row primitive — pill-shaped button / label with leading + trailing slots, locked to --toolbar-btn-h. Available for future reuse; the Task/Code mode pickers that originally used it were removed when the app collapsed to a single chat input.',
       reason: 'The same pill shell (rounded border, --toolbar-btn-h height, hover gradient, leading-icon + truncated-label + trailing-chevron) was copy-pasted 3× with near-identical className strings. Different enough from FilterChip — this one locks to the toolbar height token and needs a leading/trailing slot pattern plus a label-variant for wrapping a checkbox.',
       closestExisting: 'FilterChip / Tag (both rounded-full, but fixed-height: Chip is 32/28, Tag is 22) — neither matches --toolbar-btn-h or offers leading/trailing slots.',
       preview: (
@@ -2109,7 +2197,7 @@ function ReviewTab() {
     {
       id: 'toolbar-segmented',
       name: 'ToolbarSegmented',
-      builtFor: 'ChatInput mode selector — Chat / Tasks / Code. Connected 3-in-1 pill where the selected segment widens to show its label and the others stay icon-only with a Tooltip.',
+      builtFor: 'Connected segmented pill primitive. Originally built for a Chat / Tasks / Code mode selector in ChatInput; the selector was removed when the app collapsed to a single input, but the primitive itself is kept available for future multi-segment toggles.',
       reason: 'Third sibling in the toolbar family. A row of three ToolbarPills would give each one its own border — wrong look. This component keeps a single outer border and shares it across inner segments, preserving the connected-segment visual. Generic over the segment-value type so callers stay type-safe (e.g. `ToolbarSegmented<InputMode>`).',
       closestExisting: 'FilterChip row (wrong: separate borders per chip, not connected) and the browser-native `<select>` (wrong: not a peer of the toolbar pills).',
       preview: (
