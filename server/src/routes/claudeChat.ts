@@ -1,13 +1,43 @@
 import { Router } from 'express';
-import { mkdir } from 'node:fs/promises';
-import { dirname } from 'node:path';
+import { mkdir, rmdir } from 'node:fs/promises';
+import { dirname, resolve as pathResolve, sep } from 'node:path';
+import { homedir } from 'node:os';
+import { spawn } from 'node:child_process';
 import type { CanUseTool, PermissionResult } from '@anthropic-ai/claude-agent-sdk';
 import { runClaudeCode, shapeToolUse, shapeToolResult } from '../lib/claudeCode.js';
 
 const router = Router();
 
-// 5.4b cwd sandbox — real sessionFolder lands in 5.4e.
-const SANDBOX_CWD = '/tmp/workpal-sandbox';
+/** 5.4e: real session folders live under ~/WorkPal/. Any resolved path must
+ *  stay inside this root — both to prevent a malformed sessionFolder from
+ *  writing elsewhere on disk, and to keep `open-folder` from spawning Finder
+ *  outside the app's sandbox. */
+const WORKPAL_ROOT = pathResolve(homedir(), 'WorkPal');
+
+/** Expand a user-supplied sessionFolder to an absolute path inside WORKPAL_ROOT.
+ *  Returns { ok: false, reason } if the input is missing, not a string, or
+ *  escapes the root (e.g. via `..` or an absolute path outside ~/WorkPal/). */
+function resolveSessionFolder(
+  folder: unknown,
+): { ok: true; resolved: string } | { ok: false; reason: string } {
+  if (typeof folder !== 'string' || folder.length === 0) {
+    return { ok: false, reason: 'sessionFolder is required' };
+  }
+  // Node doesn't auto-expand `~`. Only strip the leading `~/` (or bare `~`) —
+  // a mid-path tilde is treated as a literal directory name.
+  const expanded = folder === '~'
+    ? homedir()
+    : folder.startsWith('~/')
+      ? pathResolve(homedir(), folder.slice(2))
+      : folder;
+  const resolved = pathResolve(expanded);
+  // startsWith with a trailing separator ensures `/foo/WorkPalEvil` doesn't
+  // slip past a naive `startsWith('/foo/WorkPal')` check.
+  if (resolved !== WORKPAL_ROOT && !resolved.startsWith(WORKPAL_ROOT + sep)) {
+    return { ok: false, reason: 'sessionFolder must be under ~/WorkPal/' };
+  }
+  return { ok: true, resolved };
+}
 
 /* ── 5.4d permission bridge ───────────────────────────────────────────────
  *
@@ -121,13 +151,38 @@ router.post('/claude-chat', async (req, res) => {
     return;
   }
 
-  // 5.4b: always sandbox. sessionFolder is accepted in the body so the client
-  // API is stable across 5.4b–5.4e, but we ignore it here. 5.4e switches cwd
-  // to the real Chat.sessionFolder and adds lazy mkdir on first Write/Edit.
-  void sessionFolder;
+  // 5.4e: real Chat.sessionFolder replaces the 5.4b–5.4d sandbox cwd. Reject
+  // path-traversal attempts and missing values up front so the SDK never
+  // spawns with a cwd outside ~/WorkPal/.
+  const folderCheck = resolveSessionFolder(sessionFolder);
+  if (!folderCheck.ok) {
+    res.status(400).json({ error: folderCheck.reason });
+    return;
+  }
+  const workingDir = folderCheck.resolved;
 
-  const workingDir = SANDBOX_CWD;
-  await mkdir(workingDir, { recursive: true });
+  // 5.4e: mkdir eagerly — Claude Agent SDK spawns its native binary with
+  // cwd=workingDir, and `child_process.spawn` throws ENOENT (surfaced by the
+  // SDK as a misleading "native binary not found") if cwd doesn't exist at
+  // spawn time. So "pure Q&A leaves disk clean" is enforced at the END of the
+  // request instead: if `folderMaterialized` is still false in finally, the
+  // folder was never used and we rmdir it. Known minor leak: nested paths
+  // like ~/WorkPal/{project}/sessions/{slug}/ in a brand-new project leave
+  // intermediate empty dirs behind (common case is a single-level flat path,
+  // unaffected). Walk-up cleanup would risk deleting user-created dirs.
+  try {
+    await mkdir(workingDir, { recursive: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[claude-chat] mkdir failed for ${workingDir}:`, message);
+    res.status(500).json({ error: `Failed to prepare session folder: ${message}` });
+    return;
+  }
+
+  // True once a file-mutating tool_use lands — gates the finally-block rmdir
+  // (false = folder stayed empty = remove it) and matches the frontend's
+  // chip-visibility flag.
+  let folderMaterialized = false;
 
   const sid = sessionId ?? `nosid-${Date.now()}`;
   console.log(`[claude-chat] start session=${sid} cwd=${workingDir}`);
@@ -218,6 +273,15 @@ router.post('/claude-chat', async (req, res) => {
               // inspector state (Progress / Tools active / Changes).
               const toolUse = shapeToolUse(block);
               if (toolUse) {
+                // 5.4e: flag this request as having touched files so the
+                // finally block below won't rmdir the session folder. Folder
+                // is already on disk (eager mkdir up front); this is purely
+                // a cleanup-gate. Frontend also flips its chat.folderMaterialized
+                // on the same chunk to reveal the folder chip.
+                if (!folderMaterialized && FILE_WRITE_TOOLS.has(toolUse.name)) {
+                  folderMaterialized = true;
+                  console.log(`[claude-chat] folder used by ${toolUse.name}`);
+                }
                 send({ type: 'tool_use', ...toolUse });
                 console.log(`[claude-chat] tool_use name=${toolUse.name}`);
               }
@@ -264,6 +328,22 @@ router.post('/claude-chat', async (req, res) => {
     console.error('[claude-chat] error:', message);
     send({ type: 'error', content: message });
   } finally {
+    // 5.4e: "pure Q&A leaves disk clean" — if no file-mutating tool_use arrived,
+    // the folder is still empty; rmdir it. rmdir throws ENOTEMPTY for folders
+    // Claude actually wrote into (e.g. on a race where folderMaterialized
+    // hasn't flipped yet), so user data can't be accidentally deleted here —
+    // the folder is preserved whenever it holds any content.
+    if (!folderMaterialized) {
+      try {
+        await rmdir(workingDir);
+        console.log(`[claude-chat] rmdir clean ${workingDir}`);
+      } catch (err) {
+        const e = err as NodeJS.ErrnoException;
+        if (e.code !== 'ENOTEMPTY' && e.code !== 'ENOENT') {
+          console.warn(`[claude-chat] rmdir ${workingDir} failed: ${e.message}`);
+        }
+      }
+    }
     res.end();
   }
 });
@@ -296,6 +376,43 @@ router.post('/claude-chat/permission/:requestId', (req, res) => {
   entry.decide(decision);
   console.log(`[claude-chat] permission resolved id=${requestId} decision=${decision}`);
   res.json({ ok: true });
+});
+
+// 5.4e: open the session folder in Finder. The body's sessionFolder is
+// validated through the same resolveSessionFolder() used for the chat route,
+// so a malformed or escaping path is rejected before we touch the OS. Darwin-
+// only (WorkPal is a mac desktop prototype); other platforms respond 501 so
+// a misconfigured client gets a clear signal instead of silent failure.
+router.post('/claude-chat/open-folder', (req, res) => {
+  const { sessionFolder } = req.body as { sessionFolder?: string };
+  const folderCheck = resolveSessionFolder(sessionFolder);
+  if (!folderCheck.ok) {
+    res.status(400).json({ error: folderCheck.reason });
+    return;
+  }
+  if (process.platform !== 'darwin') {
+    res.status(501).json({ error: 'open-folder is only wired for darwin' });
+    return;
+  }
+  try {
+    // `open <path>` on macOS reveals the folder in Finder. detached + unref so
+    // the request can return without keeping the child bound to the server
+    // process; stdio ignored so Finder's own output (if any) doesn't leak.
+    const child = spawn('open', [folderCheck.resolved], {
+      stdio: 'ignore',
+      detached: true,
+    });
+    child.unref();
+    child.on('error', (err) => {
+      console.error('[claude-chat] open-folder spawn error:', err.message);
+    });
+    console.log(`[claude-chat] open-folder ${folderCheck.resolved}`);
+    res.json({ ok: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[claude-chat] open-folder failed:', message);
+    res.status(500).json({ error: message });
+  }
 });
 
 export default router;

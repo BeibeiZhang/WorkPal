@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, type MouseEvent } from 'react';
 import { PanelRight, FolderClosed, Check } from 'lucide-react';
 import { Chat, Message, ActionChip, Attachment, ImageResult, VideoResult, WebResult, CardData } from '../types';
 import ChatMessage from './ChatMessage';
@@ -7,27 +7,42 @@ import VoiceMode from './VoiceMode';
 import { HeaderBar } from './shared';
 import { AGENTS, useAgentVideoStatus } from '../agentVideos';
 
-/** Copy-on-click chip showing the session's folder path. Click flips the
- *  trailing icon to a checkmark for 1.5s so the user gets immediate feedback
- *  that the clipboard write went through. */
-function FolderChip({ path }: { path: string }) {
+/** Chip showing the session's folder path.
+ *  - Click → reveal the folder in Finder (POSTs to /api/claude-chat/open-folder
+ *    via the `onOpen` handler plumbed from App).
+ *  - Shift+click → copy the path to the clipboard (preserved from the pre-5.4e
+ *    behavior as a secondary gesture). The icon briefly flips to a checkmark
+ *    for 1.5s to confirm the copy.
+ *  `onOpen` is optional so DesignSystemPage can still render the chip in a
+ *  static preview without wiring a real handler. */
+function FolderChip({ path, onOpen }: { path: string; onOpen?: (path: string) => void | Promise<unknown> }) {
   const [copied, setCopied] = useState(false);
-  const handleClick = async () => {
-    try {
-      await navigator.clipboard.writeText(path);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* clipboard API unavailable (e.g. insecure context) — fail silently */
+  const handleClick = async (e: MouseEvent) => {
+    if (e.shiftKey) {
+      try {
+        await navigator.clipboard.writeText(path);
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 1500);
+      } catch {
+        /* clipboard API unavailable (e.g. insecure context) — fail silently */
+      }
+      return;
+    }
+    if (onOpen) {
+      try {
+        await onOpen(path);
+      } catch {
+        /* App-level handler already logs; the chip shouldn't pop a toast */
+      }
     }
   };
   return (
     <button
       type="button"
       onClick={handleClick}
-      aria-label={copied ? 'Folder path copied' : `Copy folder path ${path}`}
+      aria-label={copied ? 'Folder path copied' : `Open folder in Finder: ${path}. Shift-click to copy path.`}
       className="flex items-center gap-1.5 min-w-0 max-w-[320px] px-3 h-10 rounded-full border border-stroke-outline hover:bg-bg-hover transition-colors text-text-primary"
-      title={path}
+      title={`${path} — click to open in Finder, shift+click to copy`}
     >
       {copied
         ? <Check size={14} className="shrink-0 text-[#028901]" />
@@ -75,6 +90,11 @@ interface ChatPanelProps {
   voicePendingImages?: string[];
   /** Called after VoiceMode consumes the pending text/images */
   onVoicePendingTextConsumed?: () => void;
+  /** 5.4e: click on the session folder chip → open the folder in Finder. The
+   *  receiver is expected to POST the path to the backend (resolved + path-
+   *  traversal-checked there). Optional so static previews can render the chip
+   *  without a live handler. */
+  onOpenFolder?: (path: string) => void | Promise<unknown>;
 }
 
 const WELCOME_CHIPS = ['Create performance goals', 'Analyze doc(s)', 'Visualize data'];
@@ -245,6 +265,7 @@ export default function ChatPanel({
   voicePendingText,
   voicePendingImages,
   onVoicePendingTextConsumed,
+  onOpenFolder,
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -273,7 +294,7 @@ export default function ChatPanel({
       <HeaderBar
         sidebarOpen={sidebarOpen}
         onToggleSidebar={onToggleSidebar}
-        headerLeft={chat?.sessionFolder && chat?.folderMaterialized ? <FolderChip path={chat.sessionFolder} /> : undefined}
+        headerLeft={chat?.sessionFolder && chat?.folderMaterialized ? <FolderChip path={chat.sessionFolder} onOpen={onOpenFolder} /> : undefined}
         headerRight={contextToggleButton}
         onNewChat={onNewChat}
       />

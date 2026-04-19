@@ -17,7 +17,7 @@ import { Chat, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleC
 import PermissionPrompt from './components/PermissionPrompt';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
 import { INITIAL_CHATS } from './data';
-import { postClaudePermissionDecision, streamChat, streamClaudeChat } from './lib/api';
+import { postClaudePermissionDecision, postOpenFolder, streamChat, streamClaudeChat } from './lib/api';
 import { shouldUseClaudeCode } from './lib/intentRouter';
 import { buildAttachmentContextBlock, buildImageDescriptionBlock } from './lib/attachments';
 import {
@@ -984,6 +984,16 @@ export default function App() {
           // The model deciding to reach for a tool IS the "this is work" signal.
           openInspector(chatId);
           setActiveTools(prev => prev.includes(chunk.name) ? prev : [...prev, chunk.name]);
+          // 5.4e: a file-mutating tool means the backend just ran `mkdir -p`
+          // on the session folder, so flip `folderMaterialized` to reveal the
+          // folder chip. Pure Q&A sessions never hit this branch and stay
+          // chip-less. Idempotent across later tool_use events in the same
+          // session — React bails on the no-op setState.
+          if (CREATE_TOOLS.has(chunk.name) || EDIT_TOOLS.has(chunk.name)) {
+            setChats(prev => prev.map(c =>
+              c.id === chatId && !c.folderMaterialized ? { ...c, folderMaterialized: true } : c
+            ));
+          }
           // Defensive: if the SDK ever emits a tool_use without an id, fall back
           // to a unique synthetic id so this step doesn't mass-match any later
           // empty-id tool_result (which would wrongly complete other steps).
@@ -2150,6 +2160,10 @@ export default function App() {
                 chat={activeChat?.id === 'my-workpal' && (!onboardingDone || (activeChat?.messages.length ?? 0) === 0) ? null : activeChat ?? null}
                 onSend={handleSend}
                 onChipClick={handleChipClick}
+                // 5.4e: folder chip click → reveal session folder in Finder.
+                // ChatPanel passes this through to its FolderChip; the chip
+                // also keeps a shift+click shortcut for copy-to-clipboard.
+                onOpenFolder={postOpenFolder}
                 onCardAction={(action, card) => {
                   if (action === 'view-report') {
                     setDetailCard(card ?? null);
