@@ -44,6 +44,10 @@ export type StreamChunk =
       scope: string;
       input: unknown;
     }
+  // 5.5: server auto-committed a successful file-write tool_result. The
+  // frontend uses `toolUseId` to locate the Change entry created earlier and
+  // stamps it with `commit` — that's what lights up the Undo button.
+  | { type: 'commit'; toolUseId: string; commit: string }
   // Claude Agent SDK final usage/cost.
   | { type: 'claude_done'; usage?: unknown; cost?: unknown }
   | { type: 'error'; content: string };
@@ -131,6 +135,43 @@ export async function postClaudePermissionDecision(
     // network failure. The SDK will eventually time out / be cancelled when
     // the SSE stream closes, which the server cleans up via req.on('close').
     console.warn('Failed to POST permission decision:', err);
+  }
+}
+
+/** 5.5: ask the backend to `git reset --hard HEAD~1` the session folder. The
+ *  server blindly rolls HEAD back one commit — the frontend is responsible
+ *  for only offering Undo on the latest committed Change entry so LIFO is
+ *  preserved. `changeId` is passed through for server-side logging only.
+ *  Returns `{ok:true, commit}` on success or `{ok:false, error}` so the
+ *  caller can surface an inline error without needing to know the HTTP code. */
+export async function postUndoChange(
+  sessionFolder: string,
+  changeId: string,
+): Promise<
+  | { ok: true; commit: string }
+  | { ok: false; error: string }
+> {
+  try {
+    const res = await fetch('/api/claude-chat/undo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionFolder, changeId }),
+    });
+    if (!res.ok) {
+      const payload = await res.json().catch(() => ({}));
+      const error =
+        typeof (payload as { error?: unknown }).error === 'string'
+          ? (payload as { error: string }).error
+          : `Undo failed (${res.status})`;
+      return { ok: false, error };
+    }
+    const payload = (await res.json()) as { commit?: string };
+    return { ok: true, commit: payload.commit ?? '' };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : 'Network error',
+    };
   }
 }
 

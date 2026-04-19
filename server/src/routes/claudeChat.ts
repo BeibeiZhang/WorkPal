@@ -5,6 +5,7 @@ import { homedir } from 'node:os';
 import { spawn } from 'node:child_process';
 import type { CanUseTool, PermissionResult } from '@anthropic-ai/claude-agent-sdk';
 import { runClaudeCode, shapeToolUse, shapeToolResult } from '../lib/claudeCode.js';
+import { commitAfterTool, initIfNeeded, undoLastCommit } from '../lib/git.js';
 
 const router = Router();
 
@@ -184,6 +185,15 @@ router.post('/claude-chat', async (req, res) => {
   // chip-visibility flag.
   let folderMaterialized = false;
 
+  // 5.5: git auto-commit. True after the first successful `initIfNeeded` in
+  // this request. Flipped to false (and stays false) if init throws — that
+  // degrades this session to "no git backup" instead of tearing down the SSE
+  // stream: the user's file writes still succeed, they just lose Undo for
+  // this request. Pending file-write tool_uses register here so the matching
+  // tool_result (which only carries tool_use_id) can decide whether to commit.
+  let gitReady = false;
+  const pendingWrites = new Map<string, { toolName: string; filePath: string }>();
+
   const sid = sessionId ?? `nosid-${Date.now()}`;
   console.log(`[claude-chat] start session=${sid} cwd=${workingDir}`);
 
@@ -273,14 +283,47 @@ router.post('/claude-chat', async (req, res) => {
               // inspector state (Progress / Tools active / Changes).
               const toolUse = shapeToolUse(block);
               if (toolUse) {
+                const isFileWrite = FILE_WRITE_TOOLS.has(toolUse.name);
                 // 5.4e: flag this request as having touched files so the
                 // finally block below won't rmdir the session folder. Folder
                 // is already on disk (eager mkdir up front); this is purely
                 // a cleanup-gate. Frontend also flips its chat.folderMaterialized
                 // on the same chunk to reveal the folder chip.
-                if (!folderMaterialized && FILE_WRITE_TOOLS.has(toolUse.name)) {
+                if (!folderMaterialized && isFileWrite) {
                   folderMaterialized = true;
                   console.log(`[claude-chat] folder used by ${toolUse.name}`);
+                }
+                // 5.5: lazy `git init` on the first file-write tool_use.
+                // `git init` is idempotent at this layer (initIfNeeded checks
+                // for .git first) so running it on every file-write would be
+                // safe, but gating on gitReady saves a disk access per tool.
+                // A failure here degrades to "no git backup for this request":
+                // log, leave gitReady=false, let the SDK stream keep running.
+                if (isFileWrite && !gitReady) {
+                  try {
+                    await initIfNeeded(workingDir);
+                    gitReady = true;
+                  } catch (err) {
+                    const m = err instanceof Error ? err.message : String(err);
+                    console.error(`[claude-chat] git init failed: ${m}`);
+                  }
+                }
+                // Register write inputs so the matching tool_result (which
+                // carries only tool_use_id) can decide whether to commit.
+                // Only file-write tools enter this map — Read/Bash/etc. never
+                // trigger a commit even on success. If neither file_path nor
+                // notebook_path is set (shouldn't happen for a well-formed
+                // SDK tool_use, but defensive), we skip registration: better
+                // to miss a commit than to stage an empty path.
+                if (isFileWrite && gitReady) {
+                  const inp = (toolUse.input && typeof toolUse.input === 'object'
+                    ? toolUse.input as Record<string, unknown>
+                    : {});
+                  const filePath = strField(inp, 'file_path')
+                    || strField(inp, 'notebook_path');
+                  if (filePath) {
+                    pendingWrites.set(toolUse.id, { toolName: toolUse.name, filePath });
+                  }
                 }
                 send({ type: 'tool_use', ...toolUse });
                 console.log(`[claude-chat] tool_use name=${toolUse.name}`);
@@ -299,11 +342,54 @@ router.post('/claude-chat', async (req, res) => {
           if (Array.isArray(blocks)) {
             for (const block of blocks) {
               const result = shapeToolResult(block);
-              if (result) {
-                send({ type: 'tool_result', ...result });
-                console.log(
-                  `[claude-chat] tool_result ${result.isError ? 'err' : 'ok'}`,
-                );
+              if (!result) continue;
+
+              // Order matters: send tool_result FIRST so the frontend's Change
+              // entry exists before we emit the commit chunk that updates it.
+              // Flipping this order would make the commit chunk arrive for a
+              // non-existent entry and silently drop.
+              send({ type: 'tool_result', ...result });
+              console.log(
+                `[claude-chat] tool_result ${result.isError ? 'err' : 'ok'}`,
+              );
+
+              // 5.5: auto-commit the disk state after a successful file-write.
+              // Failed writes (isError=true) stay out of the undo stack — they
+              // correspond to Claude's wrong-path retries which would otherwise
+              // leave phantom undoable entries in the UI.
+              const pending = pendingWrites.get(result.toolUseId);
+              if (pending && !result.isError && gitReady) {
+                pendingWrites.delete(result.toolUseId);
+                try {
+                  const committed = await commitAfterTool(workingDir, {
+                    sessionId: sid,
+                    toolName: pending.toolName,
+                    filePath: pending.filePath,
+                  });
+                  if (committed) {
+                    send({ type: 'commit', toolUseId: result.toolUseId, commit: committed.commit });
+                    console.log(`[claude-chat] commit ${committed.commit.slice(0, 7)} (${pending.toolName})`);
+                  } else {
+                    // commitAfterTool returned null → the targeted add staged
+                    // no diff (e.g. Edit with identical contents). Skip the
+                    // commit chunk so the frontend entry stays without an
+                    // Undo affordance rather than lighting up a button that
+                    // would silently no-op on click.
+                    console.log(`[claude-chat] commit skipped (no diff) ${pending.toolName} ${pending.filePath}`);
+                  }
+                } catch (err) {
+                  const m = err instanceof Error ? err.message : String(err);
+                  console.error(`[claude-chat] commit failed: ${m}`);
+                  // Degrade silently: the user's file is already on disk and
+                  // the change entry is already in the UI — we just can't
+                  // back it with a commit, so Undo won't light up. Surfacing
+                  // this to the user would be noise; the server log is enough.
+                }
+              } else if (pending && result.isError) {
+                // Clean up the pending entry so a future tool_use reusing the
+                // same id (shouldn't happen, but defensive) doesn't commit
+                // against a stale registration.
+                pendingWrites.delete(result.toolUseId);
               }
             }
           }
@@ -412,6 +498,44 @@ router.post('/claude-chat/open-folder', (req, res) => {
     const message = err instanceof Error ? err.message : String(err);
     console.error('[claude-chat] open-folder failed:', message);
     res.status(500).json({ error: message });
+  }
+});
+
+// 5.5: undo the most recent auto-commit in a session's folder. Body carries
+// `changeId` only for server-side logging — the server blindly rolls HEAD
+// back one commit. The frontend enforces LIFO visibility so only the latest
+// committed Change entry has an Undo button, which keeps this endpoint
+// idempotent per click without needing per-entry commit tracking on the
+// server. Reuses `resolveSessionFolder` so a malformed path is rejected the
+// same way it would be on the chat route.
+router.post('/claude-chat/undo', async (req, res) => {
+  const { sessionFolder, changeId } = req.body as {
+    sessionFolder?: string;
+    changeId?: string;
+  };
+  const folderCheck = resolveSessionFolder(sessionFolder);
+  if (!folderCheck.ok) {
+    res.status(400).json({ error: folderCheck.reason });
+    return;
+  }
+  try {
+    const { commit } = await undoLastCommit(folderCheck.resolved);
+    console.log(
+      `[claude-chat] undo change=${changeId ?? '?'} → ${commit.slice(0, 7)}`,
+    );
+    res.json({ ok: true, commit });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    // `git reset HEAD~1` on a repo with no parent, or on a folder with no
+    // `.git` at all, produces a clear stderr that distinguishes "nothing to
+    // undo" (409) from a real failure (500). Matching on the message text
+    // is brittle but git's phrasing here has been stable across versions.
+    const nothingToUndo =
+      /unknown revision|ambiguous argument|Not a git repository/i.test(message);
+    console.error(`[claude-chat] undo failed: ${message}`);
+    res
+      .status(nothingToUndo ? 409 : 500)
+      .json({ error: message });
   }
 });
 

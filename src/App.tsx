@@ -17,7 +17,7 @@ import { Chat, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleC
 import PermissionPrompt from './components/PermissionPrompt';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
 import { INITIAL_CHATS } from './data';
-import { postClaudePermissionDecision, postOpenFolder, streamChat, streamClaudeChat } from './lib/api';
+import { postClaudePermissionDecision, postOpenFolder, postUndoChange, streamChat, streamClaudeChat } from './lib/api';
 import { shouldUseClaudeCode } from './lib/intentRouter';
 import { buildAttachmentContextBlock, buildImageDescriptionBlock } from './lib/attachments';
 import {
@@ -664,8 +664,10 @@ export default function App() {
   }, [updateChat]);
 
   /** Append a change entry to the chat's log. Shown in the inspector's
-   *  Changes card. No real git commit happens — this is the UI surface for
-   *  the Phase 4 spec's auto-commit behavior. */
+   *  Changes card. Claude-backed entries get a `toolUseId` so the later
+   *  `commit` SSE chunk can find this row and stamp the hash; demo entries
+   *  carry neither `toolUseId` nor `commit` and render as pure cosmetic
+   *  flips when the user clicks Undo. */
   const addChange = useCallback((chatId: string, entry: Omit<ChangeEntry, 'id' | 'timestamp'>) => {
     const full: ChangeEntry = {
       ...entry,
@@ -675,14 +677,73 @@ export default function App() {
     setChanges(prev => ({ ...prev, [chatId]: [...(prev[chatId] || []), full] }));
   }, []);
 
-  /** Flip a Change entry to `undone: true`. Stays visible in the log greyed
-   *  out with an Undone tag. No real file revert. */
-  const handleUndoChange = useCallback((chatId: string, changeId: string) => {
+  /** 5.5: stamp a Change entry with its git commit hash once the backend
+   *  emits the matching `commit` SSE chunk. Matching is by `toolUseId` (set
+   *  on the entry when the tool_use chunk first arrived). If no matching
+   *  entry exists the chunk is silently dropped — can happen if the user
+   *  navigated away from a chat mid-stream. */
+  const stampCommit = useCallback((chatId: string, toolUseId: string, commit: string) => {
     setChanges(prev => {
-      const list = prev[chatId] || [];
-      return { ...prev, [chatId]: list.map(c => c.id === changeId ? { ...c, undone: true } : c) };
+      const list = prev[chatId];
+      if (!list) return prev;
+      let changed = false;
+      const next = list.map(c => {
+        if (c.toolUseId === toolUseId && !c.commit) {
+          changed = true;
+          return { ...c, commit };
+        }
+        return c;
+      });
+      return changed ? { ...prev, [chatId]: next } : prev;
     });
   }, []);
+
+  /** Undo a Change entry. Claude-backed entries (with a `commit` hash and a
+   *  `sessionFolder` on the chat) POST to the server for a real
+   *  `git reset --hard HEAD~1`; only the latest committed entry is offered an
+   *  Undo button (LIFO, enforced by TaskContextPanel) so the server can stay
+   *  stateless. On POST failure we stamp `undoError` on the entry — the panel
+   *  renders it inline in red and auto-clears it after 5s. Demo/simulated
+   *  entries (no commit) keep the original cosmetic flip. */
+  const handleUndoChange = useCallback(async (chatId: string, changeId: string) => {
+    const chat = chats.find(c => c.id === chatId);
+    const entry = (changes[chatId] || []).find(c => c.id === changeId);
+    if (!entry) return;
+
+    if (!entry.commit || !chat?.sessionFolder) {
+      setChanges(prev => {
+        const list = prev[chatId] || [];
+        return { ...prev, [chatId]: list.map(c => c.id === changeId ? { ...c, undone: true } : c) };
+      });
+      return;
+    }
+
+    const result = await postUndoChange(chat.sessionFolder, changeId);
+    if (result.ok) {
+      setChanges(prev => {
+        const list = prev[chatId] || [];
+        return { ...prev, [chatId]: list.map(c => c.id === changeId ? { ...c, undone: true, undoError: undefined } : c) };
+      });
+      return;
+    }
+
+    setChanges(prev => {
+      const list = prev[chatId] || [];
+      return { ...prev, [chatId]: list.map(c => c.id === changeId ? { ...c, undoError: result.error } : c) };
+    });
+    // 5s auto-dismiss so the error doesn't stick around once the user has
+    // had a chance to read it. If they retry and fail again, the new error
+    // replaces this one (same entry id, last-write-wins) and the timer resets.
+    window.setTimeout(() => {
+      setChanges(prev => {
+        const list = prev[chatId];
+        if (!list) return prev;
+        const hit = list.find(c => c.id === changeId);
+        if (!hit?.undoError) return prev;
+        return { ...prev, [chatId]: list.map(c => c.id === changeId ? { ...c, undoError: undefined } : c) };
+      });
+    }, 5000);
+  }, [chats, changes]);
 
   /** Open the PermissionPrompt modal and await the user's decision. Returns
    *  true on Allow / Always allow, false on Cancel. "Always allow" also
@@ -944,7 +1005,18 @@ export default function App() {
   // 5.4c: tool_use flips `hasInspector`, appends Changes entries for file
   // mutations, and drives the Progress list via tool_use/tool_result pairing.
   // Attachments / project docs / memory block intentionally not wired here yet.
-  const streamFromClaudeAPI = useCallback(async (chatId: string, userText: string) => {
+  const streamFromClaudeAPI = useCallback(async (
+    chatId: string,
+    userText: string,
+    // Fresh chats mint their sessionFolder in handleSend the same tick they
+    // call this function, which is before React has flushed the setChats that
+    // stores it. Reading `chat?.sessionFolder` from this closure would see
+    // the pre-flush value (undefined) and the server would reject the request
+    // with a 400. Accepting an override lets handleSend hand the freshly-
+    // computed path straight through; established chats rely on the closure
+    // lookup like before.
+    overrideSessionFolder?: string,
+  ) => {
     const chat = chats.find(c => c.id === chatId);
     const previousMessages = (chat?.messages || [])
       .filter(m => !m.isLoading)
@@ -965,7 +1037,7 @@ export default function App() {
       for await (const chunk of streamClaudeChat({
         prompt: userText,
         sessionId: chatId,
-        sessionFolder: chat?.sessionFolder,
+        sessionFolder: overrideSessionFolder ?? chat?.sessionFolder,
         messages: history,
       })) {
         if (chunk.type === 'text') {
@@ -1003,13 +1075,19 @@ export default function App() {
             { id: stepId, label: deriveToolStepLabel(chunk.name, chunk.input), status: 'active' },
           ]);
           const change = deriveChangeFromToolUse(chunk.name, chunk.input);
-          if (change) addChange(chatId, change);
+          if (change) addChange(chatId, { ...change, toolUseId: chunk.id });
         } else if (chunk.type === 'tool_result') {
           // Flip the matching Progress step to completed. Error state (isError)
           // deliberately not reflected in the UI yet — that's a 5.5 concern.
           setTaskSteps(prev => prev.map(s =>
             s.id === chunk.toolUseId ? { ...s, status: 'completed' } : s
           ));
+        } else if (chunk.type === 'commit') {
+          // 5.5: server auto-committed this file-write's disk state. Stamp the
+          // matching Change entry with the commit hash so LIFO Undo lights up.
+          // Ordering: this chunk always arrives AFTER the tool_result for the
+          // same toolUseId, so the Change entry reliably exists by now.
+          stampCommit(chatId, chunk.toolUseId, chunk.commit);
         } else if (chunk.type === 'permission_request') {
           // 5.4d bridge: server parked a SDK canUseTool resolver under
           // chunk.requestId. If the user has already granted "Always allow"
@@ -1069,7 +1147,7 @@ export default function App() {
         };
       }));
     }
-  }, [chats, addMessage, openInspector, addChange]);
+  }, [chats, addMessage, openInspector, addChange, stampCommit]);
 
   // Auto-respond when opening ux-meeting chat with only the user message
   useEffect(() => {
@@ -1209,6 +1287,12 @@ export default function App() {
 
     // Find or create active chat
     let chatId = activeChatId;
+    // Track the sessionFolder this send WILL use. Computed synchronously here
+    // so we can hand it directly to streamFromClaudeAPI instead of relying on
+    // React flushing the setChats below before the async function's closure
+    // snapshot captures `chats`. Defaults to the existing chat's value and
+    // only gets overwritten in the fresh-chat branch.
+    let sessionFolderForSend = activeChat?.sessionFolder;
 
     // If on welcome screen or empty session, update the existing chat's title
     if (!activeChat || activeChat.messages.length === 0) {
@@ -1219,6 +1303,9 @@ export default function App() {
       // Auto-generate the session folder on first send. The slug comes from
       // the derived title, not the chat id, so it's meaningful to humans.
       const sessionFolder = buildSessionFolder(titleSource || 'session');
+      // Mirror the `?? sessionFolder` fallback used in setChats below so the
+      // value we forward matches what the chat will end up with.
+      sessionFolderForSend = activeChat?.sessionFolder ?? sessionFolder;
       if (activeChat && activeChat.messages.length === 0) {
         // Reuse existing empty chat (e.g. "New Session") and update its title.
         // Promote it from draft → recent so it shows up in the Recents list.
@@ -1292,7 +1379,7 @@ export default function App() {
       // 5.4b keyword router — code/file intents go to Claude Agent SDK. Skip
       // when attachments are present since the Claude path doesn't wire them
       // yet; OpenAI still handles those.
-      streamFromClaudeAPI(chatId, text);
+      streamFromClaudeAPI(chatId, text, sessionFolderForSend);
     } else {
       streamFromAPI(chatId, text, attachments);
     }
