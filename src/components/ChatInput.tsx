@@ -136,6 +136,14 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
   useEffect(() => {
     const ta = textareaRef.current;
     if (!ta) return;
+    // Empty = single-line pill. Skip scrollHeight — on initial mount it can
+    // report the 120px max (e.g. when the footer is still being laid out
+    // inside a SplitView), leaving the input stuck at that height.
+    if (value === '') {
+      ta.style.height = 'auto';
+      setIsMultiline(false);
+      return;
+    }
     ta.style.height = 'auto';
     const next = Math.min(ta.scrollHeight, 120);
     ta.style.height = next + 'px';
