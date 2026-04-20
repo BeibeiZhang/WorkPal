@@ -74,10 +74,10 @@ export function HeaderBar({
 }
 
 /* ─── 0c. DemoBadge ───
- * Small bilingual "Demo / 体验版" pill — only rendered when IS_DEMO is true.
- * Click opens a modal explaining what's mocked vs. real on the demo
- * deployment. Intentionally no visible footprint outside demo mode (real
- * users and localhost dev see nothing).
+ * Small "Demo" pill — only rendered when IS_DEMO is true. Click opens a
+ * modal explaining what's mocked vs. real on the demo deployment.
+ * Intentionally no visible footprint outside demo mode (real users and
+ * localhost dev see nothing).
  */
 export function DemoBadge() {
   const [open, setOpen] = useState(false);
@@ -86,11 +86,11 @@ export function DemoBadge() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="About this demo / 关于此体验版"
+        aria-label="About this demo"
         className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full text-[12px] font-medium chip-gradient-hover transition-colors text-text-primary"
         style={{ border: '1px solid var(--color-stroke-outline)' }}
       >
-        <span>Demo / 体验版</span>
+        <span>Demo</span>
         <Info size={13} className="text-text-secondary" />
       </button>
       <DemoExplainerModal open={open} onClose={() => setOpen(false)} />
@@ -98,8 +98,8 @@ export function DemoBadge() {
   );
 }
 
-/* Bilingual modal opened by DemoBadge. Kept inline with the badge so callers
- * that import DemoBadge don't need a second import to render the modal. */
+/* Modal opened by DemoBadge. Kept inline with the badge so callers that
+ * import DemoBadge don't need a second import to render the modal. */
 function DemoExplainerModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   useEffect(() => {
     if (!open) return;
@@ -134,31 +134,27 @@ function DemoExplainerModal({ open, onClose }: { open: boolean; onClose: () => v
           </div>
           <div className="min-w-0">
             <h2 className="text-[16px] font-semibold text-text-primary leading-tight">
-              About this demo / 关于此体验版
+              About this demo
             </h2>
             <p className="text-[13px] text-text-secondary leading-tight mt-0.5">
-              Shared build for interviewers — no real data. / 仅供面试分享,无真实数据。
+              Shared build — no real data.
             </p>
           </div>
         </div>
 
         <div className="flex flex-col gap-3 text-[13px] text-text-primary leading-relaxed">
           <div>
-            <div className="font-medium mb-1">What works / 可用功能</div>
+            <div className="font-medium mb-1">What works</div>
             <ul className="list-disc pl-5 text-text-secondary space-y-0.5">
               <li>Chat, voice, web / image / video search</li>
-              <li>聊天、语音、网页 / 图片 / 视频搜索</li>
             </ul>
           </div>
           <div>
-            <div className="font-medium mb-1">What's mocked / 模拟功能</div>
+            <div className="font-medium mb-1">What's mocked</div>
             <ul className="list-disc pl-5 text-text-secondary space-y-0.5">
               <li>Gmail / Calendar: seed data only, no real OAuth</li>
-              <li>Gmail / 日历:仅示例数据,不走真实 OAuth</li>
               <li>Memory: read-only seed, not connected to Supabase</li>
-              <li>记忆:只读示例,不连 Supabase</li>
               <li>Claude Code file edits: runs locally only</li>
-              <li>Claude Code 文件编辑:仅本地可用</li>
             </ul>
           </div>
           <div className="text-text-secondary">

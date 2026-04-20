@@ -6,8 +6,8 @@
  * that the state they're seeing isn't a real integration.
  */
 
-/** Bilingual label shown in place of "Connect" on every connector in demo. */
-export const DEMO_CONNECT_LABEL = 'Try with demo data / 使用 Demo 数据';
+/** Label shown in place of "Connect" on every connector in demo. */
+export const DEMO_CONNECT_LABEL = 'Try with demo data';
 
 /** Replacement for the "Connected" pill so HRs can tell the demo state
  *  apart from a real OAuth connection. */

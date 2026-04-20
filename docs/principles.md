@@ -41,6 +41,8 @@
 ### 8. Bilingual from day 1 (双语原生)
 所有用户相关的启发式（关键词匹配、提示语、错误消息）**同时覆盖英文 + 中文**。Beibei 混用，用户也混用 —— 不要只英文。
 
+**Demo exception**:`my-workpal.vercel.app` 体验版面向单一中文读者群体（HR），双语并列反而视觉冗余。该模式下（被 `IS_DEMO` gate 或在 `src/data/demo/*` 里的）所有 user-visible 文案改为纯英文以提升简洁度；关键词匹配等 intent-routing 启发式**仍然双语**（那是识别逻辑，不是展示）。Non-demo（localhost dev + `workpal-beibei.vercel.app` 自用部署)仍严格遵循本条原则。
+
 ### 9. Frontend-generated paths flow through (前端生成的 path 一路下传)
 UI 显示什么路径，backend 就 mkdir 那个路径、git init 那个路径、permission scope 用那个路径。**四处永远一致**。
 
