@@ -9,5 +9,8 @@
     { "source": "/api/search-videos",        "destination": "/api/search?kind=videos" },
     { "source": "/api/search-web",           "destination": "/api/search?kind=web" },
     { "source": "/((?!api).*)", "destination": "/index.html" }
+  ],
+  "crons": [
+    { "path": "/api/artifacts/cron-sweep", "schedule": "0 3 * * 5" }
   ]
 }
