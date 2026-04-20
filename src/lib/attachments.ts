@@ -1,7 +1,6 @@
 import * as pdfjs from 'pdfjs-dist';
 // Vite turns `?url` imports into asset URLs — this points the worker at the
 // bundled pdf.worker.mjs so PDF parsing runs off the main thread.
-// @ts-expect-error — Vite-specific import suffix
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import type { Attachment } from '../types';
 import { streamChat } from './api';
