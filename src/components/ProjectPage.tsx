@@ -9,6 +9,8 @@ import {
 import { EmptyState, FilterChip, PageLayout, SearchBox, SideCard, SidePanelHeader, SplitView, outputIconFor } from './shared';
 import type { Chat, Attachment, OutputItem, OutputType } from '../types';
 import { filesToAttachments, formatFileSize } from '../lib/attachments';
+import { IS_DEMO } from '../lib/demoMode';
+import { listArtifacts, type Artifact, type ArtifactKind } from '../lib/artifacts';
 
 interface ProjectPageProps {
   project: Project;
@@ -37,6 +39,30 @@ function formatRelative(date: Date): string {
 
 /* ── Demo data ── */
 type OutputFilter = 'All' | OutputType;
+
+/** Map from the 8 server-side ArtifactKinds to the 4 ProjectPage Output
+ *  filter tabs. Groups webpage/document/report/note/spreadsheet under Web
+ *  because those all render flat in this rail; Slides / Image / Video get
+ *  their own tabs. Icon derivation happens downstream in `outputIconFor`
+ *  (shared.tsx) so OutputItem stays JSON-serializable for localStorage. */
+function kindToOutputType(kind: ArtifactKind): OutputType {
+  switch (kind) {
+    case 'presentation': return 'Slides';
+    case 'image':        return 'Image';
+    case 'video':        return 'Video';
+    default:             return 'Web';
+  }
+}
+
+function artifactToOutputItem(a: Artifact): OutputItem {
+  return {
+    id: a.slug,
+    name: a.contentEn?.title || a.topic || a.templateId,
+    type: kindToOutputType(a.kind),
+    // Hosted artifacts get a public URL — clicking the Output card opens it.
+    href: `/artifact/${a.slug}`,
+  };
+}
 
 const OUTPUT_FILTERS: OutputFilter[] = ['All', 'Web', 'Slides', 'Image', 'Video'];
 
@@ -137,17 +163,34 @@ const EMPTY_CONTENT: ProjectContent = {
 
 export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, onAddFiles, onRemoveFile, sidebarOpen, onToggleSidebar }: ProjectPageProps) {
   const content = PROJECT_CONTENT[project.id] ?? EMPTY_CONTENT;
-  // Real outputs produced in this project (Claude Code file writes) come in
-  // on `project.outputs`, persisted through the App-level projects effect.
-  // Deduped against the seed entries by name so re-creating a file already
-  // listed in the demo seed doesn't double up in the grid.
+  // Three output sources feed the grid:
+  //   1. seedOutputs  — PROJECT_CONTENT mock (proj-1 showcase). Demo only.
+  //   2. claudeCodeOutputs — Claude Code file writes in this project, persisted
+  //      on `project.outputs` via the App-level streaming loop (PR #93).
+  //   3. hostedArtifacts — candidate #3 /api/artifacts rows scoped to this
+  //      project. Fetched fresh on mount; demo-mode short-circuits to [].
+  // Merged in that priority (real work first, seed as fallback), deduped by
+  // name so re-generating a seed-named item doesn't double up.
   const seedOutputs = content.outputs;
-  const realOutputs = project.outputs ?? [];
-  const seedNames = new Set(seedOutputs.map(o => o.name));
-  const mergedOutputs: OutputItem[] = [
-    ...realOutputs.filter(o => !seedNames.has(o.name)),
-    ...seedOutputs,
-  ];
+  const claudeCodeOutputs = project.outputs ?? [];
+  const [hostedArtifacts, setHostedArtifacts] = useState<OutputItem[]>([]);
+  useEffect(() => {
+    if (IS_DEMO) return;
+    let cancelled = false;
+    listArtifacts({ status: 'ready', projectId: project.id }).then((rows) => {
+      if (cancelled) return;
+      setHostedArtifacts(rows.map(artifactToOutputItem));
+    });
+    return () => { cancelled = true; };
+  }, [project.id]);
+  const seenNames = new Set<string>();
+  const mergedOutputs: OutputItem[] = [];
+  for (const o of [...claudeCodeOutputs, ...hostedArtifacts, ...seedOutputs]) {
+    if (seenNames.has(o.name)) continue;
+    seenNames.add(o.name);
+    mergedOutputs.push(o);
+  }
+
   const [outputFilter, setOutputFilter] = useState<OutputFilter>('All');
   const [selectedOutputId, setSelectedOutputId] = useState<string>(content.defaultSelectedOutputId);
   const [outputOpen, setOutputOpen] = useState(true);
@@ -405,17 +448,28 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                       <EmptyState
                         icon={FolderOpen}
                         title="No outputs yet"
-                        description="Files WorkPal creates in this project will show up here."
+                        description="Files WorkPal creates in this project — or hosted artifacts you ask it to generate — will show up here."
                       />
                     ) : (
                       <div className="flex gap-3 overflow-x-auto pb-1">
                         {filteredOutputs.map(o => {
                           const Icon = outputIconFor(o.type);
                           const isSelected = selectedOutputId === o.id;
+                          // Hosted artifacts (candidate #3) carry an href; the
+                          // card opens the /artifact/<slug> page in a new tab.
+                          // Claude-code and seed entries only toggle the
+                          // selected-highlight state.
+                          const handleClick = () => {
+                            if (o.href) {
+                              window.open(o.href, '_blank', 'noopener,noreferrer');
+                            } else {
+                              setSelectedOutputId(o.id);
+                            }
+                          };
                           return (
                             <button
                               key={o.id}
-                              onClick={() => setSelectedOutputId(o.id)}
+                              onClick={handleClick}
                               className={`flex flex-col items-center gap-2 min-w-[120px] w-[120px] p-2 rounded-lg border transition-colors ${
                                 isSelected
                                   ? 'border-[#3171ff]'

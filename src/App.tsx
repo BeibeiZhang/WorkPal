@@ -23,9 +23,9 @@ import { DEMO_EXTRA_CHATS, DEMO_EXTRA_CHAT_IDS } from './data/demo/chats';
 import { DEMO_CHANGES_ALCOHOL } from './data/demo/changes';
 import { IS_DEMO, IS_CLAUDE_CODE_AVAILABLE } from './lib/demoMode';
 import { postClaudePermissionDecision, postInitProject, postOpenFile, postOpenFolder, postReaperRun, postSessionComplete, postSessionMerge, postUndoChange, streamChat, streamClaudeChat } from './lib/api';
-import { shouldUseClaudeCode } from './lib/intentRouter';
+import { shouldUseClaudeCode, shouldGenerateArtifact } from './lib/intentRouter';
 import { buildAttachmentContextBlock, buildImageDescriptionBlock } from './lib/attachments';
-import { artifactFromClaudePath, outputTypeFromPath } from './lib/artifacts';
+import { artifactFromClaudePath, outputTypeFromPath, generateArtifactRequest, artifactItemCount } from './lib/artifacts';
 import {
   loadMemoriesCache,
   saveMemoriesCache,
@@ -1471,6 +1471,90 @@ export default function App() {
     }
   }, [chats, projects, addMessage, openInspector, addChange, stampCommit]);
 
+  // Candidate #3 — artifact generation path. Picked by shouldGenerateArtifact
+  // when the user's message combines an artifact noun ("周刊", "digest") with
+  // an action verb ("写", "make"). Pipeline runs synchronously server-side
+  // (Tavily + OpenAI ×2, ~10-30s); we render a generating-status card
+  // immediately and swap it to ready/failed when the POST resolves.
+  const streamArtifactFromAPI = useCallback(async (chatId: string, userText: string) => {
+    const chat = chats.find(c => c.id === chatId);
+    const project = chat?.projectId ? projects.find(p => p.id === chat.projectId) : null;
+
+    const assistantId = nextId();
+    const initialTitle = userText.trim().slice(0, 60);
+    addMessage(chatId, {
+      id: assistantId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      isLoading: true,
+      card: {
+        type: 'artifact',
+        title: initialTitle,
+        status: 'generating',
+        templateId: 'bay-area-weekend',
+      },
+    });
+
+    try {
+      const { artifact, url } = await generateArtifactRequest({
+        templateId: 'bay-area-weekend',
+        topic: userText.trim() || undefined,
+        chatId,
+        projectId: project?.id,
+      });
+      setChats(prev => prev.map(c => {
+        if (c.id !== chatId) return c;
+        return {
+          ...c,
+          messages: c.messages.map(m =>
+            m.id === assistantId
+              ? {
+                  ...m,
+                  isLoading: false,
+                  content: '',
+                  card: {
+                    type: 'artifact',
+                    title: artifact.contentEn?.title || initialTitle,
+                    status: 'ready',
+                    templateId: artifact.templateId,
+                    slug: artifact.slug,
+                    url,
+                    coverImageUrl: artifact.coverImageUrl,
+                    itemCount: artifactItemCount(artifact, 'en'),
+                  },
+                }
+              : m
+          ),
+        };
+      }));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Generation failed';
+      setChats(prev => prev.map(c => {
+        if (c.id !== chatId) return c;
+        return {
+          ...c,
+          messages: c.messages.map(m =>
+            m.id === assistantId
+              ? {
+                  ...m,
+                  isLoading: false,
+                  content: '',
+                  card: {
+                    type: 'artifact',
+                    title: initialTitle,
+                    status: 'failed',
+                    templateId: 'bay-area-weekend',
+                    error: msg,
+                  },
+                }
+              : m
+          ),
+        };
+      }));
+    }
+  }, [chats, projects, addMessage]);
+
   // Auto-respond when opening ux-meeting chat with only the user message
   useEffect(() => {
     if (!activeChat) return;
@@ -1703,6 +1787,11 @@ export default function App() {
       } else {
         setVoicePendingText(text);
       }
+    } else if (!attachments?.length && shouldGenerateArtifact(text)) {
+      // Candidate #3 — artifact intent (noun + verb bilingual match) wins
+      // before the Claude Code path because "写...周刊" contains "写" which
+      // would otherwise route to the SDK.
+      streamArtifactFromAPI(chatId, text);
     } else if (!attachments?.length && shouldUseClaudeCode(text)) {
       // 5.4b keyword router — code/file intents go to Claude Agent SDK. Skip
       // when attachments are present since the Claude path doesn't wire them
@@ -1711,7 +1800,7 @@ export default function App() {
     } else {
       streamFromAPI(chatId, text, attachments);
     }
-  }, [activeChatId, activeChat, showTypingThenRespond, streamFromAPI, streamFromClaudeAPI, runAlcoholDeliveryFlow, voiceModeActive, navigate, chatMatch]);
+  }, [activeChatId, activeChat, showTypingThenRespond, streamFromAPI, streamFromClaudeAPI, streamArtifactFromAPI, runAlcoholDeliveryFlow, voiceModeActive, navigate, chatMatch]);
 
   const handleChipClick = useCallback((chip: ActionChip) => {
     // Treat chip click as a user message

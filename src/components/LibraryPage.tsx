@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   BookOpen,
   FileText,
@@ -8,11 +8,14 @@ import {
   Video,
   FileSpreadsheet,
   StickyNote,
+  Globe,
   MoreHorizontal,
   Play,
   Download,
 } from 'lucide-react';
 import { FilterChip, PageLayout, SearchBox } from './shared';
+import { IS_DEMO } from '../lib/demoMode';
+import { listArtifacts, type Artifact } from '../lib/artifacts';
 
 interface LibraryPageProps {
   sidebarOpen: boolean;
@@ -28,7 +31,8 @@ type ArtifactType =
   | 'video'
   | 'document'
   | 'spreadsheet'
-  | 'note';
+  | 'note'
+  | 'webpage';
 
 interface LibraryItem {
   id: string;
@@ -46,10 +50,15 @@ interface LibraryItem {
   ratio: string;
   /** Short summary shown on the card below the title divider. */
   summary?: string;
+  /** Candidate #3: for real webpage artifacts, click opens this URL in a
+   *  new tab. Undefined for mock/demo items — they stay inert. */
+  href?: string;
 }
 
-/* ─── Mock data — represents AI-generated artifacts across the app ─── */
-const ITEMS: LibraryItem[] = [
+/* ─── Demo mock data — represents AI-generated artifacts across the app.
+       In non-demo contexts we swap these out for real rows from the
+       /api/artifacts endpoint. ─── */
+const DEMO_ITEMS: LibraryItem[] = [
   {
     id: 'a1',
     title: 'Spark Driver Alcohol Delivery — Summary Report',
@@ -154,6 +163,7 @@ const FILTERS: { id: FilterId; label: string; Icon: typeof FileText | null }[] =
   { id: 'document', label: 'Documents', Icon: FileIcon },
   { id: 'spreadsheet', label: 'Spreadsheets', Icon: FileSpreadsheet },
   { id: 'note', label: 'Notes', Icon: StickyNote },
+  { id: 'webpage', label: 'Webpages', Icon: Globe },
 ];
 
 /* Vivid, high-brightness palette — matches Figma's colorful card style (e.g. #f06a6a). */
@@ -165,6 +175,7 @@ const TYPE_META: Record<ArtifactType, { label: string; Icon: typeof FileText; ti
   document:     { label: 'Document',     Icon: FileIcon,        tint: '#14B8A6' }, // teal
   spreadsheet:  { label: 'Spreadsheet',  Icon: FileSpreadsheet, tint: '#22C55E' }, // vivid green
   note:         { label: 'Note',         Icon: StickyNote,      tint: '#FBBF24' }, // amber
+  webpage:      { label: 'Webpage',      Icon: Globe,           tint: '#7652B9' }, // brand purple
 };
 
 /* ─── Item card — Figma-style (node 6417:25543): icon + title header with a
@@ -173,9 +184,13 @@ const TYPE_META: Record<ArtifactType, { label: string; Icon: typeof FileText; ti
 function LibraryCard({ item }: { item: LibraryItem }) {
   const meta = TYPE_META[item.type];
   const TypeIcon = meta.Icon;
+  const handleClick = () => {
+    if (item.href) window.open(item.href, '_blank', 'noopener,noreferrer');
+  };
   return (
     <div className="mb-3 break-inside-avoid">
       <div
+        onClick={handleClick}
         className="group relative w-full overflow-hidden rounded-2xl cursor-pointer transition-transform duration-200 hover:-translate-y-0.5"
         style={{
           aspectRatio: item.ratio.replace('/', ' / '),
@@ -296,23 +311,76 @@ function LibraryCard({ item }: { item: LibraryItem }) {
   );
 }
 
+/** Convert a server Artifact into a LibraryItem for rendering. Kept here
+ *  (not in lib/artifacts.ts) because LibraryItem is a LibraryPage-local
+ *  shape — the display-ratio and source-label policies belong next to the
+ *  card that reads them. */
+function artifactToLibraryItem(a: Artifact): LibraryItem {
+  const title = a.contentEn?.title || a.topic || a.templateId;
+  const summary = a.contentEn?.summary || undefined;
+  const source = a.topic || humanizeTemplateId(a.templateId);
+  // webpage artifacts render taller than wide; match existing Figma "note" ratio.
+  const ratio = a.kind === 'webpage' ? '3/4' : '4/3';
+  return {
+    id: a.slug,
+    title,
+    type: a.kind,
+    source,
+    createdAt: relativeTime(a.createdAt),
+    thumbnail: a.coverImageUrl ?? undefined,
+    ratio,
+    summary,
+    href: `/artifact/${a.slug}`,
+  };
+}
+
+function humanizeTemplateId(id: string): string {
+  return id.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+function relativeTime(iso: string): string {
+  const then = new Date(iso).getTime();
+  const diff = Date.now() - then;
+  const hr = Math.round(diff / 3_600_000);
+  if (hr < 1) return 'Just now';
+  if (hr < 24) return `${hr}h ago`;
+  const days = Math.round(hr / 24);
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return `${days} days ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
 /* ─── Page ─── */
 export default function LibraryPage({ sidebarOpen, onToggleSidebar, onNewChat }: LibraryPageProps) {
   const [filter, setFilter] = useState<FilterId>('all');
   const [search, setSearch] = useState('');
 
-  const counts = useMemo(() => {
-    const c: Record<FilterId, number> = {
-      all: ITEMS.length,
-      report: 0, presentation: 0, image: 0, video: 0,
-      document: 0, spreadsheet: 0, note: 0,
-    };
-    ITEMS.forEach(i => { c[i.type] += 1; });
-    return c;
+  // Demo mode keeps the static mocks — the demo Vercel project has no
+  // backend artifacts table. Everywhere else we fetch real rows from
+  // /api/artifacts and fall back to an empty state when there are none.
+  const [items, setItems] = useState<LibraryItem[]>(() => (IS_DEMO ? DEMO_ITEMS : []));
+  useEffect(() => {
+    if (IS_DEMO) return;
+    let cancelled = false;
+    listArtifacts({ status: 'ready' }).then((rows) => {
+      if (cancelled) return;
+      setItems(rows.map(artifactToLibraryItem));
+    });
+    return () => { cancelled = true; };
   }, []);
 
+  const counts = useMemo(() => {
+    const c: Record<FilterId, number> = {
+      all: items.length,
+      report: 0, presentation: 0, image: 0, video: 0,
+      document: 0, spreadsheet: 0, note: 0, webpage: 0,
+    };
+    items.forEach(i => { c[i.type] += 1; });
+    return c;
+  }, [items]);
+
   const filtered = useMemo(() => {
-    return ITEMS.filter(item => {
+    return items.filter(item => {
       if (filter !== 'all' && item.type !== filter) return false;
       if (search) {
         const q = search.toLowerCase();
@@ -320,7 +388,7 @@ export default function LibraryPage({ sidebarOpen, onToggleSidebar, onNewChat }:
       }
       return true;
     });
-  }, [filter, search]);
+  }, [items, filter, search]);
 
   return (
     <PageLayout

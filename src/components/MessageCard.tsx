@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
-import { Download, Volume2, VolumeX } from 'lucide-react';
-import { CardData, MeetingCard, ResearchCard, TicketCard, ScheduleCard, AgentCard } from '../types';
+import { Download, Volume2, VolumeX, Globe, Loader2, AlertCircle, ArrowUpRight } from 'lucide-react';
+import { CardData, MeetingCard, ResearchCard, TicketCard, ScheduleCard, AgentCard, ArtifactCard } from '../types';
+import { markArtifactViewed } from '../lib/artifacts';
 import { iconAsana, iconDoc20, iconGmail, iconUsers, iconPin, iconClock, iconCalendar } from '../assets';
 import type { CardSource } from '../types';
 
@@ -652,6 +653,93 @@ function AgentCardView({ card, onAction }: { card: AgentCard; onAction?: (a: str
 }
 
 /* ═══════════════════════════════════════════════════
+   Artifact card — candidate #3
+   Shown after an artifact-intent send. Three states:
+   - generating: cover skeleton + spinner + "Generating..."
+   - ready: cover image + title + "N items" + "Open" → /artifact/<slug>
+   - failed: error row + short reason
+   ═══════════════════════════════════════════════════ */
+function ArtifactCardView({ card }: { card: ArtifactCard }) {
+  const handleOpen = () => {
+    if (!card.url || !card.slug) return;
+    markArtifactViewed(card.slug);
+    window.open(card.url, '_blank', 'noopener,noreferrer');
+  };
+
+  return (
+    <CardShell>
+      {/* Cover area — fixed aspect so generating skeleton and ready image share the same footprint */}
+      <div className="relative w-full aspect-[16/9] bg-bg-hover flex items-center justify-center overflow-hidden">
+        {card.status === 'ready' && card.coverImageUrl ? (
+          <img
+            src={card.coverImageUrl}
+            alt=""
+            className="w-full h-full object-cover"
+            // Tavily returns third-party image URLs — if hot-link blocks us,
+            // fall back to the placeholder glyph rather than a broken-image icon.
+            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+          />
+        ) : (
+          <Globe className="w-10 h-10 text-text-primary/30" />
+        )}
+        {card.status === 'generating' && (
+          <div className="absolute inset-0 flex items-center justify-center bg-bg-hover/60">
+            <Loader2 className="w-6 h-6 animate-spin text-text-primary/60" />
+          </div>
+        )}
+      </div>
+
+      <div className="px-4 py-4 flex flex-col gap-3">
+        {card.status === 'generating' && (
+          <>
+            <p className="font-bold text-base leading-[22px] text-text-primary truncate">
+              {card.title || 'Generating artifact…'}
+            </p>
+            <p className="text-sm text-text-primary/60">
+              正在生成 · Generating… Tavily + OpenAI · ~15-30s
+            </p>
+          </>
+        )}
+
+        {card.status === 'ready' && (
+          <>
+            <p className="font-bold text-base leading-[22px] text-text-primary line-clamp-2">
+              {card.title}
+            </p>
+            {typeof card.itemCount === 'number' && card.itemCount > 0 && (
+              <p className="text-sm text-text-primary/60">
+                {card.itemCount} items · {card.templateId === 'bay-area-weekend' ? 'this weekend' : card.templateId}
+              </p>
+            )}
+            <PrimaryButton fullWidth className="h-11" onClick={handleOpen}>
+              <span className="inline-flex items-center gap-1.5">
+                Open <ArrowUpRight className="w-4 h-4" />
+              </span>
+            </PrimaryButton>
+          </>
+        )}
+
+        {card.status === 'failed' && (
+          <>
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+              <div className="flex flex-col gap-1 min-w-0">
+                <p className="font-bold text-base leading-[22px] text-text-primary">
+                  Couldn’t generate
+                </p>
+                <p className="text-sm text-text-primary/60 break-words">
+                  {card.error || 'Unknown error — try again in a moment.'}
+                </p>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </CardShell>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
    Main export
    ═══════════════════════════════════════════════════ */
 export default function MessageCard({ card, onAction }: MessageCardProps) {
@@ -660,5 +748,6 @@ export default function MessageCard({ card, onAction }: MessageCardProps) {
   if (card.type === 'ticket') return <TicketCardView card={card as TicketCard} onAction={onAction} />;
   if (card.type === 'schedule') return <ScheduleCardView card={card as ScheduleCard} onAction={onAction} />;
   if (card.type === 'agent') return <AgentCardView card={card as AgentCard} onAction={onAction} />;
+  if (card.type === 'artifact') return <ArtifactCardView card={card as ArtifactCard} />;
   return null;
 }
