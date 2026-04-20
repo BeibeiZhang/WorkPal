@@ -3,6 +3,7 @@ import { Pencil } from 'lucide-react';
 import { iconShorter, iconExtend, iconFormal, iconTranslate } from '../assets';
 import { SidePanelHeader } from './shared';
 import { streamEditArticle, type EditPreset } from '../lib/api';
+import { renderMarkdownBlocks } from '../lib/markdown';
 
 interface DetailPanelProps {
   title: string;
@@ -209,43 +210,7 @@ export default function DetailPanel({
         className="flex-1 overflow-y-auto pl-10 pr-[32px] relative"
       >
         <div className="relative text-base leading-[22px] text-text-primary pt-4 pb-24">
-          {displayContent.split('\n\n').map((paragraph, i) => {
-            // Check for bold header pattern
-            const boldMatch = paragraph.match(/^\*\*(.+?)\*\*\n?([\s\S]*)$/);
-            if (boldMatch) {
-              return (
-                <div key={i} className="mb-4">
-                  <p className="font-bold">{boldMatch[1]}</p>
-                  {boldMatch[2] && <p>{boldMatch[2]}</p>}
-                </div>
-              );
-            }
-
-            // Check for bullet list
-            if (paragraph.startsWith('• ')) {
-              const items = paragraph.split('\n').filter(Boolean);
-              return (
-                <ul key={i} className="list-disc ml-5 mb-4 space-y-4">
-                  {items.map((item, j) => {
-                    const text = item.replace(/^• /, '');
-                    const parts = text.split(/(\*\*[^*]+\*\*)/g);
-                    return (
-                      <li key={j}>
-                        {parts.map((part, k) => {
-                          if (part.startsWith('**') && part.endsWith('**')) {
-                            return <span key={k} className="font-bold">{part.slice(2, -2)}</span>;
-                          }
-                          return <span key={k}>{part}</span>;
-                        })}
-                      </li>
-                    );
-                  })}
-                </ul>
-              );
-            }
-
-            return <p key={i} className="mb-4">{paragraph}</p>;
-          })}
+          {renderMarkdownBlocks(displayContent)}
         </div>
       </div>
 

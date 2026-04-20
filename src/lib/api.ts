@@ -411,6 +411,24 @@ export async function postOpenFolder(sessionFolder: string): Promise<boolean> {
   }
 }
 
+/** Open a single file via the backend `open <path>` spawn. Used by the inline
+ *  ArtifactCard in chat — clicking it routes through the same path-traversal
+ *  check that `postOpenFolder` uses, then hands off to macOS which delegates
+ *  to the default app for the file type (`.html` → default browser). */
+export async function postOpenFile(filePath: string): Promise<boolean> {
+  try {
+    const res = await fetch('/api/claude-chat/open-file', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filePath }),
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn('Failed to open file:', err);
+    return false;
+  }
+}
+
 /** Phase 7 #2: one of the four preset rewrite actions exposed by the
  *  DetailPanel popover. Server validates against the same list — keep in sync
  *  with `server/src/lib/editArticle.ts`. */

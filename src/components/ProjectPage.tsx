@@ -4,11 +4,10 @@ import ChatInput from './ChatInput';
 import {
   ChevronDown, ChevronRight, Star, MoreVertical, PanelRight,
   FileCode2, MessageCircle, Pen, File, Plus, X,
-  MonitorPlay, Presentation,
-  Image as ImageIcon,
+  FolderOpen, Inbox,
 } from 'lucide-react';
-import { FilterChip, PageLayout, SearchBox, SideCard, SidePanelHeader, SplitView } from './shared';
-import type { Chat, Attachment } from '../types';
+import { EmptyState, FilterChip, PageLayout, SearchBox, SideCard, SidePanelHeader, SplitView, outputIconFor } from './shared';
+import type { Chat, Attachment, OutputItem, OutputType } from '../types';
 import { filesToAttachments, formatFileSize } from '../lib/attachments';
 import { IS_DEMO } from '../lib/demoMode';
 import { listArtifacts, type Artifact, type ArtifactKind } from '../lib/artifacts';
@@ -39,23 +38,13 @@ function formatRelative(date: Date): string {
 }
 
 /* ── Demo data ── */
-type OutputType = 'All' | 'Web' | 'Slides' | 'Image' | 'Video';
-
-interface OutputItem {
-  id: string;
-  name: string;
-  icon: typeof FileCode2;
-  type: OutputType;
-  /** Candidate #3: set for real artifacts fetched from /api/artifacts. Click
-   *  opens the public /artifact/<slug> page. Undefined for seeded demo
-   *  entries, whose click just toggles the selected-highlight state. */
-  href?: string;
-}
+type OutputFilter = 'All' | OutputType;
 
 /** Map from the 8 server-side ArtifactKinds to the 4 ProjectPage Output
  *  filter tabs. Groups webpage/document/report/note/spreadsheet under Web
  *  because those all render flat in this rail; Slides / Image / Video get
- *  their own tabs. */
+ *  their own tabs. Icon derivation happens downstream in `outputIconFor`
+ *  (shared.tsx) so OutputItem stays JSON-serializable for localStorage. */
 function kindToOutputType(kind: ArtifactKind): OutputType {
   switch (kind) {
     case 'presentation': return 'Slides';
@@ -65,26 +54,17 @@ function kindToOutputType(kind: ArtifactKind): OutputType {
   }
 }
 
-function kindToOutputIcon(kind: ArtifactKind): typeof FileCode2 {
-  switch (kind) {
-    case 'presentation': return Presentation;
-    case 'video':        return MonitorPlay;
-    case 'image':        return ImageIcon;
-    default:             return FileCode2;
-  }
-}
-
 function artifactToOutputItem(a: Artifact): OutputItem {
   return {
     id: a.slug,
     name: a.contentEn?.title || a.topic || a.templateId,
-    icon: kindToOutputIcon(a.kind),
     type: kindToOutputType(a.kind),
+    // Hosted artifacts get a public URL — clicking the Output card opens it.
     href: `/artifact/${a.slug}`,
   };
 }
 
-const OUTPUT_FILTERS: OutputType[] = ['All', 'Web', 'Slides', 'Image', 'Video'];
+const OUTPUT_FILTERS: OutputFilter[] = ['All', 'Web', 'Slides', 'Image', 'Video'];
 
 interface RecentItem {
   id: string;
@@ -94,6 +74,10 @@ interface RecentItem {
   outputTag?: string;
 }
 
+/** Seeded content for a demo project — kept so the original `proj-1`
+ *  (Agent Design) stays a polished showcase. Real projects created by the
+ *  user have no entry here and get an empty-state shell instead, filled by
+ *  actual Claude-Code file writes + chat activity. */
 interface ProjectContent {
   objective: string;
   outputs: OutputItem[];
@@ -106,11 +90,11 @@ const PROJECT_CONTENT: Record<string, ProjectContent> = {
   'proj-1': {
     objective: 'To study and track the evolution of interface design norms and interaction patterns of mainstream AI products.',
     outputs: [
-      { id: '1', name: 'Agent Design Component', icon: FileCode2, type: 'Web' },
-      { id: '2', name: 'AI Product Info Architecture', icon: FileCode2, type: 'Web' },
-      { id: '3', name: 'Agent UIUX Research', icon: MonitorPlay, type: 'Video' },
-      { id: '4', name: 'Agent UIUX Research', icon: Presentation, type: 'Slides' },
-      { id: '5', name: 'competitive analysis', icon: FileCode2, type: 'Web' },
+      { id: '1', name: 'Agent Design Component', type: 'Web' },
+      { id: '2', name: 'AI Product Info Architecture', type: 'Web' },
+      { id: '3', name: 'Agent UIUX Research', type: 'Video' },
+      { id: '4', name: 'Agent UIUX Research', type: 'Slides' },
+      { id: '5', name: 'competitive analysis', type: 'Web' },
     ],
     recents: [
       {
@@ -163,88 +147,52 @@ const PROJECT_CONTENT: Record<string, ProjectContent> = {
     contextLabel: 'Agent Design',
     defaultSelectedOutputId: '2',
   },
-  'proj-2': {
-    objective: 'To redesign the Spark driver onboarding flow and reduce time-to-first-delivery, addressing the 38% drop-off observed in the current 7-step signup process.',
-    outputs: [
-      { id: '1', name: 'New Driver Landing Page', icon: FileCode2, type: 'Web' },
-      { id: '2', name: 'Onboarding Flow Wireframes', icon: Presentation, type: 'Slides' },
-      { id: '3', name: 'Driver Persona Deck', icon: Presentation, type: 'Slides' },
-      { id: '4', name: 'Tutorial Walkthrough Demo', icon: MonitorPlay, type: 'Video' },
-      { id: '5', name: 'Vehicle Verification Step', icon: FileCode2, type: 'Web' },
-    ],
-    recents: [
-      {
-        id: '1',
-        title: 'Map current driver onboarding journey',
-        description: 'Documented all 7 steps in the existing Spark driver signup, from app download to first scheduled shift...',
-        time: '3 hour ago',
-        outputTag: 'Onboarding Flow Wireframes',
-      },
-      {
-        id: '2',
-        title: 'Audit drop-off rates by step',
-        description: 'Pulled funnel metrics from Amplitude for the past 90 days and flagged the vehicle verification step as the biggest leak...',
-        time: '12 hour ago',
-        outputTag: 'Driver Persona Deck',
-      },
-      {
-        id: '3',
-        title: 'Implement progressive disclosure for tutorial screens',
-        description: 'Refactored the tutorial carousel to lazy-load step content and remember progress across app sessions...',
-        time: '1 day ago',
-      },
-      {
-        id: '4',
-        title: 'Synthesize 12 driver interview transcripts',
-        description: 'Coded interview notes from new and lapsed drivers to identify the top friction points in the current flow...',
-        time: '2 days ago',
-        outputTag: 'Driver Persona Deck',
-      },
-      {
-        id: '5',
-        title: 'Build form validation for vehicle info step',
-        description: 'Added inline validation, license-plate format checks, and real-time error states for the vehicle entry screen...',
-        time: '2 days ago',
-      },
-      {
-        id: '6',
-        title: 'Draft welcome email sequence for new drivers',
-        description: 'Wrote a 5-email drip covering first delivery tips, payout setup, and support channels for newly approved drivers...',
-        time: '3 days ago',
-        outputTag: 'New Driver Landing Page',
-      },
-      {
-        id: '7',
-        title: 'Compare onboarding flows of Uber, DoorDash, Instacart',
-        description: 'Captured screen recordings of competitor signup journeys and benchmarked step counts, time-to-complete, and verification UX...',
-        time: '4 days ago',
-        outputTag: 'Onboarding Flow Wireframes',
-      },
-    ],
-    contextLabel: 'Spark Driver Research',
-    defaultSelectedOutputId: '2',
-  },
 };
 
-const FALLBACK_CONTENT = PROJECT_CONTENT['proj-1'];
+/** Fallback for user-created projects with no seed entry — nothing is
+ *  pre-populated; the Output grid + Recents list start empty and grow as
+ *  the user actually produces artifacts and starts sessions. Instructions
+ *  card renders a "No objective yet" placeholder. */
+const EMPTY_CONTENT: ProjectContent = {
+  objective: '',
+  outputs: [],
+  recents: [],
+  contextLabel: '',
+  defaultSelectedOutputId: '',
+};
 
 export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, onAddFiles, onRemoveFile, sidebarOpen, onToggleSidebar }: ProjectPageProps) {
-  const content = PROJECT_CONTENT[project.id] ?? FALLBACK_CONTENT;
-  const [outputFilter, setOutputFilter] = useState<OutputType>('All');
-  const [selectedOutputId, setSelectedOutputId] = useState<string>(content.defaultSelectedOutputId);
-  // Real artifacts scoped to this project (candidate #3). Demo keeps the
-  // Phase 7 #2 mock content intact — Beibei's ask: "空则设计数据为空正常UI
-  // 界面". Non-demo always shows the real rows, empty state when none.
-  const [realOutputs, setRealOutputs] = useState<OutputItem[]>([]);
+  const content = PROJECT_CONTENT[project.id] ?? EMPTY_CONTENT;
+  // Three output sources feed the grid:
+  //   1. seedOutputs  — PROJECT_CONTENT mock (proj-1 showcase). Demo only.
+  //   2. claudeCodeOutputs — Claude Code file writes in this project, persisted
+  //      on `project.outputs` via the App-level streaming loop (PR #93).
+  //   3. hostedArtifacts — candidate #3 /api/artifacts rows scoped to this
+  //      project. Fetched fresh on mount; demo-mode short-circuits to [].
+  // Merged in that priority (real work first, seed as fallback), deduped by
+  // name so re-generating a seed-named item doesn't double up.
+  const seedOutputs = content.outputs;
+  const claudeCodeOutputs = project.outputs ?? [];
+  const [hostedArtifacts, setHostedArtifacts] = useState<OutputItem[]>([]);
   useEffect(() => {
     if (IS_DEMO) return;
     let cancelled = false;
     listArtifacts({ status: 'ready', projectId: project.id }).then((rows) => {
       if (cancelled) return;
-      setRealOutputs(rows.map(artifactToOutputItem));
+      setHostedArtifacts(rows.map(artifactToOutputItem));
     });
     return () => { cancelled = true; };
   }, [project.id]);
+  const seenNames = new Set<string>();
+  const mergedOutputs: OutputItem[] = [];
+  for (const o of [...claudeCodeOutputs, ...hostedArtifacts, ...seedOutputs]) {
+    if (seenNames.has(o.name)) continue;
+    seenNames.add(o.name);
+    mergedOutputs.push(o);
+  }
+
+  const [outputFilter, setOutputFilter] = useState<OutputFilter>('All');
+  const [selectedOutputId, setSelectedOutputId] = useState<string>(content.defaultSelectedOutputId);
   const [outputOpen, setOutputOpen] = useState(true);
   const [recentsOpen, setRecentsOpen] = useState(true);
   const [search, setSearch] = useState('');
@@ -300,11 +248,7 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
     matchesSearch(r.title) || matchesSearch(r.description) || matchesSearch(r.outputTag ?? ''),
   );
 
-  // Demo mode uses the seeded PROJECT_CONTENT mock; non-demo uses real
-  // artifacts only (empty array = proper empty state below, no fallback to
-  // mock — per Beibei's 2026-04-20 call).
-  const sourceOutputs: OutputItem[] = IS_DEMO ? content.outputs : realOutputs;
-  const filteredOutputs = sourceOutputs.filter(o => {
+  const filteredOutputs = mergedOutputs.filter(o => {
     if (outputFilter !== 'All' && o.type !== outputFilter) return false;
     return matchesSearch(o.name);
   });
@@ -347,7 +291,10 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                   <strong>Project Name: </strong>{project.name}
                 </p>
                 <p className="text-[14px] text-text-primary leading-relaxed">
-                  <strong>Project Objective: </strong>{content.objective}
+                  <strong>Project Objective: </strong>
+                  {content.objective || (
+                    <span className="text-text-secondary/60 italic">No objective yet</span>
+                  )}
                 </p>
               </div>
             </SideCard>
@@ -479,34 +426,39 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
 
                 {outputOpen && (
                   <>
-                    {/* Output filter chips */}
-                    <div className="flex gap-2">
-                      {OUTPUT_FILTERS.map(f => (
-                        <FilterChip
-                          key={f}
-                          label={f}
-                          active={outputFilter === f}
-                          onClick={() => setOutputFilter(f)}
-                        />
-                      ))}
-                    </div>
-
-                    {/* Output cards */}
-                    {filteredOutputs.length === 0 ? (
-                      <div
-                        className="flex flex-col items-start gap-1 text-text-secondary"
-                        style={{ fontSize: 13, lineHeight: '18px' }}
-                      >
-                        <span>No outputs in this project yet.</span>
-                        <span>
-                          Ask WorkPal to generate a weekly digest or webpage and it’ll show up here.
-                        </span>
+                    {/* Output filter chips — only shown when there are outputs
+                        to filter. On an empty project the chips would be
+                        visual noise above a "nothing here yet" message. */}
+                    {mergedOutputs.length > 0 && (
+                      <div className="flex gap-2">
+                        {OUTPUT_FILTERS.map(f => (
+                          <FilterChip
+                            key={f}
+                            label={f}
+                            active={outputFilter === f}
+                            onClick={() => setOutputFilter(f)}
+                          />
+                        ))}
                       </div>
+                    )}
+
+                    {/* Output cards — or empty state when the project hasn't
+                        produced anything yet. */}
+                    {mergedOutputs.length === 0 ? (
+                      <EmptyState
+                        icon={FolderOpen}
+                        title="No outputs yet"
+                        description="Files WorkPal creates in this project — or hosted artifacts you ask it to generate — will show up here."
+                      />
                     ) : (
                       <div className="flex gap-3 overflow-x-auto pb-1">
                         {filteredOutputs.map(o => {
-                          const Icon = o.icon;
+                          const Icon = outputIconFor(o.type);
                           const isSelected = selectedOutputId === o.id;
+                          // Hosted artifacts (candidate #3) carry an href; the
+                          // card opens the /artifact/<slug> page in a new tab.
+                          // Claude-code and seed entries only toggle the
+                          // selected-highlight state.
                           const handleClick = () => {
                             if (o.href) {
                               window.open(o.href, '_blank', 'noopener,noreferrer');
@@ -556,7 +508,15 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
 
                 {recentsOpen && (
                   <>
-                    {/* Recent items */}
+                    {/* Recent items — or empty state when nothing has been
+                        started in this project yet. */}
+                    {combinedRecents.length === 0 ? (
+                      <EmptyState
+                        icon={Inbox}
+                        title="No sessions yet"
+                        description="Conversations you start in this project will show up here."
+                      />
+                    ) : (
                     <div className="flex flex-col">
                       {filteredRecents.map(r => {
                         // Only real chats are wired up for now. Demo rows stay
@@ -592,6 +552,7 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                         );
                       })}
                     </div>
+                    )}
                   </>
                 )}
               </div>

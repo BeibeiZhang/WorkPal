@@ -1,7 +1,9 @@
 import { useState, useCallback } from 'react';
 import { FileText, Download, Play } from 'lucide-react';
-import { Message, Attachment, ImageResult, VideoResult, WebResult, CardData } from '../types';
+import { Message, Attachment, ImageResult, VideoResult, WebResult, CardData, ArtifactRef } from '../types';
 import MessageCard from './MessageCard';
+import { ArtifactCard } from './shared';
+import { renderMarkdownBlocks } from '../lib/markdown';
 import { iconCopy, iconShare, iconThumbsUp, iconRefresh } from '../assets';
 
 /** Extract a clean display host from a URL — strips leading "www." and falls
@@ -221,17 +223,10 @@ interface ChatMessageProps {
    *  like the DetailPanel edit flow can find the source message to write back
    *  to. MessageCard itself only knows about (action, card). */
   onCardAction?: (action: string, card?: CardData, messageId?: string) => void;
-}
-
-function renderText(text: string) {
-  // Convert **bold** to <strong>
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return parts.map((part, i) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={i}>{part.slice(2, -2)}</strong>;
-    }
-    return <span key={i}>{part}</span>;
-  });
+  /** Clicked on an inline artifact pill under the assistant message. Caller
+   *  decides what to do — for Claude-Code files, POST the open-file endpoint
+   *  so the OS opens the file in the default app. */
+  onArtifactClick?: (artifact: ArtifactRef) => void;
 }
 
 function SpeakerIcon({ playing }: { playing: boolean }) {
@@ -312,7 +307,7 @@ function TypingIndicator() {
   );
 }
 
-export default function ChatMessage({ message, isLastAssistant, onCardAction }: ChatMessageProps) {
+export default function ChatMessage({ message, isLastAssistant, onCardAction, onArtifactClick }: ChatMessageProps) {
   if (message.role === 'user') {
     const hasAttachments = !!message.attachments && message.attachments.length > 0;
     const hasText = !!message.content;
@@ -347,11 +342,27 @@ export default function ChatMessage({ message, isLastAssistant, onCardAction }: 
             <div className="border-t border-dashed border-stroke-outline my-4" />
           )}
 
-          {/* Text content */}
+          {/* Text content — markdown-rendered so the AI can format with
+              bold / lists / code blocks. Shared renderer with DetailPanel. */}
           {message.content && (
-            <p className="text-base text-text-primary leading-[22px]">
-              {renderText(message.content)}
-            </p>
+            <div className="text-base text-text-primary leading-[22px]">
+              {renderMarkdownBlocks(message.content)}
+            </div>
+          )}
+
+          {/* Files produced in this turn — Claude Code writes, eventually #3
+              hosted artifacts. Rendered as clickable pills using the same
+              primitive that powers the Project Output grid icons. */}
+          {message.artifacts && message.artifacts.length > 0 && (
+            <div className="mt-2 mb-1 flex flex-col gap-2">
+              {message.artifacts.map((a, i) => (
+                <ArtifactCard
+                  key={`${a.path ?? a.href ?? a.name}-${i}`}
+                  artifact={a}
+                  onClick={onArtifactClick}
+                />
+              ))}
+            </div>
           )}
 
           {/* Source chips from the web_search tool — shown directly under the

@@ -1,4 +1,29 @@
+/**
+ * Artifact library — two complementary concerns in one file, because both
+ * revolve around the `ArtifactRef` / hosted-artifact shape users see:
+ *
+ *   1. Hosted-artifact primitive (candidate #3) — client API against
+ *      /api/artifacts/*, plus localStorage-based unread tracking. Used by
+ *      chat-initiated generation, the Library / Project Output / Overview
+ *      surfaces, and the public /artifact/:slug page.
+ *
+ *   2. Claude-Code file-path helpers — tiny pure functions for turning an
+ *      absolute file path (from the Agent SDK's Write/Edit tool calls) into
+ *      an ArtifactRef + deriving the Output category by file extension.
+ *      Consumed by App.tsx's streaming loop and by MessageCard's artifact
+ *      row.
+ *
+ * Both sides just happened to land in the same file (originally from two
+ * parallel PRs); keeping them together avoids two `src/lib/artifacts.*`
+ * files and makes the unified ArtifactRef union obvious at a glance.
+ */
+
 import { IS_DEMO } from './demoMode';
+import type { ArtifactRef, OutputType } from '../types';
+
+/* ════════════════════════════════════════════════════════════════════
+   1. Hosted-artifact primitive (candidate #3)
+   ════════════════════════════════════════════════════════════════════ */
 
 // Mirrors server/src/lib/artifactStore.ts `Artifact`. Duplicated rather than
 // shared because server is ESM + NodeNext and the client can't import from
@@ -160,4 +185,62 @@ export function artifactItemCount(artifact: Artifact, lang: 'en' | 'zh' = 'en'):
   if (!content) return 0;
   const body = content.body as { categories?: Array<{ items?: unknown[] }> };
   return (body.categories ?? []).reduce((n, c) => n + (c.items?.length ?? 0), 0);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   2. Claude-Code file-path helpers (PR #93)
+   ════════════════════════════════════════════════════════════════════ */
+
+/** Last segment of a forward-slash path. Bare filename in, bare filename out.
+ *  Not defensive against Windows separators — we only ever receive POSIX
+ *  paths from the Agent SDK on macOS. */
+export function basename(path: string): string {
+  const slash = path.lastIndexOf('/');
+  return slash === -1 ? path : path.slice(slash + 1);
+}
+
+const EXT_TO_OUTPUT: Record<string, OutputType> = {
+  html: 'Web',
+  htm: 'Web',
+  css: 'Web',
+  js: 'Web',
+  jsx: 'Web',
+  ts: 'Web',
+  tsx: 'Web',
+  pptx: 'Slides',
+  ppt: 'Slides',
+  key: 'Slides',
+  pdf: 'Slides',
+  png: 'Image',
+  jpg: 'Image',
+  jpeg: 'Image',
+  gif: 'Image',
+  webp: 'Image',
+  svg: 'Image',
+  mp4: 'Video',
+  mov: 'Video',
+  webm: 'Video',
+};
+
+/** Derive the Output category tag from a filename's extension. Anything we
+ *  don't have a specific bucket for falls through to 'File' — e.g. .md /
+ *  .txt / .json / plain scripts render with the generic file icon. */
+export function outputTypeFromPath(path: string): OutputType {
+  const name = basename(path);
+  const dot = name.lastIndexOf('.');
+  if (dot === -1 || dot === name.length - 1) return 'File';
+  const ext = name.slice(dot + 1).toLowerCase();
+  return EXT_TO_OUTPUT[ext] ?? 'File';
+}
+
+/** Build an `ArtifactRef` for a Claude-Code file_path. The card click is
+ *  handled app-side (no href here) so the open-file endpoint can resolve the
+ *  absolute path against WORKPAL_ROOT and spawn `open`. */
+export function artifactFromClaudePath(absolutePath: string): ArtifactRef {
+  return {
+    name: basename(absolutePath),
+    fileType: outputTypeFromPath(absolutePath),
+    path: absolutePath,
+    source: 'claude-code',
+  };
 }

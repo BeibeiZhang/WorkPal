@@ -8,6 +8,16 @@
   padding: 0;
 }
 
+/* Force an explicit bold weight for <strong>/<b>. Tailwind preflight sets
+ * `font-weight: bolder`, which computes relative to the inherited weight —
+ * with SF Pro at body-normal (400) this sometimes falls through without a
+ * visible jump. Pinning to the design-system emphasized weight (700) makes
+ * ProjectPage's "Project Name:" / "Project Objective:" labels, markdown
+ * **bold** in chat, and DetailPanel bold headers all render consistently. */
+strong, b {
+  font-weight: var(--font-body-emphasized-weight, 700);
+}
+
 :root {
   --color-text-primary: #142740;
   --color-text-secondary: rgba(20,39,64,0.7);
