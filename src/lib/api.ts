@@ -100,6 +100,10 @@ export async function* streamClaudeChat(opts: {
    *  outside any project — server falls back to Phase 5's per-session git
    *  init on first file-write. */
   projectSlug?: string;
+  /** 6.4: true when the current user message carries attachments. When false
+   *  the server strips Bash/Read/Glob/Grep from the SDK so the model defaults
+   *  to web search instead of roaming the filesystem to guess at file paths. */
+  hasAttachedFiles?: boolean;
   messages: ChatMessage[];
 }): AsyncGenerator<StreamChunk> {
   const res = await fetch('/api/claude-chat', {
@@ -426,6 +430,25 @@ export async function postOpenFile(filePath: string): Promise<boolean> {
   } catch (err) {
     console.warn('Failed to open file:', err);
     return false;
+  }
+}
+
+/** 6.4: read a produced artifact file so the frontend can preview it inside
+ *  the WorkPal DetailPanel (instead of spawning `open`). Returns null on any
+ *  failure — caller treats null as "fall back to open-externally". */
+export async function postReadFile(filePath: string): Promise<string | null> {
+  try {
+    const res = await fetch('/api/claude-chat/read-file', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filePath }),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { content?: string };
+    return typeof data.content === 'string' ? data.content : null;
+  } catch (err) {
+    console.warn('Failed to read file:', err);
+    return null;
   }
 }
 

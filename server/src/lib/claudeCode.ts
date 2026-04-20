@@ -1,4 +1,4 @@
-import { query, type CanUseTool, type SDKMessage } from '@anthropic-ai/claude-agent-sdk';
+import { query, type CanUseTool, type PermissionMode, type SDKMessage } from '@anthropic-ai/claude-agent-sdk';
 
 export interface ClaudeCodeRequest {
   prompt: string;
@@ -13,6 +13,21 @@ export interface ClaudeCodeRequest {
    *  default `default` mode (which denies anything that would normally prompt
    *  on the CLI). */
   canUseTool?: CanUseTool;
+  /** 6.4: tools the SDK should strip from the model's context entirely. Used
+   *  by the route to enforce "web-first, don't touch local unless the user
+   *  attached something" — when no attachment is present we disable the
+   *  filesystem read/search tools (Bash/Read/Glob/Grep) so the model can't
+   *  roam looking for files that weren't shared with it. */
+  disallowedTools?: string[];
+  /** 6.4: text appended to the default `claude_code` system prompt. Used to
+   *  tell the model whether it has local file access or should default to
+   *  web search. */
+  appendSystemPrompt?: string;
+  /** 6.4: permission mode. `acceptEdits` auto-accepts Write/Edit/NotebookEdit
+   *  (they never reach canUseTool) so generating a simple output into the
+   *  session folder doesn't trigger one modal per file edit. `default` keeps
+   *  the canUseTool bridge for every tool. */
+  permissionMode?: PermissionMode;
 }
 
 export async function* runClaudeCode(
@@ -26,6 +41,14 @@ export async function* runClaudeCode(
       // pre-approved by allow rules falls through to canUseTool, which the
       // route bridges to the frontend modal.
       canUseTool: req.canUseTool,
+      // 6.4: optional tool + prompt shaping. Forward only when set so legacy
+      // callers (and any test that instantiates without these) keep the pre-
+      // 6.4 "everything on" behavior.
+      ...(req.disallowedTools && req.disallowedTools.length
+        ? { disallowedTools: req.disallowedTools }
+        : {}),
+      ...(req.appendSystemPrompt ? { appendSystemPrompt: req.appendSystemPrompt } : {}),
+      ...(req.permissionMode ? { permissionMode: req.permissionMode } : {}),
     },
   });
 }
