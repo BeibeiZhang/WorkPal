@@ -56,7 +56,7 @@ interface ChatPanelProps {
   chat: Chat | null;
   onSend: (message: string, attachments?: Attachment[]) => void;
   onChipClick: (chip: ActionChip) => void;
-  onCardAction: (action: string, card?: CardData) => void;
+  onCardAction: (action: string, card?: CardData, messageId?: string) => void;
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
   isDark?: boolean;

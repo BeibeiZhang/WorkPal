@@ -193,7 +193,7 @@ const CREATE_EVENT_TOOL: ChatCompletionTool = {
   },
 };
 
-const openai = new OpenAI({
+export const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 

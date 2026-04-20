@@ -411,6 +411,87 @@ export async function postOpenFolder(sessionFolder: string): Promise<boolean> {
   }
 }
 
+/** Phase 7 #2: one of the four preset rewrite actions exposed by the
+ *  DetailPanel popover. Server validates against the same list — keep in sync
+ *  with `server/src/lib/editArticle.ts`. */
+export type EditPreset = 'shorter' | 'extend' | 'formal' | 'translate';
+
+export type EditArticleChunk =
+  | { type: 'text'; content: string }
+  | { type: 'done' }
+  | { type: 'error'; content: string };
+
+/** Phase 7 #2: stream a rewritten version of `articleText` from
+ *  /api/edit-article. Pass `signal` from an AbortController so the DetailPanel
+ *  can cancel mid-stream (user clicks Cancel) — this aborts the fetch, which
+ *  the Express route notices via `req.on('close')` and passes through to the
+ *  OpenAI stream. Silent abort: on cancel, the generator simply stops yielding
+ *  rather than emitting an error chunk, so callers don't need to distinguish
+ *  "user cancelled" from "server error" in their state machine. */
+export async function* streamEditArticle(
+  articleText: string,
+  preset: EditPreset,
+  signal?: AbortSignal,
+): AsyncGenerator<EditArticleChunk> {
+  let res: Response;
+  try {
+    res = await fetch('/api/edit-article', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ articleText, preset }),
+      signal,
+    });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') return;
+    yield { type: 'error', content: err instanceof Error ? err.message : 'Network error' };
+    return;
+  }
+
+  if (!res.ok) {
+    // Try to surface the validation error from the route (400 → { error: "..." }).
+    let detail = `API error: ${res.status}`;
+    try {
+      const payload = (await res.json()) as { error?: string };
+      if (typeof payload.error === 'string') detail = payload.error;
+    } catch {
+      // Non-JSON body — keep the generic HTTP message.
+    }
+    yield { type: 'error', content: detail };
+    return;
+  }
+
+  const reader = res.body?.getReader();
+  if (!reader) {
+    yield { type: 'error', content: 'No response stream' };
+    return;
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const chunk = JSON.parse(line.slice(6)) as EditArticleChunk;
+            yield chunk;
+          } catch {
+            // Skip malformed JSON — same policy as parseSSE().
+          }
+        }
+      }
+    }
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') return;
+    yield { type: 'error', content: err instanceof Error ? err.message : 'Stream error' };
+  }
+}
+
 async function* parseSSE(
   reader: ReadableStreamDefaultReader<Uint8Array>,
 ): AsyncGenerator<StreamChunk> {

@@ -217,7 +217,10 @@ function MessageAttachments({ attachments }: { attachments: Attachment[] }) {
 interface ChatMessageProps {
   message: Message;
   isLastAssistant?: boolean;
-  onCardAction?: (action: string, card?: CardData) => void;
+  /** `messageId` is injected by this component (from `message.id`) so callers
+   *  like the DetailPanel edit flow can find the source message to write back
+   *  to. MessageCard itself only knows about (action, card). */
+  onCardAction?: (action: string, card?: CardData, messageId?: string) => void;
 }
 
 function renderText(text: string) {
@@ -333,7 +336,10 @@ export default function ChatMessage({ message, isLastAssistant, onCardAction }: 
         <>
           {/* Card if any */}
           {message.card && (
-            <MessageCard card={message.card} onAction={onCardAction} />
+            <MessageCard
+              card={message.card}
+              onAction={(action, card) => onCardAction?.(action, card, message.id)}
+            />
           )}
 
           {/* Divider between meeting card content and follow-up text */}
