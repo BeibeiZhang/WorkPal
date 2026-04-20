@@ -56,6 +56,12 @@
       "port": 2017
     },
     {
+      "name": "WorkPal Dev 2018",
+      "runtimeExecutable": "/usr/local/bin/node",
+      "runtimeArgs": ["/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/.claude/worktrees/charming-pascal-aefd87/node_modules/vite/bin/vite.js", "--port", "2018", "--strictPort"],
+      "port": 2018
+    },
+    {
       "name": "WorkPal Backend",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "server", "run", "dev"],
