@@ -9,7 +9,7 @@ import {
   AlertTriangle, Check, Clock, BadgeCheck, XCircle, Send, Smile, Eye,
   Download, File, Presentation, Video, Image as ImageIcon, FileSpreadsheet,
   StickyNote, Ticket, Mail, MoreHorizontal, Sparkles, Play, Timer, User,
-  Globe, ArrowLeft, Sun, Pause, Trash2,
+  Globe, ArrowLeft, Sun, Pause,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -21,7 +21,6 @@ import {
   HeaderBar, SplitView, SidePanelHeader, SideCard, ToolbarPill,
   ToolbarIconButton, ToolbarSegmented, Tooltip, Switch,
 } from './shared';
-import { useMemoryAuth } from '../lib/useMemoryAuth';
 // Live imports — every "real" component that ships in the app.
 // Rendering these here (not screenshots) means a foundations change
 // shows up in this page the same way it shows up everywhere else.
@@ -63,7 +62,7 @@ const TABS: { id: TabId; label: string; hint: string }[] = [
   { id: 'principles',   label: 'Principles & Requirements',   hint: 'Rules and guidelines I follow when building' },
   { id: 'layouts',      label: 'Layout Templates',            hint: 'Layout shells we use across the app' },
   { id: 'components',   label: 'Component Library',           hint: 'All shared components, states, and where they are used' },
-  { id: 'agent-videos', label: 'Agent Videos',                hint: 'Videos used by the welcome-state avatars. Toggle Active/Inactive to skip from rotation, or trash to physically delete from disk.' },
+  { id: 'agent-videos', label: 'Agent Videos',                hint: 'Videos used by the welcome-state avatars. Toggle Active/Inactive to skip from rotation.' },
   { id: 'review',       label: 'Review Queue',                hint: 'New components awaiting your approval' },
 ];
 
@@ -2125,19 +2124,11 @@ function ComponentsTab() {
 /* ═══════════════════════════════════════════════════
    Tab 5 — Agent Videos
    Media assets used by the welcome-state avatars.
-   Two user-facing actions per row:
+   One user-facing action per row:
      - Switch [Active | Inactive] — flips localStorage
        state. Inactive = file kept on disk but skipped
        from the random pool. ChatPanel honors this in
        real time via the same useAgentVideoStatus hook.
-     - Trash — physically removes the .mp4 from
-       public/animations/ via DELETE /api/animations/.
-       Permanent: the row disappears from this tab and
-       the AGENTS array entry becomes unrenderable on
-       reload (the 'deleted' status flag persists in
-       localStorage so we don't try to play a missing
-       file). Gated by MEMORY_PASSWORD because it
-       mutates disk.
    ═══════════════════════════════════════════════════ */
 
 function AgentVideoRow({
@@ -2145,19 +2136,16 @@ function AgentVideoRow({
   mode,
   status,
   onSetStatus,
-  onDelete,
 }: {
   src: string;
   mode: 'light' | 'dark';
   status: VideoStatus;
   onSetStatus: (next: VideoStatus) => void;
-  onDelete: () => void | Promise<void>;
 }) {
   const fileName  = src.split('/').pop() ?? src;
   const previewBg = mode === 'dark' ? '#1B1B1B' : 'var(--color-bg-hover)';
   const isActive  = status === 'active';
   const videoRef  = useRef<HTMLVideoElement>(null);
-  const [busy, setBusy] = useState(false);
 
   // Keep the preview in sync with `status`. HTMLVideoElement doesn't react to
   // autoPlay prop changes after mount, so we drive play/pause imperatively.
@@ -2167,16 +2155,6 @@ function AgentVideoRow({
     if (isActive) el.play().catch(() => { /* autoplay may be blocked; harmless */ });
     else el.pause();
   }, [isActive]);
-
-  const handleDelete = async () => {
-    if (busy) return;
-    setBusy(true);
-    try {
-      await onDelete();
-    } finally {
-      setBusy(false);
-    }
-  };
 
   return (
     <div
@@ -2235,15 +2213,6 @@ function AgentVideoRow({
           ]}
           ariaLabel={`Activation state for ${fileName}`}
         />
-        <button
-          onClick={handleDelete}
-          disabled={busy}
-          className="h-8 w-8 rounded-full border border-stroke-outline text-text-primary hover:bg-bg-hover transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-          aria-label={`Delete ${fileName} from disk`}
-          title="Delete file from disk"
-        >
-          <Trash2 size={14} />
-        </button>
       </div>
     </div>
   );
@@ -2251,58 +2220,26 @@ function AgentVideoRow({
 
 function AgentVideosTab() {
   const { getStatus, setStatus } = useAgentVideoStatus();
-  const { ensurePassword, passwordModal } = useMemoryAuth();
 
   const totals = useMemo(() => {
-    let active = 0, inactive = 0, deleted = 0;
+    let active = 0, inactive = 0;
     for (const agent of AGENTS) {
       for (const v of agent.videos) {
         const s = getStatus(v.src);
         if (s === 'active')        active++;
         else if (s === 'inactive') inactive++;
-        else                       deleted++;
       }
     }
-    return { active, inactive, deleted, total: active + inactive + deleted };
+    return { active, inactive, total: active + inactive };
   }, [getStatus]);
 
-  /** Confirm + password-prompt + DELETE call. Sets status to 'deleted' on
-   *  success so the row falls out of the rendered list (and ChatPanel's
-   *  active-pool filter keeps skipping the now-missing file). */
-  const handleDelete = async (src: string) => {
-    const fileName = src.split('/').pop() ?? src;
-    if (!window.confirm(`Permanently delete ${fileName} from disk?\n\nThis cannot be undone.`)) return;
-    let pw: string;
-    try {
-      pw = await ensurePassword({ message: 'Enter the memory password to delete this animation file.' });
-    } catch {
-      return; // user cancelled
-    }
-    try {
-      const res = await fetch(`/api/animations/${encodeURIComponent(fileName)}`, {
-        method:  'DELETE',
-        headers: { 'x-memory-password': pw },
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        window.alert(`Delete failed: ${body.error ?? res.statusText}`);
-        return;
-      }
-      setStatus(src, 'deleted');
-    } catch (err) {
-      window.alert(`Delete failed: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  };
-
-  /** Drop deleted entries — they're physically gone, no point rendering a
-   *  broken `<video src>` for them. */
+  /** Drop deleted entries — they may be physically gone from historical
+   *  deletes, no point rendering a broken `<video src>` for them. */
   const visibleVideos = (mode: 'light' | 'dark', videos: AgentVideo[]) =>
     videos.filter(v => v.mode === mode && getStatus(v.src) !== 'deleted');
 
   return (
     <div>
-      {passwordModal}
-
       {/* Intro card */}
       <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
         <div className="flex items-center gap-2 mb-2">
@@ -2313,15 +2250,11 @@ function AgentVideosTab() {
           Each agent has a pool of idle videos that play in the welcome state of a new chat. One is picked at random per
           session (separately for light / dark mode). The toggle on each row flips between <strong>Active</strong>{' '}
           (in rotation) and <strong>Inactive</strong> (skipped). State syncs across browsers via the server (with a
-          local cache for offline use) and applies in real time everywhere the avatar renders. The trash icon{' '}
-          <strong>physically deletes</strong> the .mp4 from{' '}
-          <code className="font-mono text-[12px]">public/animations/</code> on disk — permanent, gated by your memory
-          password.
+          local cache for offline use) and applies in real time everywhere the avatar renders.
         </p>
         <div className="flex flex-wrap gap-2">
           <StatusTag variant="success" label={`${totals.active} active`}    size="sm" showIcon={false} />
           <StatusTag variant="pending" label={`${totals.inactive} inactive`} size="sm" showIcon={false} />
-          <StatusTag variant="failed"  label={`${totals.deleted} deleted`}   size="sm" showIcon={false} />
           <span className="text-[12px] text-text-secondary self-center">of {totals.total} total</span>
         </div>
       </div>
@@ -2358,7 +2291,6 @@ function AgentVideosTab() {
                       mode="light"
                       status={getStatus(v.src)}
                       onSetStatus={next => setStatus(v.src, next)}
-                      onDelete={() => handleDelete(v.src)}
                     />
                   ))}
                 </div>
@@ -2379,7 +2311,6 @@ function AgentVideosTab() {
                       mode="dark"
                       status={getStatus(v.src)}
                       onSetStatus={next => setStatus(v.src, next)}
-                      onDelete={() => handleDelete(v.src)}
                     />
                   ))}
                 </div>
