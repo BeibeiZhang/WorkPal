@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CheckCircle2, FilePlus2, FilePen, FileMinus2, Loader2 } from 'lucide-react';
+import { CheckCircle2, Copy, FilePlus2, FilePen, FileMinus2, Loader2 } from 'lucide-react';
 import { PrimaryButton, TertiaryButton } from './shared';
 import type { SessionDiffEntry } from '../lib/api';
 
@@ -66,6 +66,8 @@ export default function CompleteSessionModal({
   onCancel,
   onMerge,
 }: CompleteSessionModalProps) {
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
@@ -78,6 +80,28 @@ export default function CompleteSessionModal({
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
   }, [phase.kind, onCancel]);
+
+  // Only 'copied' auto-reverts; 'failed' sticks until the next click so the
+  // user has time to read the fallback hint. Effect cleanup handles both
+  // rapid double-clicks (new timeout replaces old) and unmount.
+  useEffect(() => {
+    if (copyState !== 'copied') return;
+    const id = setTimeout(() => setCopyState('idle'), 1500);
+    return () => clearTimeout(id);
+  }, [copyState]);
+
+  const handleCopy = async (text: string) => {
+    // navigator.clipboard requires a secure context (localhost counts). If
+    // it's missing or writeText rejects (Safari private mode, perm denied),
+    // fall back to an inline hint — no toast / alert per 6.4 spec.
+    try {
+      if (!navigator.clipboard) throw new Error('clipboard unavailable');
+      await navigator.clipboard.writeText(text);
+      setCopyState('copied');
+    } catch {
+      setCopyState('failed');
+    }
+  };
 
   const title =
     phase.kind === 'success'
@@ -233,12 +257,38 @@ export default function CompleteSessionModal({
               <br />
               请在终端解决:
             </p>
-            <pre
-              className="px-3 py-2 rounded-lg font-mono text-[12px] leading-[18px] text-text-primary whitespace-pre-wrap break-all mb-4 select-all"
-              style={{ background: 'var(--color-bg-hover)' }}
-            >
-              {phase.cliCommand}
-            </pre>
+            <div className="relative">
+              <pre
+                className="pl-3 pr-12 py-2 rounded-lg font-mono text-[12px] leading-[18px] text-text-primary whitespace-pre-wrap break-all select-all"
+                style={{ background: 'var(--color-bg-hover)' }}
+              >
+                {phase.cliCommand}
+              </pre>
+              <button
+                type="button"
+                onClick={() => handleCopy(phase.cliCommand)}
+                aria-label="Copy command"
+                className="absolute top-1.5 right-1.5 flex items-center justify-center w-7 h-7 rounded-md border border-stroke-outline bg-bg-page hover:bg-bg-hover text-text-secondary transition-colors cursor-pointer"
+              >
+                <Copy size={14} />
+              </button>
+            </div>
+            {/* Reserved row for flash/fallback so layout doesn't shift. */}
+            <div className="min-h-[16px] mt-1 mb-4 text-right">
+              {copyState === 'copied' && (
+                <span
+                  className="text-[11px] leading-[16px] font-medium"
+                  style={{ color: '#028901' }}
+                >
+                  Copied! / 已复制
+                </span>
+              )}
+              {copyState === 'failed' && (
+                <span className="text-[11px] leading-[16px] text-text-secondary">
+                  Copy failed — select and ⌘C / 复制失败 — 请选中后 ⌘C
+                </span>
+              )}
+            </div>
           </>
         )}
 
