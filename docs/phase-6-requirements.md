@@ -7,8 +7,8 @@
 | 6.1 Project base folder init | ✅ Done | `8aa722a` (PR #80) |
 | 6.2 Session via git worktree | ✅ Done | `b48c606` (PR #81) |
 | 6.3 Complete Session + diff preview + FF merge | ✅ Done | `bbd0bf4` (PR #83) |
-| **6.4 CLI hand-off polish (copy-to-clipboard)** | ⏳ **Next** | — |
-| 6.5 Orphan worktree reaper | ⏳ Pending | — |
+| 6.4 CLI hand-off polish (copy-to-clipboard) | ✅ Done | `7efda91` (PR #85) — fast-lane, impl self-tested |
+| **6.5 Orphan worktree reaper** | ⏳ **Next** | — |
 
 ---
 
@@ -319,9 +319,102 @@ After merge, I'll update progress table + write 6.5 context block.
 
 ---
 
-## 6.5 — Orphan worktree reaper (⏳ pending)
+## 6.5 — Orphan worktree reaper (⏳ **next**)
 
-Sketch. Goal: on app start (or periodic), backend scans `~/WorkPal/<project>/sessions/*`, cross-references with the Chat state snapshot, `git worktree remove --force` + `git worktree prune` for orphans.
+**Goal**: Clean up session worktrees on disk whose corresponding chat no longer exists (user deleted the chat from the sidebar, or cleared localStorage, or was offline while a stale worktree accumulated). Keep the project's `.git/worktrees/` registry consistent with actual disk state. Without this, every deleted chat leaves a `~/WorkPal/<project>/sessions/<slug>/` folder + a `session/<slug>` branch behind forever.
+
+### Context from 6.4 (short — 6.4 was a single-file polish)
+
+- Nothing new to inherit from 6.4 beyond the already-established 6.1–6.3 patterns (reuse `resolveProjectFolder`, `WORKPAL_ROOT`, `SESSION_BRANCH_RE`, bilingual errors, `resolveSessionFolder`). 6.4 touched only `CompleteSessionModal.tsx`.
+- `navigator.clipboard` introduced in 6.4 is unrelated; reaper is backend-heavy.
+
+### What counts as an "orphan" (lock these definitions)
+
+Three orphan shapes exist; the reaper handles them differently:
+
+| Shape | Example | 6.5 action |
+|---|---|---|
+| **A: stale worktree** — folder exists on disk + in `git worktree list`, but no Chat in localStorage references it | User deleted a chat from sidebar | **Reap**: `git worktree remove --force <path>` + `git branch -D session/<slug>` |
+| **B: dangling metadata** — folder is gone from disk, but `git worktree list` still lists it | Manual `rm -rf` on session folder | **Prune only**: `git worktree prune` (git's built-in cleans the metadata; no content to remove) |
+| **C: completed session** — chat has `sessionCompleted: true`, worktree + branch still on disk (6.3 keeps them on purpose for reference) | User clicked Complete Session successfully | **KEEP** — do NOT reap. Phase 7+ may add user-configurable retention; 6.5 treats these as live |
+
+**Important**: Phase 5 **legacy sessions** (sessions with their own per-session `.git/` directory, created before 6.2) are NOT worktrees. The reaper must NOT touch them. Detect by checking `.git` is a DIR (legacy) vs. FILE (worktree) — Phase 6 worktrees have `.git` as a file pointing at the main repo's `worktrees/<slug>/` metadata.
+
+### Shared decisions to lock (propose in change list)
+
+1. **When does the reaper run?**
+   - (a) On backend startup (one-shot on `npm run dev` launch)
+   - (b) Periodic background job every N minutes
+   - (c) User-triggered via a "Clean up" button somewhere
+   - (d) On-demand endpoint the frontend calls once per app mount
+   - My recommendation: **(d)** — frontend calls `POST /api/reaper/run` once on App mount, passing the live chat session folder list. Predictable, frontend-driven (which matches principle #9 — UI is the source of truth), no background job complexity.
+
+2. **How does the backend know which worktrees are "live"?**
+   - Backend is stateless w.r.t. localStorage; cannot enumerate chats on its own
+   - My recommendation: **frontend sends `{projects: [{projectSlug, activeSessionFolders: string[]}]}` in the POST body**. Backend iterates each project, cross-references against `activeSessionFolders`, reaps whatever isn't in the list.
+   - `activeSessionFolders` = all chats with `projectId` matching the project AND `sessionFolder` populated AND (no `sessionCompleted` flag OR completed within the "keep" window — but for 6.5, simplify to "any chat state at all means keep it, regardless of completed flag").
+
+3. **What about chats with `sessionCompleted: true`?**
+   - Those worktrees are kept per D-lock-7 from 6.3
+   - Frontend still includes them in `activeSessionFolders` → they survive
+   - Future Phase 7 can add retention rules; 6.5 doesn't touch completed sessions
+
+4. **Safety — branch deletion**
+   - `git branch -D session/<slug>` force-deletes even if branch has commits
+   - Safe here because by 5.5 invariant: all meaningful work is auto-committed on each tool_result. If the branch still has commits the user never merged, those commits were specifically attached to a chat the user just deleted — signal that user doesn't want them. Principle #7 safe-by-default passes because the signal was explicit (user clicked delete chat).
+   - Still: log each remove + delete before executing, so a user tailing backend logs can see what happened.
+
+5. **Error handling**
+   - If `git worktree remove --force` fails (file lock, permission), log + continue (don't wedge the reaper)
+   - If `git branch -D` fails after worktree removal (branch doesn't exist, already gone), log + continue
+   - Return summary `{reaped: N, errors: [{...}]}` to frontend
+   - Frontend doesn't surface this in UI by default — server log is enough for now. If it matters later, add a toast.
+
+6. **Scope of the endpoint — does it touch anything outside `~/WorkPal/<project>/`?**
+   - No. Reaper only iterates projects the frontend sent. Projects not in the list aren't touched even if they have orphans.
+   - This means if user's localStorage is completely cleared, the reaper won't clean anything (nothing to cross-reference against). Intentional — user can manually clean via CLI or by re-creating projects.
+
+### Scope (expand into change list for review before writing code)
+
+**Backend** (`server/src/lib/reaper.ts` new + `server/src/routes/reaper.ts` new + mount in `index.ts`):
+
+- New helper `reapProjectOrphans(projectPath, activeSessionFolders) → Promise<ReapResult>`:
+  - `git -C <projectPath> worktree list --porcelain` to enumerate registered worktrees
+  - For each worktree not in `activeSessionFolders`: capture branch name from the porcelain output, then `git worktree remove --force <path>` + `git branch -D <branch>` (both wrapped in try/catch, errors collected)
+  - After loop: `git worktree prune` to clean shape-B dangling metadata
+  - Return `{reapedCount, prunedCount, errors}`
+- New route `POST /api/reaper/run`:
+  - Body `{projects: [{projectSlug, activeSessionFolders: string[]}]}`
+  - Validate each `projectSlug` via `resolveProjectFolder`; if any fails, 400 bilingual (list which slugs failed)
+  - Validate each path in `activeSessionFolders` via `resolveSessionFolder` + cross-project containment (same guards as `/api/session/*` from 6.3)
+  - Skip projects without `.git` (not initialized yet — nothing to reap)
+  - Call `reapProjectOrphans` per valid project, accumulate summary
+  - Return 200 `{summary: [{projectSlug, reapedCount, prunedCount, errors}]}` even if some projects errored (client decides how to surface)
+
+**Frontend** (`src/lib/api.ts` + `src/App.tsx`):
+
+- `src/lib/api.ts`: `postReaperRun(projects) → Promise<{ok: true, summary: [...]} | {ok: false, error}>`
+- `src/App.tsx`: on app mount (existing `useEffect` with `[]` deps, or a new one), build `projects` array from current `chats`/`projects` state, fire-and-forget `postReaperRun`. Log the summary to console. Don't block UI on the response.
+
+**Worktree / `.git/` shape detection (critical safety)**:
+- Backend's `reapProjectOrphans` does NOT use `fs.stat` on session folders to decide what to reap. It ONLY trusts `git worktree list --porcelain` output, which inherently excludes Phase 5 legacy sessions (those are separate repos, not worktrees of the project). This makes it structurally impossible for 6.5 to accidentally nuke a Phase 5 legacy session.
+
+### Acceptance tests (I run these — high-risk: destructive file operations + cross-session state)
+
+- [ ] Create project → session A + session B → delete session B from sidebar → call `/api/reaper/run` (or trigger app reload) → session B's worktree gone, session B's branch gone; session A untouched
+- [ ] Completed session (marked `sessionCompleted: true`) included in `activeSessionFolders` → worktree + branch survive reaper run
+- [ ] Phase 5 legacy session (per-session `.git/` dir, no worktree) → reaper doesn't list it, doesn't touch it, `.git/` and files stay on disk
+- [ ] Shape-B orphan (delete session folder manually with `rm -rf`, chat still exists) → `git worktree prune` cleans git metadata; chat shows "folder missing" somehow (or doesn't — either is fine for 6.5, don't over-engineer)
+- [ ] Endpoint validation:
+  - Missing `projects` field → 400 bilingual
+  - `projects` with a slug that has path traversal → 400 bilingual
+  - `activeSessionFolders` containing a path under a DIFFERENT project → 400 bilingual (cross-project containment)
+- [ ] Concurrent reaper runs (two tabs both reload at once) → no race / corruption; git's worktree lock handles serialization, reaper treats lock errors as benign
+- [ ] Reap failure mid-run (simulate by putting a file lock on one worktree) → other orphans still reaped, error captured in summary, endpoint returns 200
+
+### Classification — **high-risk, I run live tests**
+
+Destructive file ops + cross-session state + new endpoint. Per principle #12, this is the exact shape where testing pays. Impl session opens PR, I run the 7 acceptance tests above.
 
 ---
 
@@ -348,32 +441,35 @@ Paste the block below into a fresh Cowork impl window. The impl agent will pick 
 ```
 git pull
 
-你是做 6.4 的 Cowork impl session。
+你是做 6.5 的 Cowork impl session —— Phase 6 最后一个 sub-step。
 
-请先读 docs/phase-6-requirements.md 里 6.4 那节(小改动,纯前端 polish,为 6.3 已经渲染的 CLI 命令加 Copy 按钮),也扫一眼 docs/principles.md 的 #8 双语、#12 风险分级、#13 清场。
+请先读 docs/phase-6-requirements.md 里 6.5 节(包括 "三种 orphan shape" 表 + 6 条 "Decisions to lock" + Acceptance tests)。也扫一眼 docs/principles.md(重点 #7 safe-by-default、#12 风险分级、#13 清场)。
 
-6.4 的 scope 极小:**只改 `src/components/CompleteSessionModal.tsx`**。非 FF 409 error 态里已经显示 CLI 命令字符串(6.3 的产物),只需要:
-- 命令旁边加一个 Copy icon 按钮(lucide `Copy` 或 `ClipboardCopy`)
-- 点击 → `navigator.clipboard.writeText(cliCommand)`
-- 成功 → 原地 flash "Copied! / 已复制" 约 1.5s → 自动 revert
-- 失败(Safari 无痕等)→ silent 降级,显示小字提示 "Copy failed — select and ⌘C",**不要弹 toast / alert**
-- `cliCommand` 从 `postSessionMerge` 返回的 `{reason:'not-ff', cliCommand}` 拿,**不要**在 modal 里重新拼
+6.5 的 scope:Orphan worktree 清理。清除 session worktree 在磁盘上存在但 localStorage 里没对应 chat 的那些(用户删了 chat、清了本地存储、或被强杀留下的 stale 状态)。**Phase 5 legacy session(per-session .git 目录)绝对不能碰** —— 用 `git worktree list --porcelain` 的输出自然筛掉,不要 `fs.stat`。
 
-做之前列改动点给我 review:
-- Copy 按钮的具体放置(inside/outside `<pre>`?)+ 样式套 shared.tsx 的哪个 pattern
-- flash 状态怎么管(local useState?timeout cleanup on unmount?)
-- 失败 fallback 的具体文案 + 触发时机
+做之前先列改动点给我 review,重点给我这几样:
+- `reapProjectOrphans(projectPath, activeSessionFolders)` 的签名 + 具体 git 命令 argv + 返回类型(包括 porcelain 输出怎么 parse)
+- `/api/reaper/run` 的 body 形状 + 验证链路(projectSlug + activeSessionFolders 每条都过 `resolveProjectFolder` / `resolveSessionFolder` + cross-project containment)
+- **文档里 "Decisions to lock" 6 条** —— 每条你的推荐 + 理由,我挑 lock
+- 前端调用点(`App.tsx` mount 时 fire-and-forget 一次?活 chat 列表怎么构造?`sessionCompleted: true` 的 chat 要不要也算 live?)
+- 测试覆盖:单元测试(porcelain parser)+ 手测脚本(造 2 个 project 各带 2 个 session,手工删 chat/folder,调用 endpoint,验证 git 状态)
 
-改动点过了 review 就写,按文档里 6.4 Acceptance tests(6 条)在你自己的 2010 浏览器里自测。
+改动点过了 review 再写,按文档里 6.5 Acceptance tests(7 条)手测通过再开 PR。
 
 跑 dev:
-- 前端 `npm run dev -- --port 2010`(主 session 占 2006)
-- **不需要 backend**,纯前端改动。要复现 409 场景可以手工 mock `postSessionMerge` 的返回值,或者 copy 6.3 的手测脚本造两个 session
-- `navigator.clipboard` 需要 secure context(localhost 就是,没问题)
+- 前端 `npm run dev -- --port 2010`(主 session 占 2006,避开)
+- 后端需要时 `cd server && unset ANTHROPIC_API_KEY && npm run dev`(backend 3001 无状态共享)
 
-**6.4 按原则 #12 归为 low-risk**(纯视觉 polish、无 async/git/state machine 改动):**planning session 不跑 live test**。你在本地自测 6 条 acceptance tests 通过后,PR description 里列一下你跑了哪几条、输出是什么(clipboard 内容截图、feedback flash 录屏或截图都行),直接开 PR merge,不用拉我。
+**6.5 是 Phase 6 最 destructive 的一步(会 `git worktree remove --force` + `git branch -D`)**,按原则 #12 高风险必测。PR 开了在 planning session 说一声,我跑 7 条 acceptance tests,包括:
+- 删 chat → worktree + branch 被 reap,兄弟 session 不受影响
+- `sessionCompleted: true` 的 chat → worktree 活着
+- Phase 5 legacy `.git/` 目录 → 绝对不碰
+- shape-B 悬空 metadata(folder 不在,git 还记着)→ `git worktree prune` 清掉
+- 验证链 400(projectSlug path 遍历 / cross-project 混配)
+- 并发两个 reaper run → 无 race
+- 单个 worktree remove 失败 → 其它继续,summary 捕获错误
 
-测完按原则 #13 清场:`preview_stop` 你的 2010,不留 zombie。
+测完按原则 #13 清场:kill backend + preview_stop、清掉测试 project + `git worktree prune` 主仓库,不留 zombie。
 ```
 
 ---
