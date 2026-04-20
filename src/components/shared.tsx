@@ -144,7 +144,7 @@ function DemoExplainerModal({ open, onClose }: { open: boolean; onClose: () => v
           <ul className="flex flex-col gap-2.5">
             <li className="flex gap-2.5">
               <span aria-hidden className="shrink-0">✨</span>
-              <span>Combine OpenAI's natural language capabilities with Claude Co-Worker's task management, so you can seamlessly integrate your two favorite tools.</span>
+              <span>Combine OpenAI's natural language capabilities with Claude Cowork's task management, so you can seamlessly integrate your two favorite tools.</span>
             </li>
             <li className="flex gap-2.5">
               <span aria-hidden className="shrink-0">📂</span>
