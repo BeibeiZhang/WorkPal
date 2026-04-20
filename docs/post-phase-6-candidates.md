@@ -6,19 +6,28 @@ Living backlog of what might come after Phase 6 (shipped 2026-04-20). Each item 
 
 ---
 
-## 1. `in-flight` — Article re-edit feature in DetailPanel
+## 1. `shipped` — Article re-edit feature in DetailPanel
 
-**Started**: 2026-04-20, Cowork impl session in progress.
+**Shipped**: 2026-04-19 (PR [#87](https://github.com/BeibeiZhang/WorkPal/pull/87), commit `0456668`). Impl session delivered presets-only MVP + "Save to card" + per-preset streaming with Cancel/Undo.
 
-**What**: DetailPanel's popover mockup ([`src/App.tsx:2426`](../src/App.tsx)) with 4 preset edit actions (Shorter / Extend / Formal / Translate) + custom text input is non-functional. Make it work — user clicks, AI rewrites the article, streams result in place.
+**Implemented scope** (impl picked during change list):
+- 4 presets only (no free text) — Shorter / Extend / Formal / Translate
+- Translate is auto-detect bidirectional (EN↔中文), no target picker
+- Post-edit UX = stream-replace + one-level Undo + manual "Save to card" (commits back to `research.summary` / `meeting.content`)
+- Editable card types: `research` + `meeting`; ticket / schedule / demo fallback opt out (popover gated by `editable` prop)
 
-**Status**: Prompt sent to impl session. They'll propose change list + 4 scope decisions (preset-only vs. preset+free-text MVP / translate target language / post-edit UX / which card types supported) for planning-session review.
+**Backend**: new SSE endpoint `POST /api/edit-article` ([`server/src/routes/editArticle.ts`](../server/src/routes/editArticle.ts)) using `gpt-4o-mini`. Validates preset enum + rejects empty / >20k-char input with 400. Abort propagates `res.on('close')` → `AbortController` → OpenAI stream.
 
-**Effort**: 2-3 days.
+**Live-test results** (2026-04-19 planning session):
+- Shorter / Extend / Formal happy path: ✅ all stream correctly, state machine clean
+- Translate **EN→中文**: ✅ reliable
+- Translate **中文→EN**: ⚠️ flaky on long Chinese articles — gpt-4o-mini keeps emitting Chinese instead of following "If mostly Chinese → English" instruction. Reproduced directly via curl with the exact same payload; short Chinese input works, long input ~800 chars does not. **Not wiring — model steer-ability**. Tracked as candidate #6 for follow-up fix.
+- Cancel mid-stream: ✅ rollback to snapshot, Rewriting banner + Cancel button clear, backend stream aborts
+- Validation errors (empty / bad preset / >20k): ✅ 400 + clear message
+- Save to card persistence: ✅ re-open panel shows saved content as new baseline
+- Ticket / schedule opt-out: ✅ verified via code (editable=false default, popover gated)
 
-**Depends on**: nothing.
-
-**Risk classification**: medium (streaming + state replacement + possibly new endpoint). Planning session **will live-test** — acceptance tests each preset happy path, Cancel/error, multiple card types.
+**Risk decision**: shipped with known issue. CN→EN flake violates principle #8 (bilingual day 1) and is worth fixing, but the other 3 presets + EN→CN all work and the path isn't blocking other work. Fix tracked as candidate #6.
 
 ---
 
@@ -32,9 +41,10 @@ Living backlog of what might come after Phase 6 (shipped 2026-04-20). Each item 
 
 **Architecture clarification locked**:
 - **Two Vercel deployments from the same GitHub repo** (not two codebases):
-  - `workpal-demo.yourdomain.com` — built with `VITE_WORKPAL_DEMO=true` — mocked features, seeded data, no agent dependency
-  - `app.yourdomain.com` — built with the flag off — real features, expects a local agent. This is the eventual "production" target IF we go deployment shape C. Can coexist with `localhost:2006` for dev — both work independently.
+  - **`my-workpal.vercel.app`** (existing Vercel project `workpal`) — built with `VITE_WORKPAL_DEMO=true` — this becomes the **demo** target. Shared with HR / interviewers.
+  - **`workpal-beibei.vercel.app`** (new Vercel project `workpal-beibei`, default `.vercel.app` subdomain, no custom domain) — built with the flag off — Beibei's **own external** use. Currently serves as the stand-in for the "eventual production" target if deployment shape C gets picked; can coexist with `localhost:2006` for dev.
 - Beibei maintains one codebase; Vercel auto-deploys both on every push. TestFlight-beta + App-Store analogy.
+- **Third URL** = `localhost:2006` (dev). Always works independently.
 
 **Feature matrix for demo mode** (locked during 2026-04-20 discussion):
 
@@ -50,13 +60,20 @@ Living backlog of what might come after Phase 6 (shipped 2026-04-20). Each item 
 | Claude Code route (`/api/claude-chat`) | ❌ disable | Native binary + persistent cwd — structurally incompatible with Vercel serverless |
 | Phase 6 Complete Session / merge / reaper | ❌ disable | Depends on Claude Code backend, same reason |
 | Demo of Claude Code capability | (design question) | Pre-recorded screen video, or pre-seeded completed session with static data. Impl session decides during change-list review |
+| **Memory system + Supabase** | ❌ mock (no Supabase) | **Locked 2026-04-19**: Beibei's memory is gated by `MEMORY_PASSWORD` specifically so random visitors can't delete entries. Demo must NOT connect the real Supabase — HR should see static seed memories, not Beibei's live data, and the delete / edit UI must be read-only (or hidden) in demo mode. Impl decides: static seed vs. isolated-demo Supabase project vs. fully hidden memory page. `MEMORY_PASSWORD` / `SUPABASE_URL` / `SUPABASE_ANON_KEY` env vars NOT set on the `workpal` (demo) Vercel project |
 
 **Scope to lock during change-list review** (impl proposes, planning confirms):
-- `VITE_WORKPAL_DEMO` flag name and what exactly it toggles
-- Seed data shape (reuse `INITIAL_CHATS`?  richer?)
-- Mock connector UI: "Try demo data" button copy, what data to show
+- `VITE_WORKPAL_DEMO` flag name and what exactly it toggles (build-time const injected via Vite env, read from `import.meta.env.VITE_WORKPAL_DEMO === 'true'`)
+- Seed data shape (reuse `INITIAL_CHATS`? richer? mock memory entries for the memory page?)
+- Mock connector UI: "Try demo data" button copy, what data to show when user clicks "Connect Gmail / Calendar"
+- Memory page behavior in demo: fully hidden / read-only with seed entries / some other shape
 - "Demo" visual badge — placement (top bar? corner?)
-- Vercel config — rewrite rules for SPA fallback already in `vercel.json`, double-check
+- Claude Code capability substitute: pre-recorded video clip, or pre-seeded "already-completed" session with static Changes panel?
+- Vercel config — SPA fallback rewrite rules already in `vercel.json`, double-check after flag lands
+
+**Env var placement** (for Beibei to execute after PR merge, one-time):
+- `workpal` Vercel project (= demo, `my-workpal.vercel.app`): add **only** `VITE_WORKPAL_DEMO=true` + shared AI keys with low usage caps (`OPENAI_API_KEY`, maybe `TAVILY_API_KEY` / `YOUTUBE_API_KEY` / `UNSPLASH_ACCESS_KEY`). **Do NOT** paste `SUPABASE_*`, `MEMORY_PASSWORD`, `GOOGLE_*`, `ANTHROPIC_API_KEY` — demo mode won't use them
+- `workpal-beibei` Vercel project (= self-use, `workpal-beibei.vercel.app`): paste **all 11** env vars Beibei currently has on `workpal` — this becomes her real external instance
 
 **Risk classification**: medium-risk (build flag + cross-deployment consistency + potential for demo data leaking real state). Planning session will live-test by visiting the deployed demo URL in a private browser session.
 
@@ -97,6 +114,29 @@ Deliberately parked. Re-evaluate when UI surface stabilizes. Unchanged from 2026
   - Mostly self + occasional demo → stay at A + demo deployment indefinitely
 
 **Decision triggers**: after demo ships + runs for a while + Beibei has real HR-reaction data and self-use feedback across devices.
+
+---
+
+## 6. `candidate` — Translate CN→EN reliability fix (post-#1 follow-up)
+
+**Surfaced**: 2026-04-19 planning-session live test of PR #87.
+
+**Bug**: Translate preset reliably detects direction for short Chinese input (~90 chars) but fails on long Chinese articles (~800+ chars). Model (`gpt-4o-mini`) keeps emitting Chinese instead of following the "If mostly Chinese → English" branch of the conditional prompt. Reproduced directly via curl with the exact UI payload — not a wiring bug, it's a prompt + model steer-ability issue.
+
+**EN→中文** is reliable. Only **中文→EN** flakes on long inputs.
+
+**Impact**: partial violation of principle #8 (bilingual day 1). Users with long Chinese meeting notes / research summaries can't translate them to English.
+
+**Possible fixes** (impl session to pick one during change-list review):
+- Upgrade the translate preset specifically to `gpt-4o` (heavier, less flaky for conditional instructions)
+- Rewrite the prompt as a forced 2-step: "STEP 1: detect input language. STEP 2: target = the other language. STEP 3: output in target language ONLY, never match input." with few-shot examples
+- Frontend language-detect + send explicit `translate-to-english` vs. `translate-to-chinese` preset variants (two API prompts, no conditional)
+
+**Effort**: small — 1-2 hours, mostly prompt-tweaking + re-testing. Low risk unless swapping models.
+
+**Depends on**: nothing. Can be picked any time.
+
+**Risk classification**: low (prompt-only change, same API surface). Impl self-tests (send long CN article both directions, confirm target language output).
 
 ---
 
