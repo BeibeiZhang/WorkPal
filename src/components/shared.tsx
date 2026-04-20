@@ -4,10 +4,11 @@
  * Single source of truth — used by both app pages and the Design System page.
  * Update a component here → it updates everywhere in the app.
  */
-import { AlertTriangle, ArrowLeft, BadgeCheck, Check, ChevronDown, ChevronRight, Clock, FileText, Info, Mail, PanelLeft, PanelRight, Ticket, Play, Plus, Search, Send, Smile, SquarePen, Timer, User, Sparkles, X, XCircle, type LucideIcon } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, BadgeCheck, Check, ChevronDown, ChevronRight, Clock, FileCode2, FileImage, FileText, Info, Mail, MonitorPlay, PanelLeft, PanelRight, Presentation, Ticket, Play, Plus, Search, Send, Smile, SquarePen, Timer, User, Sparkles, X, XCircle, type LucideIcon } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { IS_DEMO } from '../lib/demoMode';
+import type { ArtifactRef, OutputType } from '../types';
 
 /* ─── 0a. HeaderBar ───
  * Canonical top toolbar. Renders the sidebar-toggle button (when the sidebar
@@ -1850,6 +1851,102 @@ export function ReviewItemCard({
       </div>
       <TimePill time={humanTime} tooltip={`Estimated ${humanTime} for you to review`} />
       <ChevronRight size={16} className="text-text-primary shrink-0" />
+    </div>
+  );
+}
+
+/* ─── 15. ArtifactCard ───
+ * Clickable reference to a produced file / document. Rendered inline under an
+ * assistant chat message (when Claude Code writes a file, or when the #3
+ * artifact primitive returns a hosted URL). Row-style pill matching the
+ * existing user-attachment visual — icon column on the left, name + type on
+ * the right.
+ *
+ *   - Icon is derived from `artifact.fileType` via `outputIconFor` so the same
+ *     mapping powers the Project Output grid.
+ *   - Click behavior: `href` wins (opens in a new tab — used by hosted
+ *     artifacts); else `onClick` (chat card for Claude-Code files calls the
+ *     open-file endpoint); else it's a non-interactive display pill.
+ */
+
+const OUTPUT_ICON: Record<OutputType, LucideIcon> = {
+  Web: FileCode2,
+  Slides: Presentation,
+  Image: FileImage,
+  Video: MonitorPlay,
+  File: FileText,
+};
+
+export function outputIconFor(type: OutputType): LucideIcon {
+  return OUTPUT_ICON[type] ?? FileText;
+}
+
+export function ArtifactCard({
+  artifact,
+  onClick,
+}: {
+  artifact: ArtifactRef;
+  /** Called when the card is clicked and no `href` is set. The chat-bubble
+   *  site wires this to POST /api/claude-chat/open-file → `open` on macOS →
+   *  the OS opens the file in the default app (HTML → browser). */
+  onClick?: (artifact: ArtifactRef) => void;
+}) {
+  const Icon = outputIconFor(artifact.fileType);
+  const shared = 'flex items-center rounded-lg border border-stroke-outline bg-bg-message hover:bg-bg-hover transition-colors max-w-[320px] no-underline';
+  const body = (
+    <>
+      <div className="w-10 h-10 shrink-0 flex items-center justify-center bg-bg-hover text-text-secondary rounded-l-lg">
+        <Icon size={20} className="icon-theme" />
+      </div>
+      <div className="min-w-0 flex-1 py-1 px-3">
+        <div className="text-[13px] leading-[16px] text-text-primary truncate">{artifact.name}</div>
+        <div className="text-[11px] leading-[14px] text-text-secondary">{artifact.fileType}</div>
+      </div>
+    </>
+  );
+  if (artifact.href) {
+    return (
+      <a href={artifact.href} target="_blank" rel="noreferrer" className={shared}>
+        {body}
+      </a>
+    );
+  }
+  if (onClick) {
+    return (
+      <button type="button" onClick={() => onClick(artifact)} className={`${shared} text-left`}>
+        {body}
+      </button>
+    );
+  }
+  return <div className={shared}>{body}</div>;
+}
+
+/* ─── 16. EmptyState ───
+ * Centered icon + title + optional description. Used when a section has no
+ * content yet (new-project Output / Recents). Deliberately minimal — no CTA,
+ * no illustration — so it reads as "nothing here yet, that's expected"
+ * rather than a prompt to do something specific.
+ */
+export function EmptyState({
+  icon: Icon,
+  title,
+  description,
+  className = '',
+}: {
+  icon: LucideIcon;
+  title: string;
+  description?: string;
+  className?: string;
+}) {
+  return (
+    <div className={`flex flex-col items-center justify-center gap-2 py-8 px-4 text-center ${className}`}>
+      <div className="w-10 h-10 flex items-center justify-center rounded-full bg-bg-hover text-text-secondary">
+        <Icon size={20} strokeWidth={1.5} className="icon-theme" />
+      </div>
+      <div className="text-[14px] text-text-primary font-medium">{title}</div>
+      {description && (
+        <div className="text-[13px] text-text-secondary leading-relaxed max-w-[280px]">{description}</div>
+      )}
     </div>
   );
 }

@@ -4,10 +4,10 @@ import ChatInput from './ChatInput';
 import {
   ChevronDown, ChevronRight, Star, MoreVertical, PanelRight,
   FileCode2, MessageCircle, Pen, File, Plus, X,
-  MonitorPlay, Presentation,
+  FolderOpen, Inbox,
 } from 'lucide-react';
-import { FilterChip, PageLayout, SearchBox, SideCard, SidePanelHeader, SplitView } from './shared';
-import type { Chat, Attachment } from '../types';
+import { EmptyState, FilterChip, PageLayout, SearchBox, SideCard, SidePanelHeader, SplitView, outputIconFor } from './shared';
+import type { Chat, Attachment, OutputItem, OutputType } from '../types';
 import { filesToAttachments, formatFileSize } from '../lib/attachments';
 
 interface ProjectPageProps {
@@ -36,16 +36,9 @@ function formatRelative(date: Date): string {
 }
 
 /* ── Demo data ── */
-type OutputType = 'All' | 'Web' | 'Slides' | 'Image' | 'Video';
+type OutputFilter = 'All' | OutputType;
 
-interface OutputItem {
-  id: string;
-  name: string;
-  icon: typeof FileCode2;
-  type: OutputType;
-}
-
-const OUTPUT_FILTERS: OutputType[] = ['All', 'Web', 'Slides', 'Image', 'Video'];
+const OUTPUT_FILTERS: OutputFilter[] = ['All', 'Web', 'Slides', 'Image', 'Video'];
 
 interface RecentItem {
   id: string;
@@ -55,6 +48,10 @@ interface RecentItem {
   outputTag?: string;
 }
 
+/** Seeded content for a demo project — kept so the original `proj-1`
+ *  (Agent Design) stays a polished showcase. Real projects created by the
+ *  user have no entry here and get an empty-state shell instead, filled by
+ *  actual Claude-Code file writes + chat activity. */
 interface ProjectContent {
   objective: string;
   outputs: OutputItem[];
@@ -67,11 +64,11 @@ const PROJECT_CONTENT: Record<string, ProjectContent> = {
   'proj-1': {
     objective: 'To study and track the evolution of interface design norms and interaction patterns of mainstream AI products.',
     outputs: [
-      { id: '1', name: 'Agent Design Component', icon: FileCode2, type: 'Web' },
-      { id: '2', name: 'AI Product Info Architecture', icon: FileCode2, type: 'Web' },
-      { id: '3', name: 'Agent UIUX Research', icon: MonitorPlay, type: 'Video' },
-      { id: '4', name: 'Agent UIUX Research', icon: Presentation, type: 'Slides' },
-      { id: '5', name: 'competitive analysis', icon: FileCode2, type: 'Web' },
+      { id: '1', name: 'Agent Design Component', type: 'Web' },
+      { id: '2', name: 'AI Product Info Architecture', type: 'Web' },
+      { id: '3', name: 'Agent UIUX Research', type: 'Video' },
+      { id: '4', name: 'Agent UIUX Research', type: 'Slides' },
+      { id: '5', name: 'competitive analysis', type: 'Web' },
     ],
     recents: [
       {
@@ -124,74 +121,34 @@ const PROJECT_CONTENT: Record<string, ProjectContent> = {
     contextLabel: 'Agent Design',
     defaultSelectedOutputId: '2',
   },
-  'proj-2': {
-    objective: 'To redesign the Spark driver onboarding flow and reduce time-to-first-delivery, addressing the 38% drop-off observed in the current 7-step signup process.',
-    outputs: [
-      { id: '1', name: 'New Driver Landing Page', icon: FileCode2, type: 'Web' },
-      { id: '2', name: 'Onboarding Flow Wireframes', icon: Presentation, type: 'Slides' },
-      { id: '3', name: 'Driver Persona Deck', icon: Presentation, type: 'Slides' },
-      { id: '4', name: 'Tutorial Walkthrough Demo', icon: MonitorPlay, type: 'Video' },
-      { id: '5', name: 'Vehicle Verification Step', icon: FileCode2, type: 'Web' },
-    ],
-    recents: [
-      {
-        id: '1',
-        title: 'Map current driver onboarding journey',
-        description: 'Documented all 7 steps in the existing Spark driver signup, from app download to first scheduled shift...',
-        time: '3 hour ago',
-        outputTag: 'Onboarding Flow Wireframes',
-      },
-      {
-        id: '2',
-        title: 'Audit drop-off rates by step',
-        description: 'Pulled funnel metrics from Amplitude for the past 90 days and flagged the vehicle verification step as the biggest leak...',
-        time: '12 hour ago',
-        outputTag: 'Driver Persona Deck',
-      },
-      {
-        id: '3',
-        title: 'Implement progressive disclosure for tutorial screens',
-        description: 'Refactored the tutorial carousel to lazy-load step content and remember progress across app sessions...',
-        time: '1 day ago',
-      },
-      {
-        id: '4',
-        title: 'Synthesize 12 driver interview transcripts',
-        description: 'Coded interview notes from new and lapsed drivers to identify the top friction points in the current flow...',
-        time: '2 days ago',
-        outputTag: 'Driver Persona Deck',
-      },
-      {
-        id: '5',
-        title: 'Build form validation for vehicle info step',
-        description: 'Added inline validation, license-plate format checks, and real-time error states for the vehicle entry screen...',
-        time: '2 days ago',
-      },
-      {
-        id: '6',
-        title: 'Draft welcome email sequence for new drivers',
-        description: 'Wrote a 5-email drip covering first delivery tips, payout setup, and support channels for newly approved drivers...',
-        time: '3 days ago',
-        outputTag: 'New Driver Landing Page',
-      },
-      {
-        id: '7',
-        title: 'Compare onboarding flows of Uber, DoorDash, Instacart',
-        description: 'Captured screen recordings of competitor signup journeys and benchmarked step counts, time-to-complete, and verification UX...',
-        time: '4 days ago',
-        outputTag: 'Onboarding Flow Wireframes',
-      },
-    ],
-    contextLabel: 'Spark Driver Research',
-    defaultSelectedOutputId: '2',
-  },
 };
 
-const FALLBACK_CONTENT = PROJECT_CONTENT['proj-1'];
+/** Fallback for user-created projects with no seed entry — nothing is
+ *  pre-populated; the Output grid + Recents list start empty and grow as
+ *  the user actually produces artifacts and starts sessions. Instructions
+ *  card renders a "No objective yet" placeholder. */
+const EMPTY_CONTENT: ProjectContent = {
+  objective: '',
+  outputs: [],
+  recents: [],
+  contextLabel: '',
+  defaultSelectedOutputId: '',
+};
 
 export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, onAddFiles, onRemoveFile, sidebarOpen, onToggleSidebar }: ProjectPageProps) {
-  const content = PROJECT_CONTENT[project.id] ?? FALLBACK_CONTENT;
-  const [outputFilter, setOutputFilter] = useState<OutputType>('All');
+  const content = PROJECT_CONTENT[project.id] ?? EMPTY_CONTENT;
+  // Real outputs produced in this project (Claude Code file writes) come in
+  // on `project.outputs`, persisted through the App-level projects effect.
+  // Deduped against the seed entries by name so re-creating a file already
+  // listed in the demo seed doesn't double up in the grid.
+  const seedOutputs = content.outputs;
+  const realOutputs = project.outputs ?? [];
+  const seedNames = new Set(seedOutputs.map(o => o.name));
+  const mergedOutputs: OutputItem[] = [
+    ...realOutputs.filter(o => !seedNames.has(o.name)),
+    ...seedOutputs,
+  ];
+  const [outputFilter, setOutputFilter] = useState<OutputFilter>('All');
   const [selectedOutputId, setSelectedOutputId] = useState<string>(content.defaultSelectedOutputId);
   const [outputOpen, setOutputOpen] = useState(true);
   const [recentsOpen, setRecentsOpen] = useState(true);
@@ -248,7 +205,7 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
     matchesSearch(r.title) || matchesSearch(r.description) || matchesSearch(r.outputTag ?? ''),
   );
 
-  const filteredOutputs = content.outputs.filter(o => {
+  const filteredOutputs = mergedOutputs.filter(o => {
     if (outputFilter !== 'All' && o.type !== outputFilter) return false;
     return matchesSearch(o.name);
   });
@@ -291,7 +248,10 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                   <strong>Project Name: </strong>{project.name}
                 </p>
                 <p className="text-[14px] text-text-primary leading-relaxed">
-                  <strong>Project Objective: </strong>{content.objective}
+                  <strong>Project Objective: </strong>
+                  {content.objective || (
+                    <span className="text-text-secondary/60 italic">No objective yet</span>
+                  )}
                 </p>
               </div>
             </SideCard>
@@ -423,45 +383,58 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
 
                 {outputOpen && (
                   <>
-                    {/* Output filter chips */}
-                    <div className="flex gap-2">
-                      {OUTPUT_FILTERS.map(f => (
-                        <FilterChip
-                          key={f}
-                          label={f}
-                          active={outputFilter === f}
-                          onClick={() => setOutputFilter(f)}
-                        />
-                      ))}
-                    </div>
+                    {/* Output filter chips — only shown when there are outputs
+                        to filter. On an empty project the chips would be
+                        visual noise above a "nothing here yet" message. */}
+                    {mergedOutputs.length > 0 && (
+                      <div className="flex gap-2">
+                        {OUTPUT_FILTERS.map(f => (
+                          <FilterChip
+                            key={f}
+                            label={f}
+                            active={outputFilter === f}
+                            onClick={() => setOutputFilter(f)}
+                          />
+                        ))}
+                      </div>
+                    )}
 
-                    {/* Output cards */}
-                    <div className="flex gap-3 overflow-x-auto pb-1">
-                      {filteredOutputs.map(o => {
-                        const Icon = o.icon;
-                        const isSelected = selectedOutputId === o.id;
-                        return (
-                          <button
-                            key={o.id}
-                            onClick={() => setSelectedOutputId(o.id)}
-                            className={`flex flex-col items-center gap-2 min-w-[120px] w-[120px] p-2 rounded-lg border transition-colors ${
-                              isSelected
-                                ? 'border-[#3171ff]'
-                                : 'border-transparent hover:bg-bg-hover'
-                            }`}
-                          >
-                            <Icon
-                              size={32}
-                              className={isSelected ? 'text-[#3171ff]' : 'text-text-secondary/40 dark:text-white'}
-                              strokeWidth={1.2}
-                            />
-                            <span className={`text-[14px] text-center leading-[1.2] line-clamp-2 w-full ${isSelected ? 'text-[#3171ff]' : 'text-text-primary'}`}>
-                              {o.name}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                    {/* Output cards — or empty state when the project hasn't
+                        produced anything yet. */}
+                    {mergedOutputs.length === 0 ? (
+                      <EmptyState
+                        icon={FolderOpen}
+                        title="No outputs yet"
+                        description="Files WorkPal creates in this project will show up here."
+                      />
+                    ) : (
+                      <div className="flex gap-3 overflow-x-auto pb-1">
+                        {filteredOutputs.map(o => {
+                          const Icon = outputIconFor(o.type);
+                          const isSelected = selectedOutputId === o.id;
+                          return (
+                            <button
+                              key={o.id}
+                              onClick={() => setSelectedOutputId(o.id)}
+                              className={`flex flex-col items-center gap-2 min-w-[120px] w-[120px] p-2 rounded-lg border transition-colors ${
+                                isSelected
+                                  ? 'border-[#3171ff]'
+                                  : 'border-transparent hover:bg-bg-hover'
+                              }`}
+                            >
+                              <Icon
+                                size={32}
+                                className={isSelected ? 'text-[#3171ff]' : 'text-text-secondary/40 dark:text-white'}
+                                strokeWidth={1.2}
+                              />
+                              <span className={`text-[14px] text-center leading-[1.2] line-clamp-2 w-full ${isSelected ? 'text-[#3171ff]' : 'text-text-primary'}`}>
+                                {o.name}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </>
                 )}
               </div>
@@ -481,7 +454,15 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
 
                 {recentsOpen && (
                   <>
-                    {/* Recent items */}
+                    {/* Recent items — or empty state when nothing has been
+                        started in this project yet. */}
+                    {combinedRecents.length === 0 ? (
+                      <EmptyState
+                        icon={Inbox}
+                        title="No sessions yet"
+                        description="Conversations you start in this project will show up here."
+                      />
+                    ) : (
                     <div className="flex flex-col">
                       {filteredRecents.map(r => {
                         // Only real chats are wired up for now. Demo rows stay
@@ -517,6 +498,7 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                         );
                       })}
                     </div>
+                    )}
                   </>
                 )}
               </div>

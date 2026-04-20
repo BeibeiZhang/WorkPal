@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Chat, Attachment } from '../types';
+import { Chat, Attachment, OutputItem } from '../types';
 import { LayoutDashboard, SquarePen, Link, BookOpen, Brain, FolderPlus, ChevronDown, Search, Palette, PanelLeft, MoreHorizontal, Trash2, FolderInput, Check, Sparkles } from 'lucide-react';
 import { iconSun, iconMoon } from '../assets';
 
@@ -329,6 +329,11 @@ export interface Project {
    *  every AI request in any chat scoped to this project — persistent
    *  cross-chat context. See buildAttachmentContextBlock(..., 'project'). */
   files?: Attachment[];
+  /** Artifacts actually produced in this project (Claude Code file writes,
+   *  and eventually #3 hosted artifacts). Rendered in the Output grid on
+   *  the project page. Absent on freshly-created projects — they show an
+   *  empty state until the first file is written. */
+  outputs?: OutputItem[];
 }
 
 interface SidebarProps {

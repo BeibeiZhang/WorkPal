@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { mkdir, rmdir } from 'node:fs/promises';
+import { access, mkdir, rmdir } from 'node:fs/promises';
 import { basename, dirname, resolve as pathResolve, sep } from 'node:path';
 import { homedir } from 'node:os';
 import { spawn } from 'node:child_process';
@@ -617,6 +617,53 @@ router.post('/claude-chat/open-folder', (req, res) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('[claude-chat] open-folder failed:', message);
+    res.status(500).json({ error: message });
+  }
+});
+
+// Open a single generated file (e.g. claude-intro.html) in its default app.
+// The frontend's ArtifactCard click in chat routes here. Same WORKPAL_ROOT
+// jailing as open-folder — a crafted filePath that resolves outside the root
+// is rejected before any spawn. Darwin-only: `open <file>` delegates to the
+// registered default app, so .html → default browser, .png → Preview, etc.
+router.post('/claude-chat/open-file', async (req, res) => {
+  const { filePath } = req.body as { filePath?: string };
+  // resolveSessionFolder is misnamed for this path, but the logic is
+  // identical: resolve to absolute, then require it to sit under
+  // WORKPAL_ROOT. Re-using it keeps one jailing rule instead of two.
+  const pathCheck = resolveSessionFolder(filePath);
+  if (!pathCheck.ok) {
+    res.status(400).json({ error: pathCheck.reason });
+    return;
+  }
+  if (process.platform !== 'darwin') {
+    res.status(501).json({ error: 'open-file is only wired for darwin' });
+    return;
+  }
+  try {
+    // A file the user clicks on should exist — if it doesn't (e.g. the chat
+    // was restored from localStorage but the artifact got deleted), fail with
+    // a clear 404 rather than spawning `open` on a missing path (which pops a
+    // confusing "The item can't be found" system dialog).
+    await access(pathCheck.resolved);
+  } catch {
+    res.status(404).json({ error: 'file not found / 文件不存在' });
+    return;
+  }
+  try {
+    const child = spawn('open', [pathCheck.resolved], {
+      stdio: 'ignore',
+      detached: true,
+    });
+    child.unref();
+    child.on('error', (err) => {
+      console.error('[claude-chat] open-file spawn error:', err.message);
+    });
+    console.log(`[claude-chat] open-file ${pathCheck.resolved}`);
+    res.json({ ok: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[claude-chat] open-file failed:', message);
     res.status(500).json({ error: message });
   }
 });
