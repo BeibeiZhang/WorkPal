@@ -204,3 +204,230 @@ export async function undoLastCommit(cwd: string): Promise<CommitResult> {
   const { stdout } = await execFileP('git', ['rev-parse', 'HEAD'], { cwd });
   return { commit: stdout.trim() };
 }
+
+/* ── 6.3: Complete Session — diff preview + FF merge ─────────────────────── */
+
+/** One row in the diff preview the user sees before hitting Merge.
+ *  `status` is simplified to A/M/D — renames are disabled at the git layer
+ *  (`--no-renames`) so they surface as a D+A pair, which matches how 6.3's
+ *  UI renders them anyway. `insertions`/`deletions` are `-1` for binary files
+ *  (git's `--numstat` outputs `-` in those columns); the frontend renders a
+ *  dash in place of a number when it sees `-1`. */
+export interface SessionDiffEntry {
+  path: string;
+  status: 'A' | 'M' | 'D';
+  insertions: number;
+  deletions: number;
+}
+
+/** Parse `git diff --name-status --no-renames -z` output. Exported for
+ *  test coverage — tolerates trailing NUL(s) and the empty-output case. */
+export function parseDiffNameStatus(
+  output: string,
+): Array<{ path: string; status: 'A' | 'M' | 'D' }> {
+  const out: Array<{ path: string; status: 'A' | 'M' | 'D' }> = [];
+  if (!output) return out;
+  // -z splits ALL tokens by NUL (status AND paths). Trailing NUL leaves an
+  // empty final element after split; filter it out.
+  const tokens = output.split('\0').filter((t) => t.length > 0);
+  let i = 0;
+  while (i < tokens.length) {
+    const statusToken = tokens[i++];
+    if (i >= tokens.length) break; // malformed — missing path after status
+    const path = tokens[i++];
+    const c = statusToken.charAt(0);
+    // With --no-renames git never emits R/C, so the only expected single-
+    // letter statuses are A / M / D / T (type change) / U (unmerged).
+    // T and U don't naturally appear in a diff between two branches without
+    // conflict markers, but if they did we'd surface them as 'M' — closest
+    // user-intuitive bucket.
+    let status: 'A' | 'M' | 'D';
+    if (c === 'A') status = 'A';
+    else if (c === 'D') status = 'D';
+    else status = 'M';
+    out.push({ path, status });
+  }
+  return out;
+}
+
+/** Parse `git diff --numstat --no-renames -z` output. Exported for test
+ *  coverage. Binary files show `-` for both counts; we map that to `-1` so
+ *  the frontend can key off a sentinel without re-parsing the string. */
+export function parseDiffNumstat(
+  output: string,
+): Array<{ path: string; insertions: number; deletions: number }> {
+  const out: Array<{ path: string; insertions: number; deletions: number }> = [];
+  if (!output) return out;
+  // Each `-z` record has shape `<ins>\t<del>\t<path>` followed by `\0`.
+  const records = output.split('\0').filter((r) => r.length > 0);
+  for (const rec of records) {
+    const firstTab = rec.indexOf('\t');
+    if (firstTab < 0) continue;
+    const secondTab = rec.indexOf('\t', firstTab + 1);
+    if (secondTab < 0) continue;
+    const insStr = rec.slice(0, firstTab);
+    const delStr = rec.slice(firstTab + 1, secondTab);
+    const path = rec.slice(secondTab + 1);
+    if (!path) continue;
+    const insertions = insStr === '-' ? -1 : Number.parseInt(insStr, 10);
+    const deletions = delStr === '-' ? -1 : Number.parseInt(delStr, 10);
+    if (Number.isNaN(insertions) || Number.isNaN(deletions)) continue;
+    out.push({ path, insertions, deletions });
+  }
+  return out;
+}
+
+/** Merge the two `git diff` outputs by path. Keyed so order follows `numstat`
+ *  (which matches git's on-disk enumeration order); paths that appear in
+ *  `statuses` but not `stats` (shouldn't happen in practice but possible on
+ *  weird filesystems) are appended with `0/0` counts so the user still sees
+ *  them rather than silently dropping the row. */
+export function mergeDiffOutputs(
+  statuses: Array<{ path: string; status: 'A' | 'M' | 'D' }>,
+  stats: Array<{ path: string; insertions: number; deletions: number }>,
+): SessionDiffEntry[] {
+  const statusByPath = new Map<string, 'A' | 'M' | 'D'>();
+  for (const s of statuses) statusByPath.set(s.path, s.status);
+  const seen = new Set<string>();
+  const out: SessionDiffEntry[] = [];
+  for (const n of stats) {
+    seen.add(n.path);
+    out.push({
+      path: n.path,
+      status: statusByPath.get(n.path) ?? 'M',
+      insertions: n.insertions,
+      deletions: n.deletions,
+    });
+  }
+  for (const s of statuses) {
+    if (seen.has(s.path)) continue;
+    out.push({ path: s.path, status: s.status, insertions: 0, deletions: 0 });
+  }
+  return out;
+}
+
+/** 6.3: diff the session branch against the project's base branch. Two git
+ *  subprocesses (numstat + name-status) because `git diff` silently takes the
+ *  last-specified flag when both are passed — the doc's one-command sketch
+ *  was a shorthand that git doesn't actually honor. Subprocess overhead is
+ *  single-digit ms per call; simpler than trying to merge a `--raw` + stats
+ *  stream. `--no-renames` simplifies the output: a rename surfaces as a D+A
+ *  pair, matching how the UI renders it anyway.
+ *
+ *  Base branch is whatever `symbolic-ref HEAD` returns on the project repo,
+ *  not hardcoded `main`: `git init` picks a default branch name from the
+ *  user's `init.defaultBranch` config (`main` on recent installs, `master`
+ *  on older ones). 6.1 didn't pin `-b main`, so we read it here. Caller must
+ *  have already validated `branchName` against `SESSION_BRANCH_RE`. */
+export async function diffSessionVsBase(
+  projectPath: string,
+  branchName: string,
+): Promise<SessionDiffEntry[]> {
+  const { stdout: headOut } = await execFileP(
+    'git',
+    ['-C', projectPath, 'symbolic-ref', '--short', 'HEAD'],
+  );
+  const baseBranch = headOut.trim();
+  if (!baseBranch) {
+    throw new Error(
+      `project repo at ${projectPath} has detached HEAD or no base branch`,
+    );
+  }
+  const range = `${baseBranch}...${branchName}`;
+  const [statusRes, statsRes] = await Promise.all([
+    execFileP('git', [
+      '-C',
+      projectPath,
+      'diff',
+      '--name-status',
+      '--no-renames',
+      '-z',
+      range,
+    ]),
+    execFileP('git', [
+      '-C',
+      projectPath,
+      'diff',
+      '--numstat',
+      '--no-renames',
+      '-z',
+      range,
+    ]),
+  ]);
+  const statuses = parseDiffNameStatus(statusRes.stdout);
+  const stats = parseDiffNumstat(statsRes.stdout);
+  return mergeDiffOutputs(statuses, stats);
+}
+
+/** Git's stderr when `--ff-only` rejects a merge. Covers the three phrasings
+ *  observed across git 2.30+ (macOS system git and brew's latest), plus the
+ *  "unrelated histories" failure which is effectively non-FF for our
+ *  purposes (two branches sharing no merge base — can't fast-forward to a
+ *  disjoint ref). Case-insensitive since git 2.45+ sometimes capitalizes
+ *  `Fast-Forward` differently. */
+export const NOT_FF_RE =
+  /not possible to fast[- ]forward|non[- ]fast[- ]forward|not a fast[- ]forward|refusing to merge unrelated histories/i;
+
+/** Stdout marker git prints when the named branch is already reachable from
+ *  HEAD — nothing to merge. Exit code is 0 in this case, distinct from the
+ *  non-FF path. */
+const ALREADY_UP_TO_DATE_RE = /already up to date/i;
+
+export type MergeFFResult =
+  | { ok: true; commit: string; alreadyUpToDate: boolean }
+  | { ok: false; reason: 'not-ff' | 'other'; message: string };
+
+/** 6.3: `git merge --ff-only <branchName>` run in the project base repo.
+ *  The merge target is whatever branch HEAD currently points at (see
+ *  `diffSessionVsBase` for why this is read from `symbolic-ref` rather than
+ *  hardcoded). `--no-edit` defends against an inherited `GIT_EDITOR`
+ *  opening a pager mid-request.
+ *
+ *  Three outcomes:
+ *    • FF succeeds, commits added → `ok:true, alreadyUpToDate:false`
+ *    • Branch's HEAD already reachable from main → `ok:true, alreadyUpToDate:true`
+ *      (observed when the user undid every commit on the session branch via 5.5)
+ *    • Non-FF (another session advanced main in between) → `ok:false, reason:'not-ff'`
+ *    • Anything else (missing ref, locked index, disk full) → `ok:false, reason:'other'`
+ *
+ *  Caller (the route handler) maps `not-ff` to HTTP 409 and `other` to 500.
+ *  We don't throw on `not-ff` because it's a user-path outcome, not an
+ *  exception — throwing would force the route handler to unwrap it with a
+ *  catch whose shape is the same as this discriminated union anyway. */
+export async function mergeSessionFFOnly(
+  projectPath: string,
+  branchName: string,
+): Promise<MergeFFResult> {
+  try {
+    const { stdout } = await execFileP('git', [
+      '-C',
+      projectPath,
+      'merge',
+      '--ff-only',
+      '--no-edit',
+      branchName,
+    ]);
+    const { stdout: headOut } = await execFileP('git', [
+      '-C',
+      projectPath,
+      'rev-parse',
+      'HEAD',
+    ]);
+    return {
+      ok: true,
+      commit: headOut.trim(),
+      alreadyUpToDate: ALREADY_UP_TO_DATE_RE.test(stdout),
+    };
+  } catch (err) {
+    // execFile on non-zero exit rejects with an error shaped like
+    // `{ code, stderr, stdout, ... }`. Check stderr against NOT_FF_RE to
+    // distinguish the user-facing "already diverged" case from real failures.
+    const e = err as { stderr?: string; message?: string };
+    const stderr = typeof e.stderr === 'string' ? e.stderr : '';
+    const message = stderr || e.message || 'git merge failed';
+    if (NOT_FF_RE.test(stderr)) {
+      return { ok: false, reason: 'not-ff', message };
+    }
+    return { ok: false, reason: 'other', message };
+  }
+}

@@ -1,5 +1,5 @@
-import { File, MessageCircle, FilePlus2, FilePen, FileMinus2, Undo2, ShieldOff } from 'lucide-react';
-import { SideCard, SidePanelHeader } from './shared';
+import { File, MessageCircle, FilePlus2, FilePen, FileMinus2, GitMerge, Undo2, ShieldOff, CheckCircle2 } from 'lucide-react';
+import { SideCard, SidePanelHeader, TertiaryButton } from './shared';
 import type { ChangeEntry, ChangeKind } from '../types';
 
 /* ── Types ───────────────────────────────────────────── */
@@ -40,6 +40,19 @@ interface TaskContextPanelProps {
   /** Flip a change to `undone: true`. The row stays visible (greyed, with an
    *  "Undone" tag) so the user has a trail, but no real file revert happens. */
   onUndoChange?: (id: string) => void;
+  /** 6.3: gate for the "Complete Session" button at the panel footer. True
+   *  iff the chat lives under a project AND has materialized at least one
+   *  file write. Chats outside a project (legacy Phase 5) and pure-Q&A
+   *  chats never render this button. */
+  canCompleteSession?: boolean;
+  /** 6.3: true after the user has already merged this session's branch into
+   *  the project base. Button stays visible but disabled with a success
+   *  label — Phase 6 intentionally doesn't offer a "re-open" path. */
+  sessionCompleted?: boolean;
+  /** 6.3: open the Complete Session modal. Passed from App.tsx, which hosts
+   *  the modal and manages its phase state. Undefined while the gate above
+   *  is false. */
+  onCompleteSession?: () => void;
 }
 
 const CHANGE_ICON: Record<ChangeKind, typeof File> = {
@@ -138,6 +151,9 @@ export default function TaskContextPanel({
   folderMaterialized = false,
   changes,
   onUndoChange,
+  canCompleteSession = false,
+  sessionCompleted = false,
+  onCompleteSession,
 }: TaskContextPanelProps) {
   // Demo chat falls back to the original scripted placeholders; real chats
   // render whatever the caller passes — an empty list shows the empty state.
@@ -354,6 +370,40 @@ export default function TaskContextPanel({
           )}
         </SideCard>
       </div>
+
+      {/* 6.3 footer — "Complete Session" / "Session complete". Rendered
+          outside the scroll area so it stays pinned at the bottom of the
+          panel, visible without requiring the user to scroll past the
+          Changes / Progress / Folder / Context / Tools cards. Gated on
+          `canCompleteSession` (= chat.projectId && folderMaterialized);
+          Phase 5 legacy chats and pure-Q&A chats don't render a footer at
+          all. Already-completed chats keep the footer but disable the
+          button — rolling back after a successful merge is intentionally
+          not part of Phase 6 scope (principle #2 subtract). */}
+      {canCompleteSession && (
+        <div
+          className="shrink-0 px-3 pb-4 pt-2 border-t"
+          style={{ borderColor: 'var(--color-stroke-outline)' }}
+        >
+          <TertiaryButton
+            onClick={() => {
+              if (sessionCompleted) return;
+              onCompleteSession?.();
+            }}
+            disabled={sessionCompleted}
+            fullWidth
+          >
+            <span className="flex items-center gap-2">
+              {sessionCompleted ? (
+                <CheckCircle2 size={14} style={{ color: '#028901' }} />
+              ) : (
+                <GitMerge size={14} />
+              )}
+              {sessionCompleted ? 'Session complete' : 'Complete Session'}
+            </span>
+          </TertiaryButton>
+        </div>
+      )}
     </div>
   );
 }
