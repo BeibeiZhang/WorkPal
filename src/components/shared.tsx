@@ -126,7 +126,7 @@ function DemoExplainerModal({ open, onClose }: { open: boolean; onClose: () => v
           <X size={18} className="text-text-primary" />
         </button>
 
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3 mb-5">
           <div
             className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
             style={{ background: 'var(--color-bg-message)' }}
@@ -137,28 +137,41 @@ function DemoExplainerModal({ open, onClose }: { open: boolean; onClose: () => v
             <h2 className="text-[16px] font-semibold text-text-primary leading-tight">
               About this demo
             </h2>
-            <p className="text-[13px] text-text-secondary leading-tight mt-0.5">
-              Shared build — no real data.
-            </p>
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 text-[13px] text-text-primary leading-relaxed">
-          <div>
-            <div className="font-medium mb-1">What works</div>
-            <ul className="list-disc pl-5 text-text-secondary space-y-0.5">
-              <li>Chat, voice, web / image / video search</li>
-            </ul>
+        <div className="flex flex-col gap-4 text-[13px] text-text-primary leading-relaxed">
+          <ul className="flex flex-col gap-2.5">
+            <li className="flex gap-2.5">
+              <span aria-hidden className="shrink-0">✨</span>
+              <span>Combine OpenAI's natural language capabilities with Claude Co-Worker's task management, so you can seamlessly integrate your two favorite tools.</span>
+            </li>
+            <li className="flex gap-2.5">
+              <span aria-hidden className="shrink-0">📂</span>
+              <span>Center everything around projects—tasks and conversations all take place within project folders, sharing project memory.</span>
+            </li>
+            <li className="flex gap-2.5">
+              <span aria-hidden className="shrink-0">🤖</span>
+              <span>AI automatically determines your needs, so you don't have to manually distinguish between chats and tasks.</span>
+            </li>
+            <li className="flex gap-2.5">
+              <span aria-hidden className="shrink-0">📊</span>
+              <span>Add an Overview page, giving you a complete view of the agent's work status and providing a reporting entry point.</span>
+            </li>
+            <li className="flex gap-2.5">
+              <span aria-hidden className="shrink-0">⚖️</span>
+              <span>In a human-centered design, emphasize your personal needs in both Onboarding and Overview, balancing every aspect of your work and life.</span>
+            </li>
+          </ul>
+
+          <div
+            className="pt-3 text-[12px] text-text-secondary leading-relaxed"
+            style={{ borderTop: '1px solid var(--color-stroke-outline)' }}
+          >
+            Both advanced voice chat and search functionalities are available. The local task management requires local installation. If you would like to experience the full product, please schedule with me, and I will provide a live demonstration.
           </div>
-          <div>
-            <div className="font-medium mb-1">What's mocked</div>
-            <ul className="list-disc pl-5 text-text-secondary space-y-0.5">
-              <li>Gmail / Calendar: seed data only, no real OAuth</li>
-              <li>Memory: read-only seed, not connected to Supabase</li>
-              <li>Claude Code file edits: runs locally only</li>
-            </ul>
-          </div>
-          <div className="text-text-secondary">
+
+          <div className="text-text-secondary text-[12px]">
             Source /{' '}
             <a
               href="https://github.com/BeibeiZhang/WorkPal"
