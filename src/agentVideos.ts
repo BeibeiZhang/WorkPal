@@ -36,7 +36,6 @@ export const AGENTS: Agent[] = [
       { src: '/animations/white-man-light.mp4',     mode: 'light' },
       { src: '/animations/white-man-thinking.mp4',  mode: 'light' },
       { src: '/animations/white-man-checkmark.mp4', mode: 'light' },
-      { src: '/animations/white-man-light-2.mp4',   mode: 'light' },
       { src: '/animations/white-man-light-3.mp4',   mode: 'light' },
       { src: '/animations/white-man-light-4.mp4',   mode: 'light' },
       { src: '/animations/white-man-dark.mp4',      mode: 'dark'  },
