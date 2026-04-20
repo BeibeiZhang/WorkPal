@@ -16,6 +16,75 @@ function hostFromUrl(url: string): string {
   }
 }
 
+/** 6.4: end-of-turn marker the agent system prompt teaches.
+ *  `[PREVIEW: http://localhost:5173]` → running dev server
+ *  `[ARTIFACT: outputs/index.html]`   → single file deliverable
+ *  Matches only when the tag is on its own line; trailing whitespace ok. */
+const DELIVERABLE_MARKER_RE = /^\s*\[(PREVIEW|ARTIFACT):\s*([^\]]+?)\s*\]\s*$/im;
+
+/** Strip the end-of-turn marker line from displayed chat text. The raw tag
+ *  is machine-readable signal, not user-facing copy. */
+function stripDeliverableMarker(text: string): string {
+  return text.replace(DELIVERABLE_MARKER_RE, '').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+/** Pick the ONE deliverable to surface as a card for this assistant turn.
+ *  Preference order (Cowork-style):
+ *    1. [PREVIEW: URL] marker → synthesize a URL-based artifact (opens in
+ *       new tab via ArtifactCard's href branch).
+ *    2. [ARTIFACT: path] marker → match against the artifacts the agent
+ *       actually wrote; use that ArtifactRef so the existing preview panel
+ *       / open-file handler fires correctly.
+ *    3. Last artifact whose path contains `/outputs/` — the layout
+ *       convention we taught the agent.
+ *    4. Last artifact overall — weakest fallback, but keeps parity with
+ *       the pre-6.4 behavior for turns that pre-date the marker convention. */
+function pickPrimaryArtifact(message: Message): ArtifactRef | null {
+  const artifacts = message.artifacts || [];
+  const text = message.content || '';
+  const match = text.match(DELIVERABLE_MARKER_RE);
+
+  if (match) {
+    const kind = match[1].toUpperCase();
+    const value = match[2].trim();
+    if (kind === 'PREVIEW') {
+      // URL-mode: the ArtifactCard's `href` branch handles the click
+      // (target=_blank, no server round-trip). Name shows host so the card
+      // reads naturally ("localhost:5173").
+      return {
+        name: hostFromUrl(value) || 'Preview',
+        fileType: 'Web',
+        href: value,
+        source: 'claude-code',
+      };
+    }
+    if (kind === 'ARTIFACT') {
+      // Match against tracked artifacts by exact path OR by basename (agent
+      // may have used a relative path while we stored absolute). Falls
+      // through to outputs/last-write below if nothing matches — the
+      // marker was wrong but we still want to show something.
+      const byPath = artifacts.find(a => a.path === value);
+      if (byPath) return byPath;
+      const base = value.split('/').pop() || value;
+      const byName = artifacts.find(a => a.name === base);
+      if (byName) return byName;
+    }
+  }
+
+  // Directory-convention fallback: the agent followed the outputs/ layout
+  // rule but forgot to add the marker. Pick the last such write — if there
+  // are multiple, later writes tend to be the user-facing entry point.
+  const inOutputs = artifacts.filter(a => a.path && a.path.includes('/outputs/'));
+  if (inOutputs.length > 0) return inOutputs[inOutputs.length - 1];
+
+  // Weakest fallback: last artifact overall. Known to mis-fire on project
+  // scaffolds (last write is sometimes a config tweak), but the marker +
+  // outputs/ path above should catch those cases when the agent behaves.
+  if (artifacts.length > 0) return artifacts[artifacts.length - 1];
+
+  return null;
+}
+
 /** Source chips rendered under the assistant's synthesized answer — one small
  *  rounded pill per unique domain cited by the web_search tool. Favicon is
  *  pulled from Google's s2 service to avoid the chip failing when the source
@@ -344,26 +413,36 @@ export default function ChatMessage({ message, isLastAssistant, onCardAction, on
 
           {/* Text content — markdown-rendered so the AI can format with
               bold / lists / code blocks. Shared renderer with DetailPanel. */}
-          {message.content && (
-            <div className="text-base text-text-primary leading-[22px]">
-              {renderMarkdownBlocks(message.content)}
-            </div>
-          )}
+          {message.content && (() => {
+            // 6.4: hide the [PREVIEW: ...] / [ARTIFACT: ...] marker from the
+            // displayed text — it's consumed by pickPrimaryArtifact below as
+            // a signal for which card to surface, not user copy.
+            const displayText = stripDeliverableMarker(message.content);
+            return displayText ? (
+              <div className="text-base text-text-primary leading-[22px]">
+                {renderMarkdownBlocks(displayText)}
+              </div>
+            ) : null;
+          })()}
 
-          {/* Files produced in this turn — Claude Code writes, eventually #3
-              hosted artifacts. Rendered as clickable pills using the same
-              primitive that powers the Project Output grid icons. */}
-          {message.artifacts && message.artifacts.length > 0 && (
-            <div className="mt-2 mb-1 flex flex-col gap-2">
-              {message.artifacts.map((a, i) => (
+          {/* 6.4: one primary artifact card per turn — the deliverable, not
+              every scaffold file the agent touched. See pickPrimaryArtifact
+              for the selection stack (marker → outputs/ → last-write).
+              Scaffolding files still exist on disk and in the Folder chip /
+              Changes panel; they just don't spam the chat bubble. */}
+          {(() => {
+            const primary = pickPrimaryArtifact(message);
+            if (!primary) return null;
+            return (
+              <div className="mt-2 mb-1 flex flex-col gap-2">
                 <ArtifactCard
-                  key={`${a.path ?? a.href ?? a.name}-${i}`}
-                  artifact={a}
+                  key={`${primary.path ?? primary.href ?? primary.name}`}
+                  artifact={primary}
                   onClick={onArtifactClick}
                 />
-              ))}
-            </div>
-          )}
+              </div>
+            );
+          })()}
 
           {/* Source chips from the web_search tool — shown directly under the
               synthesized answer so they read as citations for that text. */}

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { access, mkdir, rmdir } from 'node:fs/promises';
-import { basename, dirname, resolve as pathResolve, sep } from 'node:path';
+import { basename, dirname, join as pathJoin, resolve as pathResolve, sep } from 'node:path';
 import { homedir } from 'node:os';
 import { spawn } from 'node:child_process';
 import type { CanUseTool, PermissionResult } from '@anthropic-ai/claude-agent-sdk';
@@ -120,7 +120,17 @@ function deriveTargetScope(
   }
   if (kind === 'command') {
     const cmd = strField(input, 'command');
-    if (cmd) return { target: cmd, scope: cmd };
+    if (cmd) {
+      // 6.4: scope is the first word of the command (e.g. `ls` out of
+      // `ls /foo/bar | head -20`) so one "Always allow" for ls covers every
+      // `ls *` variation in the session. Exact-command scope was too granular —
+      // a session that ran ls against five paths would pop five modals even
+      // after the user blanket-approved the first one. The modal body still
+      // renders the full command so the user sees what they're approving the
+      // first time; subsequent same-verb calls just skip the prompt.
+      const firstWord = cmd.trim().split(/\s+/)[0] || cmd;
+      return { target: cmd, scope: firstWord };
+    }
   }
   if (kind === 'external-url') {
     const url = strField(input, 'url') || strField(input, 'query');
@@ -146,13 +156,91 @@ function deriveTargetScope(
 // 5.4d adds:
 //   canUseTool     → SSE-send { type:'permission_request', requestId, ... }
 //                    and await POST /claude-chat/permission/:requestId.
+// 6.4: tools canUseTool waves through without prompting. The user told us
+// "default to web" — a modal for every WebSearch/WebFetch contradicts that.
+// Plus: read-only filesystem tools, orchestration helpers, and deferred-tool
+// loaders. The whole workspace (~/WorkPal/) is already the user's explicit
+// workspace, and the SDK's cwd is jailed inside it. Letting the model use its
+// exploration tools without prompting is what makes "generate an intro page
+// about WorkPal" actually work — without Read/Glob/Bash the agent is blind.
+const AUTO_ALLOW_TOOLS = new Set([
+  'WebSearch', 'WebFetch',
+  'Read', 'Glob', 'Grep',
+  'Task', 'Agent', 'Monitor', 'TaskOutput', 'TaskStop',
+  'TodoWrite', 'ToolSearch', 'Skill',
+]);
+
+// 6.4: Bash verbs that only read / inspect. Auto-allow these; anything that
+// could mutate the system (rm, chmod, curl, git push, npm install…) still
+// prompts via canUseTool with verb-level scope.
+const READ_ONLY_SHELL_VERBS = new Set([
+  'ls', 'cat', 'head', 'tail', 'find', 'grep', 'rg', 'pwd', 'file',
+  'wc', 'stat', 'which', 'tree', 'echo', 'date', 'whoami', 'uname',
+  'test', 'ls -la', // common compound aliases hit on `split[0]` anyway
+]);
+
+// 6.4: file-writing tools. We auto-allow these into the session folder and
+// pin any path that drifts outside it back to <cwd>/<basename>. The model
+// has a bad habit of resolving relative paths against $HOME (e.g. `~/foo.html`
+// → `/Users/beibeizhang/foo.html`) even when we tell it the cwd in the system
+// prompt. Without pinning, the write lands in the user's home dir, git's add
+// fails ("outside repository"), and the frontend artifact card carries an
+// absolute path that resolveSessionFolder rejects — so clicking the card
+// silently 400s and the user sees a broken output.
+/** Pin a file-write tool's path into `cwd` if it drifts outside. Returns the
+ *  (possibly rewritten) input. Pure — no side effects. Called from two sites:
+ *  (1) the assistant-block handler, so the tool_use event we stream to the
+ *  frontend already carries the pinned path (otherwise the artifact card ends
+ *  up pointing at the pre-pin location); (2) the canUseTool callback, so the
+ *  SDK's actual tool execution sees the pinned path. Both sites have to agree
+ *  or the file will be saved in one place while the UI points at another. */
+function pinFileWriteInput(
+  toolName: string,
+  input: Record<string, unknown>,
+  cwd: string,
+): { input: Record<string, unknown>; pinned: boolean } {
+  if (!FILE_WRITE_TOOLS.has(toolName)) return { input, pinned: false };
+  const pathField = toolName === 'NotebookEdit' ? 'notebook_path' : 'file_path';
+  const raw = typeof input[pathField] === 'string' ? (input[pathField] as string) : '';
+  if (!raw) return { input, pinned: false };
+  const normalized = pathResolve(raw);
+  const cwdPrefix = cwd + sep;
+  if (normalized === cwd || normalized.startsWith(cwdPrefix)) {
+    return { input, pinned: false };
+  }
+  const pinnedPath = pathJoin(cwd, basename(normalized));
+  return { input: { ...input, [pathField]: pinnedPath }, pinned: true };
+}
+
+// 6.4: light-touch rule. The SDK's default system prompt already tells the
+// agent how to use its tools — we only nudge on what WorkPal needs:
+//   1. produce real files for tangible asks (not chat-inlined markdown),
+//   2. mark the ONE deliverable so chat can render a single "open me" card
+//      instead of 12 cards of scaffolding files.
+// Mirrors the Cowork convention (outputs/ directory + end-of-message
+// marker). The marker is parsed by ChatMessage when picking a primary
+// artifact — if the agent forgets to include one, chat falls back to the
+// last file under outputs/ or the last Write.
+const ARTIFACT_PROMPT = [
+  'When the user asks for a tangible artifact (webpage / 网页 / page / 页面 / document / 文档 / report / 报告 / file / 文件 / markdown), produce it as a real file via the Write tool. Chat reply should be a short sentence pointing at the file, not the artifact body inlined as markdown. Pick a clean filename with the right extension; the server pins it into the working directory. The current working directory is already WorkPal-owned, so you can freely Read, Glob, Grep, or Bash inside it to ground the artifact in the user\'s real project.',
+  // Deliverable layout — gives us a directory signal when the agent forgets
+  // the marker below.
+  'DELIVERABLE LAYOUT: save the user-facing final deliverable under `<cwd>/outputs/` (for a single HTML page: `outputs/index.html`; for a markdown doc: `outputs/<name>.md`; for a built web app: whatever file the user is meant to open, e.g. `outputs/index.html`). Scaffolding — package.json, vite.config, tsconfig, source files under src/ — stays at the root or in its natural location, NOT inside outputs/. Rule of thumb: if the user would double-click it to consume the result, it goes in outputs/.',
+  // Explicit end-of-message marker — the strongest signal.
+  'END OF TURN MARKER (required when you produced an artifact): the LAST line of your final assistant message must be a marker on its own line. Use ONE of:\n  • `[PREVIEW: http://localhost:<port>]` — when you started a dev server the user should open in a browser (e.g. `npm run dev` produced `http://localhost:5173`).\n  • `[ARTIFACT: <absolute-or-relative-path>]` — when the deliverable is a single file (e.g. `[ARTIFACT: outputs/index.html]`).\nThe marker is stripped from the displayed chat and used to surface ONE clickable preview card. Do not include it if there is no deliverable (pure Q&A / discussion).',
+].join('\n\n');
+
 router.post('/claude-chat', async (req, res) => {
-  const { prompt, sessionId, sessionFolder, projectSlug } = req.body as {
+  const { prompt, sessionId, sessionFolder, projectSlug, hasAttachedFiles } = req.body as {
     prompt?: string;
     sessionId?: string;
     sessionFolder?: string;
     projectSlug?: string;
     messages?: unknown;
+    /** 6.4: frontend sets this to true when the user message carries one or
+     *  more attachments or an explicit @path mention. Drives whether we
+     *  disable the local-exploration tool set for this request. */
+    hasAttachedFiles?: boolean;
   };
 
   if (!prompt || typeof prompt !== 'string') {
@@ -316,6 +404,45 @@ router.post('/claude-chat', async (req, res) => {
   const myRequests = new Set<string>();
 
   const canUseTool: CanUseTool = (toolName, input) => {
+    // 6.4: auto-allow web tools without round-tripping to the frontend modal.
+    // User's rule: "default to web" — a modal for every WebSearch contradicts
+    // the default. Still logged so the activity feed shows what the AI
+    // reached for.
+    if (AUTO_ALLOW_TOOLS.has(toolName)) {
+      console.log(`[claude-chat] auto-allow tool=${toolName}`);
+      return Promise.resolve({ behavior: 'allow', updatedInput: input });
+    }
+
+    // 6.4: auto-allow file writes. Pin any path that drifts outside cwd back
+    // to <cwd>/<basename> — the model writes to ~/foo.html when it should
+    // write to <cwd>/foo.html, and the downstream breakage (open-file 400,
+    // git commit rejection, card doesn't open) only surfaces after the fact.
+    if (FILE_WRITE_TOOLS.has(toolName)) {
+      const inputObj = input as Record<string, unknown>;
+      const { input: nextInput, pinned } = pinFileWriteInput(toolName, inputObj, workingDir);
+      if (pinned) {
+        console.log(`[claude-chat] auto-pin ${toolName} → ${(nextInput as Record<string, unknown>).file_path ?? (nextInput as Record<string, unknown>).notebook_path}`);
+      } else {
+        console.log(`[claude-chat] auto-allow ${toolName} (under cwd)`);
+      }
+      return Promise.resolve({ behavior: 'allow', updatedInput: nextInput });
+    }
+
+    // 6.4 regression: auto-allow Bash for read-only verbs (ls/cat/find/grep
+    // etc.). Destructive or network-touching commands (rm/curl/git push/npm)
+    // still fall through to the modal. This restores the pre-restriction
+    // workflow where the agent explores cwd freely — without Bash, "generate
+    // an intro page about WorkPal" has no grounding and the model either
+    // hallucinates or gives up.
+    if (toolName === 'Bash') {
+      const cmd = strField(input as Record<string, unknown>, 'command').trim();
+      const firstWord = cmd.split(/\s+/)[0] || cmd;
+      if (READ_ONLY_SHELL_VERBS.has(firstWord)) {
+        console.log(`[claude-chat] auto-allow Bash verb=${firstWord}`);
+        return Promise.resolve({ behavior: 'allow', updatedInput: input });
+      }
+    }
+
     const kind = toolToKind(toolName);
     const { target, scope } = deriveTargetScope(kind, toolName, input);
     const requestId = `${sid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -359,7 +486,16 @@ router.post('/claude-chat', async (req, res) => {
   });
 
   try {
-    for await (const msg of runClaudeCode({ prompt, cwd: workingDir, sessionId, canUseTool })) {
+    // 6.4 regression: let the SDK operate with its default toolset. All
+    // permission UX is handled by canUseTool's auto-allow rules below —
+    // stripping tools or forcing acceptEdits was what boxed the agent in.
+    for await (const msg of runClaudeCode({
+      prompt,
+      cwd: workingDir,
+      sessionId,
+      canUseTool,
+      appendSystemPrompt: ARTIFACT_PROMPT,
+    })) {
       switch (msg.type) {
         case 'system':
           // hook_started / hook_response / init — internal housekeeping.
@@ -385,7 +521,28 @@ router.post('/claude-chat', async (req, res) => {
               // turn — the model decides "I'll write a file" then emits a
               // tool_use block. Forward them as-is; the frontend maps them to
               // inspector state (Progress / Tools active / Changes).
-              const toolUse = shapeToolUse(block);
+              const toolUseRaw = shapeToolUse(block);
+              // 6.4: pre-pin the file-write input so the tool_use chunk the
+              // frontend sees carries the same path the SDK's canUseTool is
+              // about to pin. Otherwise the artifact card in chat points at
+              // the AI's raw path (often ~/foo.html) while the file lives
+              // at <cwd>/foo.html — clicking the card 400s.
+              let toolUse = toolUseRaw;
+              if (
+                toolUseRaw &&
+                toolUseRaw.input &&
+                typeof toolUseRaw.input === 'object'
+              ) {
+                const { input: nextInput, pinned } = pinFileWriteInput(
+                  toolUseRaw.name,
+                  toolUseRaw.input as Record<string, unknown>,
+                  workingDir,
+                );
+                if (pinned) {
+                  toolUse = { ...toolUseRaw, input: nextInput };
+                  console.log(`[claude-chat] pre-pin tool_use ${toolUseRaw.name}`);
+                }
+              }
               if (toolUse) {
                 const isFileWrite = FILE_WRITE_TOOLS.has(toolUse.name);
                 // 5.4e: flag this request as having touched files so the
@@ -664,6 +821,43 @@ router.post('/claude-chat/open-file', async (req, res) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('[claude-chat] open-file failed:', message);
+    res.status(500).json({ error: message });
+  }
+});
+
+// 6.4: read an artifact file for inline preview in the WorkPal DetailPanel.
+// Same WORKPAL_ROOT jail as open-file — the frontend wires ArtifactCard clicks
+// to this endpoint instead of spawning `open`, so the user sees the file
+// content inside the app instead of a new browser/editor window. 10 MB cap
+// keeps a misclick on a huge file from blocking the event loop.
+router.post('/claude-chat/read-file', async (req, res) => {
+  const { filePath } = req.body as { filePath?: string };
+  const pathCheck = resolveSessionFolder(filePath);
+  if (!pathCheck.ok) {
+    res.status(400).json({ error: pathCheck.reason });
+    return;
+  }
+  try {
+    const { readFile, stat } = await import('node:fs/promises');
+    const stats = await stat(pathCheck.resolved);
+    if (!stats.isFile()) {
+      res.status(400).json({ error: 'path is not a file / 路径不是文件' });
+      return;
+    }
+    if (stats.size > 10 * 1024 * 1024) {
+      res.status(413).json({ error: 'file too large for inline preview (>10 MB) / 文件过大无法预览' });
+      return;
+    }
+    const content = await readFile(pathCheck.resolved, 'utf8');
+    res.json({ content, size: stats.size });
+  } catch (err) {
+    const e = err as NodeJS.ErrnoException;
+    if (e.code === 'ENOENT') {
+      res.status(404).json({ error: 'file not found / 文件不存在' });
+      return;
+    }
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[claude-chat] read-file failed:', message);
     res.status(500).json({ error: message });
   }
 });

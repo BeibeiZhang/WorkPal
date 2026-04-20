@@ -62,10 +62,22 @@
       "port": 2018
     },
     {
+      "name": "WorkPal Dev Jolly",
+      "runtimeExecutable": "/usr/local/bin/node",
+      "runtimeArgs": ["/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/node_modules/vite/bin/vite.js", "--port", "2019", "--strictPort"],
+      "port": 2019
+    },
+    {
       "name": "WorkPal Backend",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "server", "run", "dev"],
       "port": 3001
+    },
+    {
+      "name": "AI Generated App (5173)",
+      "runtimeExecutable": "sleep",
+      "runtimeArgs": ["3600"],
+      "port": 5173
     }
   ]
 }

@@ -22,7 +22,7 @@ import { INITIAL_CHATS } from './data';
 import { DEMO_EXTRA_CHATS, DEMO_EXTRA_CHAT_IDS } from './data/demo/chats';
 import { DEMO_CHANGES_ALCOHOL } from './data/demo/changes';
 import { IS_DEMO, IS_CLAUDE_CODE_AVAILABLE } from './lib/demoMode';
-import { postClaudePermissionDecision, postInitProject, postOpenFile, postOpenFolder, postReaperRun, postSessionComplete, postSessionMerge, postUndoChange, streamChat, streamClaudeChat } from './lib/api';
+import { postClaudePermissionDecision, postInitProject, postOpenFile, postOpenFolder, postReadFile, postReaperRun, postSessionComplete, postSessionMerge, postUndoChange, streamChat, streamClaudeChat } from './lib/api';
 import { shouldUseClaudeCode, shouldGenerateArtifact } from './lib/intentRouter';
 import { buildAttachmentContextBlock, buildImageDescriptionBlock } from './lib/attachments';
 import { artifactFromClaudePath, outputTypeFromPath, generateArtifactRequest, artifactItemCount } from './lib/artifacts';
@@ -424,8 +424,16 @@ function slugify(title: string): string {
   return cleaned.slice(0, 40).replace(/-+$/g, '') || 'session';
 }
 
+// 6.4: no-project chats land in a shared Downloads bucket so the top level of
+// ~/WorkPal/ stays clean (one entry per real project + the Downloads folder
+// for loose outputs, instead of one folder per one-off chat). Mental model
+// matches Mac's ~/Downloads — stuff you haven't filed yet. Promoting a chat
+// to a project still pulls it out via nestFolderUnderProject, which only
+// reuses the session slug and discards the Downloads prefix.
+const DOWNLOADS_BUCKET = 'Downloads';
+
 function buildSessionFolder(title: string, date: Date = new Date()): string {
-  return `${SESSION_FOLDER_ROOT}/${todayDateStamp(date)}-${slugify(title)}/`;
+  return `${SESSION_FOLDER_ROOT}/${DOWNLOADS_BUCKET}/${todayDateStamp(date)}-${slugify(title)}/`;
 }
 
 /** When a session is promoted to a project (or moved into one), its folder
@@ -608,6 +616,15 @@ export default function App() {
   // with `detailCard` (both cleared on DetailPanel close and on view-report
   // of a different message).
   const [detailMessageId, setDetailMessageId] = useState<string | null>(null);
+  // 6.4: inline preview of an AI-produced artifact (.md / .html / .txt).
+  // Populated when the user clicks an ArtifactCard in chat; the server
+  // reads the file, the DetailPanel opens with content. null = no preview.
+  const [previewArtifact, setPreviewArtifact] = useState<{
+    name: string;
+    content: string;
+    renderAs: 'markdown' | 'html' | 'plaintext';
+    path: string;
+  } | null>(null);
   // Voice mode overlay
   const [voiceModeActive, setVoiceModeActive] = useState(false);
   const [voicePendingText, setVoicePendingText] = useState<string | undefined>();
@@ -1241,6 +1258,13 @@ export default function App() {
     // computed path straight through; established chats rely on the closure
     // lookup like before.
     overrideSessionFolder?: string,
+    // 6.4: true if the user attached any local file with this message. Today
+    // handleSend routes attachment-bearing messages to the OpenAI path, so
+    // this defaults to false and the SDK runs in web-first mode (Bash/Read/
+    // Glob/Grep stripped). Kept as a param so when attachments get wired into
+    // the Claude path later, the only change is flipping this flag at the
+    // callsite — rule stays "user shared something → SDK can touch local".
+    hasAttachedFiles = false,
   ) => {
     const chat = chats.find(c => c.id === chatId);
     const previousMessages = (chat?.messages || [])
@@ -1282,6 +1306,7 @@ export default function App() {
         sessionId: chatId,
         sessionFolder: overrideSessionFolder ?? chat?.sessionFolder,
         projectSlug,
+        hasAttachedFiles,
         messages: history,
       })) {
         if (chunk.type === 'text') {
@@ -2649,22 +2674,47 @@ export default function App() {
             onToggleSidebar={() => setSidebarOpen(o => !o)}
           />
         ) : (() => {
-          // Exactly one side panel is active at a time. DetailPanel wins over
-          // the task context panel (since the "view report" action closes the
-          // context panel when it opens Detail).
-          const sideKind: 'detail' | 'context' | null =
-            detailOpen ? 'detail'
+          // Exactly one side panel is active at a time. Artifact preview and
+          // DetailPanel (card report) both render the 504px DetailPanel shell
+          // — they just pass different props. Preview wins if both flags are
+          // set, but onArtifactClick clears detailCard first so this is only
+          // a defense-in-depth ordering.
+          const sideKind: 'preview' | 'detail' | 'context' | null =
+            previewArtifact ? 'preview'
+            : detailOpen ? 'detail'
             : (activeChat?.hasInspector && contextPanelOpen) ? 'context'
             : null;
           return (
             <SplitView
               sideOpen={sideKind !== null}
-              sideWidth={sideKind === 'detail' ? 504 : 280}
-              onCloseSide={sideKind === 'detail'
+              sideWidth={sideKind === 'detail' || sideKind === 'preview' ? 504 : 280}
+              onCloseSide={sideKind === 'preview'
+                ? () => { setPreviewArtifact(null); setContextPanelOpen(true); }
+                : sideKind === 'detail'
                 ? () => { setDetailOpen(false); setDetailCard(null); setDetailMessageId(null); setContextPanelOpen(true); }
                 : () => setContextPanelOpen(false)}
               bgClass="app-bg"
               side={({ overlay }) => {
+                if (sideKind === 'preview' && previewArtifact) {
+                  // 6.4: inline preview of an AI-produced file. Reuses
+                  // DetailPanel's shell (header + scroll area + close button)
+                  // so the motion / sizing matches the research / meeting
+                  // detail view. Not editable — artifacts are immutable from
+                  // the user's side; rewrites happen by asking the AI.
+                  return (
+                    <DetailPanel
+                      key={previewArtifact.path}
+                      title={previewArtifact.name}
+                      content={previewArtifact.content}
+                      renderAs={previewArtifact.renderAs}
+                      onClose={() => {
+                        setPreviewArtifact(null);
+                        setContextPanelOpen(true);
+                      }}
+                      fullScreen={overlay}
+                    />
+                  );
+                }
                 if (sideKind === 'detail') {
                   // Real tool-result cards (Research / Meeting) carry their own
                   // title + body. Fall back to the alcohol-delivery demo report
@@ -2768,11 +2818,38 @@ export default function App() {
                 // ChatPanel passes this through to its FolderChip; the chip
                 // also keeps a shift+click shortcut for copy-to-clipboard.
                 onOpenFolder={postOpenFolder}
-                // Click on an inline artifact pill → open the file in its
-                // default app (`.html` → default browser on macOS). Hosted
-                // artifacts (#3) carry their own `href` and skip this handler.
-                onArtifactClick={(artifact) => {
-                  if (artifact.path) void postOpenFile(artifact.path);
+                // 6.4: click on an inline artifact pill → fetch file content
+                // and open the DetailPanel as an inline preview. Falls back to
+                // `open` spawn if the read fails (e.g. binary/large file the
+                // 10MB cap rejects). Hosted artifacts (#3) carry their own
+                // `href` and skip this handler — the card renders as a link.
+                onArtifactClick={async (artifact) => {
+                  if (!artifact.path) return;
+                  const content = await postReadFile(artifact.path);
+                  if (content === null) {
+                    // Read failed — degrade to the old open-in-default-app
+                    // flow so the user still sees their file somehow.
+                    void postOpenFile(artifact.path);
+                    return;
+                  }
+                  const lower = artifact.name.toLowerCase();
+                  const renderAs: 'markdown' | 'html' | 'plaintext' =
+                    lower.endsWith('.html') || lower.endsWith('.htm') ? 'html'
+                    : lower.endsWith('.md') || lower.endsWith('.markdown') ? 'markdown'
+                    : 'plaintext';
+                  // Opening the artifact preview takes over the side panel —
+                  // close any existing card-detail / context view first so
+                  // only one side panel is ever visible.
+                  setDetailCard(null);
+                  setDetailMessageId(null);
+                  setDetailOpen(false);
+                  setContextPanelOpen(false);
+                  setPreviewArtifact({
+                    name: artifact.name,
+                    content,
+                    renderAs,
+                    path: artifact.path,
+                  });
                 }}
                 onCardAction={(action, card, messageId) => {
                   if (action === 'view-report') {
@@ -2789,7 +2866,7 @@ export default function App() {
                 isDark={isDark}
                 selectedAvatarId={selectedAvatarId}
                 onAvatarChange={setSelectedAvatarId}
-                showContextToggle={!!activeChat?.hasInspector && !detailOpen}
+                showContextToggle={!!activeChat?.hasInspector && !detailOpen && !previewArtifact}
                 contextPanelOpen={contextPanelOpen}
                 onToggleContextPanel={() => setContextPanelOpen(o => !o)}
                 isAiResponding={isAiResponding}

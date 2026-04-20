@@ -19,6 +19,12 @@ interface DetailPanelProps {
    *  Writes the latest text back to the owning message's card in chat state.
    *  Absent = card is not persistable (e.g. demo fallback). */
   onSave?: (newText: string) => void;
+  /** 6.4: how to render `content`. 'markdown' (default) runs it through the
+   *  markdown block renderer — the old research/meeting case. 'html' renders
+   *  it inside a sandboxed iframe via srcdoc — used when an ArtifactCard
+   *  previews an AI-generated .html file. 'plaintext' wraps in <pre> for
+   *  .txt / unknown types. */
+  renderAs?: 'markdown' | 'html' | 'plaintext';
 }
 
 const AI_OPTIONS: Array<{ icon: string; label: string; preset: EditPreset }> = [
@@ -40,6 +46,7 @@ export default function DetailPanel({
   fullScreen = false,
   editable = false,
   onSave,
+  renderAs = 'markdown',
 }: DetailPanelProps) {
   // Kept separate from the `content` prop so a parent re-render doesn't wipe
   // in-flight edits (see PR #87).
@@ -207,11 +214,29 @@ export default function DetailPanel({
 
       <div
         ref={contentAreaRef}
-        className="flex-1 overflow-y-auto pl-10 pr-[32px] relative"
+        className={`flex-1 overflow-y-auto relative ${renderAs === 'html' ? '' : 'pl-10 pr-[32px]'}`}
       >
-        <div className="relative text-base leading-[22px] text-text-primary pt-4 pb-24">
-          {renderMarkdownBlocks(displayContent)}
-        </div>
+        {renderAs === 'html' ? (
+          // 6.4: sandbox=" " (empty tokens) denies everything — no same-origin,
+          // no scripts, no forms. Enough to show HTML layout + CSS for a
+          // preview without letting a malicious artifact exfiltrate data or
+          // script into the parent window.
+          <iframe
+            title={title}
+            srcDoc={displayContent}
+            sandbox=""
+            className="w-full h-full border-0"
+            style={{ background: 'var(--color-bg-page)' }}
+          />
+        ) : renderAs === 'plaintext' ? (
+          <pre className="relative text-[13px] leading-[18px] text-text-primary pt-4 pb-24 whitespace-pre-wrap font-mono">
+            {displayContent}
+          </pre>
+        ) : (
+          <div className="relative text-base leading-[22px] text-text-primary pt-4 pb-24">
+            {renderMarkdownBlocks(displayContent)}
+          </div>
+        )}
       </div>
 
       {editable && (
