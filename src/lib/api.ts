@@ -325,6 +325,73 @@ export async function postInitProject(
   }
 }
 
+/** 6.5: one error row from the reaper summary. Mirrors the server's
+ *  `ReapError`. `stage` distinguishes a failed worktree remove (destructive
+ *  step that was aborted) from a failed branch delete (cosmetic stray
+ *  pointer after a successful remove). */
+export interface ReaperError {
+  path: string;
+  branch: string | null;
+  stage: 'remove-worktree' | 'delete-branch';
+  message: string;
+}
+
+/** 6.5: per-project summary entry. `skipped` is set when the backend bailed
+ *  on this project before running the reap — malformed payload (`invalid-slug`
+ *  / `invalid-session-path`) or uninitialized repo (`no-git`). Frontend
+ *  console.warns on any skipped entry so a dev can spot payload bugs. */
+export interface ReaperProjectSummary {
+  projectSlug: string;
+  reapedCount: number;
+  prunedCount: number;
+  errors: ReaperError[];
+  skipped?: 'no-git' | 'invalid-slug' | 'invalid-session-path';
+  skippedReason?: string;
+}
+
+export interface ReaperInput {
+  projectSlug: string;
+  activeSessionFolders: string[];
+}
+
+/** 6.5: POST /api/reaper/run — fire-and-forget sweep that removes
+ *  `session/<slug>` worktrees whose paths aren't in `activeSessionFolders`.
+ *  See docs/phase-6-requirements.md §6.5 for the orphan-shape table and
+ *  the "Phase 5 legacy sessions are structurally excluded" invariant. The
+ *  backend always responds 200 on valid top-level shape; per-project
+ *  failures land in the summary's `skipped` / `errors` fields. */
+export async function postReaperRun(
+  projects: ReaperInput[],
+): Promise<
+  | { ok: true; summary: ReaperProjectSummary[] }
+  | { ok: false; error: string }
+> {
+  try {
+    const res = await fetch('/api/reaper/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projects }),
+    });
+    if (!res.ok) {
+      const payload = await res.json().catch(() => ({}));
+      const error =
+        typeof (payload as { error?: unknown }).error === 'string'
+          ? (payload as { error: string }).error
+          : `Reaper failed (${res.status})`;
+      return { ok: false, error };
+    }
+    const payload = (await res.json()) as {
+      summary?: ReaperProjectSummary[];
+    };
+    return { ok: true, summary: payload.summary ?? [] };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : 'Network error',
+    };
+  }
+}
+
 /** 5.4e: ask the backend to reveal the session folder in Finder. The server
  *  re-validates the path with the same resolveSessionFolder() used by the chat
  *  route, so a malformed string here is rejected instead of launching Finder

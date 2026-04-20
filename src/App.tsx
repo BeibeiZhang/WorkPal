@@ -19,7 +19,7 @@ import PermissionPrompt from './components/PermissionPrompt';
 import CompleteSessionModal, { type CompleteSessionPhase } from './components/CompleteSessionModal';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
 import { INITIAL_CHATS } from './data';
-import { postClaudePermissionDecision, postInitProject, postOpenFolder, postSessionComplete, postSessionMerge, postUndoChange, streamChat, streamClaudeChat } from './lib/api';
+import { postClaudePermissionDecision, postInitProject, postOpenFolder, postReaperRun, postSessionComplete, postSessionMerge, postUndoChange, streamChat, streamClaudeChat } from './lib/api';
 import { shouldUseClaudeCode } from './lib/intentRouter';
 import { buildAttachmentContextBlock, buildImageDescriptionBlock } from './lib/attachments';
 import {
@@ -708,6 +708,47 @@ export default function App() {
       }
     });
   }, [activeProjectId, projects]);
+
+  // 6.5: mount-time orphan worktree reaper. Fire-and-forget sweep — for
+  // each project, the backend removes `session/<slug>` worktrees whose
+  // paths aren't in `activeSessionFolders`, and prunes shape-B dangling
+  // metadata. `sessionCompleted: true` chats are included as live per the
+  // 6.5 decision lock (retention policy deferred to Phase 7+). Any `skipped`
+  // entry in the summary gets a console.warn so payload bugs (slug typos,
+  // cross-project leaks) surface even though the endpoint returns 200. Empty
+  // deps are intentional: one sweep per app mount; re-firing on chats /
+  // projects change would be constant noise on every message.
+  useEffect(() => {
+    if (projects.length === 0) return;
+    const payload = projects.map(p => {
+      const activeSessionFolders = chats
+        .filter(c => c.projectId === p.id && c.sessionFolder)
+        .map(c => c.sessionFolder!);
+      return { projectSlug: slugify(p.name), activeSessionFolders };
+    });
+    void postReaperRun(payload).then(result => {
+      if (!result.ok) {
+        console.warn(`[reaper] ${result.error}`);
+        return;
+      }
+      for (const entry of result.summary) {
+        if (entry.skipped) {
+          console.warn(
+            `[reaper] ${entry.projectSlug} skipped (${entry.skipped}): ${entry.skippedReason ?? ''}`,
+          );
+        } else if (
+          entry.reapedCount > 0 ||
+          entry.prunedCount > 0 ||
+          entry.errors.length > 0
+        ) {
+          console.log(
+            `[reaper] ${entry.projectSlug}: reaped=${entry.reapedCount} pruned=${entry.prunedCount} errors=${entry.errors.length}`,
+          );
+        }
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const activeChat = chats.find(c => c.id === activeChatId) || null;
 
