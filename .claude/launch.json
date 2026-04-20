@@ -20,6 +20,12 @@
       "port": 2011
     },
     {
+      "name": "WorkPal Dev 2012",
+      "runtimeExecutable": "/usr/local/bin/node",
+      "runtimeArgs": ["/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/node_modules/vite/bin/vite.js", "--port", "2012", "--strictPort"],
+      "port": 2012
+    },
+    {
       "name": "WorkPal Backend",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "server", "run", "dev"],

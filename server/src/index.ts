@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import chatRouter from './routes/chat.js';
+import editArticleRouter from './routes/editArticle.js';
 import claudeChatRouter from './routes/claudeChat.js';
 import projectRouter from './routes/project.js';
 import sessionRouter from './routes/session.js';
@@ -22,6 +23,7 @@ app.use(express.json({ limit: '50mb' }));
 
 // API routes
 app.use('/api', chatRouter);
+app.use('/api', editArticleRouter);
 app.use('/api', claudeChatRouter);
 app.use('/api', projectRouter);
 app.use('/api', sessionRouter);

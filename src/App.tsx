@@ -583,6 +583,12 @@ export default function App() {
   // The specific card whose "view-report" was clicked — drives what the side
   // DetailPanel renders. Null = fall back to the alcohol-delivery demo report.
   const [detailCard, setDetailCard] = useState<CardData | null>(null);
+  // Phase 7 #2: id of the message that owned `detailCard`. Lets the DetailPanel
+  // "Save to card" button write the edited text back to the right message's
+  // card without scanning the whole chat by reference. Cleared in lockstep
+  // with `detailCard` (both cleared on DetailPanel close and on view-report
+  // of a different message).
+  const [detailMessageId, setDetailMessageId] = useState<string | null>(null);
   // Voice mode overlay
   const [voiceModeActive, setVoiceModeActive] = useState(false);
   const [voicePendingText, setVoicePendingText] = useState<string | undefined>();
@@ -1653,6 +1659,42 @@ export default function App() {
     }
   }, [activeChatId, showTypingThenRespond]);
 
+  /** Phase 7 #2: write the edited article text back to the card of a specific
+   *  message. Called from DetailPanel's "Save to card" button — updates
+   *  `research.summary` or `meeting.content` in the active chat's message
+   *  list. The card preview in the chat bubble re-renders immediately from
+   *  the same state, which is intentional per design review.
+   *
+   *  Also updates the local `detailCard` snapshot so the `content` prop
+   *  DetailPanel receives reflects the saved text. Without this, any
+   *  subsequent DetailPanel remount (e.g. when SplitView flips between
+   *  inline and overlay modes on viewport resize) would re-initialize
+   *  `useState(content)` from a stale snapshot and show the pre-edit text. */
+  const handleSaveCardEdit = useCallback((messageId: string, newText: string) => {
+    setChats(prev => prev.map(c => {
+      if (c.id !== activeChatId) return c;
+      return {
+        ...c,
+        messages: c.messages.map(m => {
+          if (m.id !== messageId || !m.card) return m;
+          if (m.card.type === 'research') {
+            return { ...m, card: { ...m.card, summary: newText } };
+          }
+          if (m.card.type === 'meeting') {
+            return { ...m, card: { ...m.card, content: newText } };
+          }
+          return m;
+        }),
+      };
+    }));
+    setDetailCard(prev => {
+      if (!prev) return prev;
+      if (prev.type === 'research') return { ...prev, summary: newText };
+      if (prev.type === 'meeting') return { ...prev, content: newText };
+      return prev;
+    });
+  }, [activeChatId]);
+
   const handleCardAction = useCallback((action: string) => {
     // set-agent: transition agent card from 'ready' to 'saved', then add follow-up message
     if (action === 'set-agent') {
@@ -2427,7 +2469,7 @@ export default function App() {
               sideOpen={sideKind !== null}
               sideWidth={sideKind === 'detail' ? 504 : 280}
               onCloseSide={sideKind === 'detail'
-                ? () => { setDetailOpen(false); setContextPanelOpen(true); }
+                ? () => { setDetailOpen(false); setDetailCard(null); setDetailMessageId(null); setContextPanelOpen(true); }
                 : () => setContextPanelOpen(false)}
               bgClass="app-bg"
               side={({ overlay }) => {
@@ -2435,20 +2477,42 @@ export default function App() {
                   // Real tool-result cards (Research / Meeting) carry their own
                   // title + body. Fall back to the alcohol-delivery demo report
                   // when no specific card was opened (demo view-report click).
+                  // Phase 7 #2: `editable` flag gates the popover — only prose
+                  // cards (research/meeting) expose the AI edit actions; the
+                  // demo fallback + ticket/schedule do not.
                   let detailTitle = 'Summary Report: Spark Driver Alcohol';
                   let detailContent: string | null = null;
+                  let editable = false;
                   if (detailCard?.type === 'research') {
                     detailTitle = detailCard.title;
                     detailContent = detailCard.summary;
+                    editable = true;
                   } else if (detailCard?.type === 'meeting') {
                     detailTitle = detailCard.title;
                     detailContent = detailCard.content;
+                    editable = true;
                   }
                   return (
                     <DetailPanel
+                      // Remount when the user view-reports a different card
+                      // while the panel is already open, so local edit state
+                      // (display content, undo buffer, streaming controller)
+                      // doesn't bleed across cards.
+                      key={detailMessageId ?? 'demo'}
                       title={detailTitle}
                       content={detailContent ?? REPORT_CONTENT}
-                      onClose={() => { setDetailOpen(false); setDetailCard(null); setContextPanelOpen(true); }}
+                      editable={editable}
+                      onSave={
+                        editable && detailMessageId
+                          ? (newText) => handleSaveCardEdit(detailMessageId, newText)
+                          : undefined
+                      }
+                      onClose={() => {
+                        setDetailOpen(false);
+                        setDetailCard(null);
+                        setDetailMessageId(null);
+                        setContextPanelOpen(true);
+                      }}
                       fullScreen={overlay}
                     />
                   );
@@ -2504,9 +2568,10 @@ export default function App() {
                 // ChatPanel passes this through to its FolderChip; the chip
                 // also keeps a shift+click shortcut for copy-to-clipboard.
                 onOpenFolder={postOpenFolder}
-                onCardAction={(action, card) => {
+                onCardAction={(action, card, messageId) => {
                   if (action === 'view-report') {
                     setDetailCard(card ?? null);
+                    setDetailMessageId(messageId ?? null);
                     setDetailOpen(true);
                     setContextPanelOpen(false);
                     return;
