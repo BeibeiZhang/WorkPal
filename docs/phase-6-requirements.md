@@ -6,8 +6,8 @@
 |---|---|---|
 | 6.1 Project base folder init | ✅ Done | `8aa722a` (PR #80) |
 | 6.2 Session via git worktree | ✅ Done | `b48c606` (PR #81) |
-| **6.3 Complete Session + diff preview + FF merge** | ⏳ **Next** | — |
-| 6.4 Conflict detect + CLI hand-off | ⏳ Pending | — |
+| 6.3 Complete Session + diff preview + FF merge | ✅ Done | `bbd0bf4` (PR #83) |
+| **6.4 CLI hand-off polish (copy-to-clipboard)** | ⏳ **Next** | — |
 | 6.5 Orphan worktree reaper | ⏳ Pending | — |
 
 ---
@@ -278,9 +278,44 @@ Not fs clone.
 
 ---
 
-## 6.4 — Conflict detection + CLI hand-off (⏳ pending)
+## 6.4 — CLI hand-off polish (copy-to-clipboard) (⏳ **next**)
 
-Sketch. Goal: if 6.3's `git merge --ff-only` fails (non-FF needed), modal shows the CLI command with copy-to-clipboard. No in-app resolution.
+**Goal**: The non-FF 409 error state in `CompleteSessionModal` already renders the CLI command as plain text (6.3). 6.4 adds a **Copy button** with visible feedback so the user can one-click copy and paste into Terminal instead of selecting text manually.
+
+### Context from 6.3 (read before starting 6.4)
+
+- **The CLI command is already displayed**, see `src/components/CompleteSessionModal.tsx` (the 409 error state branch). Command string comes from `postSessionMerge`'s `{reason:'not-ff', cliCommand}` payload — don't re-derive it anywhere else.
+- **`cliCommand` is browser-assembled in `src/lib/api.ts`** (per D5 security decision — stays in the same trust boundary as already-validated `sessionFolder`). Don't touch the assembly logic.
+- **No backend changes** — this is a pure frontend polish PR. Don't touch `server/`, `git.ts`, or any route.
+- **Button UX shape (impl's call, propose in change list)**:
+  - Icon button (lucide `Copy` / `ClipboardCopy`) next to or inside the `<pre>` block holding the command
+  - On click: `await navigator.clipboard.writeText(cliCommand)` → flash "Copied!" / "已复制" next to the button for ~1.5s → revert
+  - On failure (promise rejects; Safari private mode, insecure context in very old browsers): silently fallback to a one-time inline hint "Copy failed — select and ⌘C"; don't alert/toast (low-value polish shouldn't surface modals)
+- **`navigator.clipboard.writeText` prerequisite**: requires secure context (HTTPS or localhost). Dev server is `localhost:2008/2006` — always secure-context, no prod issue for now. Flag in code comment for future deployment-shape decision.
+- **Bilingual feedback**: "Copied! / 已复制" following the `"EN / 中文"` convention from principles #8.
+
+### Scope
+
+- `src/components/CompleteSessionModal.tsx`: add the Copy button + hover/click states + feedback flash state
+- `src/lib/api.ts`: **no change** — `cliCommand` is already in the return shape
+- No other file touched
+
+### Acceptance tests (impl self-tests, low-risk per principle #12 — **I do NOT run live tests for this PR**)
+
+Impl runs these in their own browser on port 2010:
+
+- [ ] Trigger non-FF scenario (any two-session FF+diverge setup) → modal error state shows Copy button next to CLI command
+- [ ] Click Copy → clipboard has exact CLI command (verify by Cmd+V into a terminal or another field)
+- [ ] Visible feedback: "Copied!" text appears, reverts after ~1.5s
+- [ ] Button shows correct hover/focus style (matches shared.tsx button patterns)
+- [ ] Click Copy twice in rapid succession → second click's feedback replaces first cleanly, no visual glitch
+- [ ] Bilingual label on feedback ("Copied! / 已复制")
+
+### Classification — **low-risk, low value**
+
+This is cosmetic polish on an already-working error path (principle #12 low-risk bucket: pure visual/UX change, no async/git/state-machine surface). Planning/testing session does NOT run live tests. Impl self-verifies the 6 acceptance tests above in their browser, describes the test run in the PR description, and ships. 
+
+After merge, I'll update progress table + write 6.5 context block.
 
 ---
 
@@ -313,28 +348,32 @@ Paste the block below into a fresh Cowork impl window. The impl agent will pick 
 ```
 git pull
 
-你是做 6.3 的 Cowork impl session。
+你是做 6.4 的 Cowork impl session。
 
-请先读 docs/phase-6-requirements.md —— 整个 Phase 6 的 shared decisions (D1–D5) + 6.2 的 "Context from 6.1" + 6.3 的 "Context from 6.2" 都在里面,**按原则 #5 不要重议**。也扫一眼 docs/principles.md(15 条原则)。
+请先读 docs/phase-6-requirements.md 里 6.4 那节(小改动,纯前端 polish,为 6.3 已经渲染的 CLI 命令加 Copy 按钮),也扫一眼 docs/principles.md 的 #8 双语、#12 风险分级、#13 清场。
 
-6.3 的 scope:"Complete Session" 按钮 → diff preview modal → `git merge --ff-only` session 分支进 project main。非 FF 只报错,**不在 app 里做 3-way merge/冲突编辑**(6.4 会补 CLI 提示)。
+6.4 的 scope 极小:**只改 `src/components/CompleteSessionModal.tsx`**。非 FF 409 error 态里已经显示 CLI 命令字符串(6.3 的产物),只需要:
+- 命令旁边加一个 Copy icon 按钮(lucide `Copy` 或 `ClipboardCopy`)
+- 点击 → `navigator.clipboard.writeText(cliCommand)`
+- 成功 → 原地 flash "Copied! / 已复制" 约 1.5s → 自动 revert
+- 失败(Safari 无痕等)→ silent 降级,显示小字提示 "Copy failed — select and ⌘C",**不要弹 toast / alert**
+- `cliCommand` 从 `postSessionMerge` 返回的 `{reason:'not-ff', cliCommand}` 拿,**不要**在 modal 里重新拼
 
-做之前先列具体改动点给我 review,不要直接写代码,重点给我这几样:
-- `diffSessionVsBase` 和 `mergeSessionFFOnly` 的签名 + 具体 git 命令 argv + 返回类型
-- 两个新 route(`/api/session/complete`、`/api/session/merge`)的输入验证链路:`resolveProjectFolder` + cross-project 容器检查 + `SESSION_BRANCH_RE` 都必须命中,400 走哪条路径
-- **文档里 "Decisions to lock" 那 5 条**(post-merge UX、diff 渲染粒度、单步 vs 两步确认、empty-diff 行为、FF-only vs no-ff commit style)—— 你对每条的推荐 + 理由,我挑 locks
-- 前端:CompleteSession 按钮条件渲染(`chat.projectId && folderMaterialized`)、modal 结构、失败态 CLI 命令字符串怎么拼
-- 测试覆盖:单元测试(diff parsing / merge result 解析)+ 手测脚本(两个 session 按序 complete,验证 FF 和非 FF 两条路径)
+做之前列改动点给我 review:
+- Copy 按钮的具体放置(inside/outside `<pre>`?)+ 样式套 shared.tsx 的哪个 pattern
+- flash 状态怎么管(local useState?timeout cleanup on unmount?)
+- 失败 fallback 的具体文案 + 触发时机
 
-改动点过了 review 再写,按文档里 6.3 Acceptance tests 手测通过再开 PR。
+改动点过了 review 就写,按文档里 6.4 Acceptance tests(6 条)在你自己的 2010 浏览器里自测。
 
 跑 dev:
-- 前端 `npm run dev -- --port 2010`(主 session 占 2006,避开)
-- 后端需要时 `cd server && unset ANTHROPIC_API_KEY && npm run dev`(shell 会注入空 ANTHROPIC_API_KEY,这步 unset 必须;backend 3001 无状态共享)
+- 前端 `npm run dev -- --port 2010`(主 session 占 2006)
+- **不需要 backend**,纯前端改动。要复现 409 场景可以手工 mock `postSessionMerge` 的返回值,或者 copy 6.3 的手测脚本造两个 session
+- `navigator.clipboard` 需要 secure context(localhost 就是,没问题)
 
-**高风险项(git merge 语义 + 跨 session 状态 + 两个新 REST endpoint),按原则 #12 我会 live test,必测。**PR 开了在 planning session 说一声,我会跑文档里 9 条 acceptance tests,包括 FF 成功路径、非 FF 409 路径、legacy 不渲染、cross-project 混配拦截、注入拦截等。
+**6.4 按原则 #12 归为 low-risk**(纯视觉 polish、无 async/git/state machine 改动):**planning session 不跑 live test**。你在本地自测 6 条 acceptance tests 通过后,PR description 里列一下你跑了哪几条、输出是什么(clipboard 内容截图、feedback flash 录屏或截图都行),直接开 PR merge,不用拉我。
 
-测完按原则 #13 清场:kill backend + preview_stop、清掉测试 project folder + 用 `git worktree prune` 回收临时 worktree,不留 zombie。
+测完按原则 #13 清场:`preview_stop` 你的 2010,不留 zombie。
 ```
 
 ---
