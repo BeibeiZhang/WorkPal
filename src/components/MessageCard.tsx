@@ -350,7 +350,7 @@ function ResearchCardView({ card, onAction }: { card: ResearchCard; onAction?: (
           {meta && (
             <p className="font-bold text-base leading-[22px] text-text-primary">{card.title}</p>
           )}
-          <p className="text-base leading-[22px] text-text-primary">
+          <p className="text-base leading-[22px] text-text-primary line-clamp-6">
             {parts.map((part, i) => {
               if (part.startsWith('**') && part.endsWith('**')) {
                 return <span key={i} className="font-bold">{part.slice(2, -2)}</span>;
