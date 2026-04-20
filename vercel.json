@@ -5,6 +5,9 @@
     { "source": "/api/artifacts/generate",   "destination": "/api/artifacts?endpoint=generate" },
     { "source": "/api/artifacts/cron-sweep", "destination": "/api/artifacts?endpoint=cron-sweep" },
     { "source": "/api/artifacts/:slug",      "destination": "/api/artifacts?endpoint=slug&slug=:slug" },
+    { "source": "/api/search-images",        "destination": "/api/search?kind=images" },
+    { "source": "/api/search-videos",        "destination": "/api/search?kind=videos" },
+    { "source": "/api/search-web",           "destination": "/api/search?kind=web" },
     { "source": "/((?!api).*)", "destination": "/index.html" }
   ]
 }
