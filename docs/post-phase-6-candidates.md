@@ -65,11 +65,52 @@ Living backlog of what might come after Phase 6 (shipped 2026-04-20). Each item 
 
 ---
 
-## 3. `blocked` — Weekly SF activity digest push (Friday afternoons)
+## 3. `decided-next` — Bay Area weekend digest as shareable webpage
 
-**Blocked by**: candidate #5 (deployment shape decision). Without a decision on where WorkPal runs long-term, the scheduler infrastructure (launchd? Vercel cron? always-on local daemon?) can't be designed without risk of rewriting.
+**Unblocked 2026-04-20**: earlier blocked on #5 deployment shape. New product vision collapses the dependency — everything runs on Vercel serverless (Cron + SSR + Supabase), no local runtime needed.
 
-**Otherwise unchanged from original entry** — see git history for 2026-04-19 version if needed.
+**Product vision**: every Thursday night, a Vercel Cron generates a curated "this weekend in the Bay Area" webpage. Beibei opens Overview → sees a card with the latest edition's cover → either skims in-app or copies the public URL to share with friends / family. Each week gets its own permalinked URL.
+
+**Scope (locked 2026-04-20)**:
+- **Geographic scope**: SF + entire Bay Area (East Bay / Peninsula / South Bay)
+- **4 categories**: 节日 festivals / 活动 events / 展览 exhibitions / 集市 markets & fairs
+- **~3–5 items per category** (~12–20 total)
+- **Per item**: multiple images, location, price, date/time, official URL
+- **Public URL**: `workpal-beibei.vercel.app/bay-area-weekend/<ISO-week>` — readable without login, share-friendly (Open Graph preview, social-embed metadata)
+- **Overview card**: latest edition's cover image + title + "N spots this weekend" label + click-through
+- **Bilingual page (page-local, NOT full-app i18n)**: cron runs OpenAI twice (EN + 中文) at write time, stores both copies in Supabase. Page has EN/中 toggle top-right. Rest of WorkPal stays as-is (#4 still parked).
+- **Trigger**: Vercel Cron `0 20 * * 4` Pacific Time (Thursday 8pm PT)
+- **Data source**: Tavily web search + OpenAI for structuring, image-picking, translation. No external API integrations (Eventbrite / Funcheap / Meetup) in v1 — add as follow-up if Tavily quality disappoints.
+
+**Architecture**:
+- New Supabase table `bay_area_digests` (public-readable via RLS, write via service role from cron only)
+- New backend route `POST /api/digests/generate` — cron entry, fetches + structures + translates + writes row. Idempotent on ISO-week key.
+- New backend route `GET /api/digests/:week` + `GET /api/digests/latest` — frontend data source
+- New frontend route `/bay-area-weekend/:week` — React SPA, client-fetches data, renders digest with EN/中 toggle
+- Overview page gains a `WeekendDigestCard` that calls `/api/digests/latest`
+
+**Non-goals for v1** (impl should not scope-creep):
+- Push notifications / email (just in-app card + URL)
+- Historical archive browser (URLs discoverable by week, no index page)
+- Editorial override UI (whatever OpenAI generates ships — impl self-tests output quality)
+- Custom location / distance / preference filters
+- User-contributed events
+
+**Open for impl change-list**:
+- Exact Supabase schema (JSONB column per category? separate rows per item?)
+- EN/中 toggle UX — URL param `?lang=zh` vs stateful button vs both
+- Image hosting — Tavily returns URLs, re-host via Supabase storage or serve the original domains?
+- Cron retry / failover policy if Tavily returns weak results
+- Overview card placement (above / below existing cards?)
+- Open Graph metadata strategy (static or per-digest)
+
+**Effort**: 3–5 days.
+
+**Risk classification**: **medium**. Planning session will live-test:
+- Public URL in incognito (no login, readable, OG preview renders on share)
+- EN/中 toggle doesn't leak the other language's copy
+- Cron route idempotent (POST twice same week → no duplicates)
+- Overview card reads latest, not stale
 
 ---
 
