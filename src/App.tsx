@@ -19,6 +19,9 @@ import PermissionPrompt from './components/PermissionPrompt';
 import CompleteSessionModal, { type CompleteSessionPhase } from './components/CompleteSessionModal';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
 import { INITIAL_CHATS } from './data';
+import { DEMO_EXTRA_CHATS, DEMO_EXTRA_CHAT_IDS } from './data/demo/chats';
+import { DEMO_CHANGES_ALCOHOL } from './data/demo/changes';
+import { IS_DEMO, IS_CLAUDE_CODE_AVAILABLE } from './lib/demoMode';
 import { postClaudePermissionDecision, postInitProject, postOpenFolder, postReaperRun, postSessionComplete, postSessionMerge, postUndoChange, streamChat, streamClaudeChat } from './lib/api';
 import { shouldUseClaudeCode } from './lib/intentRouter';
 import { buildAttachmentContextBlock, buildImageDescriptionBlock } from './lib/attachments';
@@ -89,8 +92,15 @@ function saveProjects(projects: Project[]) {
   } catch { /* quota exceeded — silently drop, matches saveChats behavior */ }
 }
 
-// Demo chat IDs — these always use hardcoded flows, never call the API
-const DEMO_CHAT_IDS = ['alcohol-delivery', 'ux-meeting', 'my-workpal'];
+// Demo chat IDs — these always use hardcoded flows, never call the API.
+// On IS_DEMO we also add the richer DEMO_EXTRA_CHATS so their canned replies
+// stay scripted instead of hitting OpenAI on the Vercel demo project.
+const DEMO_CHAT_IDS = [
+  'alcohol-delivery',
+  'ux-meeting',
+  'my-workpal',
+  ...(IS_DEMO ? DEMO_EXTRA_CHAT_IDS : []),
+];
 
 // Bump this whenever INITIAL_CHATS gains new seed fields (e.g. draftPrompt) so
 // returning visitors with stale localStorage drop their cached chats and pick
@@ -99,6 +109,10 @@ const STORAGE_KEY = 'workpal-chats-v2';
 const LEGACY_STORAGE_KEYS = ['workpal-chats'];
 
 function loadChats(): Chat[] {
+  // Demo mode: ignore any localStorage cache and always return a fresh seed
+  // — HRs get the same pristine state on every visit. Principle #6 also:
+  // don't write to or read from localStorage in demo.
+  if (IS_DEMO) return [...INITIAL_CHATS, ...DEMO_EXTRA_CHATS];
   try {
     // Drop any pre-versioned cache so old demo data can't shadow new seed fields.
     LEGACY_STORAGE_KEYS.forEach(k => localStorage.removeItem(k));
@@ -149,6 +163,10 @@ function getInitialChatState(): { chats: Chat[]; activeChatId: string } {
 }
 
 function saveChats(chats: Chat[]) {
+  // Demo mode: principle #6 lazy-clean — don't leave any trace in
+  // localStorage. Refreshing the demo URL should always snap back to the
+  // canonical seed.
+  if (IS_DEMO) return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
   } catch { /* quota exceeded — ignore */ }
@@ -596,7 +614,13 @@ export default function App() {
   // Phase 4: auto-commit log + permission gating. Both are session-only —
   // no localStorage, no cross-reload persistence. changes is keyed by chat
   // id so each session has its own log.
-  const [changes, setChanges] = useState<Record<string, ChangeEntry[]>>({});
+  //
+  // Demo mode (candidate #2): pre-seed the alcohol-delivery chat with
+  // static ChangeEntry rows so HRs see the Changes panel populated even
+  // though the Claude Agent SDK cannot run on Vercel serverless.
+  const [changes, setChanges] = useState<Record<string, ChangeEntry[]>>(
+    IS_DEMO ? { 'alcohol-delivery': DEMO_CHANGES_ALCOHOL } : {},
+  );
   /** FIFO queue of permission requests awaiting the user's decision. The
    *  modal renders the head; on resolution the head is shifted off and the
    *  next entry (if any) flows in. A queue is needed — not a single slot —
@@ -706,6 +730,10 @@ export default function App() {
   // upgrade lazily initializes it. Principle #6: lazy, on-demand creation.
   useEffect(() => {
     if (!activeProjectId) return;
+    // Claude Agent SDK only runs on localhost dev. Skip the project-init
+    // POST on both Vercel deployments (demo + self-use) — the endpoint
+    // would return an error and clutter the console without any upside.
+    if (!IS_CLAUDE_CODE_AVAILABLE) return;
     const project = projects.find(p => p.id === activeProjectId);
     if (!project) return;
     void postInitProject(slugify(project.name)).then(result => {
@@ -726,6 +754,10 @@ export default function App() {
   // projects change would be constant noise on every message.
   useEffect(() => {
     if (projects.length === 0) return;
+    // Same reasoning as the project-init hook above: the reaper lives on the
+    // Claude Code backend and can't run on Vercel serverless. Skip outside
+    // localhost dev.
+    if (!IS_CLAUDE_CODE_AVAILABLE) return;
     const payload = projects.map(p => {
       const activeSessionFolders = chats
         .filter(c => c.projectId === p.id && c.sessionFolder)
@@ -2546,7 +2578,15 @@ export default function App() {
                         // 6.3 gate: project-owned + materialized. Legacy Phase 5
                         // chats (no projectId) and pure-Q&A chats (no folder
                         // ever materialized) never show the footer button.
-                        !!(activeChat?.projectId && activeChat?.folderMaterialized)
+                        //
+                        // Demo mode loosens the gate to "materialized is
+                        // enough" so the seeded `alcohol-delivery` chat shows
+                        // the button (disabled, per TaskContextPanel's demo
+                        // branch). HRs see the capability surface without a
+                        // project plumbing detour.
+                        IS_DEMO
+                          ? !!activeChat?.folderMaterialized
+                          : !!(activeChat?.projectId && activeChat?.folderMaterialized)
                       }
                       sessionCompleted={!!activeChat?.sessionCompleted}
                       onCompleteSession={

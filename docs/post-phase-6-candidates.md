@@ -31,53 +31,37 @@ Living backlog of what might come after Phase 6 (shipped 2026-04-20). Each item 
 
 ---
 
-## 2. `decided-next` — Quick demo deployment to Vercel
+## 2. `shipped` — Quick demo deployment to Vercel
 
-**Decision**: 2026-04-20. After candidate #1 impl session settles, this is next to prompt out.
+**Shipped**: 2026-04-19 (PR #TBD). Impl session delivered `VITE_WORKPAL_DEMO` build flag + `IS_CLAUDE_CODE_AVAILABLE` runtime detection + bilingual demo badge / explainer + seed chats + read-only memory + mocked connectors + static Changes panel on the `alcohol-delivery` seed chat.
 
-**What**: Ship a shareable URL (e.g. `workpal-demo.yourdomain.com`) that HRs / interviewers can click and explore. Same codebase as the real app, deployed separately with a build-time demo flag.
+**Implemented scope** (impl picked during change-list, planning confirmed):
+- Two orthogonal flags in [`src/lib/demoMode.ts`](../src/lib/demoMode.ts):
+  - `IS_DEMO` — build-time, `import.meta.env.VITE_WORKPAL_DEMO === 'true'`, inlined by Vite with no `define` plumbing
+  - `IS_CLAUDE_CODE_AVAILABLE` — runtime, `hostname === 'localhost' || '127.0.0.1'`. Covers **both** Vercel deployments (demo + self-use) cleanly, since neither can host the Claude Agent SDK
+- Demo-only data in [`src/data/demo/`](../src/data/demo/) (separate from `src/data.ts`, so the real app's seed stays untouched): richer chat list, seed memories, static Changes-panel rows
+- `DemoBadge` wired **inside** `HeaderBar` so it auto-renders on every page without per-page plumbing. Click → bilingual modal with capability matrix + GitHub link
+- Memory page in demo: read-only banner (bilingual) + seed entries visible, Add / Edit / Delete UI completely hidden. Supabase client never initialized (principle #6 lazy-clean); localStorage never written (visitors always land on pristine state)
+- Connectors page in demo: all Connect buttons show "Try with demo data / 使用 Demo 数据", click flips local statusMap to "Connected (Demo)"; no OAuth popup, no password prompt, no server fetch
+- Claude Code Complete Session button: **tri-state** in [`TaskContextPanel.tsx`](../src/components/TaskContextPanel.tsx):
+  - localhost: normal
+  - demo (my-workpal): visible but `disabled` + bilingual title tooltip
+  - self-use (workpal-beibei): footer hidden entirely
+- `postInitProject` and `postReaperRun` also skip on both Vercel builds — no noisy 500s in the console
+- `shouldUseClaudeCode` short-circuits to `false` off-localhost, so code/file intents fall back to the OpenAI chat path
+- Full bilingual coverage of every new user-visible string (#8): DemoBadge label + modal, Memory banner, Connect labels, Complete-Session tooltip
 
-**Why now**: Beibei's job-hunt scenario is specifically "send link to HR". Without a demo deployment there's no shareable artifact — only `localhost:2006` (dev) or a `.dmg` (doesn't exist yet, and HRs won't install anything). Quick version is ~1 day of work.
+**Non-goals in this PR** (kept out by the change-list):
+- Pre-recorded Claude Code capability video — static Changes panel is enough for v1
+- Backend tool-call wall (if the AI model calls gmail/calendar tools in demo, backend 500s show as tool errors in-chat — accepted v1 edge case, tracked if it becomes a real issue)
+- Vercel CLI / IaC scripts — Beibei pastes env vars manually into the dashboard per [`docs/vercel-env-setup.md`](./vercel-env-setup.md)
 
-**Architecture clarification locked**:
-- **Two Vercel deployments from the same GitHub repo** (not two codebases):
-  - **`my-workpal.vercel.app`** (existing Vercel project `workpal`) — built with `VITE_WORKPAL_DEMO=true` — this becomes the **demo** target. Shared with HR / interviewers.
-  - **`workpal-beibei.vercel.app`** (new Vercel project `workpal-beibei`, default `.vercel.app` subdomain, no custom domain) — built with the flag off — Beibei's **own external** use. Currently serves as the stand-in for the "eventual production" target if deployment shape C gets picked; can coexist with `localhost:2006` for dev.
-- Beibei maintains one codebase; Vercel auto-deploys both on every push. TestFlight-beta + App-Store analogy.
-- **Third URL** = `localhost:2006` (dev). Always works independently.
+**Risk classification (as executed)**: medium. Planning live-tests three hostnames: the deployed `my-workpal.vercel.app` (incognito) + `workpal-beibei.vercel.app` + `localhost:2013`. Verification checklist is in the PR description.
 
-**Feature matrix for demo mode** (locked during 2026-04-20 discussion):
-
-| Feature | Demo? | Reason |
-|---|---|---|
-| OpenAI chat streaming | ✅ yes | Phase 2 infra, just fetch — works on Vercel serverless |
-| Voice mode + transcription | ✅ yes | Whisper API call, no native deps |
-| Voice + image attachment | ✅ yes | base64 → OpenAI vision, fetch |
-| Web search (Tavily) | ✅ yes | Fetch API, Phase 3 |
-| Image search (Unsplash) / video search (YouTube) | ✅ yes | Fetch APIs |
-| Memory system | ✅ yes | localStorage, no server dep |
-| Gmail / Calendar OAuth | ⚠️ mock | Technically works but don't want HR OAuthing real Google accounts into Beibei's demo app. Show "Try demo data" button → seeded data |
-| Claude Code route (`/api/claude-chat`) | ❌ disable | Native binary + persistent cwd — structurally incompatible with Vercel serverless |
-| Phase 6 Complete Session / merge / reaper | ❌ disable | Depends on Claude Code backend, same reason |
-| Demo of Claude Code capability | (design question) | Pre-recorded screen video, or pre-seeded completed session with static data. Impl session decides during change-list review |
-| **Memory system + Supabase** | ❌ mock (no Supabase) | **Locked 2026-04-19**: Beibei's memory is gated by `MEMORY_PASSWORD` specifically so random visitors can't delete entries. Demo must NOT connect the real Supabase — HR should see static seed memories, not Beibei's live data, and the delete / edit UI must be read-only (or hidden) in demo mode. Impl decides: static seed vs. isolated-demo Supabase project vs. fully hidden memory page. `MEMORY_PASSWORD` / `SUPABASE_URL` / `SUPABASE_ANON_KEY` env vars NOT set on the `workpal` (demo) Vercel project |
-
-**Scope to lock during change-list review** (impl proposes, planning confirms):
-- `VITE_WORKPAL_DEMO` flag name and what exactly it toggles (build-time const injected via Vite env, read from `import.meta.env.VITE_WORKPAL_DEMO === 'true'`)
-- Seed data shape (reuse `INITIAL_CHATS`? richer? mock memory entries for the memory page?)
-- Mock connector UI: "Try demo data" button copy, what data to show when user clicks "Connect Gmail / Calendar"
-- Memory page behavior in demo: fully hidden / read-only with seed entries / some other shape
-- "Demo" visual badge — placement (top bar? corner?)
-- Claude Code capability substitute: pre-recorded video clip, or pre-seeded "already-completed" session with static Changes panel?
-- Vercel config — SPA fallback rewrite rules already in `vercel.json`, double-check after flag lands
-
-**Env var placement** (for Beibei to execute after PR merge, one-time):
-- `workpal` Vercel project (= demo, `my-workpal.vercel.app`): add **only** `VITE_WORKPAL_DEMO=true` + shared AI keys with low usage caps (`OPENAI_API_KEY`, maybe `TAVILY_API_KEY` / `YOUTUBE_API_KEY` / `UNSPLASH_ACCESS_KEY`). **Do NOT** paste `SUPABASE_*`, `MEMORY_PASSWORD`, `GOOGLE_*`, `ANTHROPIC_API_KEY` — demo mode won't use them
-- `workpal-beibei` Vercel project (= self-use, `workpal-beibei.vercel.app`): paste **all 11** env vars Beibei currently has on `workpal` — this becomes her real external instance
-
-**Risk classification**: medium-risk (build flag + cross-deployment consistency + potential for demo data leaking real state). Planning session will live-test by visiting the deployed demo URL in a private browser session.
-
-**Effort**: ~1 day for the flag + seed data. Polished version (richer demo flows, Claude Code capability video) is Phase 7+ or optional follow-up.
+**Follow-ups** (not blocking ship):
+- Candidate #6 — CN→EN translate reliability fix (unrelated, still outstanding)
+- If HR feedback shows connector-tool-call errors are confusing, add a tool-call gate as a separate tiny PR
+- Demo deployment data itself (HR reaction patterns) feeds back into candidate #5 deployment-shape decision — see §5 trigger
 
 ---
 
