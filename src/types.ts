@@ -72,7 +72,24 @@ export interface AgentCard {
   avatarUrl?: string;
 }
 
-export type CardData = MeetingCard | ResearchCard | TicketCard | ScheduleCard | AgentCard;
+/** Artifact card shown in chat after intent-routed artifact generation. While
+ *  the backend pipeline is running we render a skeleton with status='generating';
+ *  the card swaps to 'ready' (with url + coverImageUrl) once /api/artifacts/generate
+ *  resolves. A failure flips to 'failed' + `error` message. The public share
+ *  URL lives at /artifact/<slug> — the card just opens it in a new tab. */
+export interface ArtifactCard {
+  type: 'artifact';
+  title: string;
+  status: 'generating' | 'ready' | 'failed';
+  templateId: string;
+  slug?: string;
+  url?: string;
+  coverImageUrl?: string | null;
+  itemCount?: number;
+  error?: string;
+}
+
+export type CardData = MeetingCard | ResearchCard | TicketCard | ScheduleCard | AgentCard | ArtifactCard;
 
 export type AttachmentKind = 'image' | 'file';
 

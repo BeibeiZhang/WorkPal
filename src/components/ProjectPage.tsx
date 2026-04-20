@@ -5,10 +5,13 @@ import {
   ChevronDown, ChevronRight, Star, MoreVertical, PanelRight,
   FileCode2, MessageCircle, Pen, File, Plus, X,
   MonitorPlay, Presentation,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { FilterChip, PageLayout, SearchBox, SideCard, SidePanelHeader, SplitView } from './shared';
 import type { Chat, Attachment } from '../types';
 import { filesToAttachments, formatFileSize } from '../lib/attachments';
+import { IS_DEMO } from '../lib/demoMode';
+import { listArtifacts, type Artifact, type ArtifactKind } from '../lib/artifacts';
 
 interface ProjectPageProps {
   project: Project;
@@ -43,6 +46,42 @@ interface OutputItem {
   name: string;
   icon: typeof FileCode2;
   type: OutputType;
+  /** Candidate #3: set for real artifacts fetched from /api/artifacts. Click
+   *  opens the public /artifact/<slug> page. Undefined for seeded demo
+   *  entries, whose click just toggles the selected-highlight state. */
+  href?: string;
+}
+
+/** Map from the 8 server-side ArtifactKinds to the 4 ProjectPage Output
+ *  filter tabs. Groups webpage/document/report/note/spreadsheet under Web
+ *  because those all render flat in this rail; Slides / Image / Video get
+ *  their own tabs. */
+function kindToOutputType(kind: ArtifactKind): OutputType {
+  switch (kind) {
+    case 'presentation': return 'Slides';
+    case 'image':        return 'Image';
+    case 'video':        return 'Video';
+    default:             return 'Web';
+  }
+}
+
+function kindToOutputIcon(kind: ArtifactKind): typeof FileCode2 {
+  switch (kind) {
+    case 'presentation': return Presentation;
+    case 'video':        return MonitorPlay;
+    case 'image':        return ImageIcon;
+    default:             return FileCode2;
+  }
+}
+
+function artifactToOutputItem(a: Artifact): OutputItem {
+  return {
+    id: a.slug,
+    name: a.contentEn?.title || a.topic || a.templateId,
+    icon: kindToOutputIcon(a.kind),
+    type: kindToOutputType(a.kind),
+    href: `/artifact/${a.slug}`,
+  };
 }
 
 const OUTPUT_FILTERS: OutputType[] = ['All', 'Web', 'Slides', 'Image', 'Video'];
@@ -193,6 +232,19 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
   const content = PROJECT_CONTENT[project.id] ?? FALLBACK_CONTENT;
   const [outputFilter, setOutputFilter] = useState<OutputType>('All');
   const [selectedOutputId, setSelectedOutputId] = useState<string>(content.defaultSelectedOutputId);
+  // Real artifacts scoped to this project (candidate #3). Demo keeps the
+  // Phase 7 #2 mock content intact — Beibei's ask: "空则设计数据为空正常UI
+  // 界面". Non-demo always shows the real rows, empty state when none.
+  const [realOutputs, setRealOutputs] = useState<OutputItem[]>([]);
+  useEffect(() => {
+    if (IS_DEMO) return;
+    let cancelled = false;
+    listArtifacts({ status: 'ready', projectId: project.id }).then((rows) => {
+      if (cancelled) return;
+      setRealOutputs(rows.map(artifactToOutputItem));
+    });
+    return () => { cancelled = true; };
+  }, [project.id]);
   const [outputOpen, setOutputOpen] = useState(true);
   const [recentsOpen, setRecentsOpen] = useState(true);
   const [search, setSearch] = useState('');
@@ -248,7 +300,11 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
     matchesSearch(r.title) || matchesSearch(r.description) || matchesSearch(r.outputTag ?? ''),
   );
 
-  const filteredOutputs = content.outputs.filter(o => {
+  // Demo mode uses the seeded PROJECT_CONTENT mock; non-demo uses real
+  // artifacts only (empty array = proper empty state below, no fallback to
+  // mock — per Beibei's 2026-04-20 call).
+  const sourceOutputs: OutputItem[] = IS_DEMO ? content.outputs : realOutputs;
+  const filteredOutputs = sourceOutputs.filter(o => {
     if (outputFilter !== 'All' && o.type !== outputFilter) return false;
     return matchesSearch(o.name);
   });
@@ -436,32 +492,51 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                     </div>
 
                     {/* Output cards */}
-                    <div className="flex gap-3 overflow-x-auto pb-1">
-                      {filteredOutputs.map(o => {
-                        const Icon = o.icon;
-                        const isSelected = selectedOutputId === o.id;
-                        return (
-                          <button
-                            key={o.id}
-                            onClick={() => setSelectedOutputId(o.id)}
-                            className={`flex flex-col items-center gap-2 min-w-[120px] w-[120px] p-2 rounded-lg border transition-colors ${
-                              isSelected
-                                ? 'border-[#3171ff]'
-                                : 'border-transparent hover:bg-bg-hover'
-                            }`}
-                          >
-                            <Icon
-                              size={32}
-                              className={isSelected ? 'text-[#3171ff]' : 'text-text-secondary/40 dark:text-white'}
-                              strokeWidth={1.2}
-                            />
-                            <span className={`text-[14px] text-center leading-[1.2] line-clamp-2 w-full ${isSelected ? 'text-[#3171ff]' : 'text-text-primary'}`}>
-                              {o.name}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                    {filteredOutputs.length === 0 ? (
+                      <div
+                        className="flex flex-col items-start gap-1 text-text-secondary"
+                        style={{ fontSize: 13, lineHeight: '18px' }}
+                      >
+                        <span>No outputs in this project yet.</span>
+                        <span>
+                          Ask WorkPal to generate a weekly digest or webpage and it’ll show up here.
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex gap-3 overflow-x-auto pb-1">
+                        {filteredOutputs.map(o => {
+                          const Icon = o.icon;
+                          const isSelected = selectedOutputId === o.id;
+                          const handleClick = () => {
+                            if (o.href) {
+                              window.open(o.href, '_blank', 'noopener,noreferrer');
+                            } else {
+                              setSelectedOutputId(o.id);
+                            }
+                          };
+                          return (
+                            <button
+                              key={o.id}
+                              onClick={handleClick}
+                              className={`flex flex-col items-center gap-2 min-w-[120px] w-[120px] p-2 rounded-lg border transition-colors ${
+                                isSelected
+                                  ? 'border-[#3171ff]'
+                                  : 'border-transparent hover:bg-bg-hover'
+                              }`}
+                            >
+                              <Icon
+                                size={32}
+                                className={isSelected ? 'text-[#3171ff]' : 'text-text-secondary/40 dark:text-white'}
+                                strokeWidth={1.2}
+                              />
+                              <span className={`text-[14px] text-center leading-[1.2] line-clamp-2 w-full ${isSelected ? 'text-[#3171ff]' : 'text-text-primary'}`}>
+                                {o.name}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </>
                 )}
               </div>

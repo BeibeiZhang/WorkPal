@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   ChevronRight, ChevronDown, ChevronUp,
   Brain, Volume2, Briefcase, Home, Smile,
   Moon, Zap, Gauge, BarChart3, Search,
   Pause, Play, ExternalLink, CalendarClock, MessageCircle, FolderClosed,
+  Globe,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -12,6 +13,7 @@ import {
   MetricCard, InsightCard, MultiLineChart, TaskProgressCard, ReviewItemCard,
   HealthDimensionRow, PageLayout, CategoryBreakdown,
 } from './shared';
+import { fetchUnreadArtifacts, markArtifactViewed, artifactItemCount, type Artifact } from '../lib/artifacts';
 
 /* ═══════════════════════════════════════════════════════════════
    Overview Page — "Morning Briefing" dashboard
@@ -207,6 +209,25 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
   const [reviewDone, setReviewDone] = useState<Record<number, boolean>>({});
   const [showStressDetail, setShowStressDetail] = useState(false);
 
+  // Candidate #3 — unread artifacts surface at the top of "Needs Your Eyes"
+  // per Beibei's 2026-04-20 call. Already-viewed slugs (tracked in
+  // localStorage, not Supabase) are filtered out so reading the shared URL
+  // on any device makes the row disappear here next visit.
+  const [unreadArtifacts, setUnreadArtifacts] = useState<Artifact[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    fetchUnreadArtifacts(3).then((rows) => {
+      if (!cancelled) setUnreadArtifacts(rows);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const openArtifact = (a: Artifact) => {
+    markArtifactViewed(a.slug);
+    setUnreadArtifacts(prev => prev.filter(x => x.slug !== a.slug));
+    window.open(`/artifact/${a.slug}`, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <PageLayout
       title="Overview"
@@ -339,13 +360,33 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
           {/* ━━━ 3. NEEDS YOUR EYES ━━━ */}
           <div className="mb-12">
             <div className="flex flex-wrap items-center justify-between mb-4 [&>*]:mb-0">
-              <SectionTitle emoji="" title="Needs Your Eyes" count={REVIEW_ITEMS.filter((_, i) => !reviewDone[i]).length} size={20} />
+              <SectionTitle emoji="" title="Needs Your Eyes" count={unreadArtifacts.length + REVIEW_ITEMS.filter((_, i) => !reviewDone[i]).length} size={20} />
               <SummaryFooter>
                 Total review time: <strong className="text-text-primary">~16 min</strong> for 3 items
               </SummaryFooter>
             </div>
 
             <div className="flex flex-col">
+              {unreadArtifacts.map((a) => {
+                const title = a.contentEn?.title || a.topic || a.templateId;
+                const count = artifactItemCount(a, 'en');
+                return (
+                  <button
+                    key={a.slug}
+                    onClick={() => openArtifact(a)}
+                    className="text-left"
+                  >
+                    <ReviewItemCard
+                      title={title}
+                      source="WorkPal"
+                      type="Webpage"
+                      time={`New${count > 0 ? ` · ${count} items` : ''}`}
+                      humanTime="~3 min"
+                      icon={Globe}
+                    />
+                  </button>
+                );
+              })}
               {REVIEW_ITEMS.map((item, i) => (
                 <div key={i}>
                   <ReviewItemCard
