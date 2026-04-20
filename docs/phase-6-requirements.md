@@ -8,7 +8,8 @@
 | 6.2 Session via git worktree | ✅ Done | `b48c606` (PR #81) |
 | 6.3 Complete Session + diff preview + FF merge | ✅ Done | `bbd0bf4` (PR #83) |
 | 6.4 CLI hand-off polish (copy-to-clipboard) | ✅ Done | `7efda91` (PR #85) — fast-lane, impl self-tested |
-| **6.5 Orphan worktree reaper** | ⏳ **Next** | — |
+| 6.5 Orphan worktree reaper | ✅ Done | `c9b872d` (PR #86) |
+| **Phase 6 complete** | 🎉 | 2026-04-20 |
 
 ---
 
@@ -436,41 +437,11 @@ Destructive file ops + cross-session state + new endpoint. Per principle #12, th
 
 ## First message template for a new Cowork session
 
-Paste the block below into a fresh Cowork impl window. The impl agent will pick up everything it needs from `docs/phase-6-requirements.md`.
+Phase 6 is complete (2026-04-20). No current "next step" is locked — the planning session + Beibei pick the next direction from `docs/post-phase-6-candidates.md` (or a fresh idea), then either:
+- Continue in `docs/phase-6-requirements.md` if it's a small follow-up / polish, or
+- Open `docs/phase-7-requirements.md` (or a theme-named doc) with the same structure as this one if the next chunk is substantial enough to warrant its own phase.
 
-```
-git pull
-
-你是做 6.5 的 Cowork impl session —— Phase 6 最后一个 sub-step。
-
-请先读 docs/phase-6-requirements.md 里 6.5 节(包括 "三种 orphan shape" 表 + 6 条 "Decisions to lock" + Acceptance tests)。也扫一眼 docs/principles.md(重点 #7 safe-by-default、#12 风险分级、#13 清场)。
-
-6.5 的 scope:Orphan worktree 清理。清除 session worktree 在磁盘上存在但 localStorage 里没对应 chat 的那些(用户删了 chat、清了本地存储、或被强杀留下的 stale 状态)。**Phase 5 legacy session(per-session .git 目录)绝对不能碰** —— 用 `git worktree list --porcelain` 的输出自然筛掉,不要 `fs.stat`。
-
-做之前先列改动点给我 review,重点给我这几样:
-- `reapProjectOrphans(projectPath, activeSessionFolders)` 的签名 + 具体 git 命令 argv + 返回类型(包括 porcelain 输出怎么 parse)
-- `/api/reaper/run` 的 body 形状 + 验证链路(projectSlug + activeSessionFolders 每条都过 `resolveProjectFolder` / `resolveSessionFolder` + cross-project containment)
-- **文档里 "Decisions to lock" 6 条** —— 每条你的推荐 + 理由,我挑 lock
-- 前端调用点(`App.tsx` mount 时 fire-and-forget 一次?活 chat 列表怎么构造?`sessionCompleted: true` 的 chat 要不要也算 live?)
-- 测试覆盖:单元测试(porcelain parser)+ 手测脚本(造 2 个 project 各带 2 个 session,手工删 chat/folder,调用 endpoint,验证 git 状态)
-
-改动点过了 review 再写,按文档里 6.5 Acceptance tests(7 条)手测通过再开 PR。
-
-跑 dev:
-- 前端 `npm run dev -- --port 2010`(主 session 占 2006,避开)
-- 后端需要时 `cd server && unset ANTHROPIC_API_KEY && npm run dev`(backend 3001 无状态共享)
-
-**6.5 是 Phase 6 最 destructive 的一步(会 `git worktree remove --force` + `git branch -D`)**,按原则 #12 高风险必测。PR 开了在 planning session 说一声,我跑 7 条 acceptance tests,包括:
-- 删 chat → worktree + branch 被 reap,兄弟 session 不受影响
-- `sessionCompleted: true` 的 chat → worktree 活着
-- Phase 5 legacy `.git/` 目录 → 绝对不碰
-- shape-B 悬空 metadata(folder 不在,git 还记着)→ `git worktree prune` 清掉
-- 验证链 400(projectSlug path 遍历 / cross-project 混配)
-- 并发两个 reaper run → 无 race
-- 单个 worktree remove 失败 → 其它继续,summary 捕获错误
-
-测完按原则 #13 清场:kill backend + preview_stop、清掉测试 project + `git worktree prune` 主仓库,不留 zombie。
-```
+For historical reference on how the Phase 6 impl cycle worked: see the pattern of "Context from 6.X" blocks + locked shared decisions + first-message templates throughout this doc.
 
 ---
 
