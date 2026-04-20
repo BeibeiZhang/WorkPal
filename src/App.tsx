@@ -16,9 +16,10 @@ import NewProjectDialog from './components/NewProjectDialog';
 import { SplitView } from './components/shared';
 import { Chat, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleCard, ImageResult, VideoResult, WebResult, MemoryEntry, MemoryKind, CardData, ChangeEntry, ChangeKind, PermissionRequest } from './types';
 import PermissionPrompt from './components/PermissionPrompt';
+import CompleteSessionModal, { type CompleteSessionPhase } from './components/CompleteSessionModal';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
 import { INITIAL_CHATS } from './data';
-import { postClaudePermissionDecision, postInitProject, postOpenFolder, postUndoChange, streamChat, streamClaudeChat } from './lib/api';
+import { postClaudePermissionDecision, postInitProject, postOpenFolder, postSessionComplete, postSessionMerge, postUndoChange, streamChat, streamClaudeChat } from './lib/api';
 import { shouldUseClaudeCode } from './lib/intentRouter';
 import { buildAttachmentContextBlock, buildImageDescriptionBlock } from './lib/attachments';
 import {
@@ -608,6 +609,16 @@ export default function App() {
   };
   const [pendingPermissions, setPendingPermissions] = useState<PendingPerm[]>([]);
   const pendingPermission = pendingPermissions[0] ?? null;
+
+  /** 6.3 Complete Session — the modal is driven by two pieces of state:
+   *    `completeSessionChatId` — which chat's diff we're looking at (null
+   *       when the modal is closed)
+   *    `completeSessionPhase`  — the visual state the modal renders
+   *  Splitting phase out of chatId lets us open the modal in 'loading'
+   *  immediately on click, then transition to 'ready' / 'empty' once the
+   *  diff POST resolves, without closing/reopening. */
+  const [completeSessionChatId, setCompleteSessionChatId] = useState<string | null>(null);
+  const [completeSessionPhase, setCompleteSessionPhase] = useState<CompleteSessionPhase>({ kind: 'loading' });
   /** "Always allow" memory — session-only Set of "{kind}:{scope}" strings.
    *  Subsequent requests matching a stored entry skip the modal.
    *
@@ -797,6 +808,87 @@ export default function App() {
       });
     }, 5000);
   }, [chats, changes]);
+
+  /** 6.3: open the Complete Session modal and fetch the diff preview.
+   *  Entry point from TaskContextPanel's footer button. Computes
+   *  projectSlug + sessionFolder the same way `streamClaudeChat` does
+   *  (principle #9 — one slug flows from UI to git), POSTs to
+   *  /api/session/complete, and parks the response in `completeSessionPhase`
+   *  so the modal transitions from 'loading' to 'ready' / 'empty' / 'error-other'.
+   *  Modal stays open on error so the user sees the message; they close with
+   *  Cancel. */
+  const handleCompleteSession = useCallback(async (chatId: string) => {
+    const chat = chats.find(c => c.id === chatId);
+    if (!chat?.projectId || !chat.sessionFolder) return;
+    const project = projects.find(p => p.id === chat.projectId);
+    if (!project) return;
+    const projectSlug = slugify(project.name);
+
+    setCompleteSessionChatId(chatId);
+    setCompleteSessionPhase({ kind: 'loading' });
+
+    const result = await postSessionComplete(projectSlug, chat.sessionFolder);
+    // Defensive: the user may have closed the modal (or switched chats)
+    // while the POST was in flight. Drop the response if so — don't clobber
+    // whatever phase they're looking at now.
+    setCompleteSessionChatId(currentId => {
+      if (currentId !== chatId) return currentId;
+      if (result.ok) {
+        setCompleteSessionPhase(
+          result.files.length === 0
+            ? { kind: 'empty' }
+            : { kind: 'ready', files: result.files },
+        );
+      } else {
+        setCompleteSessionPhase({ kind: 'error-other', message: result.error });
+      }
+      return currentId;
+    });
+  }, [chats, projects]);
+
+  /** 6.3: user approved the diff — POST /api/session/merge and map the
+   *  response to the modal's success / not-ff / other-error phases. On
+   *  success we flip `chat.sessionCompleted` so the footer button permanently
+   *  disables (rolling back after a successful merge is out of Phase 6
+   *  scope) and auto-close the modal after a brief confirmation delay. */
+  const handleMergeSession = useCallback(async () => {
+    const chatId = completeSessionChatId;
+    if (!chatId) return;
+    const chat = chats.find(c => c.id === chatId);
+    if (!chat?.projectId || !chat.sessionFolder) return;
+    const project = projects.find(p => p.id === chat.projectId);
+    if (!project) return;
+    const projectSlug = slugify(project.name);
+
+    setCompleteSessionPhase({ kind: 'merging' });
+    const result = await postSessionMerge(projectSlug, chat.sessionFolder);
+
+    // Same in-flight guard as handleCompleteSession — modal may have been
+    // closed while the POST was landing.
+    setCompleteSessionChatId(currentId => {
+      if (currentId !== chatId) return currentId;
+      if (result.ok) {
+        setChats(prev => prev.map(c =>
+          c.id === chatId ? { ...c, sessionCompleted: true } : c,
+        ));
+        setCompleteSessionPhase({ kind: 'success', alreadyUpToDate: result.alreadyUpToDate });
+        // Auto-close after a beat so the user sees the ✅ land but the modal
+        // doesn't linger. Cleared below if the user closes it first.
+        window.setTimeout(() => {
+          setCompleteSessionChatId(inner => (inner === chatId ? null : inner));
+        }, 1800);
+      } else if (result.reason === 'not-ff') {
+        setCompleteSessionPhase({
+          kind: 'error-not-ff',
+          message: result.error,
+          cliCommand: result.cliCommand,
+        });
+      } else {
+        setCompleteSessionPhase({ kind: 'error-other', message: result.error });
+      }
+      return currentId;
+    });
+  }, [completeSessionChatId, chats, projects]);
 
   /** Open the PermissionPrompt modal and await the user's decision. Returns
    *  true on Allow / Always allow, false on Cancel. "Always allow" also
@@ -2345,6 +2437,18 @@ export default function App() {
                       folderMaterialized={activeChat?.folderMaterialized ?? false}
                       changes={activeChat ? changes[activeChat.id] : undefined}
                       onUndoChange={activeChat ? (id) => handleUndoChange(activeChat.id, id) : undefined}
+                      canCompleteSession={
+                        // 6.3 gate: project-owned + materialized. Legacy Phase 5
+                        // chats (no projectId) and pure-Q&A chats (no folder
+                        // ever materialized) never show the footer button.
+                        !!(activeChat?.projectId && activeChat?.folderMaterialized)
+                      }
+                      sessionCompleted={!!activeChat?.sessionCompleted}
+                      onCompleteSession={
+                        activeChat
+                          ? () => handleCompleteSession(activeChat.id)
+                          : undefined
+                      }
                     />
                   );
                 }
@@ -2504,6 +2608,19 @@ export default function App() {
           setPendingPermissions(prev => prev.slice(1));
         }}
       />
+
+      {/* 6.3: Complete Session modal. Controlled by completeSessionChatId —
+          null = modal closed. Phase drives the inner visual state (loading
+          → ready → merging → success/error). Close is a no-op during
+          loading/merging so a stray click can't leave the UI in a half-
+          applied state (the modal's own onCancel has the same guard). */}
+      {completeSessionChatId && (
+        <CompleteSessionModal
+          phase={completeSessionPhase}
+          onCancel={() => setCompleteSessionChatId(null)}
+          onMerge={handleMergeSession}
+        />
+      )}
 
     </div>
   );

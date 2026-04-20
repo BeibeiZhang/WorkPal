@@ -25,7 +25,7 @@ function resolveSessionFolder(
   folder: unknown,
 ): { ok: true; resolved: string } | { ok: false; reason: string } {
   if (typeof folder !== 'string' || folder.length === 0) {
-    return { ok: false, reason: 'sessionFolder is required' };
+    return { ok: false, reason: 'sessionFolder is required / sessionFolder 必填' };
   }
   // Node doesn't auto-expand `~`. Only strip the leading `~/` (or bare `~`) —
   // a mid-path tilde is treated as a literal directory name.
@@ -38,7 +38,11 @@ function resolveSessionFolder(
   // startsWith with a trailing separator ensures `/foo/WorkPalEvil` doesn't
   // slip past a naive `startsWith('/foo/WorkPal')` check.
   if (resolved !== WORKPAL_ROOT && !resolved.startsWith(WORKPAL_ROOT + sep)) {
-    return { ok: false, reason: 'sessionFolder must be under ~/WorkPal/' };
+    return {
+      ok: false,
+      reason:
+        'sessionFolder must be under ~/WorkPal/ / sessionFolder 必须在 ~/WorkPal/ 下',
+    };
   }
   return { ok: true, resolved };
 }

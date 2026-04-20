@@ -175,6 +175,14 @@ export interface Chat {
    *  the folder chip / inspector Folder card stay hidden to avoid suggesting
    *  a workspace that doesn't exist. */
   folderMaterialized?: boolean;
+  /** 6.3: flips to `true` after the user clicks Complete Session and the
+   *  backend successfully FF-merges the session branch into the project's
+   *  base branch. Permanently disables the Complete Session button for this
+   *  chat (the worktree + branch stay on disk until 6.5's reaper cleans them
+   *  up; re-merging the same session is always either a no-op or blocked
+   *  anyway). Optional so existing localStorage-persisted chats default to
+   *  "not completed" without a migration. */
+  sessionCompleted?: boolean;
 }
 
 export interface App {

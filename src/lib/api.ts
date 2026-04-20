@@ -182,6 +182,115 @@ export async function postUndoChange(
   }
 }
 
+/** 6.3: one row in the Complete Session diff preview. Mirrors the
+ *  server's `SessionDiffEntry`. `insertions`/`deletions` are `-1` for binary
+ *  files so the modal can render a dash in that column instead of a number. */
+export interface SessionDiffEntry {
+  path: string;
+  status: 'A' | 'M' | 'D';
+  insertions: number;
+  deletions: number;
+}
+
+/** 6.3: POST /api/session/complete — asks the backend to diff
+ *  `session/<slug>` against the project's base branch and return the file
+ *  list for the Complete Session modal. Does not merge anything. */
+export async function postSessionComplete(
+  projectSlug: string,
+  sessionFolder: string,
+): Promise<
+  | { ok: true; files: SessionDiffEntry[] }
+  | { ok: false; error: string }
+> {
+  try {
+    const res = await fetch('/api/session/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectSlug, sessionFolder }),
+    });
+    if (!res.ok) {
+      const payload = await res.json().catch(() => ({}));
+      const error =
+        typeof (payload as { error?: unknown }).error === 'string'
+          ? (payload as { error: string }).error
+          : `Complete Session failed (${res.status})`;
+      return { ok: false, error };
+    }
+    const payload = (await res.json()) as { files?: SessionDiffEntry[] };
+    return { ok: true, files: payload.files ?? [] };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : 'Network error',
+    };
+  }
+}
+
+/** 6.3: POST /api/session/merge — attempt `git merge --ff-only session/<slug>`
+ *  in the project base repo. The three outcomes map to:
+ *    • 200 → `{ok: true, commit, alreadyUpToDate}`
+ *    • 409 → `{ok: false, reason: 'not-ff', ...}` with a copyable CLI command
+ *    • 500 → `{ok: false, reason: 'other', ...}`
+ *
+ *  The CLI command for the non-FF path is browser-assembled here (not
+ *  returned from the server): both `sessionFolder` and the derived slug were
+ *  already validated on the way in, so reusing them keeps the string
+ *  grounded in the same trust boundary (shared decision D5 "frontend-
+ *  assembled from already-validated inputs"). `basename` isn't available in
+ *  the browser, so the slug is extracted with a plain `split`. */
+export async function postSessionMerge(
+  projectSlug: string,
+  sessionFolder: string,
+): Promise<
+  | { ok: true; commit: string; alreadyUpToDate: boolean }
+  | { ok: false; reason: 'not-ff'; error: string; cliCommand: string }
+  | { ok: false; reason: 'other'; error: string }
+> {
+  try {
+    const res = await fetch('/api/session/merge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectSlug, sessionFolder }),
+    });
+    if (res.ok) {
+      const payload = (await res.json()) as {
+        commit?: string;
+        alreadyUpToDate?: boolean;
+      };
+      return {
+        ok: true,
+        commit: payload.commit ?? '',
+        alreadyUpToDate: payload.alreadyUpToDate ?? false,
+      };
+    }
+    const payload = await res.json().catch(() => ({}));
+    const error =
+      typeof (payload as { error?: unknown }).error === 'string'
+        ? (payload as { error: string }).error
+        : `Merge failed (${res.status})`;
+    if (
+      res.status === 409 &&
+      (payload as { reason?: unknown }).reason === 'not-ff'
+    ) {
+      // Strip trailing `/sessions/<slug>/` to get the project folder path
+      // (lets us build `cd <projectPath> && git merge session/<slug>` without
+      // a separate API call). Capture group preserves the project path.
+      const trimmed = sessionFolder.replace(/\/+$/, '');
+      const slug = trimmed.split('/').pop() || '';
+      const projectPath = trimmed.replace(/\/sessions\/[^/]+$/, '');
+      const cliCommand = `cd ${projectPath} && git merge session/${slug}`;
+      return { ok: false, reason: 'not-ff', error, cliCommand };
+    }
+    return { ok: false, reason: 'other', error };
+  } catch (err) {
+    return {
+      ok: false,
+      reason: 'other',
+      error: err instanceof Error ? err.message : 'Network error',
+    };
+  }
+}
+
 /** 6.1: make sure `~/WorkPal/<projectSlug>/` exists and has a git repo with a
  *  baseline commit. Called fire-and-forget on project create (App.tsx's
  *  `handleCreateProject` / `handlePromoteToProject`) and on project open

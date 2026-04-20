@@ -1,6 +1,13 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { SESSION_BRANCH_RE } from './git.js';
+import {
+  mergeDiffOutputs,
+  NOT_FF_RE,
+  parseDiffNameStatus,
+  parseDiffNumstat,
+  SESSION_BRANCH_RE,
+  type SessionDiffEntry,
+} from './git.js';
 
 /** Run with: `cd server && npx tsx --test src/lib/git.test.ts`. No new deps —
  *  tsx is already in devDependencies, node:test is built in on Node 18+.
@@ -70,5 +77,177 @@ describe('SESSION_BRANCH_RE', () => {
       it(`${printable} (${why})`, () =>
         assert.equal(SESSION_BRANCH_RE.test(name), false, `expected reject: ${printable}`));
     }
+  });
+});
+
+/* ── 6.3 diff parsers ─────────────────────────────────────────────────────
+ * Run with: `cd server && npx tsx --test src/lib/git.test.ts`.
+ * These cover the parsers `diffSessionVsBase` depends on — the git subprocess
+ * side is exercised by the 9-case acceptance flow in
+ * docs/phase-6-requirements.md (principle #12 risk-routed). */
+
+describe('parseDiffNumstat', () => {
+  it('normal record', () => {
+    assert.deepEqual(parseDiffNumstat('5\t2\tsrc/foo.ts\0'), [
+      { path: 'src/foo.ts', insertions: 5, deletions: 2 },
+    ]);
+  });
+
+  it('multiple records', () => {
+    const out = parseDiffNumstat(
+      '5\t2\tsrc/foo.ts\0' +
+        '1\t0\tsrc/bar.ts\0' +
+        '0\t3\tsrc/baz.ts\0',
+    );
+    assert.equal(out.length, 3);
+    assert.deepEqual(out[2], { path: 'src/baz.ts', insertions: 0, deletions: 3 });
+  });
+
+  it('binary files get -1 sentinels', () => {
+    assert.deepEqual(parseDiffNumstat('-\t-\timages/logo.png\0'), [
+      { path: 'images/logo.png', insertions: -1, deletions: -1 },
+    ]);
+  });
+
+  it('empty input → empty array', () => {
+    assert.deepEqual(parseDiffNumstat(''), []);
+  });
+
+  it('CJK path passes through untouched', () => {
+    assert.deepEqual(parseDiffNumstat('3\t1\t你好/文件.md\0'), [
+      { path: '你好/文件.md', insertions: 3, deletions: 1 },
+    ]);
+  });
+
+  it('spaces in path', () => {
+    assert.deepEqual(parseDiffNumstat('1\t0\tmy notes/a b.txt\0'), [
+      { path: 'my notes/a b.txt', insertions: 1, deletions: 0 },
+    ]);
+  });
+
+  it('malformed record dropped without throwing', () => {
+    const out = parseDiffNumstat('5\t2\ta.txt\0garbage\0');
+    assert.equal(out.length, 1);
+    assert.equal(out[0].path, 'a.txt');
+  });
+
+  it('non-numeric counts dropped', () => {
+    assert.deepEqual(parseDiffNumstat('x\ty\tbad.txt\0'), []);
+  });
+});
+
+describe('parseDiffNameStatus', () => {
+  it('A / M / D basic', () => {
+    assert.deepEqual(
+      parseDiffNameStatus('M\0a.txt\0A\0b.txt\0D\0c.txt\0'),
+      [
+        { path: 'a.txt', status: 'M' },
+        { path: 'b.txt', status: 'A' },
+        { path: 'c.txt', status: 'D' },
+      ],
+    );
+  });
+
+  it('empty input → empty array', () => {
+    assert.deepEqual(parseDiffNameStatus(''), []);
+  });
+
+  it('CJK path passes through untouched', () => {
+    assert.deepEqual(parseDiffNameStatus('A\0你好/文件.md\0'), [
+      { path: '你好/文件.md', status: 'A' },
+    ]);
+  });
+
+  it('T (type change) surfaces as M', () => {
+    // --no-renames blocks R/C, but T can still appear for file↔symlink.
+    // Fallback bucket is 'M' — closest user-intuitive meaning.
+    assert.deepEqual(parseDiffNameStatus('T\0link.sh\0'), [
+      { path: 'link.sh', status: 'M' },
+    ]);
+  });
+
+  it('trailing NUL(s) ignored', () => {
+    assert.deepEqual(parseDiffNameStatus('A\0a.txt\0\0'), [
+      { path: 'a.txt', status: 'A' },
+    ]);
+  });
+
+  it('truncated stream (status with no path) dropped', () => {
+    assert.deepEqual(parseDiffNameStatus('A\0a.txt\0M\0'), [
+      { path: 'a.txt', status: 'A' },
+    ]);
+  });
+});
+
+describe('mergeDiffOutputs', () => {
+  it('correlates by path', () => {
+    const merged = mergeDiffOutputs(
+      [
+        { path: 'a.txt', status: 'A' },
+        { path: 'b.txt', status: 'D' },
+      ],
+      [
+        { path: 'a.txt', insertions: 3, deletions: 0 },
+        { path: 'b.txt', insertions: 0, deletions: 5 },
+      ],
+    );
+    assert.deepEqual<SessionDiffEntry[]>(merged, [
+      { path: 'a.txt', status: 'A', insertions: 3, deletions: 0 },
+      { path: 'b.txt', status: 'D', insertions: 0, deletions: 5 },
+    ]);
+  });
+
+  it('status missing falls back to M', () => {
+    assert.deepEqual(
+      mergeDiffOutputs([], [{ path: 'a.txt', insertions: 1, deletions: 0 }]),
+      [{ path: 'a.txt', status: 'M', insertions: 1, deletions: 0 }],
+    );
+  });
+
+  it('stat-less status still surfaces with 0/0', () => {
+    assert.deepEqual(
+      mergeDiffOutputs([{ path: 'untouched.txt', status: 'D' }], []),
+      [{ path: 'untouched.txt', status: 'D', insertions: 0, deletions: 0 }],
+    );
+  });
+
+  it('both empty → empty', () => {
+    assert.deepEqual(mergeDiffOutputs([], []), []);
+  });
+});
+
+describe('NOT_FF_RE', () => {
+  it('matches "Not possible to fast-forward, aborting."', () => {
+    assert.ok(
+      NOT_FF_RE.test('fatal: Not possible to fast-forward, aborting.\n'),
+    );
+  });
+
+  it('matches "Not a fast-forward"', () => {
+    assert.ok(NOT_FF_RE.test('fatal: Not a fast-forward\n'));
+  });
+
+  it('matches "non-fast-forward"', () => {
+    assert.ok(
+      NOT_FF_RE.test(
+        '! [rejected]        main -> main (non-fast-forward)',
+      ),
+    );
+  });
+
+  it('matches "refusing to merge unrelated histories"', () => {
+    assert.ok(
+      NOT_FF_RE.test('fatal: refusing to merge unrelated histories\n'),
+    );
+  });
+
+  it('case-insensitive', () => {
+    assert.ok(NOT_FF_RE.test('FATAL: NON-FAST-FORWARD'));
+  });
+
+  it('rejects unrelated errors', () => {
+    assert.equal(NOT_FF_RE.test('fatal: not a git repository\n'), false);
+    assert.equal(NOT_FF_RE.test("error: pathspec 'foo' did not match\n"), false);
+    assert.equal(NOT_FF_RE.test('fatal: index file corrupt\n'), false);
   });
 });
