@@ -1,6 +1,7 @@
 import { File, MessageCircle, FilePlus2, FilePen, FileMinus2, GitMerge, Undo2, ShieldOff, CheckCircle2 } from 'lucide-react';
 import { SideCard, SidePanelHeader, TertiaryButton } from './shared';
 import type { ChangeEntry, ChangeKind } from '../types';
+import { IS_DEMO, IS_CLAUDE_CODE_AVAILABLE } from '../lib/demoMode';
 
 /* ── Types ───────────────────────────────────────────── */
 
@@ -379,18 +380,31 @@ export default function TaskContextPanel({
           Phase 5 legacy chats and pure-Q&A chats don't render a footer at
           all. Already-completed chats keep the footer but disable the
           button — rolling back after a successful merge is intentionally
-          not part of Phase 6 scope (principle #2 subtract). */}
-      {canCompleteSession && (
+          not part of Phase 6 scope (principle #2 subtract).
+
+          Deployment-aware tri-state (candidate #2):
+            • localhost (IS_CLAUDE_CODE_AVAILABLE): normal behavior
+            • demo Vercel (IS_DEMO): visible but disabled + bilingual title
+              tooltip — HRs see the capability, can't invoke it
+            • self-use Vercel (!IS_DEMO && !IS_CLAUDE_CODE_AVAILABLE):
+              footer hidden entirely — Beibei's external deployment can't
+              run the SDK either, so don't dangle a dead button */}
+      {canCompleteSession && (IS_CLAUDE_CODE_AVAILABLE || IS_DEMO) && (
         <div
           className="shrink-0 px-3 pb-4 pt-2 border-t"
           style={{ borderColor: 'var(--color-stroke-outline)' }}
+          title={
+            IS_DEMO
+              ? 'Demo mode — session execution disabled / Demo 模式 —— 会话执行已禁用'
+              : undefined
+          }
         >
           <TertiaryButton
             onClick={() => {
-              if (sessionCompleted) return;
+              if (sessionCompleted || IS_DEMO) return;
               onCompleteSession?.();
             }}
-            disabled={sessionCompleted}
+            disabled={sessionCompleted || IS_DEMO}
             fullWidth
           >
             <span className="flex items-center gap-2">

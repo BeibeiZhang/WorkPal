@@ -1,4 +1,6 @@
 import type { MemoryEntry, MemoryKind } from '../types';
+import { IS_DEMO } from './demoMode';
+import { DEMO_MEMORIES } from '../data/demo/memories';
 
 const STORAGE_KEY = 'workpal-memories-v1';
 
@@ -39,8 +41,13 @@ function seedMemories(): MemoryEntry[] {
 
 /** Synchronous bootstrap from localStorage cache, so the Memory page has
  *  something to show before the network fetch resolves. The cache is
- *  refreshed by saveMemoriesCache() whenever the server responds. */
+ *  refreshed by saveMemoriesCache() whenever the server responds.
+ *
+ *  Demo mode: ignore any persisted cache and return the canonical demo
+ *  seed so visitors always land on the same read-only snapshot, regardless
+ *  of what was in their localStorage from a previous real deployment. */
 export function loadMemoriesCache(): MemoryEntry[] {
+  if (IS_DEMO) return DEMO_MEMORIES;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -52,6 +59,10 @@ export function loadMemoriesCache(): MemoryEntry[] {
 }
 
 export function saveMemoriesCache(memories: MemoryEntry[]) {
+  // Principle #6 lazy-clean: don't leave demo snapshots in localStorage so a
+  // visitor who later runs the real app on the same browser doesn't inherit
+  // stale demo data.
+  if (IS_DEMO) return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(memories));
   } catch { /* quota exceeded — silently drop */ }
@@ -73,12 +84,18 @@ async function handleResponse<T>(res: Response): Promise<T> {
 }
 
 export async function fetchMemoriesFromServer(): Promise<MemoryEntry[]> {
+  // Demo mode: the `workpal` Vercel project has no SUPABASE_* / MEMORY_PASSWORD
+  // env vars, so the backend endpoint would return a config error. Short-
+  // circuit with the canonical demo seed — principle #6, don't init the
+  // client we're never going to use.
+  if (IS_DEMO) return DEMO_MEMORIES;
   const res = await fetch('/api/memories');
   const data = await handleResponse<{ memories: MemoryEntry[] }>(res);
   return data.memories;
 }
 
 export async function verifyPassword(password: string): Promise<boolean> {
+  if (IS_DEMO) return false;
   try {
     const res = await fetch('/api/memories/verify', {
       method: 'POST',
@@ -92,6 +109,7 @@ export async function verifyPassword(password: string): Promise<boolean> {
 }
 
 export async function createMemoryOnServer(entry: MemoryEntry, password: string): Promise<MemoryEntry> {
+  if (IS_DEMO) throw new Error('Memory is read-only in demo mode');
   const res = await fetch('/api/memories', {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-memory-password': password },
@@ -106,6 +124,7 @@ export async function updateMemoryOnServer(
   patch: Partial<MemoryEntry>,
   password: string,
 ): Promise<MemoryEntry> {
+  if (IS_DEMO) throw new Error('Memory is read-only in demo mode');
   const res = await fetch(`/api/memories/${encodeURIComponent(id)}`, {
     method: 'PUT',
     headers: { 'content-type': 'application/json', 'x-memory-password': password },
@@ -116,6 +135,7 @@ export async function updateMemoryOnServer(
 }
 
 export async function deleteMemoryOnServer(id: string, password: string): Promise<void> {
+  if (IS_DEMO) throw new Error('Memory is read-only in demo mode');
   const res = await fetch(`/api/memories/${encodeURIComponent(id)}`, {
     method: 'DELETE',
     headers: { 'x-memory-password': password },

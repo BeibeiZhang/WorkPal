@@ -4,8 +4,10 @@
  * Single source of truth — used by both app pages and the Design System page.
  * Update a component here → it updates everywhere in the app.
  */
-import { AlertTriangle, ArrowLeft, BadgeCheck, Check, ChevronDown, ChevronRight, Clock, FileText, Mail, PanelLeft, PanelRight, Ticket, Play, Plus, Search, Send, Smile, SquarePen, Timer, User, Sparkles, X, XCircle, type LucideIcon } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, BadgeCheck, Check, ChevronDown, ChevronRight, Clock, FileText, Info, Mail, PanelLeft, PanelRight, Ticket, Play, Plus, Search, Send, Smile, SquarePen, Timer, User, Sparkles, X, XCircle, type LucideIcon } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { IS_DEMO } from '../lib/demoMode';
 
 /* ─── 0a. HeaderBar ───
  * Canonical top toolbar. Renders the sidebar-toggle button (when the sidebar
@@ -35,7 +37,11 @@ export function HeaderBar({
   headerRight?: ReactNode;
   onNewChat?: () => void;
 }) {
-  const hasRight = onNewChat || headerRight;
+  // DemoBadge auto-renders on the demo deployment. Placed here in HeaderBar
+  // so every page that routes through `HeaderBar` (directly or via
+  // PageLayout) picks it up without per-page plumbing — and `hasRight`
+  // flips true even if the page has no other right-side content.
+  const hasRight = onNewChat || headerRight || IS_DEMO;
   return (
     <div className="flex items-center gap-4 px-4 pt-6 shrink-0">
       {!sidebarOpen && onToggleSidebar && (
@@ -50,6 +56,7 @@ export function HeaderBar({
       {headerLeft}
       {hasRight && (
         <div className="ml-auto flex items-center gap-2">
+          {IS_DEMO && <DemoBadge />}
           {onNewChat && (
             <button
               onClick={onNewChat}
@@ -63,6 +70,112 @@ export function HeaderBar({
         </div>
       )}
     </div>
+  );
+}
+
+/* ─── 0c. DemoBadge ───
+ * Small bilingual "Demo / 体验版" pill — only rendered when IS_DEMO is true.
+ * Click opens a modal explaining what's mocked vs. real on the demo
+ * deployment. Intentionally no visible footprint outside demo mode (real
+ * users and localhost dev see nothing).
+ */
+export function DemoBadge() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label="About this demo / 关于此体验版"
+        className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full text-[12px] font-medium chip-gradient-hover transition-colors text-text-primary"
+        style={{ border: '1px solid var(--color-stroke-outline)' }}
+      >
+        <span>Demo / 体验版</span>
+        <Info size={13} className="text-text-secondary" />
+      </button>
+      <DemoExplainerModal open={open} onClose={() => setOpen(false)} />
+    </>
+  );
+}
+
+/* Bilingual modal opened by DemoBadge. Kept inline with the badge so callers
+ * that import DemoBadge don't need a second import to render the modal. */
+function DemoExplainerModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div
+        className="relative w-[460px] max-w-[90vw] rounded-[12px] p-7 shadow-2xl"
+        style={{ background: 'var(--color-bg-page)', border: '1px solid var(--color-stroke-outline)' }}
+      >
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full hover:bg-bg-hover transition-colors"
+        >
+          <X size={18} className="text-text-primary" />
+        </button>
+
+        <div className="flex items-center gap-3 mb-4">
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+            style={{ background: 'var(--color-bg-message)' }}
+          >
+            <Info size={18} className="text-text-primary" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-[16px] font-semibold text-text-primary leading-tight">
+              About this demo / 关于此体验版
+            </h2>
+            <p className="text-[13px] text-text-secondary leading-tight mt-0.5">
+              Shared build for interviewers — no real data. / 仅供面试分享,无真实数据。
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 text-[13px] text-text-primary leading-relaxed">
+          <div>
+            <div className="font-medium mb-1">What works / 可用功能</div>
+            <ul className="list-disc pl-5 text-text-secondary space-y-0.5">
+              <li>Chat, voice, web / image / video search</li>
+              <li>聊天、语音、网页 / 图片 / 视频搜索</li>
+            </ul>
+          </div>
+          <div>
+            <div className="font-medium mb-1">What's mocked / 模拟功能</div>
+            <ul className="list-disc pl-5 text-text-secondary space-y-0.5">
+              <li>Gmail / Calendar: seed data only, no real OAuth</li>
+              <li>Gmail / 日历:仅示例数据,不走真实 OAuth</li>
+              <li>Memory: read-only seed, not connected to Supabase</li>
+              <li>记忆:只读示例,不连 Supabase</li>
+              <li>Claude Code file edits: runs locally only</li>
+              <li>Claude Code 文件编辑:仅本地可用</li>
+            </ul>
+          </div>
+          <div className="text-text-secondary">
+            Source /{' '}
+            <a
+              href="https://github.com/BeibeiZhang/WorkPal"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-text-primary"
+            >
+              github.com/BeibeiZhang/WorkPal
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }
 

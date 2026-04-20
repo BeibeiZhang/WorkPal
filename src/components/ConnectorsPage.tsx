@@ -4,6 +4,8 @@ import { iconAsana, iconGmail, iconZoom, iconDoc20, iconSheet } from '../assets'
 import { FilterChip, ConnectorCard, SecondaryButton, PageLayout, SearchBox } from './shared';
 import { fetchConnectors, connectMock, disconnect, googleAuthStartUrl, ConnectorAuthError } from '../lib/connectors';
 import { useMemoryAuth } from '../lib/useMemoryAuth';
+import { IS_DEMO } from '../lib/demoMode';
+import { DEMO_CONNECT_LABEL, DEMO_CONNECTED_LABEL } from '../data/demo/connectors';
 
 /* ─── Connector data ─── */
 interface Connector {
@@ -108,6 +110,10 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar, onNewChat
   const { ensurePassword, passwordModal } = useMemoryAuth();
 
   const refresh = useCallback(async () => {
+    // Demo mode: no server, statusMap is driven entirely by local clicks.
+    // Skipping the fetch also avoids a noisy 500 in the console when the
+    // backend has no Supabase creds configured.
+    if (IS_DEMO) return;
     try {
       const list = await fetchConnectors();
       const next: Record<string, 'connected' | 'disconnected'> = {};
@@ -186,6 +192,17 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar, onNewChat
   }, [refresh]);
 
   const handleConnect = useCallback(async (id: string) => {
+    // Demo mode: flip local state after a short spinner, no OAuth popup and
+    // no password prompt. Neither path can succeed against the Vercel demo
+    // project (no GOOGLE_*, no MEMORY_PASSWORD), so short-circuiting keeps
+    // HRs out of dead-end flows.
+    if (IS_DEMO) {
+      setIsConnecting(id, true);
+      await new Promise((r) => setTimeout(r, 500));
+      setStatusMap((prev) => ({ ...prev, [id]: 'connected' }));
+      setIsConnecting(id, false);
+      return;
+    }
     if (OAUTH_IDS.has(id)) {
       await openGoogleOAuth(id as 'gmail' | 'google-cal');
       return;
@@ -217,6 +234,10 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar, onNewChat
   }, [ensurePassword, openGoogleOAuth, refresh]);
 
   const handleDisconnect = useCallback(async (id: string) => {
+    if (IS_DEMO) {
+      setStatusMap((prev) => ({ ...prev, [id]: 'disconnected' }));
+      return;
+    }
     let password: string;
     try {
       password = await ensurePassword({
@@ -261,6 +282,8 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar, onNewChat
       onConnect={() => void handleConnect(c.id)}
       onDisconnect={() => void handleDisconnect(c.id)}
       logo={<BrandLogo id={c.id} name={c.name} domain={c.domain} />}
+      connectLabel={IS_DEMO ? DEMO_CONNECT_LABEL : undefined}
+      connectedLabel={IS_DEMO ? DEMO_CONNECTED_LABEL : undefined}
     />
   );
 
