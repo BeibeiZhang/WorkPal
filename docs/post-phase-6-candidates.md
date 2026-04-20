@@ -65,52 +65,67 @@ Living backlog of what might come after Phase 6 (shipped 2026-04-20). Each item 
 
 ---
 
-## 3. `decided-next` — Bay Area weekend digest as shareable webpage
+## 3. `decided-next` — Artifact generation capability (first template: Bay Area weekend)
 
-**Unblocked 2026-04-20**: earlier blocked on #5 deployment shape. New product vision collapses the dependency — everything runs on Vercel serverless (Cron + SSR + Supabase), no local runtime needed.
+**Unblocked 2026-04-20**, re-scoped 2026-04-20 after vision discussion with Beibei. Supersedes earlier "fixed Bay Area weekend digest" framing (see commit `f9ea7f1`).
 
-**Product vision**: every Thursday night, a Vercel Cron generates a curated "this weekend in the Bay Area" webpage. Beibei opens Overview → sees a card with the latest edition's cover → either skims in-app or copies the public URL to share with friends / family. Each week gets its own permalinked URL.
+**Actual vision** (2026-04-20):
+
+> "这是一个案例。通过这个案例,以后我可以直接跟 WorkPal 说写这样的周报。"
+
+WorkPal gains a **generic "artifact" primitive**. User asks in chat — e.g. "写个 SF 美食周刊" or "给我生成湾区科技活动月报" — and WorkPal:
+1. Intent-routes the prompt to the artifact pipeline
+2. Backend runs Tavily web search + OpenAI to generate structured content (both EN + 中文)
+3. Writes an `artifacts` row to Supabase
+4. Returns a public shareable URL `/artifact/<slug>`
+
+Each new **kind** of digest is a **template** (config / prompt variant), not a new engineering feature. Bay Area weekend digest ships as the **first template** alongside the primitive.
 
 **Scope (locked 2026-04-20)**:
-- **Geographic scope**: SF + entire Bay Area (East Bay / Peninsula / South Bay)
-- **4 categories**: 节日 festivals / 活动 events / 展览 exhibitions / 集市 markets & fairs
-- **~3–5 items per category** (~12–20 total)
-- **Per item**: multiple images, location, price, date/time, official URL
-- **Public URL**: `workpal-beibei.vercel.app/bay-area-weekend/<ISO-week>` — readable without login, share-friendly (Open Graph preview, social-embed metadata)
-- **Overview card**: latest edition's cover image + title + "N spots this weekend" label + click-through
-- **Bilingual page (page-local, NOT full-app i18n)**: cron runs OpenAI twice (EN + 中文) at write time, stores both copies in Supabase. Page has EN/中 toggle top-right. Rest of WorkPal stays as-is (#4 still parked).
-- **Trigger**: Vercel Cron `0 20 * * 4` Pacific Time (Thursday 8pm PT)
-- **Data source**: Tavily web search + OpenAI for structuring, image-picking, translation. No external API integrations (Eventbrite / Funcheap / Meetup) in v1 — add as follow-up if Tavily quality disappoints.
 
-**Architecture**:
-- New Supabase table `bay_area_digests` (public-readable via RLS, write via service role from cron only)
-- New backend route `POST /api/digests/generate` — cron entry, fetches + structures + translates + writes row. Idempotent on ISO-week key.
-- New backend route `GET /api/digests/:week` + `GET /api/digests/latest` — frontend data source
-- New frontend route `/bay-area-weekend/:week` — React SPA, client-fetches data, renders digest with EN/中 toggle
-- Overview page gains a `WeekendDigestCard` that calls `/api/digests/latest`
+- **Primitive endpoint: `POST /api/artifacts/generate`** — accepts `{ templateId, topic?, lang?, weekKey? }`. Runs Tavily + OpenAI, writes artifact row, returns `{ id, slug, url }`. Used by **both** chat-initiated and cron-initiated generation.
+- **Supabase**: `artifacts` table (public-readable RLS, service-role write); `artifact_subscriptions` table (`{ templateId, scheduleCron, lastRunAt, enabled }`) for recurring. Impl proposes final schema in change list.
+- **Public route**: `/artifact/:slug` — standalone page, public read (no login), OG metadata for share preview, EN/中 toggle top-right. No WorkPal nav shell — meant to look like a standalone webpage when shared.
+- **Chat intent routing**: `intentRouter.ts` gains `shouldGenerateArtifact(text)` — bilingual keywords: `周报 / 周刊 / 月报 / digest / newsletter / guide / weekly / write-up`. Follows the same keyword-heuristic pattern as `shouldUseClaudeCode`. Bilingual day 1 (principle #8).
+- **First template: `bay-area-weekend`**:
+  - 4 categories: 节日 festivals / 活动 events / 展览 exhibitions / 集市 markets & fairs
+  - 3–5 items per category (~12–20 total)
+  - Per item: ≥1 image, location, price, date/time, official URL
+  - Tavily query templates hard-coded for this template
+- **Recurring via cron**: Vercel Cron `0 20 * * 4` Pacific Time (Thursday 8pm PT) → sweeps `artifact_subscriptions WHERE enabled` → POSTs `/api/artifacts/generate` for each. Ships with one seed row (`templateId='bay-area-weekend'`).
+- **Overview card**: `LatestArtifactCard` queries latest `bay-area-weekend` artifact → cover image + title + "N spots this weekend" → click-through to the artifact URL. When more templates exist, card can generalize; v1 pins to weekend digest.
+- **Bilingual page (page-local, NOT full-app i18n)**: cron runs OpenAI twice (EN + 中), stores both under `content_en` / `content_zh`. Toggle switches between stored copies at render. #4 full-app i18n still parked.
+- **Data source**: Tavily + OpenAI only. No external API integrations (Eventbrite / Funcheap / Meetup) in v1.
 
 **Non-goals for v1** (impl should not scope-creep):
-- Push notifications / email (just in-app card + URL)
-- Historical archive browser (URLs discoverable by week, no index page)
-- Editorial override UI (whatever OpenAI generates ships — impl self-tests output quality)
-- Custom location / distance / preference filters
-- User-contributed events
+- Template authoring UI (new templates = new code; user-defined templates is a later candidate)
+- Email / push delivery
+- Artifact archive / browsing UI
+- Editorial override UI
+- Non-weekly recurring schedules (schema supports, UI doesn't expose)
+- Multi-user sharing permissions
+- Chat-side inline preview of the generated artifact (v1: chat returns the URL as a card)
 
 **Open for impl change-list**:
-- Exact Supabase schema (JSONB column per category? separate rows per item?)
-- EN/中 toggle UX — URL param `?lang=zh` vs stateful button vs both
-- Image hosting — Tavily returns URLs, re-host via Supabase storage or serve the original domains?
-- Cron retry / failover policy if Tavily returns weak results
-- Overview card placement (above / below existing cards?)
-- Open Graph metadata strategy (static or per-digest)
+- Exact `artifacts` + `artifact_subscriptions` schema (content stored as flat JSONB vs. relational item rows? status enum?)
+- Slug strategy: `<templateId>-<weekKey>` for recurring vs. `<topic-slug>-<shortid>` for ad-hoc chat-initiated
+- How a chat-initiated artifact surfaces in the chat: card with URL? auto-open in a side panel? both?
+- Image hosting: Tavily returns URLs — serve originals vs. re-host via Supabase storage
+- Idempotency: POST `/generate` with same `(templateId, weekKey)` → return existing vs. regenerate
+- Cron retry / failover if Tavily returns weak results
+- OG metadata strategy (static vs. per-artifact)
+- `intentRouter` keyword list and disambiguation (must NOT trigger on every "write a summary" chat)
+- Overview card placement
 
-**Effort**: 3–5 days.
+**Effort**: 5–7 days.
 
-**Risk classification**: **medium**. Planning session will live-test:
-- Public URL in incognito (no login, readable, OG preview renders on share)
-- EN/中 toggle doesn't leak the other language's copy
-- Cron route idempotent (POST twice same week → no duplicates)
+**Risk classification**: **medium**. Planning live-tests:
+- Chat-initiated flow ("写个 SF 美食周报" → intent routed → returns URL → URL opens a valid artifact)
+- Cron-initiated flow (trigger sweep manually → new Bay Area weekend row written)
+- Public URL in incognito (no login, OG preview renders, EN/中 toggle works)
+- `POST /api/artifacts/generate` idempotent on `(templateId, weekKey)`
 - Overview card reads latest, not stale
+- Non-weekend keywords in chat don't spuriously trigger artifact generation
 
 ---
 
