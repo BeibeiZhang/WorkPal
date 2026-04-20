@@ -570,18 +570,9 @@ function AgentCardView({ card, onAction }: { card: AgentCard; onAction?: (a: str
     }
   };
 
-  // Gradient icon for card header
+  // WorkPal brand logo for card header
   const gradientIcon = (
-    <div
-      className="w-5 h-5 shrink-0 rounded-full overflow-hidden flex items-center justify-center"
-      style={{
-        backgroundImage: 'linear-gradient(64deg, #7652B9 3%, #B46470 36%, #CA9D8C 80%)',
-      }}
-    >
-      <svg width="14" height="8" viewBox="0 0 18 10" fill="none">
-        <path d="M1 1L4.5 9L9 3L13.5 9L17 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </div>
+    <img src="/favicon.svg" alt="WorkPal" className="w-5 h-5 shrink-0" />
   );
 
   // Creating state: header + progress bar
