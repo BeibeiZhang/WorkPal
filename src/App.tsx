@@ -14,7 +14,7 @@ import LibraryPage from './components/LibraryPage';
 import MemoryPage from './components/MemoryPage';
 import NewProjectDialog from './components/NewProjectDialog';
 import { SplitView } from './components/shared';
-import { Chat, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleCard, ImageResult, VideoResult, WebResult, MemoryEntry, MemoryKind, CardData, ChangeEntry, ChangeKind, PermissionRequest } from './types';
+import { Chat, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleCard, ImageResult, VideoResult, WebResult, MemoryEntry, MemoryKind, CardData, ChangeEntry, ChangeKind, PermissionRequest, OutputItem } from './types';
 import PermissionPrompt from './components/PermissionPrompt';
 import CompleteSessionModal, { type CompleteSessionPhase } from './components/CompleteSessionModal';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
@@ -22,9 +22,10 @@ import { INITIAL_CHATS } from './data';
 import { DEMO_EXTRA_CHATS, DEMO_EXTRA_CHAT_IDS } from './data/demo/chats';
 import { DEMO_CHANGES_ALCOHOL } from './data/demo/changes';
 import { IS_DEMO, IS_CLAUDE_CODE_AVAILABLE } from './lib/demoMode';
-import { postClaudePermissionDecision, postInitProject, postOpenFolder, postReaperRun, postSessionComplete, postSessionMerge, postUndoChange, streamChat, streamClaudeChat } from './lib/api';
+import { postClaudePermissionDecision, postInitProject, postOpenFile, postOpenFolder, postReaperRun, postSessionComplete, postSessionMerge, postUndoChange, streamChat, streamClaudeChat } from './lib/api';
 import { shouldUseClaudeCode } from './lib/intentRouter';
 import { buildAttachmentContextBlock, buildImageDescriptionBlock } from './lib/attachments';
+import { artifactFromClaudePath, outputTypeFromPath } from './lib/artifacts';
 import {
   loadMemoriesCache,
   saveMemoriesCache,
@@ -1270,6 +1271,12 @@ export default function App() {
 
     try {
       let fullContent = '';
+      // Per-request lookup: tool_use id → absolute file path. Populated when a
+      // file-write tool_use arrives (so we have the path in hand), read back
+      // on tool_result.isError (to unpin the optimistic chat-bubble
+      // ArtifactCard) and on `commit` (to append the file to the project's
+      // Output grid). Closure-local — no cross-request bleed.
+      const toolUsePaths = new Map<string, string>();
       for await (const chunk of streamClaudeChat({
         prompt: userText,
         sessionId: chatId,
@@ -1302,6 +1309,31 @@ export default function App() {
             setChats(prev => prev.map(c =>
               c.id === chatId && !c.folderMaterialized ? { ...c, folderMaterialized: true } : c
             ));
+            // Push an ArtifactCard onto the streaming assistant message so
+            // the file is visible inline as soon as the write is requested.
+            // De-dup by path — a later Edit on the same file shouldn't add a
+            // second card. If the tool_result comes back with isError, the
+            // matching branch below removes this card again.
+            const inp = chunk.input && typeof chunk.input === 'object'
+              ? (chunk.input as Record<string, unknown>)
+              : {};
+            const filePath = typeof inp.file_path === 'string' ? inp.file_path : '';
+            if (filePath) {
+              toolUsePaths.set(chunk.id, filePath);
+              const artifact = artifactFromClaudePath(filePath);
+              setChats(prev => prev.map(c => {
+                if (c.id !== chatId) return c;
+                return {
+                  ...c,
+                  messages: c.messages.map(m => {
+                    if (m.id !== assistantId) return m;
+                    const existing = m.artifacts || [];
+                    if (existing.some(a => a.path === filePath)) return m;
+                    return { ...m, artifacts: [...existing, artifact] };
+                  }),
+                };
+              }));
+            }
           }
           // Defensive: if the SDK ever emits a tool_use without an id, fall back
           // to a unique synthetic id so this step doesn't mass-match any later
@@ -1332,6 +1364,25 @@ export default function App() {
               if (filtered.length === list.length) return prev;
               return { ...prev, [chatId]: filtered };
             });
+            // Matching ArtifactCard cleanup — if this tool_use had pushed a
+            // card onto the assistant message, pull it back out so the user
+            // doesn't see a pill for a write that didn't land.
+            const failedPath = toolUsePaths.get(chunk.toolUseId);
+            if (failedPath) {
+              toolUsePaths.delete(chunk.toolUseId);
+              setChats(prev => prev.map(c => {
+                if (c.id !== chatId) return c;
+                return {
+                  ...c,
+                  messages: c.messages.map(m => {
+                    if (m.id !== assistantId || !m.artifacts) return m;
+                    const next = m.artifacts.filter(a => a.path !== failedPath);
+                    if (next.length === m.artifacts.length) return m;
+                    return { ...m, artifacts: next };
+                  }),
+                };
+              }));
+            }
           }
         } else if (chunk.type === 'commit') {
           // 5.5: server auto-committed this file-write's disk state. Stamp the
@@ -1339,6 +1390,26 @@ export default function App() {
           // Ordering: this chunk always arrives AFTER the tool_result for the
           // same toolUseId, so the Change entry reliably exists by now.
           stampCommit(chatId, chunk.toolUseId, chunk.commit);
+          // If this chat lives under a project, promote the committed file
+          // into the project's Output grid. De-dup by filename — re-editing
+          // the same file shouldn't produce a duplicate output card. Persists
+          // through saveProjects on the effect below.
+          const committedPath = toolUsePaths.get(chunk.toolUseId);
+          if (committedPath && chat?.projectId) {
+            const name = basename(committedPath);
+            const type = outputTypeFromPath(committedPath);
+            setProjects(prev => prev.map(p => {
+              if (p.id !== chat.projectId) return p;
+              const existing = p.outputs || [];
+              if (existing.some(o => o.name === name)) return p;
+              const entry: OutputItem = {
+                id: `output-${chunk.toolUseId}`,
+                name,
+                type,
+              };
+              return { ...p, outputs: [...existing, entry] };
+            }));
+          }
         } else if (chunk.type === 'permission_request') {
           // 5.4d bridge: server parked a SDK canUseTool resolver under
           // chunk.requestId. If the user has already granted "Always allow"
@@ -2608,6 +2679,12 @@ export default function App() {
                 // ChatPanel passes this through to its FolderChip; the chip
                 // also keeps a shift+click shortcut for copy-to-clipboard.
                 onOpenFolder={postOpenFolder}
+                // Click on an inline artifact pill → open the file in its
+                // default app (`.html` → default browser on macOS). Hosted
+                // artifacts (#3) carry their own `href` and skip this handler.
+                onArtifactClick={(artifact) => {
+                  if (artifact.path) void postOpenFile(artifact.path);
+                }}
                 onCardAction={(action, card, messageId) => {
                   if (action === 'view-report') {
                     setDetailCard(card ?? null);

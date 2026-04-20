@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo, type MouseEvent } from 'react';
 import { PanelRight, FolderClosed, Check } from 'lucide-react';
-import { Chat, Message, ActionChip, Attachment, ImageResult, VideoResult, WebResult, CardData } from '../types';
+import { Chat, Message, ActionChip, Attachment, ImageResult, VideoResult, WebResult, CardData, ArtifactRef } from '../types';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import VoiceMode from './VoiceMode';
@@ -95,6 +95,10 @@ interface ChatPanelProps {
    *  traversal-checked there). Optional so static previews can render the chip
    *  without a live handler. */
   onOpenFolder?: (path: string) => void | Promise<unknown>;
+  /** Click on an artifact card under an assistant message (Claude-Code
+   *  file write). App wires this to POST the open-file endpoint so the OS
+   *  opens the file in its default app (HTML → default browser). */
+  onArtifactClick?: (artifact: ArtifactRef) => void | Promise<unknown>;
 }
 
 const WELCOME_CHIPS = ['Create performance goals', 'Analyze doc(s)', 'Visualize data'];
@@ -266,6 +270,7 @@ export default function ChatPanel({
   voicePendingImages,
   onVoicePendingTextConsumed,
   onOpenFolder,
+  onArtifactClick,
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -316,6 +321,7 @@ export default function ChatPanel({
                     message={msg}
                     isLastAssistant={isLastAssistant}
                     onCardAction={onCardAction}
+                    onArtifactClick={onArtifactClick as (a: ArtifactRef) => void}
                   />
                 );
               })}
