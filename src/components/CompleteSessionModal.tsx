@@ -161,7 +161,7 @@ export default function CompleteSessionModal({
         {/* ── ready (file list) ───────────────────────── */}
         {phase.kind === 'ready' && (
           <>
-            <p className="text-[14px] leading-[22px] text-text-primary mb-3">
+            <p className="type-detail text-text-primary mb-3">
               {phase.files.length === 1
                 ? '1 file will merge into the project base.'
                 : `${phase.files.length} files will merge into the project base.`}
@@ -203,7 +203,7 @@ export default function CompleteSessionModal({
 
         {/* ── empty diff (edge case: all commits undone) ── */}
         {phase.kind === 'empty' && (
-          <p className="text-[14px] leading-[22px] text-text-primary mb-4">
+          <p className="type-detail text-text-primary mb-4">
             Nothing to merge — this session made no net changes to the
             project.
             <br />
@@ -230,7 +230,7 @@ export default function CompleteSessionModal({
               style={{ color: '#028901' }}
             />
             <div className="flex-1">
-              <p className="text-[14px] leading-[22px] text-text-primary mb-2">
+              <p className="type-detail text-text-primary mb-2">
                 {phase.alreadyUpToDate
                   ? 'No changes — project was already up to date with this session.'
                   : "Session merged into the project base."}
@@ -248,7 +248,7 @@ export default function CompleteSessionModal({
         {/* ── error: not-ff ───────────────────────────── */}
         {phase.kind === 'error-not-ff' && (
           <>
-            <p className="text-[14px] leading-[22px] text-text-primary mb-3">
+            <p className="type-detail text-text-primary mb-3">
               {phase.message}
             </p>
             <p className="text-[13px] leading-[20px] text-text-secondary mb-2">
@@ -293,7 +293,7 @@ export default function CompleteSessionModal({
 
         {/* ── error: other ────────────────────────────── */}
         {phase.kind === 'error-other' && (
-          <p className="text-[14px] leading-[22px] text-text-primary mb-4 whitespace-pre-wrap break-words">
+          <p className="type-detail text-text-primary mb-4 whitespace-pre-wrap break-words">
             {phase.message}
           </p>
         )}

@@ -87,7 +87,7 @@ export default function PermissionPrompt({ request, onAllow, onAlwaysAllow, onCa
         </div>
 
         {/* Body */}
-        <p className="text-[14px] leading-[22px] text-text-primary mb-4">{body}</p>
+        <p className="type-detail text-text-primary mb-4">{body}</p>
 
         {showTarget && (
           <div
