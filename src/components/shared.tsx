@@ -1852,7 +1852,7 @@ export function ReviewItemCard({
   const Icon = icon ?? REVIEW_TYPE_ICONS[type] ?? FileText;
   return (
     <div
-      className={`px-5 py-4 flex items-center gap-3.5 transition-all border-b border-dashed border-stroke-outline last:border-0 ${done ? 'opacity-50' : ''}`}
+      className={`px-5 py-4 flex items-center gap-3.5 transition-all ${done ? 'opacity-50' : ''}`}
     >
       <Icon size={22} strokeWidth={1.75} className="text-text-primary shrink-0 icon-theme" />
       <div className="flex-1 min-w-0">
