@@ -70,8 +70,8 @@ export default function PermissionPrompt({ request, onAllow, onAlwaysAllow, onCa
 
       {/* Dialog */}
       <div
-        className="relative w-[480px] max-w-[90vw] rounded-[16px] p-7 shadow-2xl"
-        style={{ background: 'var(--color-bg-page)', border: '1px solid var(--color-stroke-outline)' }}
+        className="panel-border relative w-[480px] max-w-[90vw] rounded-[16px] p-7 shadow-2xl"
+        style={{ background: 'var(--color-bg-page)' }}
       >
         <div className="flex items-start gap-3 mb-3">
           <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: 'var(--color-bg-hover)' }}>

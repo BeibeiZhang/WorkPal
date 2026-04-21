@@ -151,7 +151,7 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
 
       {/* Drop zone header */}
       <div className="mt-8 flex items-center gap-3">
-        <p className="text-base font-bold leading-[32px] tracking-[-0.43px] text-text-primary">
+        <p className="text-base font-normal leading-[32px] tracking-[-0.43px] text-text-primary">
           Extra Weight — Your Top 3
         </p>
         <Tag>{important.length}/3</Tag>
