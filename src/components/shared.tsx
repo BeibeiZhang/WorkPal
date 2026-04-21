@@ -267,7 +267,7 @@ export function PageLayout({
           {/* Title row — wraps rightSlot to next line when space is tight */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
             <h1
-              className="flex-1 min-w-[240px] text-[40px] font-bold text-text-primary leading-[48px] tracking-[-0.5px]"
+              className="flex-1 min-w-[240px] type-display text-text-primary"
               style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
             >
               {title}
@@ -1119,7 +1119,7 @@ export function PrimaryButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`gradient-btn flex items-center justify-center px-5 py-2.5 rounded-[4px] text-white font-bold text-[14px] leading-[22px] cursor-pointer transition-opacity disabled:opacity-40 ${fullWidth ? 'w-full' : ''} ${extra}`}
+      className={`gradient-btn flex items-center justify-center px-5 py-2.5 rounded-[4px] text-white type-detail-emphasized cursor-pointer transition-opacity disabled:opacity-40 ${fullWidth ? 'w-full' : ''} ${extra}`}
     >
       {children}
     </button>
@@ -1147,7 +1147,7 @@ export function SecondaryButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`inverted-btn flex items-center justify-center px-5 py-2.5 rounded-[4px] font-bold text-[14px] leading-[22px] cursor-pointer disabled:opacity-40 ${fullWidth ? 'w-full' : ''} ${extra}`}
+      className={`inverted-btn flex items-center justify-center px-5 py-2.5 rounded-[4px] type-detail-emphasized cursor-pointer disabled:opacity-40 ${fullWidth ? 'w-full' : ''} ${extra}`}
     >
       {children}
     </button>

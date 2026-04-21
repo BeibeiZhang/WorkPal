@@ -109,7 +109,7 @@ export default function NewProjectDialog({
             onChange={e => setName(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="e.g. Q2 Design Sprint"
-            className="w-full px-4 py-3 rounded-[4px] text-[16px] leading-[22px] text-text-primary placeholder-text-tertiary outline-none transition-colors"
+            className="w-full px-4 py-3 rounded-[4px] type-body text-text-primary placeholder-text-tertiary outline-none transition-colors"
             style={{
               background: 'var(--color-bg-hover)',
               fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
@@ -132,7 +132,7 @@ export default function NewProjectDialog({
             onKeyDown={e => { if (e.key === 'Escape') onClose(); }}
             placeholder="What's this project about?"
             rows={3}
-            className="w-full px-4 py-3 rounded-[4px] text-[16px] leading-[22px] text-text-primary placeholder-text-tertiary outline-none resize-none transition-colors"
+            className="w-full px-4 py-3 rounded-[4px] type-body text-text-primary placeholder-text-tertiary outline-none resize-none transition-colors"
             style={{
               background: 'var(--color-bg-hover)',
               fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
@@ -156,7 +156,7 @@ export default function NewProjectDialog({
               onChange={e => setFolder(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="~/WorkPal/my-project/"
-              className="w-full px-4 py-3 rounded-[4px] font-mono text-[14px] leading-[22px] text-text-primary placeholder-text-tertiary outline-none transition-colors"
+              className="w-full px-4 py-3 rounded-[4px] font-mono type-detail text-text-primary placeholder-text-tertiary outline-none transition-colors"
               style={{
                 background: 'var(--color-bg-hover)',
                 }}

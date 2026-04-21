@@ -68,8 +68,9 @@ Every CSS variable with its resolved light / dark value. If you need a token, fi
 --brand-grad-end              #CA9D8C
 
 # Typography
---font-title-size/lh/weight/tracking       40px / 48px / 700 / -0.5px
---font-body-size/lh/weight/tracking        16px / 32px / 400 (emph 700) / -0.43px
+--font-display-size/lh/weight/tracking     40px / 48px / 700 / -0.5px
+--font-body-size/lh/weight/tracking        16px / 32px / 400 (emph 700) / 0px
+--font-title-size/lh/weight/tracking       16px / 22px / 400 / 0px
 --font-detail-size/lh/weight/tracking      14px / 22px / 400 (emph 700) / 0
 
 # Spacing (Tailwind-aligned)
@@ -130,15 +131,18 @@ CSS vars: --brand-grad-start, --brand-grad-mid, --brand-grad-end
 
 **Never** use brand gradient for body text, icons, data viz, progress bars, or >1 button per view.
 
-### 1.3 Typography (5 styles, no more)
+### 1.3 Typography (6 styles, no more)
 
 | Class | Size / LH / Weight / Tracking | Use |
 |---|---|---|
-| `.type-title` | 40 / 48 / 700 / −0.5 | Page H1 |
-| `.type-body` | 16 / 32 / 400 / −0.43 | Default paragraph |
-| `.type-body-emphasized` | 16 / 32 / 700 / −0.43 | Section headers, labels |
-| `.type-detail` | 14 / 22 / 400 / 0 | Metadata, captions |
-| `.type-detail-emphasized` | 14 / 22 / 700 / 0 | Emphasized metadata |
+| `.type-display` | 40 / 48 / 700 / −0.5 | Page H1 (only one per page) |
+| `.type-body-emphasized` | 16 / 32 / 700 / 0 | Section headers, card titles, question prompts |
+| `.type-body` | 16 / 32 / 400 / 0 | Default paragraph, chat messages |
+| `.type-title` | 16 / 22 / 400 / 0 | Row labels — list items, single-line nav labels |
+| `.type-detail-emphasized` | 14 / 22 / 700 / 0 | Form labels, emphasized metadata |
+| `.type-detail` | 14 / 22 / 400 / 0 | Helper text, captions, chip labels |
+
+**Responsive rule:** detail scales up to **16px** on mobile (`<768px`, line-height stays 22px) so the smallest tier never drops below 16px on phones. Defined via a `@media (min-width: 768px)` override of `--font-detail-size` in `src/index.css`. No other token scales across breakpoints.
 
 Font stack: `-apple-system, BlinkMacSystemFont, 'SF Pro', 'Inter', sans-serif`.
 
@@ -326,7 +330,7 @@ All snap to `--toolbar-btn-h` so they line up vertically in one row.
 4. **1–2% gradient budget.** The brand gradient is a focal point, not decoration.
 5. **Callouts are blue (`#3171FF`), not gradient.** Selected chips, links, progress, focus.
 6. **StatusTag success green is unique.** Only `--color-accent-green` / `-green-bg`. Not used anywhere else.
-7. **5 text styles only.** `.type-title` / `.type-body` / `.type-body-emphasized` / `.type-detail` / `.type-detail-emphasized`.
+7. **6 text styles only.** `.type-display` / `.type-body` / `.type-body-emphasized` / `.type-title` / `.type-detail` / `.type-detail-emphasized`.
 8. **Icons = lucide-react.** Never render letters or abbreviations as icon stand-ins. Never import other icon libraries.
 9. **Dark-mode automatic.** All colors come from CSS vars bound to `:root` / `.dark`. PNGs use `.icon-theme`. Lucide SVGs inherit `currentColor`.
 10. **Three-panel shell.** Every feature is a slot in NavPanel / ConversationPanel / InspectorPanel. No new top-level chrome.
@@ -387,7 +391,7 @@ Nothing fits? → build in shared.tsx, register in Review Queue.
 
 | Class | Effect |
 |---|---|
-| `.type-title` / `.type-body` / `.type-body-emphasized` / `.type-detail` / `.type-detail-emphasized` | Type scale |
+| `.type-display` / `.type-body` / `.type-body-emphasized` / `.type-title` / `.type-detail` / `.type-detail-emphasized` | Type scale |
 | `.gradient-btn` | Primary CTA gradient fill + shadow |
 | `.gradient-text` | Brand gradient text |
 | `.chip-gradient-hover` | Unselected chip: gradient border on hover (`padding-box/border-box`) |

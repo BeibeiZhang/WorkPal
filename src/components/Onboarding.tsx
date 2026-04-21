@@ -144,14 +144,14 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
         />
       }
     >
-      {/* Scenario question — Body/Emphasized: 16px/32px/700/-0.43px */}
-      <p className="text-base font-bold leading-[32px] tracking-[-0.43px] text-text-primary">
+      {/* Scenario question — Body / Regular (see .type-body in index.css) */}
+      <p className="type-body text-text-primary">
         Think about the teammates you've admired most in your career — what qualities inspired you the most?
       </p>
 
       {/* Drop zone header */}
       <div className="mt-8 flex items-center gap-3">
-        <p className="text-base font-normal leading-[32px] tracking-[-0.43px] text-text-primary">
+        <p className="type-body text-text-primary">
           Extra Weight — Your Top 3
         </p>
         <Tag>{important.length}/3</Tag>

@@ -56,19 +56,28 @@ strong, b {
   --brand-grad-mid:   #B46470;
   --brand-grad-end:   #CA9D8C;
 
-  /* Typography scale — 5 canonical styles. Edit here to update app-wide. */
-  --font-title-size: 40px;
-  --font-title-lh: 48px;
-  --font-title-weight: 700;
-  --font-title-tracking: -0.5px;
+  /* Typography scale — 6 canonical styles. Edit here to update app-wide. */
+  --font-display-size: 40px;
+  --font-display-lh: 48px;
+  --font-display-weight: 700;
+  --font-display-tracking: -0.5px;
+
+  --font-title-size: 16px;
+  --font-title-lh: 22px;
+  --font-title-weight: 400;
+  --font-title-tracking: 0px;
 
   --font-body-size: 16px;
   --font-body-lh: 32px;
   --font-body-weight: 400;
   --font-body-emphasized-weight: 700;
-  --font-body-tracking: -0.43px;
+  --font-body-tracking: 0px;
 
-  --font-detail-size: 14px;
+  /* Detail size is responsive: 16px on mobile (<768px, set here),
+     14px on desktop (≥768px, overridden in the @media block below).
+     Keeps the "smallest" tier readable on phones while preserving
+     desktop density. Other detail fields don't change across breakpoints. */
+  --font-detail-size: 16px;
   --font-detail-lh: 22px;
   --font-detail-weight: 400;
   --font-detail-emphasized-weight: 700;
@@ -136,6 +145,8 @@ html, body, #root {
     --mode-btn-unselected-w: 26px;
     --toolbar-icon-size: 16px;
     --input-btn-size: 24px;
+    /* Desktop: shrink detail from 16px (mobile) down to 14px */
+    --font-detail-size: 14px;
   }
 }
 
@@ -519,10 +530,16 @@ html, body, #root {
 }
 
 /* ═══════════════════════════════════════════════════
-   Typography utility classes — 5 canonical styles.
+   Typography utility classes — 6 canonical styles.
    Edit the CSS variables in :root above to propagate
    app-wide. Always prefer these over inline text-[Xpx].
    ═══════════════════════════════════════════════════ */
+.type-display {
+  font-size: var(--font-display-size);
+  line-height: var(--font-display-lh);
+  font-weight: var(--font-display-weight);
+  letter-spacing: var(--font-display-tracking);
+}
 .type-title {
   font-size: var(--font-title-size);
   line-height: var(--font-title-lh);

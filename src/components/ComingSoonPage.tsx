@@ -38,7 +38,7 @@ export default function ComingSoonPage({ view, sidebarOpen, onToggleSidebar }: C
       {/* Page title — Agent Design style */}
       <div className="px-8 pb-2 shrink-0">
         <h1
-          className="text-[40px] font-bold leading-[48px] tracking-[-0.5px]"
+          className="type-display"
           style={{
             color: '#142740',
             fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',

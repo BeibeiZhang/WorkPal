@@ -284,8 +284,8 @@ function AvatarMenu({ compact = false, activeView, activeChatId, onViewChange, o
               <img src={USER_PROFILE_IMG} alt="Beibei Zhang" className="w-full h-full object-cover" />
             </div>
             <p
-              className="text-[16px] font-bold text-text-primary tracking-[-0.43px] truncate"
-              style={{ lineHeight: '32px', fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
+              className="type-body-emphasized text-text-primary truncate"
+              style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
             >
               Beibei Zhang
             </p>
@@ -503,7 +503,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
       <div className="flex-1 overflow-y-auto min-h-0 py-4 scrollbar-autohide">
 
         {/* Top menu items */}
-        <div className="px-4 flex flex-col gap-1">
+        <div className="px-4 flex flex-col gap-0">
           {/* 1. New Session (default page) */}
           <button
             onClick={onNewChat}
@@ -512,7 +512,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
             }`}
           >
             <SquarePen size={20} className="shrink-0 text-text-primary" />
-            <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
+            <span className="flex-1 type-title text-text-primary">
               New Session
             </span>
           </button>
@@ -523,7 +523,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
             className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${activeView === 'overview' ? 'gradient-ring' : 'hover:bg-bg-hover'}`}
           >
             <LayoutDashboard size={20} className="shrink-0 text-text-primary" />
-            <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
+            <span className="flex-1 type-title text-text-primary">
               Overview
             </span>
           </button>
@@ -533,7 +533,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
             className="flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left hover:bg-bg-hover"
           >
             <Search size={20} className="shrink-0 text-text-primary" />
-            <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
+            <span className="flex-1 type-title text-text-primary">
               Search
             </span>
           </button>
@@ -546,7 +546,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
             className="px-4 flex items-center justify-between hover:bg-bg-hover rounded-full transition-colors"
             style={{ height: 32 }}
           >
-            <p className="text-base font-bold text-text-primary tracking-[-0.43px]">Projects</p>
+            <p className="type-body-emphasized text-text-primary">Projects</p>
             <ChevronDown
               size={16}
               className={`text-text-primary transition-transform ${projectsOpen ? '' : '-rotate-90'}`}
@@ -561,7 +561,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
                 className="flex items-center gap-4 w-full px-4 py-2 rounded-full hover:bg-bg-hover transition-colors text-left"
               >
                 <FolderPlus size={18} className="shrink-0 text-text-primary" />
-                <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px]" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
+                <span className="flex-1 type-title text-text-primary">
                   New Project
                 </span>
               </button>
@@ -574,7 +574,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
                       activeProjectId === proj.id ? 'gradient-ring' : 'hover:bg-bg-hover'
                     }`}
                   >
-                    <span className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px] truncate" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}>
+                    <span className="flex-1 type-title text-text-primary truncate">
                       {proj.name}
                     </span>
                   </button>
@@ -592,7 +592,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
             className="px-4 flex items-center justify-between hover:bg-bg-hover rounded-full transition-colors"
             style={{ height: 32 }}
           >
-            <p className="text-base font-bold text-text-primary tracking-[-0.43px]">Recents</p>
+            <p className="type-body-emphasized text-text-primary">Recents</p>
             <ChevronDown
               size={16}
               className={`text-text-primary transition-transform ${recentsOpen ? '' : '-rotate-90'}`}
@@ -609,10 +609,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
                     isActive ? 'gradient-ring' : 'hover:bg-bg-hover'
                   }`}
                 >
-                  <span
-                    className="flex-1 text-[16px] leading-[22px] text-text-primary tracking-[0px] truncate"
-                    style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif', fontWeight: 400 }}
-                  >
+                  <span className="flex-1 type-title text-text-primary truncate">
                     {chat.title}
                   </span>
                 </button>

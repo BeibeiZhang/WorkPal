@@ -310,145 +310,131 @@ function Swatch({ token, withBorder = true }: { token: ColorToken; withBorder?: 
   );
 }
 
-const TYPE_SCALE: { className: string; label: string; size: string; lh: string; weight: string; tracking: string; sample: string; usage: string }[] = [
-  { className: 'type-title',              label: 'Page Title',          size: '40', lh: '48', weight: '700', tracking: '-0.5',  sample: 'Welcome to WorkPal', usage: 'Only one per page — H1 set by PageLayout' },
-  { className: 'type-body-emphasized',    label: 'Body / Emphasized',   size: '16', lh: '32', weight: '700', tracking: '-0.43', sample: 'Section headings, scenario prompts', usage: 'Subheads, card titles, question prompts' },
-  { className: 'type-body',               label: 'Body / Regular',      size: '16', lh: '32', weight: '400', tracking: '-0.43', sample: 'This is body copy — the workhorse size for paragraphs and chat bubbles.', usage: 'Paragraphs, chat messages, descriptions' },
-  { className: 'type-detail-emphasized',  label: 'Detail / Emphasized', size: '14', lh: '22', weight: '700', tracking: '0',     sample: 'Form labels, small section heads', usage: 'Form labels, chip emphasis, metadata headings' },
-  { className: 'type-detail',             label: 'Detail / Regular',    size: '14', lh: '22', weight: '400', tracking: '0',     sample: 'Helper text, captions, chip labels, inline hints.', usage: 'Helper text, captions, chip labels' },
-];
-
 /**
- * Heading Usage Map — every distinct bold-text style the app uses for a
- * section title or row heading, with the concrete component surfaces each
- * one appears on. A second-tier reference next to TYPE_SCALE above: the
- * canonical styles are what we want, this table shows what's actually
- * in code today (mostly inline text-[Xpx] font-bold, not yet converted
- * to .type-* utilities).
+ * Typography Scale — the single source of truth. Every text surface in
+ * the app picks one of these 5 canonical styles via its `.type-*` class.
+ * The `appearances` field collapses what used to be three tables (Typography
+ * Scale + Headings in Use + Row Titles in Use) into one — grouped by
+ * actual font parameters, not by surface type.
  */
-const HEADING_USAGE: {
+const TYPE_SCALE: {
+  className: string;
   label: string;
-  classes: string;
-  maps: string;
+  size: string;
+  lh: string;
+  weight: string;
+  tracking: string;
   sample: string;
-  sampleStyle: React.CSSProperties;
-  usedIn: string[];
+  usage: string;
+  appearances: string[];
 }[] = [
   {
-    label: 'Page Title (H1)',
-    classes: 'text-[40px] font-bold leading-[48px] tracking-[-0.5px]',
-    maps: 'type-title',
-    sample: 'Projects',
-    sampleStyle: { fontSize: 40, lineHeight: '48px', fontWeight: 700, letterSpacing: '-0.5px' },
-    usedIn: ['PageLayout H1 — Overview, Memory, Design System, Connectors, Library'],
-  },
-  {
-    label: 'Card / Panel / Modal Header',
-    classes: 'text-[16px] font-bold',
-    maps: 'type-body-emphasized',
-    sample: 'Agent Design Component',
-    sampleStyle: { fontSize: 16, fontWeight: 700 },
-    usedIn: [
-      'SidePanelHeader — DetailPanel, TaskContextPanel',
-      'MessageCard header — Meeting, Ticket, Research, Schedule, Agent',
-      'ArtifactCard name — inline artifact cards in chat',
-      'SideCard titles — Instructions, Scheduled, Files, Context (ProjectPage right panel)',
-      'ProjectPage section headers — "Output", "Recents"',
-      'MemoryPage empty-state title — "Teach your AI about you"',
-      'DemoExplainerModal — "About this demo"',
-      'PasswordModal — "Confirm with password"',
+    className: 'type-display',
+    label: 'Display',
+    size: '40', lh: '48', weight: '700', tracking: '-0.5',
+    sample: 'Welcome to WorkPal',
+    usage: 'Only one per page — H1 set by PageLayout',
+    appearances: [
+      'PageLayout H1 — Overview, Memory, Design System, Connectors, Library',
     ],
   },
   {
-    label: 'Sidebar / Profile Heading',
-    classes: 'text-[16px] font-bold tracking-[-0.43px]',
-    maps: 'type-body-emphasized (with tighter tracking)',
-    sample: 'Projects',
-    sampleStyle: { fontSize: 16, fontWeight: 700, letterSpacing: '-0.43px' },
-    usedIn: [
+    className: 'type-body-emphasized',
+    label: 'Body / Emphasized',
+    size: '16', lh: '32', weight: '700', tracking: '0',
+    sample: 'Section headings, scenario prompts',
+    usage: 'Subheads, card titles, question prompts',
+    appearances: [
+      'SidePanelHeader — DetailPanel, TaskContextPanel',
+      'MessageCard header — Meeting, Ticket, Research, Schedule, Agent',
+      'ArtifactCard name — inline artifact cards in chat',
+      'SideCard titles — Instructions, Scheduled, Files, Context (ProjectPage)',
+      'ProjectPage section headers — "Output", "Recents"',
+      'MemoryPage empty-state — "Teach your AI about you"',
+      'DemoExplainerModal — "About this demo"',
+      'PasswordModal — "Confirm with password"',
       'Sidebar section headers — "Projects", "Recents"',
       'Sidebar profile name — "Beibei Zhang"',
     ],
   },
   {
-    label: 'Section Label / Row Title',
-    classes: 'text-[14px] font-bold tracking-[-0.43px]',
-    maps: 'type-detail-emphasized',
-    sample: 'Work',
-    sampleStyle: { fontSize: 14, fontWeight: 700, letterSpacing: '-0.43px' },
-    usedIn: [
-      'SectionTitle — Overview Work / Family / Self',
-      'TaskProgressCard title',
-      'InsightCard title',
-      'SolutionRow title',
+    className: 'type-body',
+    label: 'Body / Regular',
+    size: '16', lh: '32', weight: '400', tracking: '0',
+    sample: 'This is body copy — the workhorse size for paragraphs and chat bubbles.',
+    usage: 'Paragraphs, chat messages, descriptions',
+    appearances: [
+      'NewProjectDialog — project-name input, description textarea',
+      'Onboarding — scenario question, drop-zone labels',
+      'TaskContextPanel — Changes / Folder / Context / Tools rows',
     ],
   },
   {
-    label: 'Metric Label (Uppercase)',
-    classes: 'text-[14px] font-bold uppercase tracking-[0.5px]',
-    maps: 'type-detail-emphasized (modifier)',
-    sample: 'FOCUS TIME',
-    sampleStyle: { fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' },
-    usedIn: [
-      'MetricCard title — Overview dashboard metrics',
+    className: 'type-title',
+    label: 'Title / Regular',
+    size: '16', lh: '22', weight: '400', tracking: '0',
+    sample: 'Alcohol Delivery Issues',
+    usage: 'Row labels — list items, single-line nav labels',
+    appearances: [
+      'Sidebar — chat rows in Recents, project rows in Projects',
+      'Sidebar — New Session / Overview / Search / New Project buttons',
+    ],
+  },
+  {
+    className: 'type-detail-emphasized',
+    label: 'Detail / Emphasized',
+    size: '14', lh: '22', weight: '700', tracking: '0',
+    sample: 'Form labels, small section heads',
+    usage: 'Form labels, chip emphasis, metadata headings',
+    appearances: [
+      'SectionTitle — Overview Work / Family / Self',
+      'TaskProgressCard title',
+      'InsightCard headline',
+      'SolutionRow title',
+      'ReviewItemCard — needs-review row',
+      'HealthDimensionRow — stress / health metric rows',
+      'ConnectorCard — Gmail, Calendar, Slack, Asana',
+      'ProjectPage — chat rows in the project Recents panel',
+      'PrimaryButton, InvertedButton',
+    ],
+  },
+  {
+    className: 'type-detail',
+    label: 'Detail / Regular',
+    size: '14', lh: '22', weight: '400', tracking: '0',
+    sample: 'Helper text, captions, chip labels, inline hints.',
+    usage: 'Helper text, captions, chip labels',
+    appearances: [
+      'Helper text, captions, chip labels (generic)',
+      'PermissionPrompt body, CompleteSessionModal body',
+      'NewProjectDialog folder-path input',
     ],
   },
 ];
 
 /**
- * Row Title Usage Map — the primary text label inside a list item / row /
- * list card, NOT a section heading above a list. Paired with HEADING_USAGE
- * above, these two tables cover every fixed text style the app uses for
- * structural emphasis.
+ * Typography Outliers — non-canonical styles that intentionally depart
+ * from the 5 tokens. Listed here so they stay visible; if a new design
+ * needs something not in the scale, it belongs here (or becomes a new
+ * token) rather than being hidden as a hardcoded inline size.
  */
-const ROW_TITLE_USAGE: {
+const TYPE_OUTLIERS: {
   label: string;
   classes: string;
   maps: string;
   sample: string;
   sampleStyle: React.CSSProperties;
   usedIn: string[];
+  note: string;
 }[] = [
   {
-    label: 'Sidebar Row Title',
-    classes: 'text-[16px] leading-[22px] fontWeight: 400',
-    maps: 'type-body (regular)',
-    sample: 'Alcohol Delivery Issues',
-    sampleStyle: { fontSize: 16, lineHeight: '22px', fontWeight: 400 },
-    usedIn: [
-      'Sidebar — chat row titles in Recents list',
-      'Sidebar — project row titles in Projects list',
-      'Sidebar — New Session / Overview / Search / New Project buttons',
-    ],
-  },
-  {
-    label: 'Card Row Title',
-    classes: 'text-[14px] font-bold',
-    maps: 'type-detail-emphasized',
-    sample: 'Refresh demo script',
-    sampleStyle: { fontSize: 14, fontWeight: 700 },
-    usedIn: [
-      'TaskProgressCard — task title in Overview',
-      'ReviewItemCard — needs-review row',
-      'SolutionRow — dashboard solution rows',
-      'HealthDimensionRow — stress/health metric rows',
-      'InsightCard — insight headline',
-      'ProjectPage — chat row titles in the project Recents panel',
-      'ConnectorCard — Gmail, Calendar, Slack, Asana, etc.',
-    ],
-  },
-  {
-    label: 'File Row Title',
-    classes: 'text-[13px]',
-    maps: 'type-detail (regular)',
-    sample: 'summary-report.md',
-    sampleStyle: { fontSize: 13, fontWeight: 400 },
-    usedIn: [
-      'TaskContextPanel — Changes rows (file create/edit/delete)',
-      'TaskContextPanel — Folder rows (files in task folder)',
-      'TaskContextPanel — Context rows (attached context files)',
-      'TaskContextPanel — Tools active rows',
-    ],
+    label: 'Metric Label (Uppercase)',
+    classes: 'text-[14px] font-bold uppercase tracking-[0.5px]',
+    maps: 'type-detail-emphasized + uppercase + tracking 0.5',
+    sample: 'FOCUS TIME',
+    sampleStyle: { fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' },
+    usedIn: ['MetricCard title — Overview dashboard metrics'],
+    note: 'Intentional uppercase modifier of detail-emphasized for dashboard metrics.',
   },
 ];
 
@@ -625,7 +611,7 @@ const PRINCIPLES: { n: number; title: string; rule: string; why?: string; refTab
   {
     n: 7,
     title: '5 text styles only',
-    rule: 'Use .type-title, .type-body, .type-body-emphasized, .type-detail, .type-detail-emphasized. Forbidden running-text sizes: 9, 10, 11, 12, 13, 17, 18, 24, 28, 32 px.',
+    rule: 'Use .type-display, .type-body, .type-body-emphasized, .type-title, .type-detail, .type-detail-emphasized. Forbidden running-text sizes: 9, 10, 11, 12, 13, 17, 18, 24, 28, 32 px.',
     refTab: 'Design Foundations',
   },
   {
@@ -694,19 +680,12 @@ const SEARCH_INDEX: SearchEntry[] = [
     name: r.label,
     description: `.${r.className} · ${r.size}/${r.lh}/${r.weight} — ${r.usage}`,
   })),
-  // Foundations — Headings in Use
-  ...HEADING_USAGE.map<SearchEntry>(h => ({
+  // Foundations — Typography Outliers
+  ...TYPE_OUTLIERS.map<SearchEntry>(o => ({
     tab: 'foundations',
-    section: 'Foundations · Headings in Use',
-    name: h.label,
-    description: `${h.classes} · ${h.usedIn.join(' · ')}`,
-  })),
-  // Foundations — Row Titles in Use
-  ...ROW_TITLE_USAGE.map<SearchEntry>(r => ({
-    tab: 'foundations',
-    section: 'Foundations · Row Titles in Use',
-    name: r.label,
-    description: `${r.classes} · ${r.usedIn.join(' · ')}`,
+    section: 'Foundations · Typography Outliers',
+    name: o.label,
+    description: `${o.classes} · ${o.usedIn.join(' · ')}`,
   })),
   // Foundations — Spacing
   ...SPACING_SCALE.map<SearchEntry>(s => ({
@@ -1011,11 +990,11 @@ function FoundationsTab() {
 
       <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
         <p className="type-detail text-text-secondary mb-4">
-          Five canonical styles, no more. Use the <code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: 'var(--color-accent-blue)' }}>type-*</code> utility classes — never inline <code className="text-[12px] font-mono">text-[Xpx]</code>. Editing the <code className="text-[12px] font-mono">--font-*</code> variables in <code className="text-[12px] font-mono">src/index.css</code> updates every usage app-wide.
+          Six canonical styles — every text surface in the app picks one. Use the <code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: 'var(--color-accent-blue)' }}>type-*</code> utility classes — never inline <code className="text-[12px] font-mono">text-[Xpx]</code>. Editing the <code className="text-[12px] font-mono">--font-*</code> variables in <code className="text-[12px] font-mono">src/index.css</code> updates every usage app-wide. Each row lists all the surfaces that share the same parameters. <strong>Responsive rule:</strong> detail scales up to 16px on mobile (&lt;768px) so the smallest tier stays readable on phones.
         </p>
         <div className="flex flex-col divide-y divide-stroke-outline">
           {TYPE_SCALE.map(row => (
-            <div key={row.className} className="py-4 first:pt-0 last:pb-0 grid grid-cols-1 md:grid-cols-[220px_1fr] gap-3 md:gap-6 items-start">
+            <div key={row.className} className="py-4 first:pt-0 last:pb-0 grid grid-cols-1 md:grid-cols-[240px_1fr] gap-3 md:gap-6 items-start">
               <div>
                 <div className="type-detail-emphasized text-text-primary">{row.label}</div>
                 <code className="block mt-1 text-[11px] font-mono" style={{ color: 'var(--color-accent-blue)' }}>.{row.className}</code>
@@ -1024,33 +1003,10 @@ function FoundationsTab() {
                 </div>
                 <p className="mt-1 text-[11px] text-text-secondary leading-[15px]">{row.usage}</p>
               </div>
-              <div className={`${row.className} text-text-primary`}>{row.sample}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ─── Headings in Use ─── */}
-      <SectionTitle id="ds-foundation-headings">Headings in Use</SectionTitle>
-
-      <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
-        <p className="type-detail text-text-secondary mb-4">
-          Five heading styles render section titles, card headers, and row labels across the app. In code they're currently inlined via <code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: 'var(--color-accent-blue)' }}>text-[Xpx]&nbsp;font-bold</code>; the <strong>Maps to</strong> column shows the canonical <code className="text-[12px] font-mono">type-*</code> style each is meant to converge on.
-        </p>
-        <div className="flex flex-col divide-y divide-stroke-outline">
-          {HEADING_USAGE.map((row, i) => (
-            <div key={i} className="py-4 first:pt-0 last:pb-0 grid grid-cols-1 md:grid-cols-[260px_1fr] gap-3 md:gap-6 items-start">
-              <div>
-                <div className="type-detail-emphasized text-text-primary">{row.label}</div>
-                <code className="block mt-1 text-[11px] font-mono leading-[16px]" style={{ color: 'var(--color-accent-blue)' }}>{row.classes}</code>
-                <div className="mt-1 text-[11px] font-mono text-text-secondary leading-[16px]">
-                  Maps to <code>.{row.maps}</code>
-                </div>
-              </div>
-              <div className="flex flex-col gap-2">
-                <div className="text-text-primary" style={row.sampleStyle}>{row.sample}</div>
+              <div className="flex flex-col gap-3">
+                <div className={`${row.className} text-text-primary`}>{row.sample}</div>
                 <ul className="text-[11px] text-text-secondary leading-[16px] flex flex-col gap-0.5">
-                  {row.usedIn.map(u => <li key={u}>• {u}</li>)}
+                  {row.appearances.map(a => <li key={a}>• {a}</li>)}
                 </ul>
               </div>
             </div>
@@ -1058,25 +1014,26 @@ function FoundationsTab() {
         </div>
       </div>
 
-      {/* ─── Row Titles in Use ─── */}
-      <SectionTitle id="ds-foundation-row-titles">Row Titles in Use</SectionTitle>
+      {/* ─── Typography outliers ─── */}
+      <SectionTitle id="ds-foundation-type-outliers">Typography Outliers</SectionTitle>
 
       <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
         <p className="type-detail text-text-secondary mb-4">
-          A <strong>row title</strong> is the primary label inside a list item — a chat in Recents, a file in the Changes panel, a connector card. Separate from section headings because the hierarchy is visually lower (smaller/lighter), but still the first thing scanned per row. Three distinct styles — Sidebar (nav), Card (list primitives), and File (dense panels).
+          Non-canonical styles that intentionally depart from the 5 tokens. Everything else must map to a row in <strong>Typography Scale</strong> above. If a new design needs a style that isn&apos;t there, add it here (or as a new token) — never inline a one-off size.
         </p>
         <div className="flex flex-col divide-y divide-stroke-outline">
-          {ROW_TITLE_USAGE.map((row, i) => (
-            <div key={i} className="py-4 first:pt-0 last:pb-0 grid grid-cols-1 md:grid-cols-[260px_1fr] gap-3 md:gap-6 items-start">
+          {TYPE_OUTLIERS.map((row, i) => (
+            <div key={i} className="py-4 first:pt-0 last:pb-0 grid grid-cols-1 md:grid-cols-[240px_1fr] gap-3 md:gap-6 items-start">
               <div>
                 <div className="type-detail-emphasized text-text-primary">{row.label}</div>
                 <code className="block mt-1 text-[11px] font-mono leading-[16px]" style={{ color: 'var(--color-accent-blue)' }}>{row.classes}</code>
                 <div className="mt-1 text-[11px] font-mono text-text-secondary leading-[16px]">
-                  Maps to <code>.{row.maps}</code>
+                  Maps to <code>{row.maps}</code>
                 </div>
               </div>
               <div className="flex flex-col gap-2">
                 <div className="text-text-primary" style={row.sampleStyle}>{row.sample}</div>
+                <p className="text-[11px] text-text-secondary leading-[16px]">{row.note}</p>
                 <ul className="text-[11px] text-text-secondary leading-[16px] flex flex-col gap-0.5">
                   {row.usedIn.map(u => <li key={u}>• {u}</li>)}
                 </ul>
@@ -1315,7 +1272,7 @@ function FoundationsTab() {
         <div className="type-body-emphasized text-text-primary mb-2">Foundation usage checklist</div>
         <ul className="list-disc pl-5 type-detail text-text-primary space-y-1">
           <li>Colors: use <code className="text-[12px] font-mono">text-text-*</code> / <code className="text-[12px] font-mono">bg-bg-*</code> / <code className="text-[12px] font-mono">border-stroke-outline</code>, or <code className="text-[12px] font-mono">var(--color-*)</code> inline. Never a raw hex.</li>
-          <li>Typography: one of <code className="text-[12px] font-mono">type-title</code>, <code className="text-[12px] font-mono">type-body</code>, <code className="text-[12px] font-mono">type-body-emphasized</code>, <code className="text-[12px] font-mono">type-detail</code>, <code className="text-[12px] font-mono">type-detail-emphasized</code>.</li>
+          <li>Typography: one of <code className="text-[12px] font-mono">type-display</code>, <code className="text-[12px] font-mono">type-body</code>, <code className="text-[12px] font-mono">type-body-emphasized</code>, <code className="text-[12px] font-mono">type-title</code>, <code className="text-[12px] font-mono">type-detail</code>, <code className="text-[12px] font-mono">type-detail-emphasized</code>.</li>
           <li>Spacing: Tailwind scale (<code className="text-[12px] font-mono">p-*, gap-*, mt-*</code>). No arbitrary <code className="text-[12px] font-mono">gap-[9px]</code>.</li>
           <li>Radius: <code className="text-[12px] font-mono">rounded-lg</code> for cards, <code className="text-[12px] font-mono">rounded-full</code> for pills, <code className="text-[12px] font-mono">rounded-[40px]</code> for the app shell.</li>
           <li>Icons: <code className="text-[12px] font-mono">lucide-react</code> only.</li>
