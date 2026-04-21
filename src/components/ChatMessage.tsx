@@ -408,7 +408,7 @@ export default function ChatMessage({ message, isLastAssistant, onCardAction, on
 
           {/* Divider between meeting card content and follow-up text */}
           {message.card?.type === 'meeting' && message.content && (
-            <div className="border-t border-dashed border-stroke-outline my-4" />
+            <div className="h-px dashed-border-b my-4" />
           )}
 
           {/* Text content — markdown-rendered so the AI can format with

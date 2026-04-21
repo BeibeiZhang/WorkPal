@@ -1745,7 +1745,7 @@ export function TaskProgressCard({
   return (
     <button
       onClick={onClick}
-      className="px-5 py-4 text-left transition-colors w-full border-b border-dashed border-stroke-outline last:border-0 flex items-center gap-3.5"
+      className="px-5 py-4 text-left transition-colors w-full dashed-border-b last:bg-none flex items-center gap-3.5"
     >
       <Ic size={22} strokeWidth={1.75} className="text-text-primary shrink-0 icon-theme" />
       <div className="flex-1 min-w-0">
@@ -1806,7 +1806,7 @@ export function HealthDimensionRow({
     :              { variant: 'failed'      as const, icon: XCircle };
   return (
     <div
-      className="px-5 py-4 flex items-center gap-3.5 border-b border-dashed border-stroke-outline last:border-0"
+      className="px-5 py-4 flex items-center gap-3.5 dashed-border-b last:bg-none"
     >
       <Icon size={22} strokeWidth={1.75} className="text-text-primary shrink-0 icon-theme" />
       <div className="flex-1 min-w-0">

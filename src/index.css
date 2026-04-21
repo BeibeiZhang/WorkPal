@@ -588,20 +588,71 @@ html, body, #root {
   background-position: bottom;
 }
 
-/* Canonical hover elevation for interactive cards (Figma node 6518:26127
-   light / 6521:26530 dark). Single source of truth — every clickable card
-   uses `.card-hover-shadow` so future spec changes land in one place. */
+/* Canonical hover elevation for interactive cards (Figma node 6518:26127).
+   Light mode lifts the card with a soft blue shadow on hover.
+   Dark mode swaps the shadow for a 1px brand-gradient ring on hover —
+   shadows read as muddy glows on dark backgrounds, so we use the same
+   masked ::before technique as `.gradient-ring` / `.input-gradient-border`.
+   No layout shift: the ring fades in via opacity, not by adding a border. */
 :root {
   --shadow-card-hover: 0px 5px 8px 0px rgba(3, 65, 133, 0.17);
 }
-.dark {
-  --shadow-card-hover: 0px 5px 8px 0px rgba(116, 188, 255, 0.2);
-}
 .card-hover-shadow {
+  position: relative;
   transition: box-shadow 150ms ease;
+}
+.card-hover-shadow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 150ms ease;
+  z-index: 2;
 }
 .card-hover-shadow:hover {
   box-shadow: var(--shadow-card-hover);
+}
+.dark .card-hover-shadow:hover {
+  box-shadow: none;
+}
+.dark .card-hover-shadow:hover::before {
+  opacity: 1;
+}
+
+/* Fine dashed horizontal divider — 1px dash, 2px gap (Figma spec).
+   The browser's native `border-style: dashed` renders a chunkier pattern
+   that differs per-engine; this utility uses a repeating linear-gradient
+   so the dash/gap is exactly 1/2px on every platform. Pair with
+   `last:bg-none` to suppress the divider on the last row. */
+.dashed-border-b {
+  background-image: linear-gradient(to right, var(--color-stroke-outline) 1px, transparent 1px);
+  background-size: 3px 1px;
+  background-repeat: repeat-x;
+  background-position: bottom;
+}
+
+/* Popup / dropdown elevation. Light mode lifts the surface off the page;
+   dark mode drops the shadow entirely because the panel-border + darker
+   fill already separate it from the canvas, and stacked dark shadows
+   read as muddy glows. Use `var(--shadow-popup)` on every dropdown,
+   avatar menu, tool popover, etc. */
+:root {
+  --shadow-popup: 0px 5px 8px 0px rgba(3, 65, 133, 0.17);
+}
+.dark {
+  --shadow-popup: none;
 }
 
 /* Panel / modal border — a single hairline that follows the theme.

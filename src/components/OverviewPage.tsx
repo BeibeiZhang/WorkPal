@@ -319,7 +319,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                   <button
                     key={a.slug}
                     onClick={() => openArtifact(a)}
-                    className="text-left border-b border-dashed border-stroke-outline last:border-0 hover:bg-bg-hover transition-colors"
+                    className="text-left dashed-border-b last:bg-none hover:bg-bg-hover transition-colors"
                   >
                     <ReviewItemCard
                       title={title}
@@ -345,7 +345,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                     type="button"
                     onClick={openFrom}
                     disabled={!openFrom}
-                    className="text-left w-full border-b border-dashed border-stroke-outline last:border-0 hover:bg-bg-hover transition-colors disabled:cursor-default disabled:hover:bg-transparent"
+                    className="text-left w-full dashed-border-b last:bg-none hover:bg-bg-hover transition-colors disabled:cursor-default disabled:hover:bg-transparent"
                   >
                     <ReviewItemCard
                       title={item.title}
@@ -406,7 +406,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                     type="button"
                     onClick={openFrom}
                     disabled={!openFrom}
-                    className="px-5 py-4 border-b border-dashed border-stroke-outline last:border-0 text-left hover:bg-bg-hover transition-colors disabled:cursor-default disabled:hover:bg-transparent"
+                    className="px-5 py-4 dashed-border-b last:bg-none text-left hover:bg-bg-hover transition-colors disabled:cursor-default disabled:hover:bg-transparent"
                   >
                     <div className="flex items-center gap-3.5">
                       <CalendarClock size={22} strokeWidth={1.75} className="shrink-0 icon-theme text-text-primary" />

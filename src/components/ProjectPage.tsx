@@ -526,21 +526,21 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                           <button
                             key={r.id}
                             onClick={isReal ? () => onOpenChat(r.id) : undefined}
-                            className={`flex items-start gap-3 w-full px-5 py-4 transition-colors text-left side-card-divider last:bg-none ${
+                            className={`flex items-start gap-3 w-full px-5 py-4 transition-colors text-left dashed-border-b last:bg-none ${
                               isReal ? 'hover:bg-bg-hover cursor-pointer' : 'hover:bg-bg-hover'
                             }`}
                           >
                             <div className="flex items-center justify-center shrink-0 mt-px text-text-primary">
                               <MessageCircle size={18} />
                             </div>
-                            <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                            <div className="flex-1 min-w-0 flex flex-col gap-0">
                               <div className="flex items-center justify-between gap-3">
                                 <span className="text-[14px] font-bold text-text-primary truncate">{r.title}</span>
                                 <span className="text-[13px] text-text-primary whitespace-nowrap shrink-0">{r.time}</span>
                               </div>
                               <p className="text-[13px] text-text-primary leading-relaxed line-clamp-1">{r.description}</p>
                               {r.outputTag && (
-                                <div className="flex items-center gap-1.5 mt-0.5">
+                                <div className="flex items-center gap-1.5 mt-2">
                                   <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-stroke-outline text-[12px] text-text-primary">
                                     <FileCode2 size={12} />
                                     {r.outputTag}

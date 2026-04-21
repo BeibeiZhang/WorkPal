@@ -300,7 +300,7 @@ function AvatarMenu({ compact = false, activeView, activeChatId, onViewChange, o
           className="panel-border absolute bottom-full left-0 mb-2 min-w-[220px] py-1 rounded-xl overflow-hidden z-40"
           style={{
             background: 'var(--color-bg-page)',
-            boxShadow: 'var(--shadow-card-hover)',
+            boxShadow: 'var(--shadow-popup)',
           }}
         >
           {items.map(({ id, label, Icon, onClick, active }) => (
