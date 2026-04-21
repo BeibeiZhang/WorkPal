@@ -339,7 +339,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                   <button
                     key={a.slug}
                     onClick={() => openArtifact(a)}
-                    className="text-left"
+                    className="text-left border-b border-dashed border-stroke-outline last:border-0 hover:bg-bg-hover transition-colors"
                   >
                     <ReviewItemCard
                       title={title}
@@ -365,7 +365,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                     type="button"
                     onClick={openFrom}
                     disabled={!openFrom}
-                    className="text-left w-full hover:bg-bg-hover transition-colors disabled:cursor-default disabled:hover:bg-transparent"
+                    className="text-left w-full border-b border-dashed border-stroke-outline last:border-0 hover:bg-bg-hover transition-colors disabled:cursor-default disabled:hover:bg-transparent"
                   >
                     <ReviewItemCard
                       title={item.title}
