@@ -1743,20 +1743,20 @@ export function TaskProgressCard({
   return (
     <button
       onClick={onClick}
-      className="px-5 py-4 text-left transition-colors w-full border-b border-dashed border-stroke-outline last:border-0"
+      className="px-5 py-4 text-left transition-colors w-full border-b border-dashed border-stroke-outline last:border-0 flex items-center gap-3.5"
     >
-      <div className="flex items-center gap-3.5">
-        <Ic size={22} strokeWidth={1.75} className="text-text-primary shrink-0 icon-theme" />
-        <div className="flex-1 min-w-0">
-          <div className="text-[14px] font-bold text-text-primary">{title}</div>
+      <Ic size={22} strokeWidth={1.75} className="text-text-primary shrink-0 icon-theme" />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-3.5">
+          <div className="flex-1 min-w-0 text-[14px] font-bold text-text-primary">{title}</div>
+          <StatusTag variant="submitted" size="sm" icon={Timer} label={eta} tooltip={`Agent estimates ${eta} to complete this task`} />
         </div>
-        <StatusTag variant="submitted" size="sm" icon={Timer} label={eta} tooltip={`Agent estimates ${eta} to complete this task`} />
-        <ChevronRight size={16} className="text-text-primary shrink-0" />
+        <div className="flex items-center gap-3 mt-1.5">
+          <div className="flex-1"><ProgressBar value={progress} height={6} /></div>
+          <span className="text-[14px] text-text-primary shrink-0">{progress}%</span>
+        </div>
       </div>
-      <div className="flex items-center gap-3 mt-1.5 pl-[36px]">
-        <div className="flex-1"><ProgressBar value={progress} height={6} /></div>
-        <span className="text-[14px] text-text-primary shrink-0">{progress}%</span>
-      </div>
+      <ChevronRight size={16} className="text-text-primary shrink-0" />
       {expanded && (
         <div className="mt-3.5 p-3.5 bg-bg-hover rounded-xl text-[14px] text-text-primary leading-[1.8] ml-[52px]">
           <div className="font-bold text-text-primary mb-1">Steps:</div>
