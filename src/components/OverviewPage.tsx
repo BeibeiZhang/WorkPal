@@ -59,8 +59,6 @@ const SCHEDULED: Array<{
 }> = [
   { id: 's1', name: 'Weekly Spark driver incident digest', cron: 'Every Monday · 9:00 AM', lastRun: '2 days ago', nextRun: 'Tomorrow 9:00 AM', from: { kind: 'chat', id: 'alcohol-delivery', label: 'Alcohol Delivery Issues' } },
   { id: 's2', name: 'Daily design component audit', cron: 'Weekdays · 6:00 PM', lastRun: '18h ago', nextRun: 'Today 6:00 PM', from: { kind: 'project', id: 'proj-1', label: 'Agent Design' } },
-  { id: 's3', name: 'Monthly competitor UX snapshot', cron: '1st of month · 10:00 AM', lastRun: 'Apr 1', nextRun: 'May 1', from: { kind: 'project', id: 'proj-1', label: 'Agent Design' } },
-  { id: 's4', name: 'Morning briefing email', cron: 'Every day · 8:30 AM', lastRun: 'Today', nextRun: 'Tomorrow 8:30 AM' },
 ];
 
 const HEALTH_DIMENSIONS: Array<{
