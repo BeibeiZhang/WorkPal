@@ -134,7 +134,7 @@ function DemoExplainerModal({ open, onClose }: { open: boolean; onClose: () => v
             <Info size={18} className="text-text-primary" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-[16px] font-semibold text-text-primary leading-tight">
+            <h2 className="text-[16px] font-bold text-text-primary leading-tight">
               About this demo
             </h2>
           </div>
@@ -562,7 +562,7 @@ export function SideCard({
         onClick={() => setOpen(o => !o)}
         className="flex items-center gap-2.5 w-full px-2 py-4 text-left transition-colors"
       >
-        <span className="flex-1 text-[15px] font-semibold text-text-primary">{title}</span>
+        <span className="flex-1 text-[16px] font-bold text-text-primary">{title}</span>
         {icon && (
           <span className="text-text-primary" onClick={e => e.stopPropagation()}>
             {icon}
@@ -1233,7 +1233,7 @@ export function ConnectorCard({
     <div className="flex items-center gap-3 p-3 rounded-lg border border-stroke-outline bg-bg-page dark:bg-[rgba(226,243,255,0.05)]">
       {logo}
       <span
-        className="flex-1 text-[13px] text-text-primary font-medium truncate"
+        className="flex-1 text-[14px] text-text-primary font-bold truncate"
         style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
       >
         {name}
