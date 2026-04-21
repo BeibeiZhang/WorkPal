@@ -625,6 +625,13 @@ export default function App() {
     renderAs: 'markdown' | 'html' | 'plaintext';
     path: string;
   } | null>(null);
+  // User-resizable DetailPanel width. Resets to default on close so each open
+  // starts at 504px — no cross-session persistence by design (see chat note).
+  const DETAIL_DEFAULT_WIDTH = 504;
+  const [detailPanelWidth, setDetailPanelWidth] = useState(DETAIL_DEFAULT_WIDTH);
+  useEffect(() => {
+    if (!previewArtifact && !detailOpen) setDetailPanelWidth(DETAIL_DEFAULT_WIDTH);
+  }, [previewArtifact, detailOpen]);
   // Voice mode overlay
   const [voiceModeActive, setVoiceModeActive] = useState(false);
   const [voicePendingText, setVoicePendingText] = useState<string | undefined>();
@@ -2208,6 +2215,11 @@ export default function App() {
     // prevents old chatroom's progress from bleeding into the next one.
     setTaskSteps([]);
     setActiveTools([]);
+    // Detail panels are scoped to the previous chat's messages; close them on
+    // switch so the new chat doesn't inherit a stale artifact preview or card.
+    setPreviewArtifact(null);
+    setDetailCard(null);
+    setDetailMessageId(null);
     // my-workpal is the welcome chat at `/`, not a normal /chat/:id.
     if (id === 'my-workpal') {
       setRootChatId('my-workpal');
@@ -2267,24 +2279,25 @@ export default function App() {
   }, [streamFromAPI, projects, navigate]);
 
   const handleCreateProject = useCallback((name: string, description: string) => {
+    const projectId = `proj-${Date.now()}`;
     const newProject: Project = {
-      id: `proj-${Date.now()}`,
+      id: projectId,
       name,
       description: description || undefined,
     };
     setProjects(prev => [...prev, newProject]);
     setNewProjectOpen(false);
-    // 6.1: fire-and-forget project folder init on create. User may not
-    // navigate into the project right away (no navigate() here), so the
-    // activeProjectId useEffect below won't catch this case — kick it
-    // explicitly. Backend is idempotent; failure only costs us a warn since
-    // the useEffect will retry next time the user opens this project.
+    // 6.1: belt-and-braces project init. The navigate() below triggers the
+    // activeProjectId useEffect, which also fires init — firing here too means
+    // the backend primes the folder while React is mid-render, so the repo is
+    // ready by the user's first write. Idempotent on the backend.
     void postInitProject(slugify(name)).then(result => {
       if (!result.ok) {
         console.warn(`[project-init] create failed: ${result.error}`);
       }
     });
-  }, []);
+    navigate(`/project/${projectId}`);
+  }, [navigate]);
 
   /** Promote one or more sessions into a brand-new project. Creates the
    *  project, links each chat to it, nests every sessionFolder under the
@@ -2687,7 +2700,7 @@ export default function App() {
           return (
             <SplitView
               sideOpen={sideKind !== null}
-              sideWidth={sideKind === 'detail' || sideKind === 'preview' ? 504 : 280}
+              sideWidth={sideKind === 'detail' || sideKind === 'preview' ? detailPanelWidth : 280}
               onCloseSide={sideKind === 'preview'
                 ? () => { setPreviewArtifact(null); setContextPanelOpen(true); }
                 : sideKind === 'detail'
@@ -2712,6 +2725,7 @@ export default function App() {
                         setContextPanelOpen(true);
                       }}
                       fullScreen={overlay}
+                      onResize={setDetailPanelWidth}
                     />
                   );
                 }
@@ -2756,6 +2770,7 @@ export default function App() {
                         setContextPanelOpen(true);
                       }}
                       fullScreen={overlay}
+                      onResize={setDetailPanelWidth}
                     />
                   );
                 }

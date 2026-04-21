@@ -178,7 +178,7 @@ function ArtifactItemCard({ item }: { item: ItemShape }) {
   return (
     <article
       onClick={handleClick}
-      className="flex flex-col rounded-2xl overflow-hidden bg-white dark:bg-bg-hover border border-stroke-outline hover:shadow-lg transition-shadow cursor-pointer"
+      className="flex flex-col rounded-2xl overflow-hidden bg-white dark:bg-bg-hover border border-stroke-outline cursor-pointer card-hover-shadow"
     >
       {item.imageUrl && (
         <div className="w-full aspect-[4/3] bg-bg-hover overflow-hidden">

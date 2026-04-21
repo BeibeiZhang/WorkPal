@@ -572,6 +572,22 @@ html, body, #root {
   background-position: bottom;
 }
 
+/* Canonical hover elevation for interactive cards (Figma node 6518:26127
+   light / 6521:26530 dark). Single source of truth — every clickable card
+   uses `.card-hover-shadow` so future spec changes land in one place. */
+:root {
+  --shadow-card-hover: 0px 5px 8px 0px rgba(3, 65, 133, 0.17);
+}
+.dark {
+  --shadow-card-hover: 0px 5px 8px 0px rgba(116, 188, 255, 0.2);
+}
+.card-hover-shadow {
+  transition: box-shadow 150ms ease;
+}
+.card-hover-shadow:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
 /* Chat input textarea — keep scroll functionality but hide the visual scrollbar */
 .chat-textarea {
   scrollbar-width: none;

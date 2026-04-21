@@ -25,7 +25,14 @@ interface DetailPanelProps {
    *  previews an AI-generated .html file. 'plaintext' wraps in <pre> for
    *  .txt / unknown types. */
   renderAs?: 'markdown' | 'html' | 'plaintext';
+  /** Called during a left-edge drag with the clamped new width in px. Absent
+   *  = panel is non-resizable (also true in `fullScreen` overlay mode). */
+  onResize?: (newWidth: number) => void;
 }
+
+const RESIZE_MIN_PX = 400;
+const RESIZE_MAX_PX = 960;
+const RESIZE_MAX_VW = 0.6;
 
 const AI_OPTIONS: Array<{ icon: string; label: string; preset: EditPreset }> = [
   { icon: iconShorter, label: 'Shorter', preset: 'shorter' },
@@ -47,7 +54,40 @@ export default function DetailPanel({
   editable = false,
   onSave,
   renderAs = 'markdown',
+  onResize,
 }: DetailPanelProps) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const startResize = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (fullScreen || !onResize) return;
+    e.preventDefault();
+    // Drag directly against the SplitView wrapper's inline width via DOM — no
+    // React re-renders during the drag, so iframe content / chat column don't
+    // reflow per mousemove. We commit the final width to state only on mouseup
+    // so the React tree ends up consistent for future renders.
+    const wrapper = panelRef.current?.parentElement;
+    if (!wrapper) return;
+    const startX = e.clientX;
+    const startWidth = wrapper.getBoundingClientRect().width;
+    const maxW = Math.min(RESIZE_MAX_PX, window.innerWidth * RESIZE_MAX_VW);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    let latest = startWidth;
+    const onMove = (ev: MouseEvent) => {
+      // Panel is on the right edge — dragging the handle LEFT increases width.
+      latest = Math.min(maxW, Math.max(RESIZE_MIN_PX, startWidth + (startX - ev.clientX)));
+      wrapper.style.width = `${latest}px`;
+    };
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      // Single commit — React tree syncs to whatever the DOM ended at.
+      if (latest !== startWidth) onResize(latest);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [fullScreen, onResize]);
   // Kept separate from the `content` prop so a parent re-render doesn't wipe
   // in-flight edits (see PR #87).
   const [displayContent, setDisplayContent] = useState(content);
@@ -199,12 +239,31 @@ export default function DetailPanel({
 
   return (
     <div
-      className={`flex flex-col h-full shrink-0 relative w-[504px] max-w-full ${fullScreen ? '' : ''}`}
-      style={{
-        background: 'var(--color-bg-page)',
-        boxShadow: '0px 4px 50px 0px var(--color-stroke-outline)',
-      }}
+      ref={panelRef}
+      className={`flex flex-col h-full shrink-0 relative ${fullScreen ? 'w-[504px] max-w-full' : 'w-full'}`}
+      style={{ background: 'var(--color-bg-page)' }}
     >
+      {/* Vertical divider on the left edge — solid through the middle with
+          short fades at top/bottom, matching the `.side-card-divider` pattern
+          used between stacked side-card rows. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0 left-0 w-px"
+        style={{
+          background:
+            'linear-gradient(to bottom, transparent 0%, var(--color-stroke-outline) 20%, var(--color-stroke-outline) 80%, transparent 100%)',
+        }}
+      />
+      {/* Resize hit-zone overlaid on the left edge. 6px wide, transparent —
+          the visible 1px divider above stays as the only visual cue. Hidden
+          in fullScreen overlay mode (no room to resize anyway). */}
+      {!fullScreen && onResize && (
+        <div
+          aria-hidden
+          onMouseDown={startResize}
+          className="absolute inset-y-0 left-0 w-[6px] z-10 cursor-col-resize"
+        />
+      )}
       {/* Unsaved dot hints that edits will be committed on close. */}
       <SidePanelHeader
         title={hasUnsaved ? `${title} ●` : title}

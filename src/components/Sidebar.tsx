@@ -364,8 +364,8 @@ function DarkToggle({ isDark, onToggle }: { isDark: boolean; onToggle: () => voi
   return (
     <button
       onClick={onToggle}
-      className="flex items-center gap-2 p-1 rounded-full border transition-colors"
-      style={{ background: 'var(--color-stroke-toggle)', borderColor: 'var(--color-stroke-toggle)' }}
+      className="flex items-center gap-2 p-1 rounded-full transition-colors"
+      style={{ background: isDark ? 'var(--color-card-panel-bg)' : 'var(--color-stroke-toggle)' }}
     >
       <span
         className="flex items-center justify-center p-1 rounded-full transition-colors"
@@ -379,7 +379,7 @@ function DarkToggle({ isDark, onToggle }: { isDark: boolean; onToggle: () => voi
       </span>
       <span
         className="flex items-center justify-center p-1 rounded-full transition-colors"
-        style={isDark ? { background: 'rgba(0,0,0,0.3)' } : undefined}
+        style={isDark ? { background: 'var(--color-bg-message)' } : undefined}
       >
         <div className="overflow-clip relative" style={{ width: 24, height: 24 }}>
           <div className="absolute" style={{ width: 17.107, height: 15.895, left: '50%', top: '50%', transform: 'translate(-50%,-50%)' }}>

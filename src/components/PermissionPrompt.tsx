@@ -20,30 +20,30 @@ interface PermissionPromptProps {
 function buildTitle(kind: PermissionKind, target: string, scope: string): string {
   switch (kind) {
     case 'file-write':
-      return `Allow Claude to change files in "${scope}"?`;
+      return `Allow WorkPal to change files in "${scope}"?`;
     case 'file-read':
-      return `Allow Claude to read "${scope}"?`;
+      return `Allow WorkPal to read "${scope}"?`;
     case 'command':
-      return `Allow Claude to run this command?`;
+      return `Allow WorkPal to run this command?`;
     case 'external-url':
-      return `Allow Claude to access ${scope}?`;
+      return `Allow WorkPal to access ${scope}?`;
     default:
-      return `Allow Claude to access ${target}?`;
+      return `Allow WorkPal to access ${target}?`;
   }
 }
 
 function buildBody(kind: PermissionKind, target: string): string {
   switch (kind) {
     case 'file-write':
-      return 'This includes all files and subfolders. Claude will be able to read, edit, and permanently delete — and may share file contents with third-party tools it connects to. Be careful about exposing sensitive information.';
+      return 'This includes all files and subfolders. WorkPal will be able to read, edit, and permanently delete — and may share file contents with third-party tools it connects to. Be careful about exposing sensitive information.';
     case 'file-read':
-      return 'Claude will be able to read the file contents and may share them with third-party tools it connects to. Be careful about exposing sensitive information.';
+      return 'WorkPal will be able to read the file contents and may share them with third-party tools it connects to. Be careful about exposing sensitive information.';
     case 'command':
-      return 'Claude will execute this command in your shell. Only approve commands you understand — they can modify files, start processes, or reach external services.';
+      return 'WorkPal will execute this command in your shell. Only approve commands you understand — they can modify files, start processes, or reach external services.';
     case 'external-url':
-      return 'Claude will send a request to this URL. Only approve destinations you trust — the request may include data from your session.';
+      return 'WorkPal will send a request to this URL. Only approve destinations you trust — the request may include data from your session.';
     default:
-      return `Claude is requesting access to: ${target}`;
+      return `WorkPal is requesting access to: ${target}`;
   }
 }
 

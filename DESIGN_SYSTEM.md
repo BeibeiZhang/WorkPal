@@ -40,6 +40,7 @@ Every CSS variable with its resolved light / dark value. If you need a token, fi
 --color-bg-page               #FFFFFF              / #001424
 --color-bg-message            #F2F3F4              / rgba(226,243,255,0.1)
 --color-bg-hover              #F2F3F4              / rgba(226,243,255,0.1)
+--color-card-panel-bg         #FFFFFF              / rgba(0,0,0,0.3)
 --color-icon-primary          #142740              / #FFFFFF
 --color-sidebar-bg            #F2F3F4              / #0D2136
 --color-outer-bg              #F5F5F7              / #001424
@@ -87,6 +88,7 @@ Every CSS variable with its resolved light / dark value. If you need a token, fi
 | `--color-text-tertiary` | `rgba(20,39,64,0.4)` | `rgba(226,243,255,0.4)` | Disabled, muted metadata |
 | `--color-bg-page` | `#FFFFFF` | `#001424` | Main surfaces |
 | `--color-bg-message` / `--color-bg-hover` | `#F2F3F4` | `rgba(226,243,255,0.1)` | Message bubbles, hover, input fields |
+| `--color-card-panel-bg` | `#FFFFFF` | `rgba(0,0,0,0.3)` | CardShell background, DarkToggle pill, VoiceMode panel |
 | `--color-sidebar-bg` | `#F2F3F4` | `#0D2136` | NavPanel surface |
 | `--color-stroke-outline` | `#E8E8E8` | `rgba(115,178,255,0.2)` | Borders, dividers |
 | `--color-stroke-toggle` | `#E6E8EA` | `rgba(115,178,255,0.2)` | Inputs, toggles |
@@ -147,6 +149,16 @@ Font stack: `-apple-system, BlinkMacSystemFont, 'SF Pro', 'Inter', sans-serif`.
 | `rounded-2xl` | 16 | Large cards |
 | `rounded-full` | pill | Chips, StatusTag, nav items |
 | `rounded-[40px]` | 40 | App outer shell only |
+
+### 1.5a Elevation — one hover shadow, canonical
+
+Every clickable card uses `.card-hover-shadow` (defined in `src/index.css`). Do **not** inline per-card `hover:shadow-[...]` values.
+
+| Token | Value | Use |
+|---|---|---|
+| `--shadow-card-hover` | `0px 5px 8px 0px rgba(3,65,133,0.17)` light / `rgba(116,188,255,0.2)` dark | Every interactive card (ArtifactCard, ResearchCard, Artifact grid item, etc.) |
+
+Spec: Figma nodes `6518:26127` (light) / `6521:26530` (dark). Source of truth: `.card-hover-shadow` class — apply it with `transition-shadow` built-in.
 
 ### 1.6 Icons — `lucide-react` only
 

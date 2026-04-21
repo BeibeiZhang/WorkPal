@@ -322,7 +322,7 @@ function ResearchCardView({ card, onAction }: { card: ResearchCard; onAction?: (
     <button
       type="button"
       onClick={() => onAction?.('view-report', card)}
-      className="inline-block max-w-full mb-3 text-left cursor-pointer transition-shadow hover:shadow-[0_4px_20px_rgba(1,44,197,0.12)] rounded-lg"
+      className="inline-block max-w-full mb-3 text-left cursor-pointer rounded-lg card-hover-shadow"
     >
       <CardShell className="">
         <CardHeader
