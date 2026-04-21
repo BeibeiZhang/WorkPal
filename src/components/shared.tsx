@@ -4,7 +4,7 @@
  * Single source of truth — used by both app pages and the Design System page.
  * Update a component here → it updates everywhere in the app.
  */
-import { AlertTriangle, ArrowLeft, BadgeCheck, Check, ChevronDown, ChevronRight, Clock, FileCode2, FileImage, FileText, Info, Mail, MonitorPlay, PanelLeft, PanelRight, Presentation, Ticket, Play, Plus, Search, Send, Smile, SquarePen, Timer, User, Sparkles, X, XCircle, type LucideIcon } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowUpRight, BadgeCheck, Check, ChevronDown, ChevronRight, Clock, FileCode2, FileImage, FileText, Info, Mail, MonitorPlay, PanelLeft, PanelRight, Presentation, Ticket, Play, Plus, Search, Send, Smile, SquarePen, Timer, User, Sparkles, X, XCircle, type LucideIcon } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { IS_DEMO } from '../lib/demoMode';
@@ -1751,6 +1751,7 @@ export function TaskProgressCard({
           <div className="text-[14px] font-bold text-text-primary">{title}</div>
         </div>
         <StatusTag variant="submitted" size="sm" icon={Timer} label={eta} tooltip={`Agent estimates ${eta} to complete this task`} />
+        <ChevronRight size={16} className="text-text-primary shrink-0" />
       </div>
       <div className="flex items-center gap-3 mt-1.5 pl-[36px]">
         <div className="flex-1"><ProgressBar value={progress} height={6} /></div>
@@ -1871,15 +1872,15 @@ export function ReviewItemCard({
 /* ─── 15. ArtifactCard ───
  * Clickable reference to a produced file / document. Rendered inline under an
  * assistant chat message (when Claude Code writes a file, or when the #3
- * artifact primitive returns a hosted URL). Row-style pill matching the
- * existing user-attachment visual — icon column on the left, name + type on
- * the right.
+ * artifact primitive returns a hosted URL). Uses the CardShell + CardHeader
+ * visual language shared with research / meeting cards: title bar with icon +
+ * file name + open chevron, soft divider, body row with the file-type label.
  *
  *   - Icon is derived from `artifact.fileType` via `outputIconFor` so the same
  *     mapping powers the Project Output grid.
  *   - Click behavior: `href` wins (opens in a new tab — used by hosted
  *     artifacts); else `onClick` (chat card for Claude-Code files calls the
- *     open-file endpoint); else it's a non-interactive display pill.
+ *     open-file endpoint); else it's a non-interactive display card.
  */
 
 const OUTPUT_ICON: Record<OutputType, LucideIcon> = {
@@ -1905,33 +1906,41 @@ export function ArtifactCard({
   onClick?: (artifact: ArtifactRef) => void;
 }) {
   const Icon = outputIconFor(artifact.fileType);
-  const shared = 'flex items-center rounded-lg border border-stroke-outline bg-bg-message hover:bg-bg-hover transition-colors max-w-[320px] no-underline';
-  const body = (
-    <>
-      <div className="w-10 h-10 shrink-0 flex items-center justify-center bg-bg-hover text-text-secondary rounded-l-lg">
-        <Icon size={20} className="icon-theme" />
+  const isInteractive = !!artifact.href || !!onClick;
+  const inner = (
+    <div
+      className={`rounded-lg overflow-hidden w-full max-w-[320px]${
+        isInteractive ? ' card-hover-shadow' : ''
+      }`}
+      style={{ background: 'var(--color-card-panel-bg)' }}
+    >
+      <div className="flex items-center gap-2 px-4 h-[61px]">
+        <div className="w-6 h-6 shrink-0 flex items-center justify-center text-text-primary">
+          <Icon size={18} className="icon-theme" />
+        </div>
+        <p className="font-bold text-base leading-[22px] text-text-primary flex-1 truncate">{artifact.name}</p>
+        {isInteractive && <ArrowUpRight size={18} className="text-text-primary shrink-0" />}
       </div>
-      <div className="min-w-0 flex-1 py-1 px-3">
-        <div className="text-[13px] leading-[16px] text-text-primary truncate">{artifact.name}</div>
-        <div className="text-[11px] leading-[14px] text-text-secondary">{artifact.fileType}</div>
-      </div>
-    </>
+    </div>
   );
+  const wrapperClass = `inline-block max-w-full text-left no-underline${
+    isInteractive ? ' cursor-pointer' : ''
+  }`;
   if (artifact.href) {
     return (
-      <a href={artifact.href} target="_blank" rel="noreferrer" className={shared}>
-        {body}
+      <a href={artifact.href} target="_blank" rel="noreferrer" className={wrapperClass}>
+        {inner}
       </a>
     );
   }
   if (onClick) {
     return (
-      <button type="button" onClick={() => onClick(artifact)} className={`${shared} text-left`}>
-        {body}
+      <button type="button" onClick={() => onClick(artifact)} className={wrapperClass}>
+        {inner}
       </button>
     );
   }
-  return <div className={shared}>{body}</div>;
+  return <div className={wrapperClass}>{inner}</div>;
 }
 
 /* ─── 16. EmptyState ───

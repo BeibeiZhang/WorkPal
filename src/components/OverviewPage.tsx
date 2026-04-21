@@ -3,8 +3,7 @@ import {
   ChevronRight, ChevronDown, ChevronUp,
   Brain, Volume2, Briefcase, Home, Smile,
   Moon, Zap, Gauge, BarChart3, Search,
-  Pause, Play, ExternalLink, CalendarClock, MessageCircle, FolderClosed,
-  Globe,
+  CalendarClock, Globe, Download,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -153,42 +152,9 @@ const TYPE_CONFIG: Record<string, { emoji: string; classes: string }> = {
 
 /* ── Main Component ── */
 
-/** Small pill linking a dashboard row back to its source session or project.
- *  Click = navigate. Rendered inside items in Needs Your Eyes, Agents at
- *  Work, and Scheduled so the user can always jump to the origin. */
-function SourceChip({ source, onOpenChat, onOpenProject }: { source: Source; onOpenChat?: (id: string) => void; onOpenProject?: (id: string) => void }) {
-  const Icon = source.kind === 'project' ? FolderClosed : MessageCircle;
-  const handler = source.kind === 'project' ? onOpenProject : onOpenChat;
-  return (
-    <button
-      type="button"
-      onClick={() => handler?.(source.id)}
-      className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-stroke-outline hover:bg-bg-hover transition-colors text-[12px] leading-[16px] text-text-primary max-w-[220px]"
-      title={`Open ${source.label}`}
-    >
-      <Icon size={12} className="shrink-0" />
-      <span className="truncate">{source.label}</span>
-    </button>
-  );
-}
-
 export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, onOpenChat, onOpenProject }: OverviewPageProps) {
   const videoSrc = '/animations/avatar.mp4';
   const [isSpeaking, setIsSpeaking] = useState(false);
-  /** Paused state is cosmetic — there's no real scheduler. Pausing just
-   *  flips the icon so the demo can show the pause→resume toggle. */
-  const [pausedTasks, setPausedTasks] = useState<Set<number>>(() => new Set());
-  const [pausedSchedules, setPausedSchedules] = useState<Set<string>>(() => new Set());
-  const togglePauseTask = (i: number) => setPausedTasks(prev => {
-    const next = new Set(prev);
-    if (next.has(i)) next.delete(i); else next.add(i);
-    return next;
-  });
-  const togglePauseSchedule = (id: string) => setPausedSchedules(prev => {
-    const next = new Set(prev);
-    if (next.has(id)) next.delete(id); else next.add(id);
-    return next;
-  });
 
   const GREETING_TEXT = "Good morning, Beibei! Today feels like a steady day. Your life commitments are all locked in — 2 hours family time, 7 hours sleep, check. I've protected your 9 to 11am focus block, and today's workload is light. I finished your meeting notes and drafted 3 tickets — review them whenever you're ready.";
 
@@ -205,7 +171,6 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
     speechSynthesis.speak(utterance);
     setIsSpeaking(true);
   }, [isSpeaking]);
-  const [expandedProgress, setExpandedProgress] = useState<number | null>(null);
   const [reviewDone, setReviewDone] = useState<Record<number, boolean>>({});
   const [showStressDetail, setShowStressDetail] = useState(false);
 
@@ -387,25 +352,33 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                   </button>
                 );
               })}
-              {REVIEW_ITEMS.map((item, i) => (
-                <div key={i}>
-                  <ReviewItemCard
-                    title={item.title}
-                    source={item.source}
-                    type={item.type}
-                    time={item.time}
-                    humanTime={item.humanTime}
-                    done={reviewDone[i] || false}
-                    onToggle={() => setReviewDone(p => ({ ...p, [i]: !p[i] }))}
-                  />
-                  {item.from && (
-                    <div className="pl-12 pb-3 -mt-1 flex items-center gap-2">
-                      <span className="text-[12px] text-text-secondary">From</span>
-                      <SourceChip source={item.from} onOpenChat={onOpenChat} onOpenProject={onOpenProject} />
-                    </div>
-                  )}
-                </div>
-              ))}
+              {REVIEW_ITEMS.map((item, i) => {
+                const openFrom = item.from
+                  ? () => {
+                      if (item.from!.kind === 'project') onOpenProject?.(item.from!.id);
+                      else onOpenChat?.(item.from!.id);
+                    }
+                  : undefined;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={openFrom}
+                    disabled={!openFrom}
+                    className="text-left w-full hover:bg-bg-hover transition-colors disabled:cursor-default disabled:hover:bg-transparent"
+                  >
+                    <ReviewItemCard
+                      title={item.title}
+                      source={item.source}
+                      type={item.type}
+                      time={item.time}
+                      humanTime={item.humanTime}
+                      done={reviewDone[i] || false}
+                      onToggle={() => setReviewDone(p => ({ ...p, [i]: !p[i] }))}
+                    />
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -415,44 +388,22 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
 
             <div className="flex flex-col">
               {IN_PROGRESS.map((task, i) => {
-                const isPaused = pausedTasks.has(i);
+                const openFrom = task.from
+                  ? () => {
+                      if (task.from!.kind === 'project') onOpenProject?.(task.from!.id);
+                      else onOpenChat?.(task.from!.id);
+                    }
+                  : undefined;
                 return (
-                  <div key={i}>
-                    <TaskProgressCard
-                      title={task.title}
-                      progress={task.progress}
-                      eta={isPaused ? 'Paused' : task.eta}
-                      steps={task.steps.split(' → ')}
-                      icon={task.icon}
-                      expanded={expandedProgress === i}
-                      onClick={() => setExpandedProgress(expandedProgress === i ? null : i)}
-                    />
-                    <div className="pl-12 pb-3 -mt-1 flex items-center gap-2 flex-wrap">
-                      {task.from && (
-                        <SourceChip source={task.from} onOpenChat={onOpenChat} onOpenProject={onOpenProject} />
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => togglePauseTask(i)}
-                        aria-label={isPaused ? 'Resume task' : 'Pause task'}
-                        className="flex items-center gap-1 px-2 py-1 rounded-full border border-stroke-outline hover:bg-bg-hover transition-colors text-[12px] text-text-primary"
-                      >
-                        {isPaused ? <Play size={12} /> : <Pause size={12} />}
-                        <span>{isPaused ? 'Resume' : 'Pause'}</span>
-                      </button>
-                      {task.from?.kind === 'chat' && (
-                        <button
-                          type="button"
-                          onClick={() => onOpenChat?.(task.from!.id)}
-                          aria-label="Open source session"
-                          className="flex items-center gap-1 px-2 py-1 rounded-full border border-stroke-outline hover:bg-bg-hover transition-colors text-[12px] text-text-primary"
-                        >
-                          <ExternalLink size={12} />
-                          <span>Open session</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
+                  <TaskProgressCard
+                    key={i}
+                    title={task.title}
+                    progress={task.progress}
+                    eta={task.eta}
+                    steps={task.steps.split(' → ')}
+                    icon={task.icon}
+                    onClick={openFrom}
+                  />
                 );
               })}
             </div>
@@ -463,53 +414,31 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
             <SectionTitle emoji="" title="Scheduled" count={SCHEDULED.length} size={20} />
             <div className="flex flex-col">
               {SCHEDULED.map(job => {
-                const isPaused = pausedSchedules.has(job.id);
+                const openFrom = job.from
+                  ? () => {
+                      if (job.from!.kind === 'project') onOpenProject?.(job.from!.id);
+                      else onOpenChat?.(job.from!.id);
+                    }
+                  : undefined;
                 return (
-                  <div key={job.id} className="py-4 border-b border-dashed border-stroke-outline last:border-0">
-                    <div className="flex items-start gap-3.5">
-                      <CalendarClock size={22} strokeWidth={1.75} className={`shrink-0 icon-theme ${isPaused ? 'text-text-secondary' : 'text-text-primary'}`} />
+                  <button
+                    key={job.id}
+                    type="button"
+                    onClick={openFrom}
+                    disabled={!openFrom}
+                    className="px-5 py-4 border-b border-dashed border-stroke-outline last:border-0 text-left hover:bg-bg-hover transition-colors disabled:cursor-default disabled:hover:bg-transparent"
+                  >
+                    <div className="flex items-center gap-3.5">
+                      <CalendarClock size={22} strokeWidth={1.75} className="shrink-0 icon-theme text-text-primary" />
                       <div className="flex-1 min-w-0">
-                        <div className={`text-[14px] font-bold text-text-primary ${isPaused ? 'opacity-60' : ''}`}>{job.name}</div>
+                        <div className="text-[14px] font-bold text-text-primary">{job.name}</div>
                         <div className="text-[13px] text-text-primary mt-0.5">
-                          {job.cron} · Last run {job.lastRun} · {isPaused ? 'Paused' : `Next ${job.nextRun}`}
+                          {job.cron}
                         </div>
                       </div>
+                      <ChevronRight size={16} className="text-text-primary shrink-0" />
                     </div>
-                    <div className="pl-[34px] pt-2 flex items-center gap-2 flex-wrap">
-                      {job.from && (
-                        <SourceChip source={job.from} onOpenChat={onOpenChat} onOpenProject={onOpenProject} />
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => togglePauseSchedule(job.id)}
-                        aria-label={isPaused ? 'Resume schedule' : 'Pause schedule'}
-                        className="flex items-center gap-1 px-2 py-1 rounded-full border border-stroke-outline hover:bg-bg-hover transition-colors text-[12px] text-text-primary"
-                      >
-                        {isPaused ? <Play size={12} /> : <Pause size={12} />}
-                        <span>{isPaused ? 'Resume' : 'Pause'}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { /* cosmetic — no real scheduler to trigger */ }}
-                        aria-label="Run now"
-                        className="flex items-center gap-1 px-2 py-1 rounded-full border border-stroke-outline hover:bg-bg-hover transition-colors text-[12px] text-text-primary"
-                      >
-                        <Play size={12} />
-                        <span>Run now</span>
-                      </button>
-                      {job.from?.kind === 'chat' && (
-                        <button
-                          type="button"
-                          onClick={() => onOpenChat?.(job.from!.id)}
-                          aria-label="Open source session"
-                          className="flex items-center gap-1 px-2 py-1 rounded-full border border-stroke-outline hover:bg-bg-hover transition-colors text-[12px] text-text-primary"
-                        >
-                          <ExternalLink size={12} />
-                          <span>Open session</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -541,6 +470,10 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                 </div>
                 <span className="text-[14px] font-bold text-text-primary">Work</span>
                 <span className="text-[14px] text-text-primary">— Project impact, user data, feedback & revenue</span>
+                <TertiaryButton onClick={() => { /* cosmetic — no real export yet */ }} className="gap-1.5 ml-auto">
+                  <Download size={14} />
+                  Export report
+                </TertiaryButton>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">

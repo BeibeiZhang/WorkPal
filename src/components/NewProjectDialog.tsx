@@ -112,7 +112,6 @@ export default function NewProjectDialog({
             className="w-full px-4 py-3 rounded-[4px] text-[16px] leading-[22px] text-text-primary placeholder-text-tertiary outline-none transition-colors"
             style={{
               background: 'var(--color-bg-hover)',
-              border: '1px solid var(--color-stroke-outline)',
               fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
             }}
           />
@@ -136,7 +135,6 @@ export default function NewProjectDialog({
             className="w-full px-4 py-3 rounded-[4px] text-[16px] leading-[22px] text-text-primary placeholder-text-tertiary outline-none resize-none transition-colors"
             style={{
               background: 'var(--color-bg-hover)',
-              border: '1px solid var(--color-stroke-outline)',
               fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
             }}
           />
@@ -161,8 +159,7 @@ export default function NewProjectDialog({
               className="w-full px-4 py-3 rounded-[4px] font-mono text-[14px] leading-[22px] text-text-primary placeholder-text-tertiary outline-none transition-colors"
               style={{
                 background: 'var(--color-bg-hover)',
-                border: '1px solid var(--color-stroke-outline)',
-              }}
+                }}
             />
             <p className="mt-1.5 text-[12px] leading-[16px] text-text-tertiary">
               Leave blank to use the default under <span className="font-mono">~/WorkPal/</span>.
