@@ -255,6 +255,140 @@ const TYPE_SCALE: { className: string; label: string; size: string; lh: string; 
   { className: 'type-detail',             label: 'Detail / Regular',    size: '14', lh: '22', weight: '400', tracking: '0',     sample: 'Helper text, captions, chip labels, inline hints.', usage: 'Helper text, captions, chip labels' },
 ];
 
+/**
+ * Heading Usage Map — every distinct bold-text style the app uses for a
+ * section title or row heading, with the concrete component surfaces each
+ * one appears on. A second-tier reference next to TYPE_SCALE above: the
+ * canonical styles are what we want, this table shows what's actually
+ * in code today (mostly inline text-[Xpx] font-bold, not yet converted
+ * to .type-* utilities).
+ */
+const HEADING_USAGE: {
+  label: string;
+  classes: string;
+  maps: string;
+  sample: string;
+  sampleStyle: React.CSSProperties;
+  usedIn: string[];
+}[] = [
+  {
+    label: 'Page Title (H1)',
+    classes: 'text-[40px] font-bold leading-[48px] tracking-[-0.5px]',
+    maps: 'type-title',
+    sample: 'Projects',
+    sampleStyle: { fontSize: 40, lineHeight: '48px', fontWeight: 700, letterSpacing: '-0.5px' },
+    usedIn: ['PageLayout H1 — Overview, Memory, Design System, Connectors, Library'],
+  },
+  {
+    label: 'Card / Panel / Modal Header',
+    classes: 'text-[16px] font-bold',
+    maps: 'type-body-emphasized',
+    sample: 'Agent Design Component',
+    sampleStyle: { fontSize: 16, fontWeight: 700 },
+    usedIn: [
+      'SidePanelHeader — DetailPanel, TaskContextPanel',
+      'MessageCard header — Meeting, Ticket, Research, Schedule, Agent',
+      'ArtifactCard name — inline artifact cards in chat',
+      'SideCard titles — Instructions, Scheduled, Files, Context (ProjectPage right panel)',
+      'ProjectPage section headers — "Output", "Recents"',
+      'MemoryPage empty-state title — "Teach your AI about you"',
+      'DemoExplainerModal — "About this demo"',
+      'PasswordModal — "Confirm with password"',
+    ],
+  },
+  {
+    label: 'Sidebar / Profile Heading',
+    classes: 'text-[16px] font-bold tracking-[-0.43px]',
+    maps: 'type-body-emphasized (with tighter tracking)',
+    sample: 'Projects',
+    sampleStyle: { fontSize: 16, fontWeight: 700, letterSpacing: '-0.43px' },
+    usedIn: [
+      'Sidebar section headers — "Projects", "Recents"',
+      'Sidebar profile name — "Beibei Zhang"',
+    ],
+  },
+  {
+    label: 'Section Label / Row Title',
+    classes: 'text-[14px] font-bold tracking-[-0.43px]',
+    maps: 'type-detail-emphasized',
+    sample: 'Work',
+    sampleStyle: { fontSize: 14, fontWeight: 700, letterSpacing: '-0.43px' },
+    usedIn: [
+      'SectionTitle — Overview Work / Family / Self',
+      'TaskProgressCard title',
+      'InsightCard title',
+      'SolutionRow title',
+    ],
+  },
+  {
+    label: 'Metric Label (Uppercase)',
+    classes: 'text-[14px] font-bold uppercase tracking-[0.5px]',
+    maps: 'type-detail-emphasized (modifier)',
+    sample: 'FOCUS TIME',
+    sampleStyle: { fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' },
+    usedIn: [
+      'MetricCard title — Overview dashboard metrics',
+    ],
+  },
+];
+
+/**
+ * Row Title Usage Map — the primary text label inside a list item / row /
+ * list card, NOT a section heading above a list. Paired with HEADING_USAGE
+ * above, these two tables cover every fixed text style the app uses for
+ * structural emphasis.
+ */
+const ROW_TITLE_USAGE: {
+  label: string;
+  classes: string;
+  maps: string;
+  sample: string;
+  sampleStyle: React.CSSProperties;
+  usedIn: string[];
+}[] = [
+  {
+    label: 'Sidebar Row Title',
+    classes: 'text-[16px] leading-[22px] fontWeight: 400',
+    maps: 'type-body (regular)',
+    sample: 'Alcohol Delivery Issues',
+    sampleStyle: { fontSize: 16, lineHeight: '22px', fontWeight: 400 },
+    usedIn: [
+      'Sidebar — chat row titles in Recents list',
+      'Sidebar — project row titles in Projects list',
+      'Sidebar — New Session / Overview / Search / New Project buttons',
+    ],
+  },
+  {
+    label: 'Card Row Title',
+    classes: 'text-[14px] font-bold',
+    maps: 'type-detail-emphasized',
+    sample: 'Refresh demo script',
+    sampleStyle: { fontSize: 14, fontWeight: 700 },
+    usedIn: [
+      'TaskProgressCard — task title in Overview',
+      'ReviewItemCard — needs-review row',
+      'SolutionRow — dashboard solution rows',
+      'HealthDimensionRow — stress/health metric rows',
+      'InsightCard — insight headline',
+      'ProjectPage — chat row titles in the project Recents panel',
+      'ConnectorCard — Gmail, Calendar, Slack, Asana, etc.',
+    ],
+  },
+  {
+    label: 'File Row Title',
+    classes: 'text-[13px]',
+    maps: 'type-detail (regular)',
+    sample: 'summary-report.md',
+    sampleStyle: { fontSize: 13, fontWeight: 400 },
+    usedIn: [
+      'TaskContextPanel — Changes rows (file create/edit/delete)',
+      'TaskContextPanel — Folder rows (files in task folder)',
+      'TaskContextPanel — Context rows (attached context files)',
+      'TaskContextPanel — Tools active rows',
+    ],
+  },
+];
+
 const SPACING_SCALE: { token: string; css: string; tailwind: string; usage: string }[] = [
   { token: '--space-1',  css: '4px',  tailwind: 'p-1 / gap-1 / mt-1',  usage: 'Hairline — inside tight stacks (icon ↔ label)' },
   { token: '--space-2',  css: '8px',  tailwind: 'p-2 / gap-2 / mt-2',  usage: 'Chip/button internal padding rhythm' },
@@ -496,6 +630,20 @@ const SEARCH_INDEX: SearchEntry[] = [
     section: 'Foundations · Typography',
     name: r.label,
     description: `.${r.className} · ${r.size}/${r.lh}/${r.weight} — ${r.usage}`,
+  })),
+  // Foundations — Headings in Use
+  ...HEADING_USAGE.map<SearchEntry>(h => ({
+    tab: 'foundations',
+    section: 'Foundations · Headings in Use',
+    name: h.label,
+    description: `${h.classes} · ${h.usedIn.join(' · ')}`,
+  })),
+  // Foundations — Row Titles in Use
+  ...ROW_TITLE_USAGE.map<SearchEntry>(r => ({
+    tab: 'foundations',
+    section: 'Foundations · Row Titles in Use',
+    name: r.label,
+    description: `${r.classes} · ${r.usedIn.join(' · ')}`,
   })),
   // Foundations — Spacing
   ...SPACING_SCALE.map<SearchEntry>(s => ({
@@ -814,6 +962,62 @@ function FoundationsTab() {
                 <p className="mt-1 text-[11px] text-text-secondary leading-[15px]">{row.usage}</p>
               </div>
               <div className={`${row.className} text-text-primary`}>{row.sample}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── Headings in Use ─── */}
+      <SectionTitle id="ds-foundation-headings">Headings in Use</SectionTitle>
+
+      <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+        <p className="type-detail text-text-secondary mb-4">
+          Five heading styles render section titles, card headers, and row labels across the app. In code they're currently inlined via <code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: 'var(--color-accent-blue)' }}>text-[Xpx]&nbsp;font-bold</code>; the <strong>Maps to</strong> column shows the canonical <code className="text-[12px] font-mono">type-*</code> style each is meant to converge on.
+        </p>
+        <div className="flex flex-col divide-y divide-stroke-outline">
+          {HEADING_USAGE.map((row, i) => (
+            <div key={i} className="py-4 first:pt-0 last:pb-0 grid grid-cols-1 md:grid-cols-[260px_1fr] gap-3 md:gap-6 items-start">
+              <div>
+                <div className="type-detail-emphasized text-text-primary">{row.label}</div>
+                <code className="block mt-1 text-[11px] font-mono leading-[16px]" style={{ color: 'var(--color-accent-blue)' }}>{row.classes}</code>
+                <div className="mt-1 text-[11px] font-mono text-text-secondary leading-[16px]">
+                  Maps to <code>.{row.maps}</code>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <div className="text-text-primary" style={row.sampleStyle}>{row.sample}</div>
+                <ul className="text-[11px] text-text-secondary leading-[16px] flex flex-col gap-0.5">
+                  {row.usedIn.map(u => <li key={u}>• {u}</li>)}
+                </ul>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── Row Titles in Use ─── */}
+      <SectionTitle id="ds-foundation-row-titles">Row Titles in Use</SectionTitle>
+
+      <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+        <p className="type-detail text-text-secondary mb-4">
+          A <strong>row title</strong> is the primary label inside a list item — a chat in Recents, a file in the Changes panel, a connector card. Separate from section headings because the hierarchy is visually lower (smaller/lighter), but still the first thing scanned per row. Three distinct styles — Sidebar (nav), Card (list primitives), and File (dense panels).
+        </p>
+        <div className="flex flex-col divide-y divide-stroke-outline">
+          {ROW_TITLE_USAGE.map((row, i) => (
+            <div key={i} className="py-4 first:pt-0 last:pb-0 grid grid-cols-1 md:grid-cols-[260px_1fr] gap-3 md:gap-6 items-start">
+              <div>
+                <div className="type-detail-emphasized text-text-primary">{row.label}</div>
+                <code className="block mt-1 text-[11px] font-mono leading-[16px]" style={{ color: 'var(--color-accent-blue)' }}>{row.classes}</code>
+                <div className="mt-1 text-[11px] font-mono text-text-secondary leading-[16px]">
+                  Maps to <code>.{row.maps}</code>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <div className="text-text-primary" style={row.sampleStyle}>{row.sample}</div>
+                <ul className="text-[11px] text-text-secondary leading-[16px] flex flex-col gap-0.5">
+                  {row.usedIn.map(u => <li key={u}>• {u}</li>)}
+                </ul>
+              </div>
             </div>
           ))}
         </div>

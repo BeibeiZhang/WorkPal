@@ -63,7 +63,7 @@ export default function PasswordModal({ open, error, busy, message, onSubmit, on
             <Lock size={18} className="text-text-primary" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-[16px] font-semibold text-text-primary leading-tight">Confirm with password</h2>
+            <h2 className="text-[16px] font-bold text-text-primary leading-tight">Confirm with password</h2>
             <p className="text-[13px] text-text-secondary leading-tight mt-0.5">
               {message ?? 'Saving memory edits requires the password you set.'}
             </p>

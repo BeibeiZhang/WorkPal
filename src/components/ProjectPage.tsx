@@ -288,10 +288,10 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
             <SideCard title="Instructions" icon={<Pen size={14} />} defaultOpen>
               <div className="flex flex-col gap-2">
                 <p className="text-[14px] text-text-primary leading-relaxed">
-                  <strong>Project Name: </strong>{project.name}
+                  Project Name: {project.name}
                 </p>
                 <p className="text-[14px] text-text-primary leading-relaxed">
-                  <strong>Project Objective: </strong>
+                  Project Objective:{' '}
                   {content.objective || (
                     <span className="text-text-secondary/60 italic">No objective yet</span>
                   )}
@@ -417,7 +417,7 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                   onClick={() => setOutputOpen(o => !o)}
                   className="flex items-center justify-between w-full text-left"
                 >
-                  <h3 className="text-[16px] font-semibold text-text-primary">Output</h3>
+                  <h3 className="text-[16px] font-bold text-text-primary">Output</h3>
                   <ChevronDown
                     size={16}
                     className={`text-text-primary transition-transform ${outputOpen ? '' : '-rotate-90'}`}
@@ -499,7 +499,7 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                   onClick={() => setRecentsOpen(o => !o)}
                   className="flex items-center justify-between w-full text-left"
                 >
-                  <h3 className="text-[16px] font-semibold text-text-primary">Recents</h3>
+                  <h3 className="text-[16px] font-bold text-text-primary">Recents</h3>
                   <ChevronDown
                     size={16}
                     className={`text-text-primary transition-transform ${recentsOpen ? '' : '-rotate-90'}`}
@@ -535,7 +535,7 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                             </div>
                             <div className="flex-1 min-w-0 flex flex-col gap-1.5">
                               <div className="flex items-center justify-between gap-3">
-                                <span className="text-[15px] font-semibold text-text-primary truncate">{r.title}</span>
+                                <span className="text-[14px] font-bold text-text-primary truncate">{r.title}</span>
                                 <span className="text-[13px] text-text-primary whitespace-nowrap shrink-0">{r.time}</span>
                               </div>
                               <p className="text-[13px] text-text-primary leading-relaxed line-clamp-1">{r.description}</p>

@@ -283,7 +283,7 @@ export default function MemoryPage({
             style={{ border: '1px dashed var(--color-stroke-outline)' }}
           >
             <Brain size={32} className="text-text-secondary" />
-            <div className="text-[15px] font-semibold text-text-primary">Teach your AI about you</div>
+            <div className="text-[16px] font-bold text-text-primary">Teach your AI about you</div>
             <p className="text-[13px] text-text-secondary max-w-md">
               Memories apply to every chat — your name, preferences, project notes.
               They persist across sessions so you don't have to repeat yourself.

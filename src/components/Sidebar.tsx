@@ -539,7 +539,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
         </div>
 
         {/* 4. Projects section */}
-        <div className="px-4 pt-4 flex flex-col gap-1">
+        <div className="px-4 py-4 flex flex-col gap-1">
           <button
             onClick={() => setProjectsOpen(!projectsOpen)}
             className="px-4 flex items-center justify-between hover:bg-bg-hover rounded-full transition-colors"
@@ -585,7 +585,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
         </div>
 
         {/* Recents section */}
-        <div className="px-4 pt-4 flex flex-col gap-1">
+        <div className="px-4 py-4 flex flex-col gap-1">
           <button
             onClick={() => setRecentsOpen(!recentsOpen)}
             className="px-4 flex items-center justify-between hover:bg-bg-hover rounded-full transition-colors"
