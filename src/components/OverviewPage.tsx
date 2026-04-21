@@ -442,8 +442,8 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
 
             {/* ── WORK IMPACT ── */}
             <div className="border border-stroke-outline rounded-2xl p-6 mb-3">
-              <div className="flex items-center gap-2 mb-3.5">
-                <div className="w-8 h-8 rounded-xl bg-bg-hover flex items-center justify-center">
+              <div className="flex items-center gap-[4px] mb-3.5">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center">
                   <Briefcase size={16} className="text-text-primary" />
                 </div>
                 <span className="text-[14px] font-bold text-text-primary">Work</span>
@@ -473,8 +473,8 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3.5">
               {/* Family */}
               <div className="border border-stroke-outline rounded-2xl p-5">
-                <div className="flex items-center gap-2 mb-3.5">
-                  <div className="w-8 h-8 rounded-xl bg-bg-hover flex items-center justify-center">
+                <div className="flex items-center gap-[4px] mb-3.5">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center">
                     <Home size={16} className="text-text-primary" />
                   </div>
                   <span className="text-[14px] font-bold text-text-primary">Family</span>
@@ -495,8 +495,8 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
 
               {/* Self */}
               <div className="border border-stroke-outline rounded-2xl p-5">
-                <div className="flex items-center gap-2 mb-3.5">
-                  <div className="w-8 h-8 rounded-xl bg-bg-hover flex items-center justify-center">
+                <div className="flex items-center gap-[4px] mb-3.5">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center">
                     <Smile size={16} className="text-text-primary" />
                   </div>
                   <span className="text-[14px] font-bold text-text-primary">Self</span>
