@@ -215,11 +215,6 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                 />
               </div>
               <div className="min-w-0 p-6 md:p-8 flex flex-col justify-center">
-                <div className="flex items-center gap-1 mb-1.5">
-                  <span className="text-[14px] font-bold text-text-primary tracking-[0.5px]">
-                    STEPHEN · MONDAY MORNING BRIEFING
-                  </span>
-                </div>
                 <h2
                   className="text-[16px] font-bold text-text-primary leading-[32px] mb-2.5 tracking-[-0.43px]"
                   style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
@@ -241,21 +236,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
           <div className="mb-12">
             <SectionTitle emoji="" title="Life Health Index" size={20} />
 
-            <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-5">
-              {/* Overall Score Video */}
-              <div className="overflow-hidden rounded-2xl relative h-[320px] md:h-auto" style={{ backgroundColor: '#E8755A' }}>
-                <video
-                  src="/life-health.mov"
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  className="absolute inset-0 w-full h-full object-cover object-bottom block"
-                />
-              </div>
-
-              {/* Dimensions */}
-              <div className="flex flex-col">
+            <div className="flex flex-col">
                 <div className="flex flex-col">
                   {HEALTH_DIMENSIONS.map((d, i) => (
                     <HealthDimensionRow
@@ -299,7 +280,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
 
                 {/* Stress Detail Panel (expandable) */}
                 {showStressDetail && (
-                  <div className="bg-bg-page rounded-2xl p-5 -mt-1 dark:bg-[rgba(226,243,255,0.05)]">
+                  <div className="bg-bg-page rounded-2xl p-5 mt-[4px] dark:bg-[rgba(226,243,255,0.05)]">
                     <div className="text-[14px] font-bold text-text-primary mb-3 flex items-center gap-1.5">
                       <Brain size={14} className="text-text-primary" /> Stress Analysis
                     </div>
@@ -318,7 +299,6 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                     </TertiaryButton>
                   </div>
                 )}
-              </div>
             </div>
           </div>
 
@@ -469,7 +449,6 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                   <Briefcase size={16} className="text-text-primary" />
                 </div>
                 <span className="text-[14px] font-bold text-text-primary">Work</span>
-                <span className="text-[14px] text-text-primary">— Project impact, user data, feedback & revenue</span>
                 <TertiaryButton onClick={() => { /* cosmetic — no real export yet */ }} className="gap-1.5 ml-auto">
                   <Download size={14} />
                   Export report
@@ -480,7 +459,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                 {IMPACT_WORK.map((item, i) => {
                   const tc = TYPE_CONFIG[item.type];
                   return (
-                    <div key={i} className={`p-3.5 rounded-xl ${tc.classes}`}>
+                    <div key={i} className={`p-3.5 rounded-[8px] ${tc.classes}`}>
                       <div className="flex items-center gap-1.5 mb-1">
                         <span className="text-[16px]">{tc.emoji}</span>
                         <span className="text-[14px] font-bold text-text-primary">{item.label}</span>
