@@ -297,11 +297,10 @@ function AvatarMenu({ compact = false, activeView, activeChatId, onViewChange, o
         <div
           ref={menuRef}
           role="menu"
-          className="absolute bottom-full left-0 mb-2 min-w-[220px] py-1 rounded-xl overflow-hidden z-40"
+          className="panel-border absolute bottom-full left-0 mb-2 min-w-[220px] py-1 rounded-xl overflow-hidden z-40"
           style={{
             background: 'var(--color-bg-page)',
-            border: '1px solid var(--color-stroke-outline)',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+            boxShadow: 'var(--shadow-card-hover)',
           }}
         >
           {items.map(({ id, label, Icon, onClick, active }) => (
@@ -490,9 +489,11 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
       }}
     >
 
-      {/* Top toolbar */}
+      {/* Top toolbar — brand title on the left, collapse toggle on the right */}
       <div className="flex items-center justify-between px-6 pt-6 shrink-0">
-        {/* Hamburger nav — closes sidebar */}
+        <span className="text-[22px] font-medium text-text-primary leading-none tracking-[-0.43px]">
+          WorkPal
+        </span>
         <button onClick={onToggleSidebar} title="Close sidebar" className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-bg-hover transition-colors" style={{ color: 'var(--color-icon-primary)' }}>
           <PanelLeft size={20} />
         </button>

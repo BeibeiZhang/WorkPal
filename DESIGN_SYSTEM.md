@@ -18,7 +18,7 @@ App Shell (src/App.tsx) = three panels, every surface plugs in as a slot
 **Source tree**
 - `src/index.css` — CSS variables, utility classes, animations. **Edit tokens here.**
 - `tailwind.config.js` — maps CSS vars → Tailwind utilities (`text-text-primary` etc).
-- `src/components/shared.tsx` — all reusable primitives (26 exports).
+- `src/components/shared.tsx` — all reusable primitives (36 exports).
 - `src/components/*` — feature components (one panel/surface each).
 - `src/components/DesignSystemPage.tsx` — live showcase, the canonical reference.
 
@@ -37,18 +37,20 @@ Every CSS variable with its resolved light / dark value. If you need a token, fi
 --color-text-primary          #142740              / #FFFFFF
 --color-text-secondary        rgba(20,39,64,0.7)   / rgba(226,243,255,0.8)
 --color-text-tertiary         rgba(20,39,64,0.4)   / rgba(226,243,255,0.4)
---color-bg-page               #FFFFFF              / #001424
---color-bg-message            #F2F3F4              / rgba(226,243,255,0.1)
---color-bg-hover              #F2F3F4              / rgba(226,243,255,0.1)
+--color-bg-page               #F7F7F8              / #001424
+--color-bg-message            rgba(20,39,64,0.05)  / rgba(226,243,255,0.1)
+--color-bg-hover              rgba(20,39,64,0.05)  / rgba(226,243,255,0.1)
 --color-card-panel-bg         #FFFFFF              / rgba(0,0,0,0.3)
+--color-input-bg              var(--color-bg-page) / rgba(0,0,0,0.3)
 --color-icon-primary          #142740              / #FFFFFF
---color-sidebar-bg            #F2F3F4              / #0D2136
+--color-sidebar-bg            #F7F7F8              / #001424
 --color-outer-bg              #F5F5F7              / #001424
 --color-outer-border          #F5F5F7              / #001424
 --color-stroke-outline        #E8E8E8              / rgba(115,178,255,0.2)
 --color-stroke-toggle         #E6E8EA              / rgba(115,178,255,0.2)
 --color-selected-bg           rgba(49,113,255,0.1) / #3171FF
 --color-selected-text         #3171FF              / #FFFFFF
+--color-progress-bar          —                    / #3171FF
 
 # Semantic accents (mode-invariant)
 --color-accent-blue           #3171FF
@@ -75,6 +77,12 @@ Every CSS variable with its resolved light / dark value. If you need a token, fi
 
 # Radius
 --radius-sm / md / lg / pill / shell       8 · 12 · 16 · 9999 · 40 px
+
+# Component sizing (toolbar / composer)
+--toolbar-btn-h               39px (<768) / 26px (≥768)   ToolbarPill, ToolbarIconButton, ToolbarSegmented height
+--mode-btn-unselected-w       54px (<768) / 26px (≥768)   Width of unselected (icon-only) segment in ToolbarSegmented
+--toolbar-icon-size           24px (<768) / 16px (≥768)   Icon size inside toolbar buttons
+--input-btn-size              36px (<768) / 24px (≥768)   ChatInput send/tool button
 ```
 
 **Rule:** never hardcode these values. If a value is missing, add a new var here first.
@@ -86,10 +94,11 @@ Every CSS variable with its resolved light / dark value. If you need a token, fi
 | `--color-text-primary` | `#142740` | `#FFFFFF` | Headings, body, primary icons |
 | `--color-text-secondary` | `rgba(20,39,64,0.7)` | `rgba(226,243,255,0.8)` | Descriptions, helper text |
 | `--color-text-tertiary` | `rgba(20,39,64,0.4)` | `rgba(226,243,255,0.4)` | Disabled, muted metadata |
-| `--color-bg-page` | `#FFFFFF` | `#001424` | Main surfaces |
-| `--color-bg-message` / `--color-bg-hover` | `#F2F3F4` | `rgba(226,243,255,0.1)` | Message bubbles, hover, input fields |
+| `--color-bg-page` | `#F7F7F8` | `#001424` | Main surfaces |
+| `--color-bg-message` / `--color-bg-hover` | `rgba(20,39,64,0.05)` | `rgba(226,243,255,0.1)` | Message bubbles, hover, input fields |
 | `--color-card-panel-bg` | `#FFFFFF` | `rgba(0,0,0,0.3)` | CardShell background, DarkToggle pill, VoiceMode panel |
-| `--color-sidebar-bg` | `#F2F3F4` | `#0D2136` | NavPanel surface |
+| `--color-input-bg` | `var(--color-bg-page)` | `rgba(0,0,0,0.3)` | ChatInput inner fill |
+| `--color-sidebar-bg` | `#F7F7F8` | `#001424` | NavPanel surface |
 | `--color-stroke-outline` | `#E8E8E8` | `rgba(115,178,255,0.2)` | Borders, dividers |
 | `--color-stroke-toggle` | `#E6E8EA` | `rgba(115,178,255,0.2)` | Inputs, toggles |
 | `--color-selected-bg` | `rgba(49,113,255,0.1)` | `#3171FF` | Active chip/filter |
@@ -190,25 +199,35 @@ Scan this first. Subsections §2.1–§2.7 have the deeper reference.
 | `PrimaryButton` | Button | Single gradient CTA per view | `onClick`, `icon?`, `children` |
 | `SecondaryButton` | Button | Inverted solid fill | `onClick`, `icon?`, `children` |
 | `TertiaryButton` | Button | Bordered transparent | `onClick`, `icon?`, `children` |
+| `ToolbarPill` | Toolbar | Labeled pill in a toolbar row, snaps to `--toolbar-btn-h` | `leading`, `children`, `trailing?`, `as?` |
+| `ToolbarIconButton` | Toolbar | Icon-only square control, height = `--toolbar-btn-h` | `onClick`, `ariaLabel`, `children` |
+| `ToolbarSegmented` | Toolbar | Connected-segment pill (e.g. Chat/Tasks/Code) | `value`, `onChange`, `segments[]` |
+| `Switch` | Toolbar | Binary segmented toggle (h-8, Review Queue) | `value`, `onChange`, `segments[]` |
+| `Tooltip` | Overlay | Dark hover tooltip for icon-only triggers | `label`, `children` |
 | `FilterChip` | Chip | Toggle-able filter pill | `active`, `icon?`, `count?`, `onClick` |
 | `StatusTag` | Tag | Semantic pill (8 variants) | `variant`, `size?`, `icon?`, `children` |
 | `Tag` | Tag | Neutral pill | `children`, `size?` |
 | `TimePill` | Tag | Neutral + User icon + time string | `time` |
+| `DemoBadge` | Tag | "Demo" pill that opens an About-this-demo modal | — (gated by `VITE_WORKPAL_DEMO`) |
 | `SectionTitle` | Row | Emoji + title + optional count | `emoji`, `title`, `count?` |
 | `SolutionRow` | Row | Emoji + title + desc + right tag | `emoji`, `title`, `desc`, `tag?` |
 | `SummaryFooter` | Row | Clock + summary text (section footer) | `children` |
 | `HealthDimensionRow` | Row | Icon + label + desc + auto-colored StatusTag | `icon`, `label`, `desc`, `value`, `target` |
 | `ReviewItemCard` | Row | Review row: auto-icon + metadata + action | `title`, `meta`, `action` |
+| `ConnectorCard` | Row | Connector/integration row: logo + name + Connect/Connected | `name`, `logo`, `connected?`, `onConnect?`, `onDisconnect?` |
 | `MetricCard` | Card | Centered label + big number + subtitle | `label`, `value`, `subtitle?` |
 | `InsightCard` | Card | "Maya's insight" card with actions | `title`, `body`, `actions?` |
 | `TaskProgressCard` | Card | Collapsible progress card with step list | `title`, `steps`, `defaultOpen?` |
+| `ArtifactCard` | Card | Compact file/artifact card; icon auto-derived from type | `artifact`, `onClick?` |
+| `EmptyState` | Card | Centered icon + title + optional description for empty sections | `icon`, `title`, `description?` |
 | `ProgressBar` | Data viz | Horizontal bar 0–100 | `value`, `label?` |
 | `CategoryBreakdown` | Data viz | Stacked % bar + color-dot legend | `categories: {label,pct,color}[]` |
 | `CircularProgress` | Data viz | SVG ring, auto-sized | `value`, `size?`, `children` |
 | `StepIndicator` | Data viz | done / in-progress / pending step glyph | `status` |
+| `AreaChart` | Data viz | Smooth single-series area chart (ResizeObserver width) | `data`, `color?`, `height?` |
 | `MultiLineChart` | Data viz | Responsive SVG chart, 1+ smooth series, optional gradient stroke | `series`, `labels`, `height?` |
 
-**Decision shortcut:** button → `PrimaryButton`/`SecondaryButton`/`TertiaryButton`. Pill → `StatusTag` (semantic) / `FilterChip` (toggle) / `Tag` (neutral). Layout → `PageLayout` (full page) / `SplitView` (+ side panel) / `HeaderBar` (bare header only).
+**Decision shortcut:** button → `PrimaryButton`/`SecondaryButton`/`TertiaryButton`. Pill → `StatusTag` (semantic) / `FilterChip` (toggle) / `Tag` (neutral). Layout → `PageLayout` (full page) / `SplitView` (+ side panel) / `HeaderBar` (bare header only). Toolbar row → `ToolbarPill`/`ToolbarIconButton`/`ToolbarSegmented` (all snap to `--toolbar-btn-h`).
 
 ### 2.1 Layout primitives
 
@@ -228,6 +247,18 @@ Scan this first. Subsections §2.1–§2.7 have the deeper reference.
 | `SecondaryButton` | Inverted solid | Black bg light / white bg dark |
 | `TertiaryButton` | Bordered transparent | `.chip-gradient-hover` on hover |
 
+### 2.2a Toolbar primitives (ChatInput composer + similar)
+
+All snap to `--toolbar-btn-h` so they line up vertically in one row.
+
+| Component | Use |
+|---|---|
+| `ToolbarPill` | Labeled pill with leading icon, optional trailing node. Renders as `<button>` or `<label>` (wrap a checkbox so clicking the pill toggles it). |
+| `ToolbarIconButton` | Icon-only square control; width = height = `--toolbar-btn-h`. Pair with `Tooltip` so the label stays discoverable. |
+| `ToolbarSegmented<T>` | Connected-segment pill. Selected segment expands to show icon + label; unselected collapse to icon-only (`--mode-btn-unselected-w`). Generic over segment-value type. |
+| `Switch<T>` | Binary segmented toggle (h-8) — always shows both labels. Smaller cousin of ToolbarSegmented, for rows of metadata. Lives in the Review Queue until promoted. |
+| `Tooltip` | Dark-bg hover tooltip for icon-only triggers (black bg, white text, shows above). |
+
 ### 2.3 Tags, chips, pills
 
 | Component | Use |
@@ -236,6 +267,7 @@ Scan this first. Subsections §2.1–§2.7 have the deeper reference.
 | `Tag` | Neutral pill alias of StatusTag (no variant) |
 | `TimePill` | Neutral + User icon + time string |
 | `FilterChip` | Active/inactive toggle pill with optional `icon` + `count` |
+| `DemoBadge` | "Demo" pill + info modal. Only rendered in demo builds (`VITE_WORKPAL_DEMO`). |
 
 ### 2.4 Progress / data
 
@@ -245,6 +277,7 @@ Scan this first. Subsections §2.1–§2.7 have the deeper reference.
 | `CategoryBreakdown` | Stacked % bar + color-dot legend (stress / workload breakdowns) |
 | `CircularProgress` | SVG ring, auto-sized to children |
 | `StepIndicator` | `done` / `in-progress` / `pending` step glyph |
+| `AreaChart` | Smooth single-series area chart, fills container width |
 | `MultiLineChart` | Responsive SVG chart, 1+ smooth series, optional gradient stroke |
 | `MetricCard` | Centered label + big number + subtitle |
 
@@ -259,6 +292,9 @@ Scan this first. Subsections §2.1–§2.7 have the deeper reference.
 | `HealthDimensionRow` | Icon + label + desc + auto-colored StatusTag (colored by value/target ratio) |
 | `SolutionRow` | Emoji + title + desc + right tag |
 | `SummaryFooter` | Clock + summary text (section footer) |
+| `ConnectorCard` | Logo + name + Connect/Connected pill (with optional disconnect menu). Used in ConnectorsPage grids. |
+| `ArtifactCard` | Compact artifact/file card; icon auto-derived from `artifact.fileType` via `outputIconFor()`. |
+| `EmptyState` | Centered icon-in-pill + title + optional description for empty sections (new-project Output, Recents, etc). |
 
 ### 2.6 Inputs
 
@@ -324,13 +360,23 @@ Need a card?
   └─ single metric                     → MetricCard
   └─ insight / callout                 → InsightCard
   └─ progress + steps                  → TaskProgressCard
+  └─ artifact / file                   → ArtifactCard
+  └─ connector / integration row       → ConnectorCard
+  └─ empty section placeholder         → EmptyState
+
+Need a toolbar control (ChatInput-style)?
+  └─ labeled pill                      → ToolbarPill
+  └─ icon-only square                  → ToolbarIconButton (+ Tooltip)
+  └─ connected segments (Chat/Tasks…)  → ToolbarSegmented
+  └─ binary on/off                     → Switch (Review Queue)
 
 Need data viz?
   └─ linear 0–100                      → ProgressBar
   └─ % breakdown (categories → 100%)   → CategoryBreakdown
   └─ ring                              → CircularProgress
   └─ step glyph                        → StepIndicator
-  └─ time series                       → MultiLineChart
+  └─ single-series area                → AreaChart
+  └─ multi-series time series          → MultiLineChart
 
 Nothing fits? → build in shared.tsx, register in Review Queue.
 ```
@@ -378,3 +424,34 @@ Everything needed to port this system:
 - Copy `src/components/DesignSystemPage.tsx` (reference surface).
 - Rewrite section §2.7 (feature components) for the new app.
 - Keep §3 (Principles) verbatim.
+
+---
+
+## 7. Review — open questions
+
+Items observed while syncing this doc on 2026-04-21 where the "right" answer isn't obvious. Each one is a candidate for either (a) blessing and documenting, (b) rolling back into a unified token/component, or (c) leaving as-is with a note. Resolve in a design pass rather than silently fixing.
+
+### 7.1 Tokens — possible duplication or drift
+
+1. **`--color-bg-message` and `--color-bg-hover` have identical values** in both modes (`rgba(20,39,64,0.05)` light / `rgba(226,243,255,0.1)` dark). Are these kept separate for future semantic divergence, or should they collapse into one token (e.g. `--color-surface-subtle`)?
+2. **Several dark-mode tokens flatten to `#001424`** — `--color-bg-page`, `--color-sidebar-bg`, `--color-outer-bg`, `--color-outer-border`. Light mode still distinguishes page (`#F7F7F8`) from outer shell (`#F5F5F7`). Was the dark flattening intentional (single charcoal canvas) or accidental?
+3. **`--color-sidebar-bg` now equals `--color-bg-page`** in both modes. Previously the sidebar had its own fill. If the merge is intentional, the sidebar token may be redundant.
+4. **`--color-bg-page` changed from `#FFFFFF` to `#F7F7F8`** — light mode now has a warm off-white page. Worth an explicit note in the token table about why (reduces contrast fatigue vs pure white?) so agents don't "fix" it back to white.
+
+### 7.2 Hardcoded colors outside the token system
+
+5. **Chart series colors in `OverviewPage` bypass `--color-accent-*`** — `STRESS_SOURCES` uses `#EF4444`, `#F59E0B`, `#7652B9`, `#3171FF`; Weekly Trends stroke gradient uses `#DC2626 / #F59E0B / #16A34A`; Energy/Sleep/Stress series use `#3171FF / #8B5CF6 / #028901`. Should data-viz have its own palette tokens (`--dataviz-1..N`) or re-use `--color-accent-*` where values match?
+6. **`ConnectorCard` hardcodes a dark fill** — `dark:bg-[rgba(226,243,255,0.05)]` inline. Same literal appears in `OverviewPage.tsx` (stress-detail panel). Candidate for a `--color-surface-subtle` token in dark mode.
+
+### 7.3 Text size escape hatches
+
+7. **Inline `text-[13px]` / `text-[11px]`** appear in `ConnectorCard` (name label, Connect button) and `DemoBadge` (Demo pill text). Principle §1.3 forbids these sizes for running text. Are these controls explicitly exempted (UI chrome), or drift to be pulled back into `.type-detail` (14px) / the `sm` StatusTag size?
+
+### 7.4 Emoji vs Lucide drift
+
+8. **`SectionTitle` and `SolutionRow` still take `emoji: string` props.** Meanwhile Overview-page Work/Family/Self tags and Impact cards just migrated from emoji to Lucide icons (2026-04-21). If we're steering toward Lucide-everywhere, the two shared components should accept `icon?: LucideIcon` too (emoji fallback optional) so new callers don't re-introduce the pattern.
+9. **`DemoExplainerModal` bullet list still uses emoji** (`✨ 📂 🤖 📊 ⚖️`). It's a demo-only surface but lives in `shared.tsx`. Consistent with #8 — decide if emoji is OK in demo/marketing copy vs forbidden system-wide.
+
+### 7.5 Review Queue status
+
+10. **`Switch<T>` is documented as "Review Queue"** in its own JSDoc. The Review Queue tab in `DesignSystemPage.tsx` should confirm it's registered there with a preview and promotion criteria; otherwise it's floating between "shared primitive" and "pending".

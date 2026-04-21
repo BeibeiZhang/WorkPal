@@ -115,8 +115,8 @@ function DemoExplainerModal({ open, onClose }: { open: boolean; onClose: () => v
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div
-        className="relative w-[460px] max-w-[90vw] rounded-[12px] p-7 shadow-2xl"
-        style={{ background: 'var(--color-bg-page)', border: '1px solid var(--color-stroke-outline)' }}
+        className="panel-border relative w-[460px] max-w-[90vw] rounded-[12px] p-7 shadow-2xl"
+        style={{ background: 'var(--color-bg-page)' }}
       >
         <button
           onClick={onClose}
@@ -1026,15 +1026,15 @@ export type StatusVariant =
   | 'expired'
   | 'neutral';
 
-const STATUS_STYLES: Record<StatusVariant, { bg: string; color: string; icon: LucideIcon }> = {
-  'pending':     { bg: 'rgba(245,158,11,0.15)',  color: '#B8541A', icon: AlertTriangle },
-  'in-progress': { bg: 'rgba(49,113,255,0.1)',   color: '#3171FF', icon: Clock },
-  'submitted':   { bg: 'rgba(118,82,185,0.15)',  color: '#6B54E6', icon: Send },
-  'in-review':   { bg: 'rgba(234,179,8,0.18)',   color: '#A87725', icon: Smile },
-  'success':     { bg: 'rgba(2,137,1,0.1)',      color: '#028901', icon: BadgeCheck },
-  'failed':      { bg: 'rgba(220,38,38,0.12)',   color: '#C93838', icon: XCircle },
-  'expired':     { bg: 'rgba(107,114,128,0.15)', color: '#6B7280', icon: Clock },
-  'neutral':     { bg: 'var(--color-bg-hover)',  color: 'var(--color-text-primary)', icon: Clock },
+const STATUS_ICONS: Record<StatusVariant, LucideIcon> = {
+  'pending':     AlertTriangle,
+  'in-progress': Clock,
+  'submitted':   Send,
+  'in-review':   Smile,
+  'success':     BadgeCheck,
+  'failed':      XCircle,
+  'expired':     Clock,
+  'neutral':     Clock,
 };
 
 export function StatusTag({
@@ -1054,15 +1054,17 @@ export function StatusTag({
   outline?: boolean;
   tooltip?: string;
 }) {
-  const s = STATUS_STYLES[variant];
-  const Icon = icon ?? s.icon;
+  const Icon = icon ?? STATUS_ICONS[variant];
   const isSmall = size === 'sm';
+  // `status-{variant}` wires `--status-bg` / `--status-fg` through index.css.
+  // Dark mode overrides collapse the bg to solid and the fg to white, so the
+  // whole pill re-skins without touching this component.
   const surface = outline
-    ? { background: 'var(--color-bg-page)', color: s.color, border: '1px solid var(--color-stroke-outline)' }
-    : { background: s.bg, color: s.color };
+    ? { background: 'var(--color-bg-page)', color: 'var(--status-fg)', border: '1px solid var(--color-stroke-outline)' }
+    : { background: 'var(--status-bg)', color: 'var(--status-fg)' };
   return (
     <span
-      className={`inline-flex items-center whitespace-nowrap shrink-0 rounded-[4px] tracking-[-0.3px] font-normal ${
+      className={`status-${variant} inline-flex items-center whitespace-nowrap shrink-0 rounded-[4px] tracking-[-0.3px] font-normal ${
         isSmall ? 'gap-1 px-2 py-0.5 text-[12px]' : 'gap-1.5 px-3 py-1 text-[14px] leading-[22px]'
       } ${tooltip ? 'cursor-help' : ''}`}
       style={surface}
@@ -1261,8 +1263,8 @@ export function ConnectorCard({
           {onDisconnect && menuOpen && (
             <div
               role="menu"
-              className="absolute right-0 top-full mt-1 z-10 min-w-[140px] rounded-lg py-1 shadow-lg"
-              style={{ background: 'var(--color-bg-page)', border: '1px solid var(--color-stroke-outline)' }}
+              className="panel-border absolute right-0 top-full mt-1 z-10 min-w-[140px] rounded-lg py-1 shadow-lg"
+              style={{ background: 'var(--color-bg-page)' }}
             >
               <button
                 type="button"
@@ -1312,7 +1314,7 @@ export function FilterChip({
       }`}
       style={
         active
-          ? { background: 'rgba(49,113,255,0.1)', color: '#3171ff' }
+          ? { background: 'var(--color-selected-bg)', color: 'var(--color-selected-text)' }
           : undefined
       }
     >

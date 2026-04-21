@@ -588,6 +588,40 @@ html, body, #root {
   box-shadow: var(--shadow-card-hover);
 }
 
+/* Panel / modal border — a single hairline that follows the theme.
+   Light mode: pure white, so the panel reads as "lifted" off the muted
+   outer background while the shadow does the heavy lifting.
+   Dark mode: the design-system stroke-outline token (a soft blue tint)
+   so the edge remains visible against the dark canvas. Every dialog,
+   popover, and dropdown should use this instead of inlining a border. */
+.panel-border {
+  border: 1px solid #FFFFFF;
+}
+.dark .panel-border {
+  border-color: var(--color-stroke-outline);
+}
+
+/* StatusTag variants — each variant exposes --status-bg / --status-fg.
+   Light mode: tinted background + color-on-white text (the canonical WorkPal look).
+   Dark mode: solid 100% base color + white foreground, so status tags read
+   cleanly on the dark page without looking washed out. */
+.status-pending     { --status-bg: rgba(245,158,11,0.15);  --status-fg: #B8541A; }
+.status-in-progress { --status-bg: rgba(49,113,255,0.1);   --status-fg: #3171FF; }
+.status-submitted   { --status-bg: rgba(118,82,185,0.15);  --status-fg: #6B54E6; }
+.status-in-review   { --status-bg: rgba(234,179,8,0.18);   --status-fg: #A87725; }
+.status-success     { --status-bg: rgba(2,137,1,0.1);      --status-fg: #028901; }
+.status-failed      { --status-bg: rgba(220,38,38,0.12);   --status-fg: #C93838; }
+.status-expired     { --status-bg: rgba(107,114,128,0.15); --status-fg: #6B7280; }
+.status-neutral     { --status-bg: var(--color-bg-hover);  --status-fg: var(--color-text-primary); }
+
+.dark .status-pending     { --status-bg: #F59E0B; --status-fg: #FFFFFF; }
+.dark .status-in-progress { --status-bg: #3171FF; --status-fg: #FFFFFF; }
+.dark .status-submitted   { --status-bg: #7652B9; --status-fg: #FFFFFF; }
+.dark .status-in-review   { --status-bg: #EAB308; --status-fg: #FFFFFF; }
+.dark .status-success     { --status-bg: #028901; --status-fg: #FFFFFF; }
+.dark .status-failed      { --status-bg: #DC2626; --status-fg: #FFFFFF; }
+.dark .status-expired     { --status-bg: #6B7280; --status-fg: #FFFFFF; }
+
 /* Chat input textarea — keep scroll functionality but hide the visual scrollbar */
 .chat-textarea {
   scrollbar-width: none;

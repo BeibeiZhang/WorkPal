@@ -207,9 +207,14 @@ const SURFACE_TOKENS: ColorToken[] = [
   { name: 'Text · Tertiary',   cssVar: '--color-text-tertiary',   tailwind: 'text-text-tertiary',   usage: 'Disabled, muted metadata' },
   { name: 'Background · Page', cssVar: '--color-bg-page',         tailwind: 'bg-bg-page',           usage: 'Inner page surface' },
   { name: 'Background · Hover',cssVar: '--color-bg-hover',        tailwind: 'bg-bg-hover',          usage: 'Hover fill, subtle surfaces' },
+  { name: 'Background · Card', cssVar: '--color-card-panel-bg',                                     usage: 'CardShell, DarkToggle pill, VoiceMode panel, ArtifactCard' },
+  { name: 'Background · Input',cssVar: '--color-input-bg',                                          usage: 'ChatInput inner fill' },
   { name: 'Background · Outer',cssVar: '--color-outer-bg',        usage: 'App outer chrome' },
   { name: 'Sidebar',           cssVar: '--color-sidebar-bg',      usage: 'Left navigation surface' },
   { name: 'Stroke · Outline',  cssVar: '--color-stroke-outline',  tailwind: 'border-stroke-outline',usage: 'Default borders' },
+  { name: 'Stroke · Toggle',   cssVar: '--color-stroke-toggle',                                     usage: 'Switch / toggle / segmented borders' },
+  { name: 'Selected · Fill',   cssVar: '--color-selected-bg',                                       usage: 'FilterChip active, ToolbarSegmented selected' },
+  { name: 'Selected · Text',   cssVar: '--color-selected-text',                                     usage: 'Active FilterChip / segment text' },
 ];
 
 const ACCENT_TOKENS: ColorToken[] = [
@@ -228,7 +233,58 @@ const BRAND_STOPS: { stop: string; cssVar: string }[] = [
   { stop: 'End',    cssVar: '--brand-grad-end' },
 ];
 
+/** Parse a computed color string (hex or rgb[a]) into `{ hex, opacity }`.
+ *  Browsers' `getComputedStyle` normalizes to `rgb()` / `rgba()` — we still
+ *  accept hex so the helper round-trips if we ever read the raw source. */
+function parseColorToHexOpacity(raw: string): { hex: string; opacity: number } | null {
+  const value = raw.trim();
+  if (!value) return null;
+
+  const hexMatch = value.match(/^#([0-9a-fA-F]{3,8})$/);
+  if (hexMatch) {
+    let h = hexMatch[1];
+    if (h.length === 3 || h.length === 4) h = h.split('').map(c => c + c).join('');
+    if (h.length === 6) return { hex: '#' + h.toUpperCase(), opacity: 1 };
+    if (h.length === 8) {
+      const a = parseInt(h.slice(6, 8), 16) / 255;
+      return { hex: '#' + h.slice(0, 6).toUpperCase(), opacity: a };
+    }
+  }
+
+  const rgbMatch = value.match(/^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)\s*(?:[,/]\s*([0-9.]+)\s*)?\)$/);
+  if (rgbMatch) {
+    const r = parseInt(rgbMatch[1], 10);
+    const g = parseInt(rgbMatch[2], 10);
+    const b = parseInt(rgbMatch[3], 10);
+    const a = rgbMatch[4] !== undefined ? parseFloat(rgbMatch[4]) : 1;
+    const hex = '#' + [r, g, b].map(n => n.toString(16).padStart(2, '0').toUpperCase()).join('');
+    return { hex, opacity: a };
+  }
+
+  return null;
+}
+
+/** Resolve a CSS variable to its current `{ hex, opacity }`, re-reading
+ *  whenever `.dark` toggles on `<html>` so the swatch labels stay accurate
+ *  in both themes. */
+function useResolvedColor(cssVar: string) {
+  const [resolved, setResolved] = useState<{ hex: string; opacity: number } | null>(null);
+  useEffect(() => {
+    const read = () => {
+      const val = getComputedStyle(document.documentElement).getPropertyValue(cssVar);
+      setResolved(parseColorToHexOpacity(val));
+    };
+    read();
+    const mo = new MutationObserver(read);
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => mo.disconnect();
+  }, [cssVar]);
+  return resolved;
+}
+
 function Swatch({ token, withBorder = true }: { token: ColorToken; withBorder?: boolean }) {
+  const resolved = useResolvedColor(token.cssVar);
+  const opacityPct = resolved ? Math.round(resolved.opacity * 100) : null;
   return (
     <div className="rounded-xl border border-stroke-outline overflow-hidden" style={{ background: 'var(--color-bg-page)' }}>
       <div
@@ -237,6 +293,13 @@ function Swatch({ token, withBorder = true }: { token: ColorToken; withBorder?: 
       />
       <div className="p-3">
         <div className="text-[13px] font-bold text-text-primary leading-[18px]">{token.name}</div>
+        {resolved && (
+          <div className="mt-1 flex items-center gap-1.5">
+            <code className="text-[11px] font-mono text-text-primary">{resolved.hex}</code>
+            <span className="text-[11px] text-text-tertiary">·</span>
+            <code className="text-[11px] font-mono text-text-secondary">{opacityPct}%</code>
+          </div>
+        )}
         <code className="block mt-1 text-[11px] font-mono text-text-secondary break-all">{token.cssVar}</code>
         {token.tailwind && (
           <code className="block mt-0.5 text-[11px] font-mono" style={{ color: 'var(--color-accent-blue)' }}>{token.tailwind}</code>

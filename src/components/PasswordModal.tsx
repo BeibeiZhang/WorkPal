@@ -44,8 +44,8 @@ export default function PasswordModal({ open, error, busy, message, onSubmit, on
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
       <div
-        className="relative w-[400px] max-w-[90vw] rounded-[12px] p-7 shadow-2xl"
-        style={{ background: 'var(--color-bg-page)', border: '1px solid var(--color-stroke-outline)' }}
+        className="panel-border relative w-[400px] max-w-[90vw] rounded-[12px] p-7 shadow-2xl"
+        style={{ background: 'var(--color-bg-page)' }}
       >
         <button
           onClick={onCancel}

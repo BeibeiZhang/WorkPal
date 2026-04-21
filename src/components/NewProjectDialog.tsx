@@ -69,8 +69,8 @@ export default function NewProjectDialog({
 
       {/* Dialog */}
       <div
-        className="relative w-[480px] max-w-[90vw] rounded-[8px] p-8 shadow-2xl"
-        style={{ background: 'var(--color-bg-page)', border: '1px solid var(--color-stroke-outline)' }}
+        className="panel-border relative w-[480px] max-w-[90vw] rounded-[8px] p-8 shadow-2xl"
+        style={{ background: 'var(--color-bg-page)' }}
       >
         {/* Close button */}
         <button

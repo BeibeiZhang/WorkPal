@@ -4,6 +4,8 @@ import {
   Brain, Volume2, Briefcase, Home, Smile,
   Moon, Zap, Gauge, BarChart3, Search,
   CalendarClock, Globe, Download,
+  Rocket, MessageCircle, DollarSign,
+  Dice5, Baby, Gamepad2, BookOpen, Footprints,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -141,11 +143,11 @@ const WEEKLY_STRESS = [
   { label: 'Sun', value: 15 },
 ];
 
-const TYPE_CONFIG: Record<string, { emoji: string; classes: string }> = {
-  feature: { emoji: '🚀', classes: 'bg-bg-hover' },
-  metric: { emoji: '📊', classes: 'bg-bg-hover' },
-  feedback: { emoji: '💬', classes: 'bg-bg-hover' },
-  revenue: { emoji: '💰', classes: 'bg-bg-hover' },
+const TYPE_CONFIG: Record<string, { icon: LucideIcon; classes: string }> = {
+  feature: { icon: Rocket, classes: '' },
+  metric: { icon: BarChart3, classes: '' },
+  feedback: { icon: MessageCircle, classes: '' },
+  revenue: { icon: DollarSign, classes: '' },
 };
 
 /* ── Main Component ── */
@@ -456,10 +458,11 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                 {IMPACT_WORK.map((item, i) => {
                   const tc = TYPE_CONFIG[item.type];
+                  const Icon = tc.icon;
                   return (
                     <div key={i} className={`p-3.5 rounded-[8px] ${tc.classes}`}>
                       <div className="flex items-center gap-1.5 mb-1">
-                        <span className="text-[16px]">{tc.emoji}</span>
+                        <Icon size={16} className="text-text-primary shrink-0" />
                         <span className="text-[14px] font-bold text-text-primary">{item.label}</span>
                       </div>
                       <div className="text-[14px] text-text-primary leading-[1.5]">{item.detail}</div>
@@ -482,13 +485,20 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
 
                 <MetricCard title="Emotional value to hubby" value={String(IMPACT_FAMILY.husbandMood)} subtitle="/10 — Perfect!" />
 
-                <div className="px-3.5 py-2.5 rounded-xl bg-bg-hover text-[14px] text-text-primary leading-[1.5]">
+                <div className="py-2.5 text-[14px] text-text-primary leading-[1.5]">
                   {IMPACT_FAMILY.detail}
                 </div>
 
                 <div className="flex gap-1.5 mt-2.5 flex-wrap">
-                  {['😊 Relaxed evenings', '🎲 Board game night', '👶 Co-bedtime routine'].map((tag, i) => (
-                    <Tag key={i}>{tag}</Tag>
+                  {[
+                    { icon: Smile, label: 'Relaxed evenings' },
+                    { icon: Dice5, label: 'Board game night' },
+                    { icon: Baby, label: 'Co-bedtime routine' },
+                  ].map(({ icon: Icon, label }, i) => (
+                    <Tag key={i}>
+                      <Icon size={12} className="shrink-0" />
+                      {label}
+                    </Tag>
                   ))}
                 </div>
               </div>
@@ -504,13 +514,20 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
 
                 <MetricCard title="Extra disposable time" value={`+${IMPACT_SELF.extraHours}h`} subtitle="this week gained back" />
 
-                <div className="px-3.5 py-2.5 rounded-xl bg-bg-hover text-[14px] text-text-primary leading-[1.5]">
+                <div className="py-2.5 text-[14px] text-text-primary leading-[1.5]">
                   {IMPACT_SELF.detail}
                 </div>
 
                 <div className="flex gap-1.5 mt-2.5 flex-wrap">
-                  {['🎮 Gaming time', '📚 Reading', '💪 Morning walk'].map((tag, i) => (
-                    <Tag key={i}>{tag}</Tag>
+                  {[
+                    { icon: Gamepad2, label: 'Gaming time' },
+                    { icon: BookOpen, label: 'Reading' },
+                    { icon: Footprints, label: 'Morning walk' },
+                  ].map(({ icon: Icon, label }, i) => (
+                    <Tag key={i}>
+                      <Icon size={12} className="shrink-0" />
+                      {label}
+                    </Tag>
                   ))}
                 </div>
               </div>

@@ -134,10 +134,9 @@ export default function CompleteSessionModal({
       />
 
       <div
-        className="relative w-[520px] max-w-[92vw] max-h-[82vh] rounded-[16px] p-7 shadow-2xl flex flex-col"
+        className="panel-border relative w-[520px] max-w-[92vw] max-h-[82vh] rounded-[16px] p-7 shadow-2xl flex flex-col"
         style={{
           background: 'var(--color-bg-page)',
-          border: '1px solid var(--color-stroke-outline)',
         }}
       >
         <h2
