@@ -1,3 +1,5 @@
+import { IS_DEMO } from './demoMode';
+
 export type Provider = 'openai' | 'anthropic' | 'tavily';
 export type Capability = 'chat' | 'voice' | 'web_query' | 'agent' | 'other';
 
@@ -28,6 +30,10 @@ export interface UsageSummary {
 }
 
 export async function fetchUsage(rangeDays: 1 | 7 | 30): Promise<UsageSummary | null> {
+  if (IS_DEMO) {
+    const { DEMO_USAGE } = await import('../data/demo/usage');
+    return DEMO_USAGE[rangeDays];
+  }
   try {
     const res = await fetch(`/api/usage?range=${rangeDays}`);
     if (!res.ok) return null;
@@ -85,6 +91,7 @@ export async function logClientUsage(entry: {
   cache_read_tokens?: number;
   images_count?: number;
 }): Promise<void> {
+  if (IS_DEMO) return;
   try {
     await fetch('/api/usage/log', {
       method: 'POST',
