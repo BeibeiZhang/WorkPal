@@ -16,37 +16,6 @@ const hour = (n: number) => new Date(Date.now() - n * 3_600_000);
  *  so HRs land on a populated sidebar instead of an empty-state prompt. */
 export const DEMO_EXTRA_CHATS: Chat[] = [
   {
-    id: 'demo-weekly-sync',
-    title: 'Weekly product sync recap',
-    lastMessage: "I'll summarize this week's sync notes for you.",
-    timestamp: hour(4),
-    messages: [
-      {
-        id: 'demo-sync-u1',
-        role: 'user',
-        content: "Summarize this week's product sync and pull out action items.",
-        timestamp: hour(4),
-      },
-      {
-        id: 'demo-sync-a1',
-        role: 'assistant',
-        content:
-          "Here's the recap from Monday's product sync. The team agreed on two big moves for next week — would you like me to turn them into Jira tickets?",
-        timestamp: hour(4),
-        card: {
-          type: 'meeting',
-          title: 'Weekly product sync — April 15',
-          content:
-            '**Attendees**\nBeibei, Kai, Stephen, Priya\n\n**Decisions**\n• Ship the pickup-flow redesign behind a 20% experiment starting Monday\n• Pause the loyalty integration until legal clears the T&Cs update\n\n**Action items**\n• Kai — finalize pickup illustrations by Thursday\n• Stephen — draft experiment targeting rules\n• Priya — schedule legal sync about loyalty T&Cs',
-        },
-        chips: [
-          { label: 'Create Tickets', action: 'create-tickets' },
-          { label: 'Set Up Meeting', action: 'set-up-meeting' },
-        ],
-      },
-    ],
-  },
-  {
     id: 'demo-q1-ux-research',
     title: 'Q1 UX research highlights',
     lastMessage: 'Here are the top themes from Q1 usability sessions.',

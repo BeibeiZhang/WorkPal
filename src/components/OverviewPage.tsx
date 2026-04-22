@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import {
   ChevronRight, ChevronDown, ChevronUp,
   Brain, Volume2, Briefcase, Home, Smile,
-  Moon, Zap, Gauge, BarChart3, Search,
+  Moon, Gauge, BarChart3, Search,
   CalendarClock, Globe, Download,
   Rocket, MessageCircle,
   Dice5, Baby, Gamepad2, BookOpen, Footprints,
@@ -73,10 +73,9 @@ const HEALTH_DIMENSIONS: Array<{
   desc: string;
   met: boolean;
 }> = [
-  { icon: Brain, label: 'Focus Time', value: 2, target: 2, unit: 'h', status: 'on-track', desc: '9–11am blocked & protected', met: true },
+  { icon: Brain, label: 'Focus Time', value: 2, target: 2, unit: 'h', status: 'on-track', desc: '3–5am blocked & protected', met: true },
   { icon: Home, label: 'Family Time', value: 2, target: 2, unit: 'h', status: 'on-track', desc: 'Kids + board game time scheduled', met: true },
   { icon: Moon, label: 'Sleep', value: 7, target: 7, unit: 'h', status: 'on-track', desc: 'Last night: 7h 12min — well rested', met: true },
-  { icon: Zap, label: 'Workload', value: 3, target: null, unit: 'tasks', status: 'balanced', desc: 'Manageable pace today', met: true },
 ];
 
 const STRESS_LEVEL = 48;
@@ -90,7 +89,7 @@ const STRESS_SOURCES = [
 
 const STRESS_SOLUTIONS = [
   { icon: '🎧', title: '3-Min AI Briefing', desc: 'Daily audio digest on industry trends, every morning', tag: 'For: Keeping up with AI' },
-  { icon: '🧘', title: 'Focus Block Guard', desc: '9-11am auto-block non-urgent meetings', tag: 'For: Deadline pressure' },
+  { icon: '🧘', title: 'Focus Block Guard', desc: '3-5am auto-block non-urgent meetings', tag: 'For: Deadline pressure' },
   { icon: '📋', title: 'Async Alignment Template', desc: 'Cut 30% of alignment meetings', tag: 'For: Cross-team' },
 ];
 
@@ -217,7 +216,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                   Good morning, Beibei! Today feels like a steady day ☀️
                 </h2>
                 <p className="type-detail text-text-primary">
-                  Your life commitments are all locked in — 2h family time, 7h sleep, check ✓. I've protected your 9–11am focus block, and today's workload is light. I finished your meeting notes and drafted 3 tickets — review them whenever you're ready.
+                  Your life commitments are all locked in — 2h family time, 7h sleep, check ✓. I've protected your 3–5am focus block, and today's workload is light. I finished your meeting notes and drafted 3 tickets — review them whenever you're ready.
                 </p>
                 <PrimaryButton onClick={toggleSpeak} className="mt-3 gap-2">
                   <Volume2 size={16} />
@@ -422,7 +421,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
           {/* ━━━ 5. STEPHEN'S INSIGHT ━━━ */}
           <div className="mb-12">
             <InsightCard
-              body="I noticed your focus time has dropped 40% this week compared to your best weeks. Your most productive hours are usually between 9-11am, but those slots got filled with meetings. Want me to protect those morning blocks going forward?"
+              body="I noticed your focus time has dropped 40% this week compared to your best weeks. Your most productive hours are usually between 3-5am, but those slots got filled with meetings. Want me to protect those morning blocks going forward?"
               actions={[
                 { label: 'Yes, protect my mornings', secondary: true },
                 { label: 'Show me the data' },

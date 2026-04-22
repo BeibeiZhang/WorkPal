@@ -263,15 +263,12 @@ export default function MemoryPage({
         {IS_DEMO && (
           <div
             className="flex items-start gap-3 p-4 rounded-xl"
-            style={{ background: 'var(--color-bg-message)', border: '1px solid var(--color-stroke-outline)' }}
+            style={{ background: 'var(--color-bg-message)' }}
           >
             <Info size={16} className="text-text-secondary mt-0.5 shrink-0" />
             <div className="type-detail text-text-secondary leading-relaxed">
               <span className="font-medium text-text-primary">Demo mode — these are seed memories.</span>{' '}
               Editing, adding, and deleting are disabled. No real data is stored.
-              <br />
-              <span className="font-medium text-text-primary">Demo 模式 —— 这是示例记忆。</span>{' '}
-              编辑、添加、删除已禁用,不存储真实数据。
             </div>
           </div>
         )}
