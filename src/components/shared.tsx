@@ -1326,6 +1326,102 @@ export function FilterChip({
   );
 }
 
+/* ─── 7e. Chip ───
+ * Compact rounded-full chip for inline suggestions, selections, and actions.
+ * One component, three use-sites that used to be inline:
+ *   - ChatInput quick chips (icon + label, onClick)
+ *   - ChatInput action chips (label only, onClick)
+ *   - Onboarding trait picker (label + selected state + drag + optional remove)
+ *
+ * FilterChip is NOT unified here — it uses `type-detail / gap-2 / count`,
+ * a different spec (filter bars vs inline content).
+ *
+ * When `draggable` is set the element renders as a focusable <div> so HTML5
+ * drag events behave consistently; otherwise it's a <button>. Either way it
+ * keeps the same visual contract: `type-h2`, 1px border, gradient-tinted
+ * border on hover (inactive), solid selected-bg fill (active).
+ */
+export function Chip({
+  label,
+  icon,
+  active = false,
+  onClick,
+  onRemove,
+  draggable = false,
+  onDragStart,
+  className: extra = '',
+}: {
+  label: ReactNode;
+  icon?: ReactNode;
+  active?: boolean;
+  onClick?: () => void;
+  onRemove?: () => void;
+  draggable?: boolean;
+  onDragStart?: (e: React.DragEvent) => void;
+  className?: string;
+}) {
+  const stateClass = active
+    ? 'border-transparent'
+    : 'border-stroke-outline text-text-primary chip-gradient-hover';
+  const stateStyle = active
+    ? { background: 'var(--color-selected-bg)', color: 'var(--color-selected-text)' }
+    : undefined;
+  const cursor = draggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer';
+  const base = `flex items-center gap-1 px-3 py-1 rounded-full border type-h2 transition-colors select-none ${cursor} ${stateClass} ${extra}`;
+
+  const inner = (
+    <>
+      {icon}
+      <span>{label}</span>
+      {onRemove && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          className="ml-1 -mr-1 flex items-center justify-center rounded-full hover:opacity-70"
+          style={{ width: 16, height: 16, color: 'inherit' }}
+          aria-label="Remove"
+        >
+          <X size={14} />
+        </button>
+      )}
+    </>
+  );
+
+  // Render as <div role="button"> when the chip needs to host a nested
+  // interactive element (onRemove button) or HTML5 drag — <button> inside
+  // <button> is invalid, and draggable elements behave more consistently on
+  // a div. Otherwise use a real <button> for native semantics.
+  const useDiv = draggable || Boolean(onRemove);
+
+  if (useDiv) {
+    return (
+      <div
+        role="button"
+        tabIndex={0}
+        draggable={draggable || undefined}
+        onDragStart={onDragStart}
+        onClick={onClick}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}
+        className={base}
+        style={stateStyle}
+      >
+        {inner}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={base}
+      style={stateStyle}
+    >
+      {inner}
+    </button>
+  );
+}
+
 /* ─── 8. SolutionRow ─── */
 export function SolutionRow({
   icon,

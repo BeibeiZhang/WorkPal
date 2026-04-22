@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, KeyboardEvent } from 'react';
 import { FileText, X } from 'lucide-react';
 import { iconGoals, iconDoc16, iconBarChart, iconAdd, iconPhoto, iconCamera, iconUpload, iconSend, iconSendActive } from '../assets';
 import { ActionChip, Attachment } from '../types';
-import { ToolbarIconButton, Tooltip } from './shared';
+import { Chip, ToolbarIconButton, Tooltip } from './shared';
 
 const CHIP_ICONS: Record<string, string> = {
   'Create performance goals': iconGoals,
@@ -329,18 +329,18 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
       {quickChips && quickChips.length > 0 && value.length === 0 && attachments.length === 0 && !voiceModeActive && (
         <div className="flex flex-wrap gap-2">
           {quickChips.map(chip => (
-            <button
+            <Chip
               key={chip}
+              label={chip}
               onClick={() => onSend(chip)}
-              className="chip-gradient-hover flex items-center gap-1 px-3 py-1 rounded-full border border-stroke-outline type-h2 text-text-primary transition-colors cursor-pointer"
-            >
-              {CHIP_ICONS[chip] && (
-                <div className="relative overflow-hidden w-4 h-4 shrink-0 flex items-center justify-center">
-                  <img src={CHIP_ICONS[chip]} alt="" className="max-w-full max-h-full object-contain opacity-70 icon-theme" />
-                </div>
-              )}
-              {chip}
-            </button>
+              icon={
+                CHIP_ICONS[chip] ? (
+                  <div className="relative overflow-hidden w-4 h-4 shrink-0 flex items-center justify-center">
+                    <img src={CHIP_ICONS[chip]} alt="" className="max-w-full max-h-full object-contain opacity-70 icon-theme" />
+                  </div>
+                ) : undefined
+              }
+            />
           ))}
         </div>
       )}
@@ -349,13 +349,12 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
       {actionChips && actionChips.length > 0 && (
         <div className="flex gap-2 overflow-x-auto scrollbar-autohide -mx-4 px-4">
           {actionChips.map(chip => (
-            <button
+            <Chip
               key={chip.action}
+              label={chip.label}
               onClick={() => onChipClick?.(chip)}
-              className="chip-gradient-hover shrink-0 px-3 py-1 rounded-full border border-stroke-outline type-h2 text-text-primary transition-colors cursor-pointer whitespace-nowrap"
-            >
-              {chip.label}
-            </button>
+              className="shrink-0 whitespace-nowrap"
+            />
           ))}
         </div>
       )}

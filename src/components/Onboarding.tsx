@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react';
-import { X } from 'lucide-react';
 import ChatInput from './ChatInput';
-import { Tag, PageLayout } from './shared';
+import { Chip, Tag, PageLayout } from './shared';
 
 interface OnboardingProps {
   onComplete: (mostImportant: string[], avoid: string[], description?: string) => void;
@@ -103,30 +102,15 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
   const renderChip = (trait: string, from: Zone, removable = false) => {
     const inZone = from === 'important';
     return (
-      <div
+      <Chip
         key={`${from}-${trait}`}
+        label={trait}
+        active={inZone}
         draggable
         onDragStart={(e) => handleDragStart(e, trait, from)}
         onClick={() => handleChipClick(trait, from)}
-        className={`flex items-center gap-1 px-3 py-1 rounded-full border border-stroke-outline type-h2 transition-all cursor-grab active:cursor-grabbing select-none ${
-          inZone
-            ? 'bg-[var(--color-selected-bg)] text-[var(--color-selected-text)] border-transparent'
-            : 'text-text-primary chip-gradient-hover'
-        }`}
-      >
-        <span>{trait}</span>
-        {removable && (
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); handleChipClick(trait, from); }}
-            className="ml-1 -mr-1 flex items-center justify-center rounded-full hover:opacity-70"
-            style={{ width: 16, height: 16, color: 'inherit' }}
-            aria-label={`Remove ${trait}`}
-          >
-            <X size={14} />
-          </button>
-        )}
-      </div>
+        onRemove={removable ? () => handleChipClick(trait, from) : undefined}
+      />
     );
   };
 

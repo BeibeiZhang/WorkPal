@@ -14,11 +14,11 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import {
   SectionTitle as SharedSectionTitle, ProgressBar, CategoryBreakdown, CircularProgress,
-  TimePill, StepIndicator, Tag, FilterChip, PrimaryButton, SecondaryButton, TertiaryButton,
+  TimePill, StepIndicator, Tag, FilterChip, Chip, PrimaryButton, SecondaryButton, TertiaryButton,
   SolutionRow, SummaryFooter,
   MetricCard, InsightCard, MultiLineChart, TaskProgressCard, ReviewItemCard,
   StatusTag, ConnectorCard, HealthDimensionRow, SearchBox, PageLayout,
-  HeaderBar, SplitView, SidePanelHeader, SideCard, ToolbarPill,
+  HeaderBar, SplitView, SidePanelHeader, SideCard, ToolbarPill, DemoBadge,
   ToolbarIconButton, ToolbarSegmented, Tooltip, Switch,
 } from './shared';
 // Live imports — every "real" component that ships in the app.
@@ -198,23 +198,77 @@ type ColorToken = {
   name: string;
   cssVar: string;
   tailwind?: string;
+  /** Additional CSS vars that resolve to the same value in every theme.
+   *  Rendered in the Swatch under the primary cssVar so duplicates collapse
+   *  into a single entry without hiding that the extra token exists. */
+  aliases?: string[];
   usage: string;
 };
 
 const SURFACE_TOKENS: ColorToken[] = [
-  { name: 'Text · Primary',    cssVar: '--color-text-primary',    tailwind: 'text-text-primary',    usage: 'Headings, body, labels, icons' },
-  { name: 'Text · Secondary',  cssVar: '--color-text-secondary',  tailwind: 'text-text-secondary',  usage: 'Descriptions, captions, helper text' },
-  { name: 'Text · Tertiary',   cssVar: '--color-text-tertiary',   tailwind: 'text-text-tertiary',   usage: 'Disabled, muted metadata' },
-  { name: 'Background · Page', cssVar: '--color-bg-page',         tailwind: 'bg-bg-page',           usage: 'Inner page surface' },
-  { name: 'Background · Hover',cssVar: '--color-bg-hover',        tailwind: 'bg-bg-hover',          usage: 'Hover fill, subtle surfaces' },
-  { name: 'Background · Card', cssVar: '--color-card-panel-bg',                                     usage: 'CardShell, DarkToggle pill, VoiceMode panel, ArtifactCard' },
-  { name: 'Background · Input',cssVar: '--color-input-bg',                                          usage: 'ChatInput inner fill' },
-  { name: 'Background · Outer',cssVar: '--color-outer-bg',        usage: 'App outer chrome' },
-  { name: 'Sidebar',           cssVar: '--color-sidebar-bg',      usage: 'Left navigation surface' },
-  { name: 'Stroke · Outline',  cssVar: '--color-stroke-outline',  tailwind: 'border-stroke-outline',usage: 'Default borders' },
-  { name: 'Stroke · Toggle',   cssVar: '--color-stroke-toggle',                                     usage: 'Switch / toggle / segmented borders' },
-  { name: 'Selected · Fill',   cssVar: '--color-selected-bg',                                       usage: 'FilterChip active, ToolbarSegmented selected' },
-  { name: 'Selected · Text',   cssVar: '--color-selected-text',                                     usage: 'Active FilterChip / segment text' },
+  {
+    name: 'Text · Primary',
+    cssVar: '--color-text-primary',
+    tailwind: 'text-text-primary',
+    usage: 'Default text & icons — Display/H1/H2 headings, body copy, labels, form input text, primary icons, active nav items',
+  },
+  {
+    name: 'Text · Secondary',
+    cssVar: '--color-text-secondary',
+    tailwind: 'text-text-secondary',
+    usage: '70% text — descriptions, captions, timestamps, helper copy under titles, inactive nav labels, column headers in tables',
+  },
+  {
+    name: 'Text · Tertiary',
+    cssVar: '--color-text-tertiary',
+    tailwind: 'text-text-tertiary',
+    usage: '40% text — disabled controls, muted metadata, dimmed hints, placeholder separators',
+  },
+  {
+    name: 'Background · Page',
+    cssVar: '--color-bg-page',
+    tailwind: 'bg-bg-page',
+    aliases: ['--color-sidebar-bg'],
+    usage: 'Inner page canvas — chat area, panel bodies, dropdowns, popovers, and the left sidebar (shares value with --color-sidebar-bg in both light and dark)',
+  },
+  {
+    name: 'Background · Hover',
+    cssVar: '--color-bg-hover',
+    tailwind: 'bg-bg-hover',
+    usage: '5% / 10% overlay — row & cell hover, chip fills, chat message bubbles, inline code blocks, subtle inset panels',
+  },
+  {
+    name: 'Background · Card',
+    cssVar: '--color-card-panel-bg',
+    usage: 'Elevated surfaces — CardShell, ArtifactCard, DarkToggle pill, VoiceMode panel. White in light; 30% black in dark so the shell gradient reads through',
+  },
+  {
+    name: 'Background · Input',
+    cssVar: '--color-input-bg',
+    usage: 'Input field fill — ChatInput textarea and inline search surfaces. #142740 at 5% in light (same overlay as bg-hover); 30% black in dark so the shell gradient reads through',
+  },
+  {
+    name: 'Background · Outer',
+    cssVar: '--color-outer-bg',
+    usage: 'App shell exterior — the strip around the rounded 40px page card. Gives the visible margin in light (#f5f5f7); blends with page in dark',
+  },
+  {
+    name: 'Stroke · Outline',
+    cssVar: '--color-stroke-outline',
+    tailwind: 'border-stroke-outline',
+    aliases: ['--color-stroke-toggle'],
+    usage: 'Default 1px borders — cards, panels, dividers, popups, outlined buttons, input & dropdown containers, table rows, and control borders (Switch / segmented / DarkToggle pill via --color-stroke-toggle, same value in both modes)',
+  },
+  {
+    name: 'Selected · Fill',
+    cssVar: '--color-selected-bg',
+    usage: 'Active/selected state fill — active FilterChip, ToolbarSegmented selected tab, focus-ring backgrounds. 10% blue in light, solid blue in dark',
+  },
+  {
+    name: 'Selected · Text',
+    cssVar: '--color-selected-text',
+    usage: 'Text & icon color on Selected · Fill — blue on the 10% light fill, white on the solid dark fill (maintains contrast in both modes)',
+  },
 ];
 
 const ACCENT_TOKENS: ColorToken[] = [
@@ -301,6 +355,9 @@ function Swatch({ token, withBorder = true }: { token: ColorToken; withBorder?: 
           </div>
         )}
         <code className="block mt-1 type-caption font-mono text-text-secondary break-all">{token.cssVar}</code>
+        {token.aliases?.map(a => (
+          <code key={a} className="block type-caption font-mono text-text-tertiary break-all">↳ {a}</code>
+        ))}
         {token.tailwind && (
           <code className="block mt-0.5 type-caption font-mono" style={{ color: 'var(--color-accent-blue)' }}>{token.tailwind}</code>
         )}
@@ -864,7 +921,9 @@ const SEARCH_INDEX: SearchEntry[] = [
   { tab: 'components', section: 'Components · Shared Primitives', name: 'StatusTag', description: 'Semantic status pill — 7 variants (pending, in-progress, submitted, in-review, success, failed, expired).' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'Tag', description: 'Neutral display pill (filled or outline).' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'TimePill', description: 'Neutral pill with user icon + time.' },
-  { tab: 'components', section: 'Components · Shared Primitives', name: 'FilterChip', description: 'Master filter chip — active, count, with icon.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'FilterChip', description: 'Master filter chip — active, count, with icon (type-detail / gap-2).' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'Chip', description: 'Inline-content chip — icon, active, removable, draggable (type-h2 / gap-1).' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'DemoBadge', description: 'Click-to-open demo-mode badge shown in HeaderBar.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'ConnectorCard', description: 'Compact row for an integration — logo + name + Connect / Connected.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'CircularProgress', description: 'SVG circle progress with centered text overlay.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'ProgressBar', description: 'Determinate progress bar with optional label.' },
@@ -1948,7 +2007,7 @@ function LibraryEntry({ entry }: { entry: LibEntry }) {
         <span className="type-caption px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
       </div>
       <p className="type-caption text-text-primary mb-3">{entry.description}</p>
-      <div className="p-4 rounded-xl mb-3" style={{ background: 'var(--color-bg-hover)' }}>
+      <div className="p-4 rounded-xl mb-3">
         {entry.preview}
       </div>
       <div>
@@ -2035,7 +2094,7 @@ function ComponentsTab() {
     },
     {
       name: 'FilterChip',
-      description: 'Master filter chip. States: active, inactive, with icon, with count.',
+      description: 'Master filter chip. States: active, inactive, with icon, with count. Uses type-detail / gap-2 (filter-bar spec).',
       usedIn: ['Library', 'Tasks', 'Projects', 'Connectors'],
       preview: (
         <div className="flex flex-wrap gap-2 items-center">
@@ -2043,6 +2102,37 @@ function ComponentsTab() {
           <FilterChip label="Reports" count={2} />
           <FilterChip label="Documents" />
           <FilterChip label="Active" active />
+        </div>
+      ),
+    },
+    {
+      name: 'Chip',
+      description: 'Inline-content chip. States: default, with icon, active (selected), removable, draggable. Uses type-h2 / gap-1 (inline-content spec — distinct from FilterChip).',
+      usedIn: ['Onboarding trait picker', 'ChatInput quick chips', 'ChatInput action chips'],
+      preview: (
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap gap-2">
+            <Chip label="Create performance goals" />
+            <Chip label="Analyze doc(s)" />
+            <Chip label="Visualize data" />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Chip label="🛟 Stable" />
+            <Chip label="🧠 Organized" active />
+            <Chip label="🤗 Kind" active onRemove={() => {}} />
+            <Chip label="🧘 Calm" draggable />
+          </div>
+        </div>
+      ),
+    },
+    {
+      name: 'DemoBadge',
+      description: 'Small "Demo" badge with Info icon. Click opens an explainer modal. Visible only when IS_DEMO is true (hidden on localhost / prod).',
+      usedIn: ['HeaderBar (top-right across all pages in demo builds)'],
+      preview: (
+        <div className="flex items-center gap-3">
+          <DemoBadge />
+          <span className="text-[12px] text-text-secondary">(click to open modal)</span>
         </div>
       ),
     },
