@@ -12,6 +12,7 @@ import connectorsRouter from './routes/connectors.js';
 import animationsRouter from './routes/animations.js';
 import agentVideoStatusRouter from './routes/agentVideoStatus.js';
 import artifactsRouter from './routes/artifacts.js';
+import usageRouter from './routes/usage.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -34,6 +35,7 @@ app.use('/api', connectorsRouter);
 app.use('/api', animationsRouter);
 app.use('/api', agentVideoStatusRouter);
 app.use('/api', artifactsRouter);
+app.use('/api', usageRouter);
 
 // Health check
 app.get('/health', (_req, res) => {

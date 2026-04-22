@@ -4,6 +4,7 @@ import { searchImages, isImageSearchConfigured, type ImageResult } from './image
 import { searchVideos, isVideoSearchConfigured, type VideoResult } from './youtubeSearch.js';
 import { searchWeb, isWebSearchConfigured, type WebResult } from './webSearch.js';
 import { listConnectors } from './connectorStore.js';
+import { logUsage, priceFor } from './usageLog.js';
 import {
   searchGmail,
   sendEmail,
@@ -267,11 +268,17 @@ export async function* streamChat(
     ...messages.map(toOpenAIMessage),
   ];
 
+  // Running totals across first + (optional) second pass — logged once at
+  // stream end so dashboards see one row per user turn rather than two.
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+
   try {
     const stream = await openai.chat.completions.create({
       model,
       messages: baseMessages,
       stream: true,
+      stream_options: { include_usage: true },
       ...(tools ? { tools, tool_choice: 'auto' as const } : {}),
     });
 
@@ -281,6 +288,10 @@ export async function* streamChat(
     }> = [];
 
     for await (const chunk of stream) {
+      if (chunk.usage) {
+        totalInputTokens += chunk.usage.prompt_tokens ?? 0;
+        totalOutputTokens += chunk.usage.completion_tokens ?? 0;
+      }
       const delta = chunk.choices[0]?.delta;
       if (!delta) continue;
       if (delta.content) yield { type: 'text', content: delta.content };
@@ -425,9 +436,14 @@ export async function* streamChat(
         model,
         messages: followupMessages,
         stream: true,
+        stream_options: { include_usage: true },
       });
 
       for await (const chunk of followup) {
+        if (chunk.usage) {
+          totalInputTokens += chunk.usage.prompt_tokens ?? 0;
+          totalOutputTokens += chunk.usage.completion_tokens ?? 0;
+        }
         const delta = chunk.choices[0]?.delta;
         if (delta?.content) yield { type: 'text', content: delta.content };
       }
@@ -446,6 +462,29 @@ export async function* streamChat(
           }],
         };
       }
+    }
+
+    if (totalInputTokens > 0 || totalOutputTokens > 0) {
+      // Classify the turn for the Subscription Health Check card: if the
+      // model invoked web_search we count it as a web_query (closest analog
+      // to ChatGPT Plus's Deep Research quota); otherwise plain chat. Image
+      // uploads don't flip the capability — they get their own counter so
+      // the dashboard can call out "you sent 82 images this month" no matter
+      // what the turn was otherwise classified as.
+      const calledWebSearch = webCalls.length > 0;
+      const imagesCount = messages.reduce(
+        (n, m) => n + (m.role === 'user' && m.images ? m.images.length : 0),
+        0,
+      );
+      await logUsage({
+        provider: 'openai',
+        model,
+        capability: calledWebSearch ? 'web_query' : 'chat',
+        input_tokens: totalInputTokens,
+        output_tokens: totalOutputTokens,
+        images_count: imagesCount,
+        cost_usd: priceFor(model, totalInputTokens, totalOutputTokens),
+      });
     }
 
     yield { type: 'done', content: '' };

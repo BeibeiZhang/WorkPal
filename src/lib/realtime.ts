@@ -9,6 +9,7 @@
  */
 
 import type { ImageResult, VideoResult, WebResult } from '../types';
+import { logClientUsage, realtimeCostUsd } from './usage';
 
 export type RealtimeState = 'idle' | 'connecting' | 'connected' | 'error';
 
@@ -230,9 +231,34 @@ export class RealtimeSession {
           break;
 
         // AI finished responding
-        case 'response.done':
+        case 'response.done': {
           this.callbacks.onAudioEnd();
+          // Voice mode bills on audio + text tokens at very different rates;
+          // OpenAI reports the breakdown once per response in `response.usage`.
+          // Logging here keeps the Overview dashboard honest about how much
+          // a voice session actually costs (usually 10-20x a text session).
+          const usage = event.response?.usage as undefined | {
+            input_tokens?: number;
+            output_tokens?: number;
+            input_token_details?: { text_tokens?: number; audio_tokens?: number; cached_tokens?: number };
+            output_token_details?: { text_tokens?: number; audio_tokens?: number };
+          };
+          if (usage) {
+            const cost = realtimeCostUsd(usage);
+            if (cost > 0) {
+              void logClientUsage({
+                provider: 'openai',
+                model: 'gpt-4o-realtime-preview',
+                capability: 'voice',
+                input_tokens: usage.input_tokens ?? 0,
+                output_tokens: usage.output_tokens ?? 0,
+                cache_read_tokens: usage.input_token_details?.cached_tokens,
+                cost_usd: cost,
+              });
+            }
+          }
           break;
+        }
 
         // Function call completed — AI wants to call a tool
         case 'response.function_call_arguments.done':
