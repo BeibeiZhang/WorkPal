@@ -79,7 +79,7 @@ export default function PermissionPrompt({ request, onAllow, onAlwaysAllow, onCa
           </div>
           <h2
             id="perm-title"
-            className="text-[20px] font-bold text-text-primary leading-[26px] tracking-[-0.43px] flex-1"
+            className="type-h1 text-text-primary flex-1"
             style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
           >
             {title}

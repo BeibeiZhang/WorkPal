@@ -313,7 +313,7 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar, onNewChat
         {activeTab === 'apps' && (
           <>
             {/* Recommended */}
-            <p className="text-[13px] font-medium text-text-primary mb-3 tracking-wide uppercase" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
+            <p className="type-detail-emphasized text-text-primary mb-3 tracking-wide uppercase">
               Recommended
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-8">
@@ -321,7 +321,7 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar, onNewChat
             </div>
 
             {/* All Apps */}
-            <p className="text-[13px] font-medium text-text-primary mb-3 tracking-wide uppercase" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
+            <p className="type-detail-emphasized text-text-primary mb-3 tracking-wide uppercase">
               Apps
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">

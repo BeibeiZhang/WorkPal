@@ -4,7 +4,7 @@ import {
   Brain, Volume2, Briefcase, Home, Smile,
   Moon, Zap, Gauge, BarChart3, Search,
   CalendarClock, Globe, Download,
-  Rocket, MessageCircle, DollarSign,
+  Rocket, MessageCircle,
   Dice5, Baby, Gamepad2, BookOpen, Footprints,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -98,7 +98,6 @@ const IMPACT_WORK = [
   { label: 'Delivery Flow shipped', detail: 'Completion rate +12%, satisfaction 4.6/5', type: 'feature' as const },
   { label: 'Onboarding V2 activation', detail: '+18% activation, -34% drop-off', type: 'metric' as const },
   { label: 'User feedback score', detail: 'NPS +8 this week across 3 features', type: 'feedback' as const },
-  { label: 'Revenue attribution', detail: 'Your features contribute to ~$42K MRR lift', type: 'revenue' as const },
 ];
 
 const IMPACT_FAMILY = {
@@ -147,7 +146,6 @@ const TYPE_CONFIG: Record<string, { icon: LucideIcon; classes: string }> = {
   feature: { icon: Rocket, classes: '' },
   metric: { icon: BarChart3, classes: '' },
   feedback: { icon: MessageCircle, classes: '' },
-  revenue: { icon: DollarSign, classes: '' },
 };
 
 /* ── Main Component ── */
@@ -221,7 +219,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                 >
                   Good morning, Beibei! Today feels like a steady day ☀️
                 </h2>
-                <p className="text-[14px] text-text-primary leading-[1.65] tracking-[-0.43px]">
+                <p className="type-detail text-text-primary">
                   Your life commitments are all locked in — 2h family time, 7h sleep, check ✓. I've protected your 9–11am focus block, and today's workload is light. I finished your meeting notes and drafted 3 tickets — review them whenever you're ready.
                 </p>
                 <PrimaryButton onClick={toggleSpeak} className="mt-3 gap-2">
@@ -259,18 +257,18 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                 >
                   <Gauge size={22} strokeWidth={1.75} className="text-text-primary shrink-0 icon-theme" />
                   <div className="flex-1 min-w-0">
-                    <span className="text-[14px] font-bold text-text-primary">Stress Level</span>
-                    <div className="text-[14px] text-text-primary mt-0.5">
+                    <span className="type-detail-emphasized text-text-primary">Stress Level</span>
+                    <div className="type-detail text-text-primary mt-0.5">
                       Tap to see stress analysis & solutions →
                     </div>
                     <div className="flex items-center gap-2 mt-1.5 md:hidden">
                       <Tag>{STRESS_LEVEL}/100 · {STRESS_LEVEL > 60 ? 'Moderate' : 'Low'}</Tag>
-                      <span className="text-[14px] text-text-primary">↓16</span>
+                      <span className="type-detail text-text-primary">↓16</span>
                     </div>
                   </div>
                   <div className="hidden md:flex items-center gap-2 shrink-0">
                     <Tag>{STRESS_LEVEL}/100 · {STRESS_LEVEL > 60 ? 'Moderate' : 'Low'}</Tag>
-                    <span className="text-[14px] text-text-primary">↓16</span>
+                    <span className="type-detail text-text-primary">↓16</span>
                     {showStressDetail ? <ChevronUp size={16} className="text-text-primary" /> : <ChevronDown size={16} className="text-text-primary" />}
                   </div>
                   <div className="md:hidden shrink-0">
@@ -281,14 +279,14 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                 {/* Stress Detail Panel (expandable) */}
                 {showStressDetail && (
                   <div className="bg-bg-page rounded-2xl p-5 mt-[4px] dark:bg-[rgba(226,243,255,0.05)]">
-                    <div className="text-[14px] font-bold text-text-primary mb-3 flex items-center gap-1.5">
+                    <div className="type-detail-emphasized text-text-primary mb-3 flex items-center gap-1.5">
                       <Brain size={14} className="text-text-primary" /> Stress Analysis
                     </div>
 
                     <CategoryBreakdown categories={STRESS_SOURCES} />
 
                     <div className="mt-4 pt-3.5 border-t border-stroke-outline">
-                      <div className="text-[14px] font-bold text-text-primary mb-2.5">Stephen's Solutions</div>
+                      <div className="type-detail-emphasized text-text-primary mb-2.5">Stephen's Solutions</div>
                       {STRESS_SOLUTIONS.map((sol, i) => (
                         <SolutionRow key={i} icon={sol.icon} title={sol.title} desc={sol.desc} tag={sol.tag} />
                       ))}
@@ -411,8 +409,8 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                     <div className="flex items-center gap-3.5">
                       <CalendarClock size={22} strokeWidth={1.75} className="shrink-0 icon-theme text-text-primary" />
                       <div className="flex-1 min-w-0">
-                        <div className="text-[14px] font-bold text-text-primary">{job.name}</div>
-                        <div className="text-[13px] text-text-primary mt-0.5">
+                        <div className="type-detail-emphasized text-text-primary">{job.name}</div>
+                        <div className="type-detail text-text-primary mt-0.5">
                           {job.cron}
                         </div>
                       </div>
@@ -439,53 +437,53 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
           <div className="mb-20">
             <div className="flex flex-wrap items-center justify-between mb-4 [&>*]:mb-0">
               <SectionTitle emoji="" title="Your Positive Impact This Week" size={20} />
-              <span className="text-[14px] text-text-primary">Apr 7 – 13, 2026 · 7 days</span>
+              <span className="type-detail text-text-primary">Apr 7 – 13, 2026 · 7 days</span>
             </div>
 
-            {/* ── WORK IMPACT ── */}
-            <div className="border border-stroke-outline rounded-2xl p-6 mb-3">
-              <div className="flex items-center gap-[4px] mb-3.5">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center">
-                  <Briefcase size={16} className="text-text-primary" />
+            {/* ── WORK · FAMILY · SELF — 3-up on wide pages, stacked on narrow ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-3.5">
+              {/* Work */}
+              <div className="border border-stroke-outline rounded-2xl p-5">
+                <div className="flex items-center gap-[4px] mb-3.5">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center">
+                    <Briefcase size={16} className="text-text-primary" />
+                  </div>
+                  <span className="type-h2-emphasized text-text-primary">Work</span>
+                  <TertiaryButton onClick={() => { /* cosmetic — no real export yet */ }} className="gap-1.5 ml-auto">
+                    <Download size={14} />
+                    Export report
+                  </TertiaryButton>
                 </div>
-                <span className="text-[14px] font-bold text-text-primary">Work</span>
-                <TertiaryButton onClick={() => { /* cosmetic — no real export yet */ }} className="gap-1.5 ml-auto">
-                  <Download size={14} />
-                  Export report
-                </TertiaryButton>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                {IMPACT_WORK.map((item, i) => {
-                  const tc = TYPE_CONFIG[item.type];
-                  const Icon = tc.icon;
-                  return (
-                    <div key={i} className={`p-3.5 rounded-[8px] ${tc.classes}`}>
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <Icon size={16} className="text-text-primary shrink-0" />
-                        <span className="text-[14px] font-bold text-text-primary">{item.label}</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-0">
+                  {IMPACT_WORK.map((item, i) => {
+                    const tc = TYPE_CONFIG[item.type];
+                    const Icon = tc.icon;
+                    return (
+                      <div key={i} className={`p-3.5 rounded-[8px] ${tc.classes}`}>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <Icon size={16} className="text-text-primary shrink-0" />
+                          <span className="type-detail-emphasized text-text-primary">{item.label}</span>
+                        </div>
+                        <div className="type-detail text-text-primary">{item.detail}</div>
                       </div>
-                      <div className="text-[14px] text-text-primary leading-[1.5]">{item.detail}</div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
 
-            {/* ── FAMILY + SELF side by side ── */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3.5">
               {/* Family */}
               <div className="border border-stroke-outline rounded-2xl p-5">
                 <div className="flex items-center gap-[4px] mb-3.5">
                   <div className="w-8 h-8 rounded-xl flex items-center justify-center">
                     <Home size={16} className="text-text-primary" />
                   </div>
-                  <span className="text-[14px] font-bold text-text-primary">Family</span>
+                  <span className="type-h2-emphasized text-text-primary">Family</span>
                 </div>
 
                 <MetricCard title="Emotional value to hubby" value={String(IMPACT_FAMILY.husbandMood)} subtitle="/10 — Perfect!" />
 
-                <div className="py-2.5 text-[14px] text-text-primary leading-[1.5]">
+                <div className="py-2.5 type-detail text-text-primary">
                   {IMPACT_FAMILY.detail}
                 </div>
 
@@ -509,12 +507,12 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                   <div className="w-8 h-8 rounded-xl flex items-center justify-center">
                     <Smile size={16} className="text-text-primary" />
                   </div>
-                  <span className="text-[14px] font-bold text-text-primary">Self</span>
+                  <span className="type-h2-emphasized text-text-primary">Self</span>
                 </div>
 
                 <MetricCard title="Extra disposable time" value={`+${IMPACT_SELF.extraHours}h`} subtitle="this week gained back" />
 
-                <div className="py-2.5 text-[14px] text-text-primary leading-[1.5]">
+                <div className="py-2.5 type-detail text-text-primary">
                   {IMPACT_SELF.detail}
                 </div>
 
@@ -536,7 +534,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
             {/* Weekly trend chart */}
             <div className="border border-stroke-outline rounded-2xl p-5">
               <div className="flex items-center justify-between mb-4">
-                <div className="text-[14px] font-bold text-text-primary">Weekly Trends</div>
+                <div className="type-detail-emphasized text-text-primary">Weekly Trends</div>
                 <div className="flex items-center gap-4 text-[12px] text-text-primary opacity-70">
                   <span className="flex items-center gap-1.5"><span className="w-5 h-[2.5px] rounded-full inline-block" style={{ background: '#3171FF' }} />Energy</span>
                   <span className="flex items-center gap-1.5"><span className="w-5 h-[2.5px] rounded-full inline-block" style={{ background: '#8B5CF6' }} />Sleep</span>

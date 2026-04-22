@@ -141,7 +141,7 @@ export default function CompleteSessionModal({
       >
         <h2
           id="complete-session-title"
-          className="text-[20px] font-bold text-text-primary leading-[26px] tracking-[-0.43px] mb-3"
+          className="type-h1 text-text-primary mb-3"
           style={{
             fontFamily:
               'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',

@@ -63,8 +63,8 @@ export default function PasswordModal({ open, error, busy, message, onSubmit, on
             <Lock size={18} className="text-text-primary" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-[16px] font-bold text-text-primary leading-tight">Confirm with password</h2>
-            <p className="text-[13px] text-text-secondary leading-tight mt-0.5">
+            <h2 className="type-h2-emphasized text-text-primary">Confirm with password</h2>
+            <p className="type-detail text-text-secondary mt-0.5">
               {message ?? 'Saving memory edits requires the password you set.'}
             </p>
           </div>
@@ -79,12 +79,12 @@ export default function PasswordModal({ open, error, busy, message, onSubmit, on
           onChange={(e) => setPw(e.target.value)}
           onKeyDown={handleKey}
           placeholder="Enter password"
-          className="w-full px-3 py-2 rounded-lg text-[15px] text-text-primary placeholder-text-tertiary outline-none"
+          className="w-full px-3 py-2 rounded-lg type-h2 text-text-primary placeholder-text-tertiary outline-none"
           style={{ background: 'var(--color-bg-page)', border: '1px solid var(--color-stroke-outline)' }}
         />
 
         {error && (
-          <p className="mt-2 text-[12px]" style={{ color: '#c0392b' }}>{error}</p>
+          <p className="mt-2 type-detail" style={{ color: '#c0392b' }}>{error}</p>
         )}
 
         <div className="flex items-center gap-2 justify-end mt-5">

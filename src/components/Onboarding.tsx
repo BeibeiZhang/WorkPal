@@ -108,7 +108,7 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
         draggable
         onDragStart={(e) => handleDragStart(e, trait, from)}
         onClick={() => handleChipClick(trait, from)}
-        className={`flex items-center gap-1 px-3 py-1 rounded-full border border-stroke-outline text-base leading-[22px] tracking-[-0.43px] transition-all cursor-grab active:cursor-grabbing select-none ${
+        className={`flex items-center gap-1 px-3 py-1 rounded-full border border-stroke-outline type-h2 transition-all cursor-grab active:cursor-grabbing select-none ${
           inZone
             ? 'bg-[var(--color-selected-bg)] text-[var(--color-selected-text)] border-transparent'
             : 'text-text-primary chip-gradient-hover'
@@ -170,7 +170,7 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
         }}
       >
         {important.length === 0 ? (
-          <p className="text-base text-text-tertiary text-center">
+          <p className="type-h2 text-text-tertiary text-center">
             Click or drag qualities here...
           </p>
         ) : (
@@ -190,8 +190,8 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
         {available.map(t => renderChip(t, 'available'))}
       </div>
 
-      {/* Helper detail text — Detail/Regular: 14px/22px/400/0px */}
-      <p className="mt-4 text-sm leading-[22px] tracking-[0px] text-text-primary">
+      {/* Helper detail text — .type-detail (14/22/400) */}
+      <p className="mt-4 type-detail text-text-primary">
         All qualities help shape your agent — your top 3 just carry extra weight. Can't find the right word? Describe it in your own words below.
       </p>
     </PageLayout>

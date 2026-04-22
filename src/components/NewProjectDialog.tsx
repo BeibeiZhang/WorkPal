@@ -82,13 +82,13 @@ export default function NewProjectDialog({
 
         {/* Header */}
         <h2
-          className="text-[22px] font-bold text-text-primary tracking-[-0.43px] mb-2"
+          className="type-h1 text-text-primary mb-2"
           style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
         >
           {isPromote ? 'Promote to Project' : 'New Project'}
         </h2>
         {isPromote && (
-          <p className="text-[13px] text-text-secondary mb-6 leading-[18px]">
+          <p className="type-detail text-text-secondary mb-6">
             Turn this session into a project — future sessions can share its folder and context.
           </p>
         )}
@@ -97,7 +97,7 @@ export default function NewProjectDialog({
         {/* Project Name */}
         <div className="mb-5">
           <label
-            className="block text-[14px] font-medium text-text-primary mb-2 tracking-[-0.2px]"
+            className="block type-detail text-text-primary mb-2"
             style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
           >
             Project name
@@ -120,7 +120,7 @@ export default function NewProjectDialog({
         {/* Description */}
         <div className={isPromote ? 'mb-5' : 'mb-8'}>
           <label
-            className="block text-[14px] font-medium text-text-primary mb-2 tracking-[-0.2px]"
+            className="block type-detail text-text-primary mb-2"
             style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
           >
             Description
@@ -144,7 +144,7 @@ export default function NewProjectDialog({
         {isPromote && (
           <div className="mb-8">
             <label
-              className="block text-[14px] font-medium text-text-primary mb-2 tracking-[-0.2px]"
+              className="block type-detail text-text-primary mb-2"
               style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
             >
               Folder
@@ -161,7 +161,7 @@ export default function NewProjectDialog({
                 background: 'var(--color-bg-hover)',
                 }}
             />
-            <p className="mt-1.5 text-[12px] leading-[16px] text-text-tertiary">
+            <p className="mt-1.5 type-detail text-text-tertiary">
               Leave blank to use the default under <span className="font-mono">~/WorkPal/</span>.
             </p>
           </div>

@@ -288,11 +288,11 @@ export default function DetailPanel({
             style={{ background: 'var(--color-bg-page)' }}
           />
         ) : renderAs === 'plaintext' ? (
-          <pre className="relative text-[13px] leading-[18px] text-text-primary pt-4 pb-24 whitespace-pre-wrap font-mono">
+          <pre className="relative type-detail text-text-primary pt-4 pb-24 whitespace-pre-wrap font-mono">
             {displayContent}
           </pre>
         ) : (
-          <div className="relative text-base leading-[22px] text-text-primary pt-4 pb-24">
+          <div className="relative type-h2 text-text-primary pt-4 pb-24">
             {renderMarkdownBlocks(displayContent)}
           </div>
         )}
@@ -331,7 +331,7 @@ export default function DetailPanel({
                   preset list so users see what's happening without scrolling. */}
               {editState.kind === 'error' && (
                 <div
-                  className="flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-sm"
+                  className="flex items-center justify-between gap-3 px-4 py-3 rounded-lg type-detail"
                   style={{
                     background: 'rgba(220, 38, 38, 0.08)',
                     color: '#B91C1C',
@@ -341,13 +341,13 @@ export default function DetailPanel({
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       onClick={() => runEdit(editState.preset)}
-                      className="text-xs font-medium px-2 py-1 rounded hover:bg-white/40 transition-colors"
+                      className="type-detail-emphasized px-2 py-1 rounded hover:bg-white/40 transition-colors"
                     >
                       Retry
                     </button>
                     <button
                       onClick={dismissError}
-                      className="text-xs px-2 py-1 rounded hover:bg-white/40 transition-colors"
+                      className="type-detail px-2 py-1 rounded hover:bg-white/40 transition-colors"
                       aria-label="Dismiss"
                     >
                       ×
@@ -358,7 +358,7 @@ export default function DetailPanel({
 
               {isStreaming && (
                 <div
-                  className="flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-sm"
+                  className="flex items-center justify-between gap-3 px-4 py-3 rounded-lg type-detail"
                   style={{ background: 'var(--color-bg-message)' }}
                 >
                   <span className="text-text-secondary">
@@ -366,7 +366,7 @@ export default function DetailPanel({
                   </span>
                   <button
                     onClick={handleCancel}
-                    className="text-xs font-medium px-3 py-1 rounded-full border border-stroke-outline hover:bg-bg-hover transition-colors text-text-primary"
+                    className="type-detail-emphasized px-3 py-1 rounded-full border border-stroke-outline hover:bg-bg-hover transition-colors text-text-primary"
                   >
                     Cancel
                   </button>
@@ -391,7 +391,7 @@ export default function DetailPanel({
                     <div className="w-6 h-6 shrink-0 flex items-center justify-center">
                       <img src={opt.icon} alt="" className="max-w-full max-h-full object-contain icon-theme" />
                     </div>
-                    <span className="text-base leading-[22px] text-text-primary">{opt.label}</span>
+                    <span className="type-h2 text-text-primary">{opt.label}</span>
                   </button>
                 );
               })}
@@ -400,7 +400,7 @@ export default function DetailPanel({
                 <div className="flex items-center gap-2 pt-1">
                   <button
                     onClick={handleUndo}
-                    className="text-xs font-medium px-3 py-1.5 rounded-full border border-stroke-outline hover:bg-bg-hover transition-colors text-text-primary"
+                    className="type-detail-emphasized px-3 py-1.5 rounded-full border border-stroke-outline hover:bg-bg-hover transition-colors text-text-primary"
                   >
                     ↶ Undo
                   </button>

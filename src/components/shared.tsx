@@ -88,7 +88,7 @@ export function DemoBadge() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="About this demo"
-        className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full text-[12px] font-medium chip-gradient-hover transition-colors text-text-primary"
+        className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full type-detail chip-gradient-hover transition-colors text-text-primary"
         style={{ border: '1px solid var(--color-stroke-outline)' }}
       >
         <span>Demo</span>
@@ -134,13 +134,13 @@ function DemoExplainerModal({ open, onClose }: { open: boolean; onClose: () => v
             <Info size={18} className="text-text-primary" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-[16px] font-bold text-text-primary leading-tight">
+            <h2 className="type-h2-emphasized text-text-primary">
               About this demo
             </h2>
           </div>
         </div>
 
-        <div className="flex flex-col gap-4 text-[13px] text-text-primary leading-relaxed">
+        <div className="flex flex-col gap-4 type-detail text-text-primary">
           <ul className="flex flex-col gap-2.5">
             <li className="flex gap-2.5">
               <span aria-hidden className="shrink-0">✨</span>
@@ -165,13 +165,13 @@ function DemoExplainerModal({ open, onClose }: { open: boolean; onClose: () => v
           </ul>
 
           <div
-            className="pt-3 text-[12px] text-text-secondary leading-relaxed"
+            className="pt-3 type-detail text-text-secondary"
             style={{ borderTop: '1px solid var(--color-stroke-outline)' }}
           >
             Both advanced voice chat and search functionalities are available. The local task management requires local installation. If you would like to experience the full product, please schedule with me, and I will provide a live demonstration.
           </div>
 
-          <div className="text-text-secondary text-[12px]">
+          <div className="type-detail text-text-secondary">
             Source /{' '}
             <a
               href="https://github.com/BeibeiZhang/WorkPal"
@@ -512,7 +512,7 @@ export function SidePanelHeader({
   return (
     <div className={`flex items-center gap-3 h-16 shrink-0 ${className}`}>
       {title ? (
-        <p className="flex-1 min-w-0 font-bold text-base leading-[22px] text-text-primary truncate">
+        <p className="flex-1 min-w-0 type-h2-emphasized text-text-primary truncate">
           {title}
         </p>
       ) : (
@@ -620,7 +620,7 @@ export function ToolbarPill({
   onClick?: () => void;
 }) {
   const base =
-    'flex items-center gap-[9px] md:gap-1.5 px-[18px] md:px-3 rounded-full border border-stroke-outline text-base text-text-primary hover:bg-bg-hover toolbar-gradient-hover transition-colors cursor-pointer';
+    'flex items-center gap-[9px] md:gap-1.5 px-[18px] md:px-3 rounded-full border border-stroke-outline type-h2 text-text-primary hover:bg-bg-hover toolbar-gradient-hover transition-colors cursor-pointer';
   const merged = [base, as === 'label' ? 'select-none' : '', className].filter(Boolean).join(' ');
   const style = { height: 'var(--toolbar-btn-h)' } as React.CSSProperties;
   const body = (
@@ -758,7 +758,7 @@ export function ToolbarSegmented<T extends string>({
             }}
           >
             {seg.icon}
-            {isSelected && <span className="text-base font-medium">{seg.label}</span>}
+            {isSelected && <span className="type-h2">{seg.label}</span>}
           </button>
         );
         if (isSelected) return btn;
@@ -850,7 +850,11 @@ export function SectionTitle({
   return (
     <div className="flex items-center gap-2 mb-4">
       {emoji && <span style={{ fontSize }}>{emoji}</span>}
-      <span className="font-bold text-text-primary tracking-[-0.43px]" style={{ fontSize }}>{title}</span>
+      {size === 20 ? (
+        <span className="type-h1 text-text-primary">{title}</span>
+      ) : (
+        <span className="font-bold text-text-primary" style={{ fontSize }}>{title}</span>
+      )}
       {count !== undefined && (
         <span className="text-[12px] px-2 py-0.5 rounded-[4px] bg-bg-hover text-text-primary tracking-[-0.3px]">{count}</span>
       )}
@@ -907,8 +911,8 @@ export function CategoryBreakdown({
         {categories.map((c, i) => (
           <div key={i} className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full shrink-0" style={{ background: c.color }} />
-            <span className="text-[13px] text-text-secondary">{c.label}</span>
-            <span className="text-[13px] font-bold text-text-primary">{c.pct}%</span>
+            <span className="type-detail text-text-secondary">{c.label}</span>
+            <span className="type-detail-emphasized text-text-primary">{c.pct}%</span>
           </div>
         ))}
       </div>
@@ -1065,7 +1069,7 @@ export function StatusTag({
   return (
     <span
       className={`status-${variant} inline-flex items-center whitespace-nowrap shrink-0 rounded-[4px] tracking-[-0.3px] font-normal ${
-        isSmall ? 'gap-1 px-2 py-0.5 text-[12px]' : 'gap-1.5 px-3 py-1 text-[14px] leading-[22px]'
+        isSmall ? 'gap-1 px-2 py-0.5 text-[12px]' : 'gap-1.5 px-3 py-1 type-detail'
       } ${tooltip ? 'cursor-help' : ''}`}
       style={surface}
       title={tooltip}
@@ -1174,7 +1178,7 @@ export function TertiaryButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`flex items-center justify-center px-5 py-2.5 rounded-[4px] border border-stroke-outline text-text-primary font-semibold text-[14px] leading-[22px] cursor-pointer hover:bg-bg-hover chip-gradient-hover transition-colors disabled:opacity-40 ${fullWidth ? 'w-full' : ''} ${extra}`}
+      className={`flex items-center justify-center px-5 py-2.5 rounded-[4px] border border-stroke-outline text-text-primary type-detail-emphasized cursor-pointer hover:bg-bg-hover chip-gradient-hover transition-colors disabled:opacity-40 ${fullWidth ? 'w-full' : ''} ${extra}`}
     >
       {children}
     </button>
@@ -1273,7 +1277,7 @@ export function ConnectorCard({
                   setMenuOpen(false);
                   onDisconnect();
                 }}
-                className="w-full px-3 py-1.5 text-left text-[13px] text-text-primary hover:bg-bg-hover transition-colors"
+                className="w-full px-3 py-1.5 text-left type-detail text-text-primary hover:bg-bg-hover transition-colors"
               >
                 Disconnect
               </button>
@@ -1309,7 +1313,7 @@ export function FilterChip({
   return (
     <button
       onClick={onClick}
-      className={`shrink-0 flex items-center gap-2 px-3 py-1 rounded-full border text-[14px] leading-[22px] tracking-[-0.43px] transition-colors cursor-pointer ${
+      className={`shrink-0 flex items-center gap-2 px-3 py-1 rounded-full border type-detail transition-colors cursor-pointer ${
         active ? 'border-transparent font-medium' : 'chip-gradient-hover border-stroke-outline text-text-primary'
       }`}
       style={
@@ -1393,7 +1397,7 @@ export function InsightCard({
       <div className="text-[14px] font-bold text-text-primary mb-3 flex items-center gap-1.5">
         <Sparkles size={14} className="text-text-primary" /> STEPHEN'S INSIGHT
       </div>
-      <p className="text-[14px] text-text-primary leading-[1.7] mb-4 tracking-[-0.43px]">{body}</p>
+      <p className="type-detail text-text-primary mb-4">{body}</p>
       <div className="flex flex-wrap gap-2.5">
         {actions.map((a, i) =>
           a.primary ? (
@@ -1920,7 +1924,7 @@ export function ArtifactCard({
         <div className="w-6 h-6 shrink-0 flex items-center justify-center text-text-primary">
           <Icon size={18} className="icon-theme" />
         </div>
-        <p className="font-bold text-base leading-[22px] text-text-primary flex-1 truncate">{artifact.name}</p>
+        <p className="type-h2-emphasized text-text-primary flex-1 truncate">{artifact.name}</p>
         {isInteractive && <ArrowUpRight size={18} className="text-text-primary shrink-0" />}
       </div>
     </div>
@@ -1967,9 +1971,9 @@ export function EmptyState({
       <div className="w-10 h-10 flex items-center justify-center rounded-full bg-bg-hover text-text-secondary">
         <Icon size={20} strokeWidth={1.5} className="icon-theme" />
       </div>
-      <div className="text-[14px] text-text-primary font-medium">{title}</div>
+      <div className="type-detail-emphasized text-text-primary">{title}</div>
       {description && (
-        <div className="text-[13px] text-text-secondary leading-relaxed max-w-[280px]">{description}</div>
+        <div className="type-detail text-text-secondary max-w-[280px]">{description}</div>
       )}
     </div>
   );
