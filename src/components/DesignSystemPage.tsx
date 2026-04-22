@@ -13,10 +13,10 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
-  SectionTitle as SharedSectionTitle, ProgressBar, CategoryBreakdown, CircularProgress,
+  SectionTitle as SharedSectionTitle, ProgressBar, CategoryBreakdown,
   TimePill, StepIndicator, Tag, FilterChip, Chip, UtilityChip, PrimaryButton, SecondaryButton, TertiaryButton,
   SolutionRow, SummaryFooter,
-  MetricCard, InsightCard, MultiLineChart, TaskProgressCard, ReviewItemCard,
+  MetricCard, InsightCard, TaskProgressCard, ReviewItemCard,
   StatusTag, ConnectorCard, HealthDimensionRow, SearchBox, PageLayout,
   HeaderBar, SplitView, SidePanelHeader, SideCard, ToolbarPill, DemoBadge,
   ToolbarIconButton, ToolbarSegmented, Tooltip, Switch,
@@ -33,11 +33,6 @@ import TaskContextPanel from './TaskContextPanel';
 import NewProjectDialog from './NewProjectDialog';
 import PermissionPrompt from './PermissionPrompt';
 import type { PermissionKind, PermissionRequest } from '../types';
-import OverviewPage from './OverviewPage';
-import LibraryPage from './LibraryPage';
-import ConnectorsPage from './ConnectorsPage';
-import ComingSoonPage from './ComingSoonPage';
-import Onboarding from './Onboarding';
 import type { Chat, Message, CardData } from '../types';
 import { AGENTS, useAgentVideoStatus, type AgentVideo, type VideoStatus } from '../agentVideos';
 
@@ -931,13 +926,11 @@ const SEARCH_INDEX: SearchEntry[] = [
   { tab: 'components', section: 'Components · Shared Primitives', name: 'UtilityChip', description: 'Mono utility pill for paths / IDs — solid hover, h-8 (font-mono / type-caption).' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'DemoBadge', description: 'Click-to-open demo-mode badge shown in HeaderBar.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'ConnectorCard', description: 'Compact row for an integration — logo + name + Connect / Connected.' },
-  { tab: 'components', section: 'Components · Shared Primitives', name: 'CircularProgress', description: 'SVG circle progress with centered text overlay.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'ProgressBar', description: 'Determinate progress bar with optional label.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'CategoryBreakdown', description: 'Stacked percentage bar + color-dot legend for breakdowns like stress analysis.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'StepIndicator', description: 'Done (check) / in-progress (filled dot) / pending (empty circle).' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'MetricCard', description: 'Large centered number with title and subtitle.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'InsightCard', description: 'Sparkle icon + body + action buttons.' },
-  { tab: 'components', section: 'Components · Shared Primitives', name: 'MultiLineChart', description: 'SVG line chart with 1+ series, gradient strokes, and hover dots.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'TaskProgressCard', description: 'Clickable progress card that expands to show step list.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'ReviewItemCard', description: 'Needs-review card with metadata, time pill, action button.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'HealthDimensionRow', description: 'Icon + label/desc + auto-colored status pill by value/target.' },
@@ -963,11 +956,6 @@ const SEARCH_INDEX: SearchEntry[] = [
   { tab: 'components', section: 'Components · ProjectPage Shared Layout', name: 'SidePanelHeader (ProjectPage)', description: 'Shared header row for side panels.' },
   { tab: 'components', section: 'Components · ProjectPage Shared Layout', name: 'SideCard (ProjectPage)', description: 'Collapsible side-panel card.' },
   // Components — pages
-  { tab: 'components', section: 'Components · Pages', name: 'OverviewPage', description: 'Morning briefing dashboard with health ring and insights.' },
-  { tab: 'components', section: 'Components · Pages', name: 'LibraryPage', description: 'Masonry grid of AI-generated artifacts.' },
-  { tab: 'components', section: 'Components · Pages', name: 'ConnectorsPage', description: 'Connector directory (Recommended / Apps / APIs).' },
-  { tab: 'components', section: 'Components · Pages', name: 'Onboarding', description: 'First-time drag-and-drop trait selector.' },
-  { tab: 'components', section: 'Components · Pages', name: 'ComingSoonPage', description: 'Placeholder with video for planned surfaces.' },
   // Review Queue
   { tab: 'review', section: 'Review · Pending', name: 'ToolbarPill', description: 'ChatInput toolbar pill — rounded border, hover gradient, leading/trailing slots.' },
   { tab: 'review', section: 'Review · Pending', name: 'ToolbarIconButton', description: 'Icon-only sibling of ToolbarPill — square, same height token.' },
@@ -1979,32 +1967,6 @@ function LivePermissionPrompt() {
   );
 }
 
-function LiveOnboarding() {
-  return (
-    <Onboarding
-      sidebarOpen={false}
-      onToggleSidebar={() => {}}
-      onComplete={() => {}}
-    />
-  );
-}
-
-function LiveOverviewPage() {
-  return <OverviewPage sidebarOpen={false} onToggleSidebar={() => {}} />;
-}
-
-function LiveLibraryPage() {
-  return <LibraryPage sidebarOpen={false} onToggleSidebar={() => {}} />;
-}
-
-function LiveConnectorsPage() {
-  return <ConnectorsPage sidebarOpen={false} onToggleSidebar={() => {}} />;
-}
-
-function LiveComingSoonPage() {
-  return <ComingSoonPage view="overview" sidebarOpen={false} onToggleSidebar={() => {}} />;
-}
-
 function LibraryEntry({ entry }: { entry: LibEntry }) {
   return (
     <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
@@ -2182,19 +2144,6 @@ function ComponentsTab() {
       ),
     },
     {
-      name: 'CircularProgress',
-      description: 'SVG circle progress with stroke-dasharray + centered text overlay.',
-      usedIn: ['Overview (score ring, health dimensions)'],
-      preview: (
-        <div className="flex items-center gap-6">
-          <CircularProgress value={100} color="#3171ff"><span className="type-h2-emphasized text-text-primary">4/4</span></CircularProgress>
-          <CircularProgress value={65}  color="#3171ff"><span className="type-h2-emphasized text-text-primary">65%</span></CircularProgress>
-          <CircularProgress value={50}  color="#F59E0B"><span className="type-h2-emphasized text-text-primary">50%</span></CircularProgress>
-          <CircularProgress value={30}  color="#EF4444"><span className="type-h2-emphasized text-text-primary">30%</span></CircularProgress>
-        </div>
-      ),
-    },
-    {
       name: 'ProgressBar',
       description: 'Determinate progress bar. States: with/without label.',
       usedIn: ['Overview', 'TaskProgressCard'],
@@ -2212,10 +2161,10 @@ function ComponentsTab() {
       preview: (
         <CategoryBreakdown
           categories={[
-            { label: 'Deadline pressure', pct: 35, color: '#EF4444' },
-            { label: 'Keeping up with AI', pct: 28, color: '#F59E0B' },
-            { label: 'Cross-team alignment', pct: 22, color: '#7652B9' },
-            { label: 'Context switching', pct: 15, color: '#3171ff' },
+            { label: 'Deadline pressure', pct: 35, color: 'var(--color-accent-red)' },
+            { label: 'Keeping up with AI', pct: 28, color: 'var(--color-accent-amber)' },
+            { label: 'Cross-team alignment', pct: 22, color: 'var(--color-accent-violet)' },
+            { label: 'Context switching', pct: 15, color: 'var(--color-accent-blue)' },
           ]}
         />
       ),
@@ -2252,37 +2201,13 @@ function ComponentsTab() {
       description: 'Callout card with sparkle icon, body text, and action buttons.',
       usedIn: ['Overview insights block'],
       preview: (
-        <InsightCard body="Your focus time dropped 40% this week. Want me to protect morning blocks?" actions={[{ label: 'Yes, protect mornings', primary: true }, { label: 'Show data' }]} />
-      ),
-    },
-    {
-      name: 'MultiLineChart',
-      description: 'Responsive SVG chart with 1+ smooth line series. Each series can have a solid color, a vertical stroke gradient (for threshold coloring), or an area fill.',
-      usedIn: ['Overview weekly trend chart (Energy / Sleep / Stress)'],
-      preview: (
-        <MultiLineChart
-          height={160}
-          labels={['M', 'T', 'W', 'T', 'F', 'S', 'S']}
-          series={[
-            { data: [{ label: 'M', value: 72 }, { label: 'T', value: 78 }, { label: 'W', value: 85 }, { label: 'T', value: 70 }, { label: 'F', value: 88 }, { label: 'S', value: 92 }, { label: 'S', value: 95 }], color: '#3171ff' },
-            { data: [{ label: 'M', value: 65 }, { label: 'T', value: 60 }, { label: 'W', value: 72 }, { label: 'T', value: 55 }, { label: 'F', value: 68 }, { label: 'S', value: 80 }, { label: 'S', value: 85 }], color: '#8B5CF6' },
-            {
-              data: [{ label: 'M', value: 48 }, { label: 'T', value: 52 }, { label: 'W', value: 35 }, { label: 'T', value: 62 }, { label: 'F', value: 42 }, { label: 'S', value: 28 }, { label: 'S', value: 25 }],
-              color: '#028901',
-              strokeGradient: [
-                { offset: '0%', color: '#DC2626' },
-                { offset: '50%', color: '#D97706' },
-                { offset: '100%', color: '#028901' },
-              ],
-            },
-          ]}
-        />
+        <InsightCard body="Your focus time dropped 40% this week. Want me to protect morning blocks?" actions={[{ label: 'Yes, protect my mornings', secondary: true }, { label: 'Show data' }]} />
       ),
     },
     {
       name: 'TaskProgressCard',
       description: 'Clickable card with progress bar. Expands to show step list.',
-      usedIn: ['Overview "Stephen is working on" section'],
+      usedIn: ['Overview "Agents at Work" section'],
       preview: (
         <TaskProgressCard title="Analyzing Q2 metrics" progress={62} eta="~8 min" steps={['Pulling data from Sheets', 'Building charts', 'Formatting']} expanded />
       ),
@@ -2334,7 +2259,7 @@ function ComponentsTab() {
       preview: (
         <div className="flex flex-col gap-1">
           <SharedSectionTitle emoji="👀" title="Needs Your Eyes" count={3} />
-          <SharedSectionTitle emoji="⚡" title="Stephen is Working On" />
+          <SharedSectionTitle emoji="⚡" title="Agents at Work" />
         </div>
       ),
     },
@@ -2491,60 +2416,6 @@ function ComponentsTab() {
     },
   ];
 
-  /* ─── Pages — live ─── */
-  const pageEntries: LibEntry[] = [
-    {
-      name: 'OverviewPage',
-      description: 'Morning briefing dashboard: health index ring, stress analysis, insight card, tasks-in-progress, impact metrics. Rendered live below.',
-      usedIn: ['App (Overview view)'],
-      preview: (
-        <LivePreviewFrame height={640}>
-          <LiveOverviewPage />
-        </LivePreviewFrame>
-      ),
-    },
-    {
-      name: 'LibraryPage',
-      description: 'Masonry grid of AI-generated artifacts with filter chips and search. Real component.',
-      usedIn: ['App (Library view)'],
-      preview: (
-        <LivePreviewFrame height={640}>
-          <LiveLibraryPage />
-        </LivePreviewFrame>
-      ),
-    },
-    {
-      name: 'ConnectorsPage',
-      description: 'Connector directory split into Recommended / Apps / APIs. Uses SearchBox + FilterChip + StatusTag from shared.',
-      usedIn: ['App (Connectors view)'],
-      preview: (
-        <LivePreviewFrame height={640}>
-          <LiveConnectorsPage />
-        </LivePreviewFrame>
-      ),
-    },
-    {
-      name: 'Onboarding',
-      description: 'First-time drag-and-drop trait selector. Uses PageLayout + ChatInput as the footer.',
-      usedIn: ['App (before first chat)'],
-      preview: (
-        <LivePreviewFrame height={640}>
-          <LiveOnboarding />
-        </LivePreviewFrame>
-      ),
-    },
-    {
-      name: 'ComingSoonPage',
-      description: 'Placeholder with video + coming-soon message. Used when a planned surface isn\'t ready yet.',
-      usedIn: ['App (as Overview / Library fallback during rollout)'],
-      preview: (
-        <LivePreviewFrame height={520}>
-          <LiveComingSoonPage />
-        </LivePreviewFrame>
-      ),
-    },
-  ];
-
   return (
     <div>
       <p className="type-caption text-text-primary mb-5">
@@ -2579,11 +2450,6 @@ function ComponentsTab() {
       <SectionTitle id="ds-lib-project">ProjectPage · Shared Layout</SectionTitle>
       <div className="flex flex-col gap-4 mb-8">
         {projectPageEntries.map(e => <LibraryEntry key={e.name} entry={e} />)}
-      </div>
-
-      <SectionTitle id="ds-lib-pages">Pages</SectionTitle>
-      <div className="flex flex-col gap-4 mb-8">
-        {pageEntries.map(e => <LibraryEntry key={e.name} entry={e} />)}
       </div>
     </div>
   );
