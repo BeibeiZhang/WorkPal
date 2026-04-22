@@ -1054,7 +1054,7 @@ export function PrimaryButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`gradient-btn flex items-center justify-center px-5 py-2.5 rounded-[4px] text-white type-detail-emphasized cursor-pointer transition-opacity disabled:opacity-40 ${fullWidth ? 'w-full' : ''} ${extra}`}
+      className={`gradient-btn flex items-center justify-center gap-2 px-4 py-2 rounded-[4px] text-white type-detail-emphasized cursor-pointer transition-opacity disabled:opacity-40 ${fullWidth ? 'w-full' : ''} ${extra}`}
     >
       {children}
     </button>
