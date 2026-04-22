@@ -21,13 +21,13 @@ strong, b {
   --color-text-primary: #142740;
   --color-text-secondary: rgba(20,39,64,0.7);
   --color-text-tertiary: rgba(20,39,64,0.4);
-  --color-bg-page: #F7F7F8;
+  --color-bg-page: #F3F4F5;
   --color-bg-message: rgba(20, 39, 64, 0.05);
   --color-bg-hover: rgba(20, 39, 64, 0.05);
-  --color-stroke-outline: #E8E8E8;
-  --color-stroke-toggle: #e6e8ea;
+  --color-stroke-outline: rgba(20, 39, 64, 0.1);
+  --color-stroke-toggle: rgba(20, 39, 64, 0.1);
   --color-icon-primary: #142740;
-  --color-sidebar-bg: #F7F7F8;
+  --color-sidebar-bg: #F3F4F5;
   --color-outer-bg: #f5f5f7;
   --color-outer-border: #f5f5f7;
   --color-selected-bg: rgba(49,113,255,0.1);
@@ -37,9 +37,9 @@ strong, b {
      Dark mode override below uses #001424 at 10% so the shell gradient reads through. */
   --color-card-panel-bg: #FFFFFF;
 
-  /* Chat input inner fill — light mode: page color.
+  /* Chat input inner fill — light mode: #142740 at 5% (same overlay as bg-hover).
      Dark mode override below uses #000000 at 30% so the shell gradient reads through. */
-  --color-input-bg: var(--color-bg-page);
+  --color-input-bg: rgba(20, 39, 64, 0.05);
 
   /* Status / semantic accents — used for tags, badges, callouts */
   --color-accent-blue: #3171ff;
@@ -472,7 +472,9 @@ html, body, #root {
   pointer-events: none;
 }
 
-/* Chip gradient border on hover */
+/* Chip gradient border on hover — inner fill stays page-color in both modes
+   so hover only reveals the 1px brand-gradient border, no interior color
+   shift. */
 .chip-gradient-hover:hover {
   border-color: transparent !important;
   background:
