@@ -306,14 +306,18 @@ export default function VoiceMode({ onClose, onMessage, onImages, onVideos, onWe
         )}
       </button>
 
-      {/* End button — solid black */}
+      {/* End button — inverted solid (dark bg + light icon in light mode;
+          flips to light bg + dark icon in dark mode, matching SecondaryButton). */}
       <button
         onClick={handleEnd}
         className="w-7 h-7 rounded-full flex items-center justify-center transition-opacity hover:opacity-80 shrink-0"
-        style={{ backgroundColor: 'var(--color-text-primary)' }}
+        style={{
+          backgroundColor: 'var(--color-text-primary)',
+          color: 'var(--color-bg-page)',
+        }}
         title="End voice"
       >
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
           <rect x="5" y="5" width="14" height="14" rx="2" />
         </svg>
       </button>

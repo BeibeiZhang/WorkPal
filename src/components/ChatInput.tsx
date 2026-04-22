@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, KeyboardEvent } from 'react';
-import { FileText, X } from 'lucide-react';
-import { iconGoals, iconDoc16, iconBarChart, iconAdd, iconPhoto, iconCamera, iconUpload, iconSend, iconSendActive } from '../assets';
+import { AtSign, Camera, FileText, FileUp, Image, X } from 'lucide-react';
+import { iconGoals, iconDoc16, iconBarChart, iconAdd, iconSend, iconSendActive } from '../assets';
 import { ActionChip, Attachment } from '../types';
 import { Chip, ToolbarIconButton, Tooltip } from './shared';
 
@@ -467,34 +467,31 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
               </ToolbarIconButton>
             </Tooltip>
             {showAttachMenu && (
-              <div className="absolute bottom-full left-0 mb-3 md:mb-2 w-72 md:w-48 bg-bg-page border border-stroke-outline rounded-2xl md:rounded-xl shadow-lg py-3 md:py-2 z-50">
+              <div
+                role="menu"
+                className="panel-border absolute bottom-full left-0 mb-2 min-w-[220px] py-1 rounded-xl overflow-hidden z-50"
+                style={{
+                  background: 'var(--color-bg-page)',
+                  boxShadow: 'var(--shadow-popup)',
+                }}
+              >
                 {([
-                  { icon: null, label: 'Mention', isMention: true, action: 'mention' },
-                  { icon: iconPhoto, label: 'Photo', isMention: false, action: 'photo' },
-                  { icon: iconCamera, label: 'Camera', isMention: false, action: 'camera' },
-                  { icon: iconUpload, label: 'Upload File', isMention: false, action: 'file' },
-                ] as const).map(item => (
+                  { Icon: AtSign, label: 'Mention', action: 'mention' },
+                  { Icon: Image,  label: 'Photo',   action: 'photo'   },
+                  { Icon: Camera, label: 'Camera',  action: 'camera'  },
+                  { Icon: FileUp, label: 'Upload File', action: 'file' },
+                ] as const).map(({ Icon, label, action }) => (
                   <button
-                    key={item.label}
+                    key={label}
+                    role="menuitem"
                     onClick={() => {
-                      if (item.action === 'mention') { setShowAttachMenu(false); return; }
-                      openPicker(item.action);
+                      if (action === 'mention') { setShowAttachMenu(false); return; }
+                      openPicker(action);
                     }}
-                    className="w-full flex items-center gap-[18px] md:gap-3 px-6 md:px-4 py-[15px] md:py-2.5 hover:bg-bg-hover transition-colors type-detail text-text-primary cursor-pointer"
+                    className="w-full flex items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-bg-hover"
                   >
-                    {item.isMention ? (
-                      <div className="flex items-center justify-center shrink-0 w-6 h-6 md:w-4 md:h-4">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full text-text-primary">
-                          <circle cx="12" cy="12" r="4" />
-                          <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94" />
-                        </svg>
-                      </div>
-                    ) : (
-                      <div className="w-6 h-6 md:w-4 md:h-4 flex items-center justify-center shrink-0">
-                        <img src={item.icon!} alt={item.label} className="w-full h-full icon-theme" />
-                      </div>
-                    )}
-                    {item.label}
+                    <Icon size={16} strokeWidth={2} className="shrink-0 text-text-primary" />
+                    <span className="type-detail text-text-primary">{label}</span>
                   </button>
                 ))}
               </div>

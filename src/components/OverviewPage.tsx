@@ -11,7 +11,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   SectionTitle,
   Tag, SolutionRow, SummaryFooter, PrimaryButton, TertiaryButton,
-  MetricCard, InsightCard, MultiLineChart, TaskProgressCard, ReviewItemCard,
+  MetricCard, InsightCard, TaskProgressCard, ReviewItemCard,
   HealthDimensionRow, PageLayout, CategoryBreakdown,
 } from './shared';
 import { fetchUnreadArtifacts, markArtifactViewed, artifactItemCount, type Artifact } from '../lib/artifacts';
@@ -109,38 +109,6 @@ const IMPACT_SELF = {
   detail: 'AI handled emails, meeting notes, and research → you got 2h back for yourself',
 };
 
-// Data shaped for dramatic interweaving waves
-const WEEKLY_ENERGY = [
-  { label: 'Mon', value: 40 },
-  { label: 'Tue', value: 80 },
-  { label: 'Wed', value: 35 },
-  { label: 'Thu', value: 90 },
-  { label: 'Fri', value: 45 },
-  { label: 'Sat', value: 85 },
-  { label: 'Sun', value: 95 },
-];
-
-const WEEKLY_SLEEP = [
-  { label: 'Mon', value: 5.5 },
-  { label: 'Tue', value: 8.0 },
-  { label: 'Wed', value: 5.0 },
-  { label: 'Thu', value: 9.0 },
-  { label: 'Fri', value: 5.5 },
-  { label: 'Sat', value: 8.5 },
-  { label: 'Sun', value: 9.0 },
-];
-
-// Stress: 0-100. Color: ≤33 green, ≤66 yellow, >66 red
-const WEEKLY_STRESS = [
-  { label: 'Mon', value: 65 },
-  { label: 'Tue', value: 30 },
-  { label: 'Wed', value: 80 },
-  { label: 'Thu', value: 25 },
-  { label: 'Fri', value: 70 },
-  { label: 'Sat', value: 35 },
-  { label: 'Sun', value: 15 },
-];
-
 const TYPE_CONFIG: Record<string, { icon: LucideIcon; classes: string }> = {
   feature: { icon: Rocket, classes: '' },
   metric: { icon: BarChart3, classes: '' },
@@ -150,7 +118,7 @@ const TYPE_CONFIG: Record<string, { icon: LucideIcon; classes: string }> = {
 /* ── Main Component ── */
 
 export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, onOpenChat, onOpenProject }: OverviewPageProps) {
-  const videoSrc = '/animations/avatar.mp4';
+  const videoSrc = '/animations/white-man-coffee.mp4';
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   const GREETING_TEXT = "Good morning, Beibei! Today feels like a steady day. Your life commitments are all locked in — 2 hours family time, 7 hours sleep, check. I've protected your 9 to 11am focus block, and today's workload is light. I finished your meeting notes and drafted 3 tickets — review them whenever you're ready.";
@@ -200,18 +168,21 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
     >
           {/* ━━━ 1. GREETING ━━━ */}
           <div className="rounded-2xl mb-12 relative overflow-hidden bg-bg-hover">
-            <div className="flex flex-col md:flex-row relative">
-              <div className="w-full md:w-[45%] shrink-0 overflow-hidden">
+            {/* Desktop: video column fixed at 240px so the text column always has
+                room to breathe. Stretch makes the video fill the row height;
+                object-cover trims to fit. Mobile stacks with a square video. */}
+            <div className="flex flex-col md:flex-row md:items-stretch relative">
+              <div className="relative w-full aspect-square md:w-[240px] md:aspect-auto md:shrink-0 overflow-hidden">
                 <video
                   src={videoSrc}
                   autoPlay
                   loop
                   muted
                   playsInline
-                  className="w-full h-full object-cover"
+                  className="absolute inset-0 w-full h-full object-cover"
                 />
               </div>
-              <div className="min-w-0 p-6 md:p-8 flex flex-col justify-center">
+              <div className="min-w-0 flex-1 p-6 md:p-8 flex flex-col justify-center">
                 <h2 className="type-h2-emphasized text-text-primary mb-2.5">
                   Good morning, Beibei! Today feels like a steady day ☀️
                 </h2>
@@ -525,35 +496,6 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                   ))}
                 </div>
               </div>
-            </div>
-
-            {/* Weekly trend chart */}
-            <div className="border border-stroke-outline rounded-2xl p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div className="type-detail-emphasized text-text-primary">Weekly Trends</div>
-                <div className="flex items-center gap-4 type-caption text-text-primary opacity-70">
-                  <span className="flex items-center gap-1.5"><span className="w-5 h-[2.5px] rounded-full inline-block" style={{ background: '#3171FF' }} />Energy</span>
-                  <span className="flex items-center gap-1.5"><span className="w-5 h-[2.5px] rounded-full inline-block" style={{ background: '#8B5CF6' }} />Sleep</span>
-                  <span className="flex items-center gap-1.5"><span className="w-5 h-[2.5px] rounded-full inline-block" style={{ background: '#028901' }} />Stress</span>
-                </div>
-              </div>
-              <MultiLineChart
-                labels={WEEKLY_ENERGY.map(d => d.label)}
-                height={180}
-                series={[
-                  { data: WEEKLY_ENERGY, color: '#3171FF' },
-                  { data: WEEKLY_SLEEP.map(d => ({ ...d, value: (d.value / 9.5) * 100 })), color: '#8B5CF6' },
-                  {
-                    data: WEEKLY_STRESS,
-                    color: '#028901',
-                    strokeGradient: [
-                      { offset: '0%', color: '#DC2626' },   // top = high stress = red
-                      { offset: '50%', color: '#D97706' },  // mid = orange
-                      { offset: '100%', color: '#028901' }, // bottom = low stress = green
-                    ],
-                  },
-                ]}
-              />
             </div>
           </div>
     </PageLayout>
