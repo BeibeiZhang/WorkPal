@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   ChevronRight, ChevronDown, ChevronUp,
-  Brain, Volume2, Briefcase, Home, Smile,
-  Moon, Gauge, BarChart3, Search,
+  Volume2, Briefcase, Home, Smile,
+  Gauge, BarChart3, Search,
   CalendarClock, Globe, Download,
   Rocket, MessageCircle,
   Dice5, Baby, Gamepad2, BookOpen, Footprints,
@@ -10,9 +10,9 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import {
   SectionTitle,
-  Tag, SolutionRow, SummaryFooter, PrimaryButton, TertiaryButton,
-  MetricCard, InsightCard, TaskProgressCard, ReviewItemCard,
-  HealthDimensionRow, PageLayout, CategoryBreakdown, Switch,
+  Tag, SummaryFooter, PrimaryButton, TertiaryButton,
+  MetricCard, TaskProgressCard, ReviewItemCard,
+  PageLayout, CategoryBreakdown, Switch,
 } from './shared';
 import { fetchUnreadArtifacts, markArtifactViewed, artifactItemCount, type Artifact } from '../lib/artifacts';
 import { fetchUsage, formatUsd, type UsageSummary } from '../lib/usage';
@@ -62,36 +62,6 @@ const SCHEDULED: Array<{
 }> = [
   { id: 's1', name: 'Weekly Spark driver incident digest', cron: 'Every Monday · 9:00 AM', lastRun: '2 days ago', nextRun: 'Tomorrow 9:00 AM', from: { kind: 'chat', id: 'alcohol-delivery', label: 'Alcohol Delivery Issues' } },
   { id: 's2', name: 'Daily design component audit', cron: 'Weekdays · 6:00 PM', lastRun: '18h ago', nextRun: 'Today 6:00 PM', from: { kind: 'project', id: 'proj-1', label: 'Agent Design' } },
-];
-
-const HEALTH_DIMENSIONS: Array<{
-  icon: LucideIcon;
-  label: string;
-  value: number;
-  target: number | null;
-  unit: string;
-  status: string;
-  desc: string;
-  met: boolean;
-}> = [
-  { icon: Brain, label: 'Focus Time', value: 2, target: 2, unit: 'h', status: 'on-track', desc: '3–5am blocked & protected', met: true },
-  { icon: Home, label: 'Family Time', value: 2, target: 2, unit: 'h', status: 'on-track', desc: 'Kids + board game time scheduled', met: true },
-  { icon: Moon, label: 'Sleep', value: 7, target: 7, unit: 'h', status: 'on-track', desc: 'Last night: 7h 12min — well rested', met: true },
-];
-
-const STRESS_LEVEL = 48;
-
-const STRESS_SOURCES = [
-  { label: 'Deadline pressure', pct: 35, color: '#EF4444' },
-  { label: 'Keeping up with AI', pct: 28, color: '#F59E0B' },
-  { label: 'Cross-team alignment', pct: 22, color: '#7652B9' },
-  { label: 'Context switching', pct: 15, color: '#3171ff' },
-];
-
-const STRESS_SOLUTIONS = [
-  { icon: '🎧', title: '3-Min AI Briefing', desc: 'Daily audio digest on industry trends, every morning', tag: 'For: Keeping up with AI' },
-  { icon: '🧘', title: 'Focus Block Guard', desc: '3-5am auto-block non-urgent meetings', tag: 'For: Deadline pressure' },
-  { icon: '📋', title: 'Async Alignment Template', desc: 'Cut 30% of alignment meetings', tag: 'For: Cross-team' },
 ];
 
 const IMPACT_WORK = [
@@ -310,7 +280,6 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
     setIsSpeaking(true);
   }, [isSpeaking]);
   const [reviewDone, setReviewDone] = useState<Record<number, boolean>>({});
-  const [showStressDetail, setShowStressDetail] = useState(false);
 
   // Candidate #3 — unread artifacts surface at the top of "Needs Your Eyes"
   // per Beibei's 2026-04-20 call. Already-viewed slugs (tracked in
@@ -394,76 +363,6 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                   {isSpeaking ? 'Stop' : 'Listen'}
                 </PrimaryButton>
               </div>
-            </div>
-          </div>
-
-          {/* ━━━ 2. LIFE HEALTH INDEX ━━━ */}
-          <div className="mb-12">
-            <SectionTitle emoji="" title="Life Health Index" size={20} />
-
-            <div className="flex flex-col">
-                <div className="flex flex-col">
-                  {HEALTH_DIMENSIONS.map((d, i) => (
-                    <HealthDimensionRow
-                      key={i}
-                      icon={d.icon}
-                      label={d.label}
-                      desc={d.desc}
-                      value={d.value}
-                      target={d.target}
-                      unit={d.unit}
-                      status={d.status}
-                    />
-                  ))}
-                </div>
-
-                {/* Stress Index — Clickable */}
-                <button
-                  onClick={() => setShowStressDetail(!showStressDetail)}
-                  className="rounded-2xl px-5 py-4 flex items-center gap-3.5 text-left transition-colors bg-bg-hover"
-                >
-                  <Gauge size={22} strokeWidth={1.75} className="text-text-primary shrink-0 icon-theme" />
-                  <div className="flex-1 min-w-0">
-                    <span className="type-detail-emphasized text-text-primary">Stress Level</span>
-                    <div className="type-detail text-text-primary mt-0.5">
-                      Tap to see stress analysis & solutions
-                    </div>
-                    <div className="flex items-center gap-2 mt-1.5 md:hidden">
-                      <Tag>{STRESS_LEVEL}/100 · {STRESS_LEVEL > 60 ? 'Moderate' : 'Low'}</Tag>
-                      <span className="type-detail text-text-primary">↓16</span>
-                    </div>
-                  </div>
-                  <div className="hidden md:flex items-center gap-2 shrink-0">
-                    <Tag>{STRESS_LEVEL}/100 · {STRESS_LEVEL > 60 ? 'Moderate' : 'Low'}</Tag>
-                    <span className="type-detail text-text-primary">↓16</span>
-                    {showStressDetail ? <ChevronUp size={16} className="text-text-primary" /> : <ChevronDown size={16} className="text-text-primary" />}
-                  </div>
-                  <div className="md:hidden shrink-0">
-                    {showStressDetail ? <ChevronUp size={16} className="text-text-primary" /> : <ChevronDown size={16} className="text-text-primary" />}
-                  </div>
-                </button>
-
-                {/* Stress Detail Panel (expandable) */}
-                {showStressDetail && (
-                  <div className="bg-bg-page rounded-2xl p-5 mt-[4px] dark:bg-[rgba(226,243,255,0.05)]">
-                    <div className="type-detail-emphasized text-text-primary mb-3 flex items-center gap-1.5">
-                      <Brain size={14} className="text-text-primary" /> Stress Analysis
-                    </div>
-
-                    <CategoryBreakdown categories={STRESS_SOURCES} />
-
-                    <div className="mt-4 pt-3.5 border-t border-stroke-outline">
-                      <div className="type-detail-emphasized text-text-primary mb-2.5">Stephen's Solutions</div>
-                      {STRESS_SOLUTIONS.map((sol, i) => (
-                        <SolutionRow key={i} icon={sol.icon} title={sol.title} desc={sol.desc} tag={sol.tag} />
-                      ))}
-                    </div>
-
-                    <TertiaryButton className="mt-3 gap-1.5">
-                      View Full Health Report <ChevronRight size={12} />
-                    </TertiaryButton>
-                  </div>
-                )}
             </div>
           </div>
 
@@ -587,17 +486,6 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                 );
               })}
             </div>
-          </div>
-
-          {/* ━━━ 5. STEPHEN'S INSIGHT ━━━ */}
-          <div className="mb-12">
-            <InsightCard
-              body="I noticed your focus time has dropped 40% this week compared to your best weeks. Your most productive hours are usually between 3-5am, but those slots got filled with meetings. Want me to protect those morning blocks going forward?"
-              actions={[
-                { label: 'Yes, protect my mornings', secondary: true },
-                { label: 'Show me the data' },
-              ]}
-            />
           </div>
 
           {/* ━━━ 6. POSITIVE IMPACT — 7 DAY, THREE DIMENSIONS ━━━ */}
