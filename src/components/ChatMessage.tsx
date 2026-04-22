@@ -385,7 +385,7 @@ export default function ChatMessage({ message, isLastAssistant, onCardAction, on
         {hasAttachments && <MessageAttachments attachments={message.attachments!} />}
         {hasText && (
           <div className="max-w-[320px] bg-bg-message rounded-lg px-4 py-3">
-            <p className="type-body text-text-primary">{message.content}</p>
+            <p className="type-h2 text-text-primary">{message.content}</p>
           </div>
         )}
       </div>

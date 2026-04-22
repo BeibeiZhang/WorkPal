@@ -202,7 +202,7 @@ export default function TaskContextPanel({
                     >
                       <Icon size={16} className="shrink-0 text-text-primary" />
                       <div className="flex-1 min-w-0">
-                        <div className={`type-body text-text-primary truncate ${change.undone ? 'line-through' : ''}`}>
+                        <div className={`type-h2 text-text-primary truncate ${change.undone ? 'line-through' : ''}`}>
                           {change.label}
                         </div>
                         <div className="type-footnote text-text-secondary">
@@ -316,7 +316,7 @@ export default function TaskContextPanel({
                       className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-bg-hover transition-colors text-left"
                     >
                       <File size={16} className="text-text-primary shrink-0" />
-                      <span className="type-body text-text-primary truncate">{f.name}</span>
+                      <span className="type-h2 text-text-primary truncate">{f.name}</span>
                     </button>
                   ))}
                 </div>
@@ -337,7 +337,7 @@ export default function TaskContextPanel({
                   className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-bg-hover transition-colors text-left"
                 >
                   <File size={16} className="text-text-primary shrink-0" />
-                  <span className="type-body text-text-primary truncate">{f.name}</span>
+                  <span className="type-h2 text-text-primary truncate">{f.name}</span>
                 </button>
               ))}
             </div>
@@ -356,7 +356,7 @@ export default function TaskContextPanel({
                   className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-bg-hover transition-colors text-left"
                 >
                   <File size={16} className="text-text-primary shrink-0" />
-                  <span className="type-body text-text-primary truncate">{f.name}</span>
+                  <span className="type-h2 text-text-primary truncate">{f.name}</span>
                 </button>
               ))}
             </div>

@@ -283,7 +283,7 @@ function AvatarMenu({ compact = false, activeView, activeChatId, onViewChange, o
             <div className="rounded-full overflow-hidden shrink-0" style={{ width: 35, height: 35 }}>
               <img src={USER_PROFILE_IMG} alt="Beibei Zhang" className="w-full h-full object-cover" />
             </div>
-            <p className="type-body-emphasized text-text-primary truncate">
+            <p className="type-h2-emphasized text-text-primary truncate">
               Beibei Zhang
             </p>
           </>
@@ -543,7 +543,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
             className="px-4 flex items-center justify-between hover:bg-bg-hover rounded-full transition-colors"
             style={{ height: 32 }}
           >
-            <p className="type-body-emphasized text-text-primary">Projects</p>
+            <p className="type-h2-emphasized text-text-primary">Projects</p>
             <ChevronDown
               size={16}
               className={`text-text-primary transition-transform ${projectsOpen ? '' : '-rotate-90'}`}
@@ -589,7 +589,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
             className="px-4 flex items-center justify-between hover:bg-bg-hover rounded-full transition-colors"
             style={{ height: 32 }}
           >
-            <p className="type-body-emphasized text-text-primary">Recents</p>
+            <p className="type-h2-emphasized text-text-primary">Recents</p>
             <ChevronDown
               size={16}
               className={`text-text-primary transition-transform ${recentsOpen ? '' : '-rotate-90'}`}

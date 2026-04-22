@@ -103,7 +103,7 @@ export default function NewProjectDialog({
             onChange={e => setName(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="e.g. Q2 Design Sprint"
-            className="w-full px-4 py-3 rounded-[4px] type-body text-text-primary placeholder-text-tertiary outline-none transition-colors"
+            className="w-full px-4 py-3 rounded-[4px] type-h2 text-text-primary placeholder-text-tertiary outline-none transition-colors"
             style={{ background: 'var(--color-bg-hover)' }}
           />
         </div>
@@ -120,7 +120,7 @@ export default function NewProjectDialog({
             onKeyDown={e => { if (e.key === 'Escape') onClose(); }}
             placeholder="What's this project about?"
             rows={3}
-            className="w-full px-4 py-3 rounded-[4px] type-body text-text-primary placeholder-text-tertiary outline-none resize-none transition-colors"
+            className="w-full px-4 py-3 rounded-[4px] type-h2 text-text-primary placeholder-text-tertiary outline-none resize-none transition-colors"
             style={{ background: 'var(--color-bg-hover)' }}
           />
         </div>
