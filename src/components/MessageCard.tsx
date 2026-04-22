@@ -287,7 +287,7 @@ function variantFromLabel(label: string): StatusVariant {
   return 'success';
 }
 function StatusTag({ label }: { label: string }) {
-  return <SharedStatusTag variant={variantFromLabel(label)} label={label} showIcon={false} />;
+  return <SharedStatusTag variant={variantFromLabel(label)} label={label} showIcon={false} size="sm" />;
 }
 
 /* ── Research / text-only card ── */

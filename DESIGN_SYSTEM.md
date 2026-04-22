@@ -141,10 +141,10 @@ CSS vars: --brand-grad-start, --brand-grad-mid, --brand-grad-end
 | `.type-display` | 40 / 48 / 700 / −0.5 | Page H1 (only one per page) |
 | `.type-h1` | 22 / normal / 500 / 0 | Brand wordmark, hero greetings (display-weight regular H1) |
 | `.type-h1--emphasized` | 22 / normal / 700 / 0 | Section headers — top-level regions inside a page |
-| `.type-body-emphasized` | 16 / 32 / 700 / 0 | Subheads, question prompts, long-form section headings |
-| `.type-body` | 16 / 32 / 400 / 0 | Default paragraph, chat messages |
-| `.type-h2-emphasized` | 16 / 22 / 700 / 0 | Card titles, row headings — bold 16/22 pair for dense surfaces |
-| `.type-h2` | 16 / 22 / 400 / 0 | Row labels, chat markdown body, compact 16px copy |
+| `.type-body-emphasized` | 16 / 32 / 700 / 0 | Long-form section headings where loose 32px leading reads better (ArtifactPage category headers, DesignSystemPage checklists) |
+| `.type-body` | 16 / 32 / 400 / 0 | Long-form paragraph copy (loose leading for multi-line reading) |
+| `.type-h2-emphasized` | 16 / 22 / 700 / 0 | Default bold 16px title — card titles, SidePanel/SideCard titles, sidebar & page section headers, profile name |
+| `.type-h2` | 16 / 22 / 400 / 0 | Chat messages (user + assistant), dialog inputs + textareas, onboarding prompts, drop-zone headers, side-panel file/change rows — the default 16px copy style |
 | `.type-detail-emphasized` | 14 / 22 / 700 / 0 | Form labels, emphasized metadata, button labels |
 | `.type-detail` | 14 / 22 / 400 / 0 | Helper text, captions, chip labels |
 | `.type-caption` | 12 / 16 / 400 / 0 | Chart legends, mono code / command blocks (pair with `font-mono`), file path chips, diff stats |

@@ -213,7 +213,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                 />
               </div>
               <div className="min-w-0 p-6 md:p-8 flex flex-col justify-center">
-                <h2 className="type-body-emphasized text-text-primary mb-2.5">
+                <h2 className="type-h2-emphasized text-text-primary mb-2.5">
                   Good morning, Beibei! Today feels like a steady day ☀️
                 </h2>
                 <p className="type-detail text-text-primary">
@@ -256,7 +256,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                   <div className="flex-1 min-w-0">
                     <span className="type-detail-emphasized text-text-primary">Stress Level</span>
                     <div className="type-detail text-text-primary mt-0.5">
-                      Tap to see stress analysis & solutions →
+                      Tap to see stress analysis & solutions
                     </div>
                     <div className="flex items-center gap-2 mt-1.5 md:hidden">
                       <Tag>{STRESS_LEVEL}/100 · {STRESS_LEVEL > 60 ? 'Moderate' : 'Low'}</Tag>
