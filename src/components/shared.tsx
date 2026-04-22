@@ -5,7 +5,7 @@
  * Update a component here → it updates everywhere in the app.
  */
 import { AlertTriangle, ArrowLeft, ArrowUpRight, BadgeCheck, Check, ChevronDown, ChevronRight, Clock, FileCode2, FileImage, FileText, Info, Mail, MonitorPlay, PanelLeft, PanelRight, Presentation, Ticket, Play, Plus, Search, Send, Smile, SquarePen, Timer, User, Sparkles, X, XCircle, type LucideIcon } from 'lucide-react';
-import { type MouseEvent, type ReactNode, useEffect, useRef, useState, useLayoutEffect } from 'react';
+import { type MouseEvent as ReactMouseEvent, type ReactNode, useEffect, useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { IS_DEMO } from '../lib/demoMode';
 import type { ArtifactRef, OutputType } from '../types';
@@ -1439,7 +1439,7 @@ export function UtilityChip({
 }: {
   children: ReactNode;
   icon?: ReactNode;
-  onClick?: (e: MouseEvent<HTMLButtonElement>) => void;
+  onClick?: (e: ReactMouseEvent<HTMLButtonElement>) => void;
   title?: string;
   ariaLabel?: string;
   maxWidth?: number | string;
