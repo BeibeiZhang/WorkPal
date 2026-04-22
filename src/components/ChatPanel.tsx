@@ -4,7 +4,7 @@ import { Chat, Message, ActionChip, Attachment, ImageResult, VideoResult, WebRes
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import VoiceMode from './VoiceMode';
-import { HeaderBar } from './shared';
+import { HeaderBar, UtilityChip } from './shared';
 import { AGENTS, useAgentVideoStatus } from '../agentVideos';
 
 /** Chip showing the session's folder path.
@@ -37,18 +37,17 @@ function FolderChip({ path, onOpen }: { path: string; onOpen?: (path: string) =>
     }
   };
   return (
-    <button
-      type="button"
+    <UtilityChip
       onClick={handleClick}
-      aria-label={copied ? 'Folder path copied' : `Open folder in Finder: ${path}. Shift-click to copy path.`}
-      className="flex items-center gap-1.5 min-w-0 max-w-[320px] px-3 h-10 rounded-full border border-stroke-outline hover:bg-bg-hover transition-colors text-text-primary"
+      ariaLabel={copied ? 'Folder path copied' : `Open folder in Finder: ${path}. Shift-click to copy path.`}
       title={`${path} — click to open in Finder, shift+click to copy`}
-    >
-      {copied
+      maxWidth={320}
+      icon={copied
         ? <Check size={14} className="shrink-0 text-[#028901]" />
         : <FolderClosed size={14} className="shrink-0" />}
-      <span className="font-mono type-caption truncate">{path}</span>
-    </button>
+    >
+      {path}
+    </UtilityChip>
   );
 }
 

@@ -14,7 +14,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import {
   SectionTitle as SharedSectionTitle, ProgressBar, CategoryBreakdown, CircularProgress,
-  TimePill, StepIndicator, Tag, FilterChip, Chip, PrimaryButton, SecondaryButton, TertiaryButton,
+  TimePill, StepIndicator, Tag, FilterChip, Chip, UtilityChip, PrimaryButton, SecondaryButton, TertiaryButton,
   SolutionRow, SummaryFooter,
   MetricCard, InsightCard, MultiLineChart, TaskProgressCard, ReviewItemCard,
   StatusTag, ConnectorCard, HealthDimensionRow, SearchBox, PageLayout,
@@ -928,6 +928,7 @@ const SEARCH_INDEX: SearchEntry[] = [
   { tab: 'components', section: 'Components · Shared Primitives', name: 'TimePill', description: 'Neutral pill with user icon + time.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'FilterChip', description: 'Master filter chip — active, count, with icon (type-detail / gap-2).' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'Chip', description: 'Inline-content chip — icon, active, removable, draggable (type-h2 / gap-1).' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'UtilityChip', description: 'Mono utility pill for paths / IDs — solid hover, h-8 (font-mono / type-caption).' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'DemoBadge', description: 'Click-to-open demo-mode badge shown in HeaderBar.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'ConnectorCard', description: 'Compact row for an integration — logo + name + Connect / Connected.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'CircularProgress', description: 'SVG circle progress with centered text overlay.' },
@@ -2127,6 +2128,19 @@ function ComponentsTab() {
             <Chip label="🤗 Kind" active onRemove={() => {}} />
             <Chip label="🧘 Calm" draggable />
           </div>
+        </div>
+      ),
+    },
+    {
+      name: 'UtilityChip',
+      description: 'Mono utility pill for paths, IDs, and tool-surface labels. Solid bg-bg-hover on hover (not gradient) — deliberately distinct from Chip / FilterChip. Height locked to 32px so it aligns with FilterChip & DemoBadge in toolbars.',
+      usedIn: ['ChatPanel header (session folder path chip)'],
+      preview: (
+        <div className="flex flex-wrap items-center gap-3">
+          <UtilityChip icon={<Folder size={14} className="shrink-0" />} maxWidth={320}>
+            ~/WorkPal/2026-04-18-alcohol-delivery-research
+          </UtilityChip>
+          <UtilityChip>ABC-1234</UtilityChip>
         </div>
       ),
     },

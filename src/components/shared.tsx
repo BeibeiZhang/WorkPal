@@ -5,7 +5,7 @@
  * Update a component here → it updates everywhere in the app.
  */
 import { AlertTriangle, ArrowLeft, ArrowUpRight, BadgeCheck, Check, ChevronDown, ChevronRight, Clock, FileCode2, FileImage, FileText, Info, Mail, MonitorPlay, PanelLeft, PanelRight, Presentation, Ticket, Play, Plus, Search, Send, Smile, SquarePen, Timer, User, Sparkles, X, XCircle, type LucideIcon } from 'lucide-react';
-import { type ReactNode, useEffect, useRef, useState, useLayoutEffect } from 'react';
+import { type MouseEvent as ReactMouseEvent, type ReactNode, useEffect, useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { IS_DEMO } from '../lib/demoMode';
 import type { ArtifactRef, OutputType } from '../types';
@@ -1418,6 +1418,45 @@ export function Chip({
       style={stateStyle}
     >
       {inner}
+    </button>
+  );
+}
+
+/* ─── 7f. UtilityChip ───
+ * Mono-text utility pill for paths, IDs, and other "tool-surface" labels.
+ * Solid `bg-bg-hover` on hover (not gradient) — deliberately distinct from
+ * the Chip / FilterChip family (which are content/filter chips with gradient
+ * border hover). Height locked to 32px to align with FilterChip & DemoBadge.
+ */
+export function UtilityChip({
+  children,
+  icon,
+  onClick,
+  title,
+  ariaLabel,
+  maxWidth,
+  className: extra = '',
+}: {
+  children: ReactNode;
+  icon?: ReactNode;
+  onClick?: (e: ReactMouseEvent<HTMLButtonElement>) => void;
+  title?: string;
+  ariaLabel?: string;
+  maxWidth?: number | string;
+  className?: string;
+}) {
+  const style = maxWidth !== undefined ? { maxWidth } : undefined;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={ariaLabel}
+      title={title}
+      style={style}
+      className={`flex items-center gap-1.5 min-w-0 px-3 h-8 rounded-full border border-stroke-outline hover:bg-bg-hover transition-colors text-text-primary ${extra}`}
+    >
+      {icon}
+      <span className="font-mono type-caption truncate">{children}</span>
     </button>
   );
 }
