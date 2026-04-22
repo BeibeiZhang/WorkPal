@@ -1,3 +1,19 @@
+import { countCallsSince, logUsage } from './usageLog.js';
+
+// Tavily's current pay-as-you-go rate for a basic search. Hardcoded because
+// Tavily doesn't echo a cost field back, and updating these two lines is the
+// only maintenance the dashboard needs if pricing / free-tier changes.
+const TAVILY_PER_SEARCH_USD = 0.005;
+// Tavily's Free tier includes 1,000 searches per calendar month — the UI
+// should only surface dollars once we're past the quota, otherwise it feels
+// like every click costs money when it doesn't.
+const TAVILY_FREE_PER_MONTH = 1000;
+
+function startOfCurrentMonthIso(): string {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+}
+
 export interface WebResult {
   title: string;
   url: string;
@@ -36,6 +52,22 @@ export async function searchWeb(query: string, maxResults = 5): Promise<WebSearc
       signal: AbortSignal.timeout(12000),
     });
     if (!res.ok) return { results: [], images: [] };
+    // Free tier: first 1,000 searches/month cost $0. Log them anyway so the
+    // dashboard can show "X / 1,000 used" later, but with cost_usd = 0 so the
+    // "API Spend" total stays honest.
+    const usedThisMonth = await countCallsSince('tavily', startOfCurrentMonthIso());
+    const cost = usedThisMonth < TAVILY_FREE_PER_MONTH ? 0 : TAVILY_PER_SEARCH_USD;
+    await logUsage({
+      provider: 'tavily',
+      model: 'tavily-search-basic',
+      // 'other' keeps it out of the Subscription Health Check counts — the
+      // triggering OpenAI turn already owns the 'web_query' classification,
+      // and counting Tavily again here would double-count every search.
+      capability: 'other',
+      input_tokens: 0,
+      output_tokens: 0,
+      cost_usd: cost,
+    });
     const data = (await res.json()) as {
       results?: Array<{ title?: string; url?: string; content?: string; score?: number }>;
       images?: Array<string | { url?: string }>;

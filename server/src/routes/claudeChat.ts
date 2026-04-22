@@ -15,6 +15,7 @@ import {
 } from '../lib/git.js';
 import { initProjectIfNeeded, resolveProjectFolder } from '../lib/project.js';
 import { WORKPAL_ROOT } from '../lib/paths.js';
+import { logUsage } from '../lib/usageLog.js';
 
 const router = Router();
 
@@ -485,6 +486,10 @@ router.post('/claude-chat', async (req, res) => {
     }
   });
 
+  // Captured from assistant events; used when logging usage at the end so
+  // the dashboard can break spend down by actual model (Opus vs Sonnet etc.).
+  let lastModel: string | null = null;
+
   try {
     // 6.4 regression: let the SDK operate with its default toolset. All
     // permission UX is handled by canUseTool's auto-allow rules below —
@@ -502,6 +507,10 @@ router.post('/claude-chat', async (req, res) => {
           break;
 
         case 'assistant': {
+          const modelField = (msg as { message?: { model?: unknown } }).message?.model;
+          if (typeof modelField === 'string' && modelField.length > 0) {
+            lastModel = modelField;
+          }
           const blocks = (msg as { message?: { content?: unknown } }).message?.content;
           if (Array.isArray(blocks)) {
             for (const block of blocks) {
@@ -664,7 +673,35 @@ router.post('/claude-chat', async (req, res) => {
         }
 
         case 'result': {
-          const r = msg as { usage?: unknown; total_cost_usd?: unknown };
+          const r = msg as {
+            usage?: {
+              input_tokens?: number;
+              output_tokens?: number;
+              cache_read_input_tokens?: number;
+              cache_creation_input_tokens?: number;
+            };
+            total_cost_usd?: unknown;
+            model?: unknown;
+          };
+          const modelFromResult = typeof r.model === 'string' ? r.model : null;
+          const model = modelFromResult ?? lastModel ?? 'claude-unknown';
+          const cost = typeof r.total_cost_usd === 'number' ? r.total_cost_usd : 0;
+          if (r.usage) {
+            await logUsage({
+              provider: 'anthropic',
+              model,
+              // Every turn routed through Claude Agent SDK is an agentic
+              // write/edit/research session by construction (intentRouter
+              // gates by keyword). Matches the Claude Pro/Cowork quota on
+              // the dashboard.
+              capability: 'agent',
+              input_tokens: r.usage.input_tokens ?? 0,
+              output_tokens: r.usage.output_tokens ?? 0,
+              cache_read_tokens: r.usage.cache_read_input_tokens,
+              cache_write_tokens: r.usage.cache_creation_input_tokens,
+              cost_usd: cost,
+            });
+          }
           send({ type: 'claude_done', usage: r.usage, cost: r.total_cost_usd });
           console.log('[claude-chat] result');
           break;
