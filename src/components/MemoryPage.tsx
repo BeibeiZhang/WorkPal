@@ -68,7 +68,7 @@ function MemoryForm({
             key={k}
             type="button"
             onClick={() => setKind(k)}
-            className={`px-3 py-1.5 rounded-full text-[13px] border transition-colors ${
+            className={`px-3 py-1.5 rounded-full type-detail border transition-colors ${
               kind === k
                 ? 'bg-[#3171ff] text-white border-[#3171ff]'
                 : 'text-text-primary border-stroke-outline hover:bg-bg-hover'
@@ -81,7 +81,7 @@ function MemoryForm({
           <select
             value={projectId ?? ''}
             onChange={e => setProjectId(e.target.value || undefined)}
-            className="ml-1 px-3 py-1.5 rounded-full text-[13px] text-text-primary outline-none"
+            className="ml-1 px-3 py-1.5 rounded-full type-detail text-text-primary outline-none"
             style={{
               background: 'var(--color-bg-page)',
               border: '1px solid var(--color-stroke-outline)',
@@ -101,7 +101,7 @@ function MemoryForm({
         value={title}
         onChange={e => setTitle(e.target.value)}
         placeholder="Title (e.g. Response style)"
-        className="px-3 py-2 rounded-lg text-[14px] text-text-primary placeholder-text-tertiary outline-none"
+        className="px-3 py-2 rounded-lg type-detail text-text-primary placeholder-text-tertiary outline-none"
         style={{ background: 'var(--color-bg-page)', border: '1px solid var(--color-stroke-outline)' }}
       />
 
@@ -111,7 +111,7 @@ function MemoryForm({
         onChange={e => setContent(e.target.value)}
         placeholder="What should the AI remember? (e.g. Prefers short, direct answers. No filler.)"
         rows={3}
-        className="px-3 py-2 rounded-lg text-[14px] text-text-primary placeholder-text-tertiary outline-none resize-none"
+        className="px-3 py-2 rounded-lg type-detail text-text-primary placeholder-text-tertiary outline-none resize-none"
         style={{ background: 'var(--color-bg-page)', border: '1px solid var(--color-stroke-outline)' }}
       />
 
@@ -151,9 +151,9 @@ function MemoryRow({
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1 flex-wrap">
-          <span className="text-[14px] font-semibold text-text-primary">{entry.title}</span>
+          <span className="type-detail-emphasized text-text-primary">{entry.title}</span>
           <span
-            className="text-[11px] px-2 py-0.5 rounded-full"
+            className="type-footnote px-2 py-0.5 rounded-full"
             style={{
               background: 'var(--color-bg-message)',
               color: 'var(--color-text-secondary)',
@@ -162,7 +162,7 @@ function MemoryRow({
             {KIND_LABEL[entry.kind]}{projectName ? ` · ${projectName}` : ''}
           </span>
         </div>
-        <p className="text-[13px] text-text-secondary leading-relaxed whitespace-pre-wrap">{entry.content}</p>
+        <p className="type-detail text-text-secondary leading-relaxed whitespace-pre-wrap">{entry.content}</p>
       </div>
       {!readOnly && (
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
@@ -233,7 +233,7 @@ export default function MemoryPage({
             style={{ border: '1px solid var(--color-stroke-outline)' }}
           >
             <Plus size={16} />
-            <span className="text-[14px]">Add memory</span>
+            <span className="type-detail">Add memory</span>
           </button>
         ) : (
           <button
@@ -266,7 +266,7 @@ export default function MemoryPage({
             style={{ background: 'var(--color-bg-message)', border: '1px solid var(--color-stroke-outline)' }}
           >
             <Info size={16} className="text-text-secondary mt-0.5 shrink-0" />
-            <div className="text-[13px] text-text-secondary leading-relaxed">
+            <div className="type-detail text-text-secondary leading-relaxed">
               <span className="font-medium text-text-primary">Demo mode — these are seed memories.</span>{' '}
               Editing, adding, and deleting are disabled. No real data is stored.
               <br />
@@ -283,8 +283,8 @@ export default function MemoryPage({
             style={{ border: '1px dashed var(--color-stroke-outline)' }}
           >
             <Brain size={32} className="text-text-secondary" />
-            <div className="text-[16px] font-bold text-text-primary">Teach your AI about you</div>
-            <p className="text-[13px] text-text-secondary max-w-md">
+            <div className="type-h2-emphasized text-text-primary">Teach your AI about you</div>
+            <p className="type-detail text-text-secondary max-w-md">
               Memories apply to every chat — your name, preferences, project notes.
               They persist across sessions so you don't have to repeat yourself.
             </p>
@@ -305,7 +305,7 @@ export default function MemoryPage({
 
         {/* Filter summary */}
         {memories.length > 0 && (
-          <div className="text-[12px] text-text-secondary">
+          <div className="type-caption text-text-secondary">
             {filtered.length} {filtered.length === 1 ? 'memory' : 'memories'}
             {filter !== 'All' ? ` in ${KIND_LABEL[filter]}` : ''}
           </div>

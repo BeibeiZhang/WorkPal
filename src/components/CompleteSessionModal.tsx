@@ -142,10 +142,6 @@ export default function CompleteSessionModal({
         <h2
           id="complete-session-title"
           className="type-h1--emphasized text-text-primary mb-3"
-          style={{
-            fontFamily:
-              'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-          }}
         >
           {title}
         </h2>
@@ -154,7 +150,7 @@ export default function CompleteSessionModal({
         {phase.kind === 'loading' && (
           <div className="flex items-center gap-3 py-6 text-text-primary">
             <Loader2 size={18} className="animate-spin" />
-            <span className="text-[14px]">Analyzing changes…</span>
+            <span className="type-detail">Analyzing changes…</span>
           </div>
         )}
 
@@ -178,7 +174,7 @@ export default function CompleteSessionModal({
                       title={`${STATUS_LABEL[f.status]} — ${f.path}`}
                     >
                       <Icon size={16} className="shrink-0" style={{ color }} />
-                      <span className="flex-1 min-w-0 text-[13px] text-text-primary truncate">
+                      <span className="flex-1 min-w-0 type-detail text-text-primary truncate">
                         {basename(f.path)}
                       </span>
                       <span
@@ -217,7 +213,7 @@ export default function CompleteSessionModal({
         {phase.kind === 'merging' && (
           <div className="flex items-center gap-3 py-6 text-text-primary">
             <Loader2 size={18} className="animate-spin" />
-            <span className="text-[14px]">Merging…</span>
+            <span className="type-detail">Merging…</span>
           </div>
         )}
 
@@ -235,7 +231,7 @@ export default function CompleteSessionModal({
                   ? 'No changes — project was already up to date with this session.'
                   : "Session merged into the project base."}
               </p>
-              <p className="text-[13px] leading-[20px] text-text-secondary">
+              <p className="type-detail leading-[20px] text-text-secondary">
                 The worktree remains for reference and will be cleaned up
                 automatically.
                 <br />
@@ -251,7 +247,7 @@ export default function CompleteSessionModal({
             <p className="type-detail text-text-primary mb-3">
               {phase.message}
             </p>
-            <p className="text-[13px] leading-[20px] text-text-secondary mb-2">
+            <p className="type-detail leading-[20px] text-text-secondary mb-2">
               Resolve in terminal:
               <br />
               请在终端解决:
@@ -276,14 +272,14 @@ export default function CompleteSessionModal({
             <div className="min-h-[16px] mt-1 mb-4 text-right">
               {copyState === 'copied' && (
                 <span
-                  className="text-[11px] leading-[16px] font-medium"
+                  className="type-footnote font-medium"
                   style={{ color: '#028901' }}
                 >
                   Copied! / 已复制
                 </span>
               )}
               {copyState === 'failed' && (
-                <span className="text-[11px] leading-[16px] text-text-secondary">
+                <span className="type-footnote text-text-secondary">
                   Copy failed — select and ⌘C / 复制失败 — 请选中后 ⌘C
                 </span>
               )}

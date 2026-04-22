@@ -81,10 +81,7 @@ export default function NewProjectDialog({
         </button>
 
         {/* Header */}
-        <h2
-          className="type-h1--emphasized text-text-primary mb-2"
-          style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
-        >
+        <h2 className="type-h1--emphasized text-text-primary mb-2">
           {isPromote ? 'Promote to Project' : 'New Project'}
         </h2>
         {isPromote && (
@@ -96,10 +93,7 @@ export default function NewProjectDialog({
 
         {/* Project Name */}
         <div className="mb-5">
-          <label
-            className="block type-detail text-text-primary mb-2"
-            style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
-          >
+          <label className="block type-detail text-text-primary mb-2">
             Project name
           </label>
           <input
@@ -110,19 +104,13 @@ export default function NewProjectDialog({
             onKeyDown={handleKeyDown}
             placeholder="e.g. Q2 Design Sprint"
             className="w-full px-4 py-3 rounded-[4px] type-body text-text-primary placeholder-text-tertiary outline-none transition-colors"
-            style={{
-              background: 'var(--color-bg-hover)',
-              fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-            }}
+            style={{ background: 'var(--color-bg-hover)' }}
           />
         </div>
 
         {/* Description */}
         <div className={isPromote ? 'mb-5' : 'mb-8'}>
-          <label
-            className="block type-detail text-text-primary mb-2"
-            style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
-          >
+          <label className="block type-detail text-text-primary mb-2">
             Description
             <span className="text-text-tertiary font-normal ml-1">(optional)</span>
           </label>
@@ -133,20 +121,14 @@ export default function NewProjectDialog({
             placeholder="What's this project about?"
             rows={3}
             className="w-full px-4 py-3 rounded-[4px] type-body text-text-primary placeholder-text-tertiary outline-none resize-none transition-colors"
-            style={{
-              background: 'var(--color-bg-hover)',
-              fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-            }}
+            style={{ background: 'var(--color-bg-hover)' }}
           />
         </div>
 
         {/* Folder (promote mode only) — cosmetic path, not validated or mkdir'd */}
         {isPromote && (
           <div className="mb-8">
-            <label
-              className="block type-detail text-text-primary mb-2"
-              style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
-            >
+            <label className="block type-detail text-text-primary mb-2">
               Folder
               <span className="text-text-tertiary font-normal ml-1">(optional)</span>
             </label>

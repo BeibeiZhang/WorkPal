@@ -397,13 +397,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
           onBlur={() => setFocused(false)}
           placeholder={placeholder}
           rows={1}
-          className="w-full bg-transparent resize-none outline-none text-text-primary placeholder-text-tertiary chat-textarea py-[11px]"
-          style={{
-            fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-            fontSize: 16,
-            lineHeight: '22px',
-            letterSpacing: '0px',
-          }}
+          className="w-full bg-transparent resize-none outline-none type-h2 text-text-primary placeholder-text-tertiary chat-textarea py-[11px]"
         />
         {/* Mic / Voice / Send — inside input, right-aligned, 24×24 buttons */}
         <div className="flex items-center gap-4 md:gap-2 shrink-0 ml-2">

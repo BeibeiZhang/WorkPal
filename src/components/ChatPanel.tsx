@@ -216,13 +216,8 @@ function WelcomeState({ isDark, selectedAvatarId, onAvatarChange }: { isDark?: b
       {/* Subtitle */}
       <div className="flex items-center justify-center px-8 w-full">
         <p
-          className="flex-1 text-center text-text-primary"
-          style={{
-            fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-            fontSize: 16,
-            lineHeight: '22px',
-            letterSpacing: '-0.43px',
-          }}
+          className="flex-1 text-center type-h2 text-text-primary"
+          style={{ letterSpacing: '-0.43px' }}
         >
           How can I help you today?
         </p>

@@ -37,13 +37,7 @@ export default function ComingSoonPage({ view, sidebarOpen, onToggleSidebar }: C
 
       {/* Page title — Agent Design style */}
       <div className="px-8 pb-2 shrink-0">
-        <h1
-          className="type-display"
-          style={{
-            color: '#142740',
-            fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-          }}
-        >
+        <h1 className="type-display text-text-primary">
           {title}
         </h1>
       </div>
@@ -64,14 +58,8 @@ export default function ComingSoonPage({ view, sidebarOpen, onToggleSidebar }: C
           }}
         />
         <p
-          className="text-center"
-          style={{
-            color: '#142740',
-            fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-            fontSize: 24,
-            fontWeight: 600,
-            letterSpacing: '-0.43px',
-          }}
+          className="text-center type-h1--emphasized text-text-primary"
+          style={{ letterSpacing: '-0.43px' }}
         >
           Dashboard function coming soon
         </p>

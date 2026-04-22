@@ -283,10 +283,7 @@ function AvatarMenu({ compact = false, activeView, activeChatId, onViewChange, o
             <div className="rounded-full overflow-hidden shrink-0" style={{ width: 35, height: 35 }}>
               <img src={USER_PROFILE_IMG} alt="Beibei Zhang" className="w-full h-full object-cover" />
             </div>
-            <p
-              className="type-body-emphasized text-text-primary truncate"
-              style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
-            >
+            <p className="type-body-emphasized text-text-primary truncate">
               Beibei Zhang
             </p>
           </>

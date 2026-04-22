@@ -342,7 +342,7 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar, onNewChat
                 <path d="M15 7h3a5 5 0 0 1 0 10h-3M9 17H6a5 5 0 0 1 0-10h3" />
                 <line x1="8" y1="12" x2="16" y2="12" />
               </svg>
-              <p className="text-[14px] text-text-primary" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
+              <p className="type-detail text-text-primary">
                 Connect WorkPal to any third-party service using your own API keys.
               </p>
             </div>
@@ -356,10 +356,7 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar, onNewChat
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-bg-hover shrink-0">
                   <Plus size={16} className="text-text-primary" />
                 </div>
-                <span
-                  className="flex-1 text-[13px] text-text-primary font-medium"
-                  style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
-                >
+                <span className="flex-1 type-detail font-medium text-text-primary">
                   Add custom API
                 </span>
               </button>
@@ -379,7 +376,7 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar, onNewChat
                 <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41" />
               </svg>
             </div>
-            <p className="text-[15px] text-text-primary" style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}>
+            <p className="type-body text-text-primary">
               No custom MCP added yet.
             </p>
             <SecondaryButton className="gap-2">
