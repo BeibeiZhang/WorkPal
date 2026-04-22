@@ -16,7 +16,7 @@
     {
       "name": "WorkPal Dev 2011",
       "runtimeExecutable": "/usr/local/bin/node",
-      "runtimeArgs": ["/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/node_modules/vite/bin/vite.js", "--port", "2011", "--strictPort"],
+      "runtimeArgs": ["/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/node_modules/vite/bin/vite.js", "/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/.claude/worktrees/agitated-meninsky-770b34", "--port", "2011", "--strictPort"],
       "port": 2011
     },
     {
