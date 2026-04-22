@@ -107,7 +107,7 @@ function RowMoreMenu({
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); setMoveOpen(true); }}
-                  className="mx-1 px-3 py-2 flex items-center gap-2 text-left text-[14px] leading-[18px] text-text-primary hover:bg-bg-hover transition-colors rounded-lg"
+                  className="mx-1 px-3 py-2 flex items-center gap-2 text-left type-detail text-text-primary hover:bg-bg-hover transition-colors rounded-lg"
                   style={{ width: 'calc(100% - 8px)' }}
                 >
                   <FolderInput size={14} />
@@ -118,7 +118,7 @@ function RowMoreMenu({
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onDelete(); setOpen(false); }}
-                className="mx-1 px-3 py-2 flex items-center gap-2 text-left text-[14px] leading-[18px] text-text-primary hover:bg-bg-hover transition-colors rounded-lg"
+                className="mx-1 px-3 py-2 flex items-center gap-2 text-left type-detail text-text-primary hover:bg-bg-hover transition-colors rounded-lg"
                 style={{ width: 'calc(100% - 8px)' }}
               >
                 <Trash2 size={14} />
@@ -130,7 +130,7 @@ function RowMoreMenu({
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); setMoveOpen(false); }}
-                className="mx-1 px-3 py-1 flex items-center gap-2 text-left text-[12px] leading-[16px] text-text-secondary hover:bg-bg-hover transition-colors rounded-lg"
+                className="mx-1 px-3 py-1 flex items-center gap-2 text-left type-detail text-text-secondary hover:bg-bg-hover transition-colors rounded-lg"
                 style={{ width: 'calc(100% - 8px)' }}
               >
                 <ChevronDown size={12} className="rotate-90" />
@@ -144,7 +144,7 @@ function RowMoreMenu({
                     key={p.id}
                     type="button"
                     onClick={(e) => { e.stopPropagation(); onMove!(p.id); setOpen(false); setMoveOpen(false); }}
-                    className="mx-1 px-3 py-2 flex items-center gap-2 text-left text-[14px] leading-[18px] text-text-primary hover:bg-bg-hover transition-colors rounded-lg"
+                    className="mx-1 px-3 py-2 flex items-center gap-2 text-left type-detail text-text-primary hover:bg-bg-hover transition-colors rounded-lg"
                     style={{ width: 'calc(100% - 8px)' }}
                   >
                     <span className="flex-1 truncate">{p.name}</span>
@@ -156,7 +156,7 @@ function RowMoreMenu({
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); onMove!(null); setOpen(false); setMoveOpen(false); }}
-                  className="mx-1 px-3 py-2 flex items-center gap-2 text-left text-[14px] leading-[18px] text-text-primary hover:bg-bg-hover transition-colors rounded-lg"
+                  className="mx-1 px-3 py-2 flex items-center gap-2 text-left type-detail text-text-primary hover:bg-bg-hover transition-colors rounded-lg"
                   style={{ width: 'calc(100% - 8px)' }}
                 >
                   <span className="flex-1">Remove from project</span>
@@ -170,7 +170,7 @@ function RowMoreMenu({
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); onPromote(); setOpen(false); setMoveOpen(false); }}
-                    className="mx-1 px-3 py-2 flex items-center gap-2 text-left text-[14px] leading-[18px] text-text-primary hover:bg-bg-hover transition-colors rounded-lg"
+                    className="mx-1 px-3 py-2 flex items-center gap-2 text-left type-detail text-text-primary hover:bg-bg-hover transition-colors rounded-lg"
                     style={{ width: 'calc(100% - 8px)' }}
                   >
                     <FolderPlus size={14} />
@@ -311,7 +311,7 @@ function AvatarMenu({ compact = false, activeView, activeChatId, onViewChange, o
               className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-colors ${active ? 'bg-bg-hover' : 'hover:bg-bg-hover'}`}
             >
               <Icon size={16} className="shrink-0 text-text-primary" />
-              <span className="text-[14px] text-text-primary">{label}</span>
+              <span className="type-detail text-text-primary">{label}</span>
             </button>
           ))}
         </div>
@@ -491,7 +491,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
 
       {/* Top toolbar — brand title on the left, collapse toggle on the right */}
       <div className="flex items-center justify-between px-6 pt-6 shrink-0">
-        <span className="text-[22px] font-medium text-text-primary leading-none tracking-[-0.43px]">
+        <span className="text-[22px] font-medium text-text-primary leading-none">
           WorkPal
         </span>
         <button onClick={onToggleSidebar} title="Close sidebar" className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-bg-hover transition-colors" style={{ color: 'var(--color-icon-primary)' }}>
@@ -512,7 +512,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
             }`}
           >
             <SquarePen size={20} className="shrink-0 text-text-primary" />
-            <span className="flex-1 type-title text-text-primary">
+            <span className="flex-1 type-h2 text-text-primary">
               New Session
             </span>
           </button>
@@ -523,7 +523,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
             className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${activeView === 'overview' ? 'gradient-ring' : 'hover:bg-bg-hover'}`}
           >
             <LayoutDashboard size={20} className="shrink-0 text-text-primary" />
-            <span className="flex-1 type-title text-text-primary">
+            <span className="flex-1 type-h2 text-text-primary">
               Overview
             </span>
           </button>
@@ -533,7 +533,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
             className="flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left hover:bg-bg-hover"
           >
             <Search size={20} className="shrink-0 text-text-primary" />
-            <span className="flex-1 type-title text-text-primary">
+            <span className="flex-1 type-h2 text-text-primary">
               Search
             </span>
           </button>
@@ -561,7 +561,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
                 className="flex items-center gap-4 w-full px-4 py-2 rounded-full hover:bg-bg-hover transition-colors text-left"
               >
                 <FolderPlus size={18} className="shrink-0 text-text-primary" />
-                <span className="flex-1 type-title text-text-primary">
+                <span className="flex-1 type-h2 text-text-primary">
                   New Project
                 </span>
               </button>
@@ -574,7 +574,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
                       activeProjectId === proj.id ? 'gradient-ring' : 'hover:bg-bg-hover'
                     }`}
                   >
-                    <span className="flex-1 type-title text-text-primary truncate">
+                    <span className="flex-1 type-h2 text-text-primary truncate">
                       {proj.name}
                     </span>
                   </button>
@@ -609,7 +609,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
                     isActive ? 'gradient-ring' : 'hover:bg-bg-hover'
                   }`}
                 >
-                  <span className="flex-1 type-title text-text-primary truncate">
+                  <span className="flex-1 type-h2 text-text-primary truncate">
                     {chat.title}
                   </span>
                 </button>

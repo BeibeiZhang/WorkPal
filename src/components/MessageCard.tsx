@@ -53,7 +53,7 @@ function CardHeader({ icon, title, rightElement, borderBottom = false }: {
         <div className="w-6 h-6 shrink-0 flex items-center justify-center">
           <img src={icon} alt="" className="w-[18px] h-[18px] object-contain" />
         </div>
-        <p className="font-bold text-base leading-[22px] text-text-primary flex-1 truncate">{title}</p>
+        <p className="type-h2-emphasized text-text-primary flex-1 truncate">{title}</p>
         {rightElement}
       </div>
       {borderBottom && <SoftDivider />}
@@ -79,7 +79,7 @@ function InfoRow({ icon, children, textClass = 'text-text-primary' }: {
       <div className="w-6 h-6 shrink-0 flex items-center justify-center">
         <img src={icon} alt="" className="w-[18px] h-[18px] object-contain icon-theme" />
       </div>
-      <p className={`flex-1 text-base leading-[22px] ${textClass}`}>{children}</p>
+      <p className={`flex-1 type-h2 ${textClass}`}>{children}</p>
     </div>
   );
 }
@@ -87,7 +87,7 @@ function InfoRow({ icon, children, textClass = 'text-text-primary' }: {
 /* ── Inline text with @mention highlighting ── */
 function RichText({ text, assignee, due }: { text: string; assignee?: string; due?: string }) {
   return (
-    <span className="text-base leading-[22px] text-text-primary">
+    <span className="type-h2 text-text-primary">
       {assignee && <span className="text-[#3171ff]">@{assignee}</span>}
       {assignee && ' '}
       {text}
@@ -126,18 +126,18 @@ function renderMeetingContent(content: string): React.ReactNode[] {
       const isBulletList = bodyLines.every(l => l.startsWith('•') || l.startsWith('- '));
       elements.push(
         <div key={`section-${elements.length}`} className="mb-4">
-          <p className="font-bold text-base leading-[22px] text-text-primary">{heading}</p>
+          <p className="type-h2-emphasized text-text-primary">{heading}</p>
           {isBulletList ? (
             <ul className="list-disc pl-5 mt-0">
               {bodyLines.map((bl, j) => (
-                <li key={j} className="text-base leading-[22px] text-text-primary mt-1">
+                <li key={j} className="type-h2 text-text-primary mt-1">
                   {bl.replace(/^(•\s*|-\s*)/, '')}
                 </li>
               ))}
             </ul>
           ) : (
             bodyLines.map((bl, j) => (
-              <p key={j} className="text-base leading-[22px] text-text-primary">{bl}</p>
+              <p key={j} className="type-h2 text-text-primary">{bl}</p>
             ))
           )}
         </div>
@@ -149,7 +149,7 @@ function renderMeetingContent(content: string): React.ReactNode[] {
     if (line.includes('**')) {
       const parts = line.split(/(\*\*[^*]+\*\*)/g);
       elements.push(
-        <p key={`line-${i}`} className="text-base leading-[22px] text-text-primary mb-1">
+        <p key={`line-${i}`} className="type-h2 text-text-primary mb-1">
           {parts.map((p, k) => p.startsWith('**') && p.endsWith('**')
             ? <span key={k} className="font-bold">{p.slice(2, -2)}</span>
             : <span key={k}>{p}</span>
@@ -161,7 +161,7 @@ function renderMeetingContent(content: string): React.ReactNode[] {
     }
 
     elements.push(
-      <p key={`line-${i}`} className="text-base leading-[22px] text-text-primary mb-1">{line}</p>
+      <p key={`line-${i}`} className="type-h2 text-text-primary mb-1">{line}</p>
     );
     i++;
   }
@@ -179,7 +179,7 @@ function MeetingCardView({ card }: { card: MeetingCard }) {
       <CardShell>
         <CardHeader icon={meta.icon} title={meta.label} borderBottom />
         <div className="p-4 flex flex-col gap-2">
-          <p className="font-bold text-base leading-[22px] text-text-primary">{card.title}</p>
+          <p className="type-h2-emphasized text-text-primary">{card.title}</p>
           <div className="flex flex-col gap-1">
             {renderMeetingContent(card.content)}
           </div>
@@ -195,7 +195,7 @@ function MeetingCardView({ card }: { card: MeetingCard }) {
 
   // Title
   elements.push(
-    <p key="title" className="font-bold text-base leading-[22px] text-text-primary mb-4">
+    <p key="title" className="type-h2-emphasized text-text-primary mb-4">
       {card.title}
     </p>
   );
@@ -225,20 +225,20 @@ function MeetingCardView({ card }: { card: MeetingCard }) {
 
       elements.push(
         <div key={`section-${elements.length}`} className="mb-4">
-          <p className="font-bold text-base leading-[22px] text-text-primary">
+          <p className="type-h2-emphasized text-text-primary">
             {heading}
           </p>
           {isBulletList ? (
             <ul className="list-disc pl-5 mt-0">
               {bodyLines.map((bl, j) => (
-                <li key={j} className="text-base leading-[22px] text-text-primary mt-1">
+                <li key={j} className="type-h2 text-text-primary mt-1">
                   {bl.slice(2)}
                 </li>
               ))}
             </ul>
           ) : (
             bodyLines.map((bl, j) => (
-              <p key={j} className="text-base leading-[22px] text-text-primary">
+              <p key={j} className="type-h2 text-text-primary">
                 {bl}
               </p>
             ))
@@ -250,7 +250,7 @@ function MeetingCardView({ card }: { card: MeetingCard }) {
 
     // Regular line
     elements.push(
-      <p key={`line-${i}`} className="text-base leading-[22px] text-text-primary mb-4">
+      <p key={`line-${i}`} className="type-h2 text-text-primary mb-4">
         {line}
       </p>
     );
@@ -301,7 +301,7 @@ function ResearchCardView({ card, onAction }: { card: ResearchCard; onAction?: (
             <img src={iconDoc20} alt="" className="w-[18px] h-[18px] object-contain" />
           </div>
           <div className="flex-1 flex items-center gap-[10px] overflow-hidden">
-            <p className="font-bold text-base leading-[22px] text-text-primary whitespace-nowrap">
+            <p className="type-h2-emphasized text-text-primary whitespace-nowrap">
               {card.title}
             </p>
             {card.status === 'in-progress' && <LoadingDots />}
@@ -349,9 +349,9 @@ function ResearchCardView({ card, onAction }: { card: ResearchCard; onAction?: (
         />
         <div className="p-4 flex flex-col gap-2">
           {meta && (
-            <p className="font-bold text-base leading-[22px] text-text-primary">{card.title}</p>
+            <p className="type-h2-emphasized text-text-primary">{card.title}</p>
           )}
-          <p className="text-base leading-[22px] text-text-primary line-clamp-6">
+          <p className="type-h2 text-text-primary line-clamp-6">
             {parts.map((part, i) => {
               if (part.startsWith('**') && part.endsWith('**')) {
                 return <span key={i} className="font-bold">{part.slice(2, -2)}</span>;
@@ -391,7 +391,7 @@ function TicketCardView({ card, onAction }: { card: TicketCard; onAction?: (a: s
           <div className="w-6 h-6 shrink-0 flex items-center justify-center">
             <img src={iconAsana} alt="" className="w-[18px] h-[18px] object-contain" />
           </div>
-          <p className="font-bold text-base leading-[22px] text-text-primary flex-1 truncate">
+          <p className="type-h2-emphasized text-text-primary flex-1 truncate">
             {card.title}
           </p>
         </div>
@@ -416,7 +416,7 @@ function TicketCardView({ card, onAction }: { card: TicketCard; onAction?: (a: s
             <div key={i}>
               {i > 0 && <div className="border-t border-stroke-outline mb-4" />}
               <div className="flex items-start">
-                <p className="flex-1 text-base leading-[22px] text-text-primary">
+                <p className="flex-1 type-h2 text-text-primary">
                   <RichText text={item.text} assignee={item.assignee} due={item.due} />
                 </p>
               </div>
@@ -437,7 +437,7 @@ function TicketCardView({ card, onAction }: { card: TicketCard; onAction?: (a: s
           <div key={i}>
             {i > 0 && <div className="border-t border-stroke-outline mb-4" />}
             <div className="flex items-start">
-              <p className="flex-1 text-base leading-[22px] text-text-primary">
+              <p className="flex-1 type-h2 text-text-primary">
                 <RichText text={item.text} assignee={item.assignee} due={item.due} />
               </p>
             </div>
@@ -518,7 +518,7 @@ function ScheduleCardView({ card, onAction }: { card: ScheduleCard; onAction?: (
         {/* Scheduling section */}
         {!isSent && card.timeOptions && card.timeOptions.length > 0 && (
           <div className="flex flex-col gap-2">
-            <p className="font-bold text-base leading-[22px] text-text-primary h-[30px] flex items-center">
+            <p className="type-h2-emphasized text-text-primary h-[30px] flex items-center">
               Scheduling
             </p>
             {card.timeOptions.map((opt, i) => (
@@ -530,9 +530,9 @@ function ScheduleCardView({ card, onAction }: { card: ScheduleCard; onAction?: (
                     : 'bg-bg-hover'
                 }`}
               >
-                <div className="flex-1 flex flex-col leading-[22px] text-text-primary">
-                  <span className="text-base">{opt.date}</span>
-                  <span className="text-base font-bold">{opt.time}</span>
+                <div className="flex-1 flex flex-col text-text-primary">
+                  <span className="type-h2">{opt.date}</span>
+                  <span className="type-h2-emphasized">{opt.time}</span>
                 </div>
                 {/* Radio indicator */}
                 <div className="w-11 h-11 flex items-center justify-center shrink-0">
@@ -582,7 +582,7 @@ function AgentCardView({ card, onAction }: { card: AgentCard; onAction?: (a: str
       <CardShell>
         <div className="flex items-center gap-2 px-4 h-[61px]">
           {gradientIcon}
-          <p className="font-bold text-base leading-[22px] text-text-primary flex-1 truncate">
+          <p className="type-h2-emphasized text-text-primary flex-1 truncate">
             {card.title}
           </p>
         </div>
@@ -597,7 +597,7 @@ function AgentCardView({ card, onAction }: { card: AgentCard; onAction?: (a: str
       {/* Header */}
       <div className="flex items-center gap-2 px-4 h-[61px]">
         {gradientIcon}
-        <p className="font-bold text-base leading-[22px] text-text-primary flex-1 truncate">
+        <p className="type-h2-emphasized text-text-primary flex-1 truncate">
           {card.title}
         </p>
         {status === 'saved' && <StatusTag label="Saved" />}
@@ -627,14 +627,7 @@ function AgentCardView({ card, onAction }: { card: AgentCard; onAction?: (a: str
           </div>
           {/* Intro text — right half */}
           <div className="w-1/2 flex items-center p-4">
-            <p
-              className="text-white"
-              style={{
-                fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-                fontSize: 14,
-                lineHeight: '22px',
-              }}
-            >
+            <p className="type-detail text-white">
               {card.agentIntro}
             </p>
           </div>
@@ -692,10 +685,10 @@ function ArtifactCardView({ card }: { card: ArtifactCard }) {
       <div className="px-4 py-4 flex flex-col gap-3">
         {card.status === 'generating' && (
           <>
-            <p className="font-bold text-base leading-[22px] text-text-primary truncate">
+            <p className="type-h2-emphasized text-text-primary truncate">
               {card.title || 'Generating artifact…'}
             </p>
-            <p className="text-sm text-text-primary/60">
+            <p className="type-detail text-text-primary/60">
               正在生成 · Generating… Tavily + OpenAI · ~15-30s
             </p>
           </>
@@ -703,11 +696,11 @@ function ArtifactCardView({ card }: { card: ArtifactCard }) {
 
         {card.status === 'ready' && (
           <>
-            <p className="font-bold text-base leading-[22px] text-text-primary line-clamp-2">
+            <p className="type-h2-emphasized text-text-primary line-clamp-2">
               {card.title}
             </p>
             {typeof card.itemCount === 'number' && card.itemCount > 0 && (
-              <p className="text-sm text-text-primary/60">
+              <p className="type-detail text-text-primary/60">
                 {card.itemCount} items · {card.templateId === 'bay-area-weekend' ? 'this weekend' : card.templateId}
               </p>
             )}
@@ -724,10 +717,10 @@ function ArtifactCardView({ card }: { card: ArtifactCard }) {
             <div className="flex items-start gap-2">
               <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
               <div className="flex flex-col gap-1 min-w-0">
-                <p className="font-bold text-base leading-[22px] text-text-primary">
+                <p className="type-h2-emphasized text-text-primary">
                   Couldn’t generate
                 </p>
-                <p className="text-sm text-text-primary/60 break-words">
+                <p className="type-detail text-text-primary/60 break-words">
                   {card.error || 'Unknown error — try again in a moment.'}
                 </p>
               </div>

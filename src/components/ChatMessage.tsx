@@ -215,10 +215,10 @@ function VideoResultsGrid({ videos }: { videos: VideoResult[] }) {
             </div>
           </div>
           <div className="flex-1 min-w-0 flex flex-col justify-center py-1">
-            <div className="text-sm font-medium text-text-primary leading-snug line-clamp-2">
+            <div className="type-detail-emphasized text-text-primary line-clamp-2">
               {v.title}
             </div>
-            <div className="mt-1 text-xs text-text-secondary truncate">
+            <div className="mt-1 type-detail text-text-secondary truncate">
               {v.channelTitle}{v.publishedAt ? ` · ${timeAgo(v.publishedAt)}` : ''}
             </div>
           </div>
@@ -273,8 +273,8 @@ function MessageAttachments({ attachments }: { attachments: Attachment[] }) {
                 <FileText size={20} />
               </div>
               <div className="min-w-0 flex-1 py-1">
-                <div className="text-[13px] leading-[16px] text-text-primary truncate">{att.name}</div>
-                <div className="text-[11px] leading-[14px] text-text-secondary">{formatBytes(att.size)}</div>
+                <div className="type-detail text-text-primary truncate">{att.name}</div>
+                <div className="type-detail text-text-secondary">{formatBytes(att.size)}</div>
               </div>
               <Download size={14} className="text-text-secondary shrink-0" />
             </a>
@@ -385,7 +385,7 @@ export default function ChatMessage({ message, isLastAssistant, onCardAction, on
         {hasAttachments && <MessageAttachments attachments={message.attachments!} />}
         {hasText && (
           <div className="max-w-[320px] bg-bg-message rounded-lg px-4 py-3">
-            <p className="text-base text-text-primary leading-[24px]">{message.content}</p>
+            <p className="type-body text-text-primary">{message.content}</p>
           </div>
         )}
       </div>
@@ -419,7 +419,7 @@ export default function ChatMessage({ message, isLastAssistant, onCardAction, on
             // a signal for which card to surface, not user copy.
             const displayText = stripDeliverableMarker(message.content);
             return displayText ? (
-              <div className="text-base text-text-primary leading-[22px]">
+              <div className="type-h2 text-text-primary">
                 {renderMarkdownBlocks(displayText)}
               </div>
             ) : null;

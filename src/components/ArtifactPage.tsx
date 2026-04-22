@@ -86,8 +86,8 @@ export default function ArtifactPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-bg-page">
         <div className="text-center max-w-sm px-6">
-          <h1 className="text-2xl font-bold text-text-primary mb-2">Not found</h1>
-          <p className="text-text-primary/60">
+          <h1 className="type-display text-text-primary mb-2">Not found</h1>
+          <p className="type-body text-text-primary/60">
             This artifact doesn’t exist or isn’t ready yet.
           </p>
         </div>
@@ -99,7 +99,7 @@ export default function ArtifactPage() {
     <div className="min-h-screen bg-bg-page text-text-primary">
       {/* Top bar — brand + EN/中 toggle, no WorkPal nav shell */}
       <header className="max-w-[960px] mx-auto px-6 pt-8 pb-4 flex items-center justify-between">
-        <p className="text-sm font-medium text-text-primary/50 tracking-wide uppercase">
+        <p className="type-detail-emphasized text-text-primary/50 tracking-wide uppercase">
           WorkPal · Artifact
         </p>
         <div className="flex items-center gap-0.5 p-0.5 rounded-full border border-stroke-outline">
@@ -107,7 +107,7 @@ export default function ArtifactPage() {
             <button
               key={l}
               onClick={() => setLang(l)}
-              className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+              className={`px-3 py-1 type-detail-emphasized rounded-full transition-colors ${
                 lang === l
                   ? 'bg-text-primary text-white'
                   : 'text-text-primary/60 hover:text-text-primary'
@@ -131,10 +131,10 @@ export default function ArtifactPage() {
             />
           </div>
         )}
-        <h1 className="text-[40px] leading-[1.1] font-bold tracking-tight mb-4">
+        <h1 className="type-display mb-4">
           {content.title}
         </h1>
-        <p className="text-lg text-text-primary/70 leading-relaxed max-w-[720px]">
+        <p className="type-body text-text-primary/70 max-w-[720px]">
           {content.summary}
         </p>
       </section>
@@ -146,7 +146,7 @@ export default function ArtifactPage() {
         ))}
       </main>
 
-      <footer className="max-w-[960px] mx-auto px-6 py-10 text-center text-sm text-text-primary/40">
+      <footer className="max-w-[960px] mx-auto px-6 py-10 text-center type-detail text-text-primary/40">
         Generated {new Date(artifact.createdAt).toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-US', {
           year: 'numeric', month: 'long', day: 'numeric',
         })} · WorkPal
@@ -160,7 +160,7 @@ function CategorySection({ category }: { category: CategoryShape }) {
   if (items.length === 0) return null;
   return (
     <section>
-      <h2 className="text-2xl font-bold mb-6">{category.label || category.key}</h2>
+      <h2 className="type-body-emphasized mb-6">{category.label || category.key}</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {items.map((item, i) => (
           <ArtifactItemCard key={`${category.key}-${i}`} item={item} />
@@ -191,10 +191,10 @@ function ArtifactItemCard({ item }: { item: ItemShape }) {
         </div>
       )}
       <div className="p-5 flex flex-col gap-3">
-        <h3 className="font-semibold text-lg leading-snug line-clamp-2">
+        <h3 className="type-h2-emphasized line-clamp-2">
           {item.title || 'Untitled'}
         </h3>
-        <div className="flex flex-col gap-1.5 text-sm text-text-primary/70">
+        <div className="flex flex-col gap-1.5 type-detail text-text-primary/70">
           {item.location && (
             <InfoLine icon={<MapPin className="w-4 h-4" />}>{item.location}</InfoLine>
           )}
@@ -206,7 +206,7 @@ function ArtifactItemCard({ item }: { item: ItemShape }) {
           )}
         </div>
         {item.url && (
-          <p className="text-xs text-text-primary/50 inline-flex items-center gap-1 mt-1">
+          <p className="type-detail text-text-primary/50 inline-flex items-center gap-1 mt-1">
             <ExternalLink className="w-3 h-3" /> {safeHost(item.url)}
           </p>
         )}

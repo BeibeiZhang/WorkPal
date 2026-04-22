@@ -287,10 +287,10 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
             {/* Instructions */}
             <SideCard title="Instructions" icon={<Pen size={14} />} defaultOpen>
               <div className="flex flex-col gap-2">
-                <p className="text-[14px] text-text-primary leading-relaxed">
+                <p className="type-detail text-text-primary">
                   Project Name: {project.name}
                 </p>
-                <p className="text-[14px] text-text-primary leading-relaxed">
+                <p className="type-detail text-text-primary">
                   Project Objective:{' '}
                   {content.objective || (
                     <span className="text-text-secondary/60 italic">No objective yet</span>
@@ -301,7 +301,7 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
 
             {/* Scheduled */}
             <SideCard title="Scheduled" hasAdd defaultOpen={false}>
-              <p className="text-text-secondary/60 italic text-[13px]">Set up recurring tasks for this project.</p>
+              <p className="type-detail text-text-secondary/60 italic">Set up recurring tasks for this project.</p>
             </SideCard>
 
             {/* Files — real project-scoped uploads. Each file's text is
@@ -323,8 +323,8 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                       <File size={16} className="text-text-primary shrink-0" />
                     )}
                     <div className="flex-1 min-w-0">
-                      <div className="text-[14px] text-text-primary truncate">{file.name}</div>
-                      <div className="text-[11px] text-text-secondary">{formatFileSize(file.size)}</div>
+                      <div className="type-detail text-text-primary truncate">{file.name}</div>
+                      <div className="type-detail text-text-secondary">{formatFileSize(file.size)}</div>
                     </div>
                     {onRemoveFile && (
                       <button
@@ -342,7 +342,7 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                   className="flex items-center gap-2 w-full px-3 py-2 rounded-lg hover:bg-bg-hover transition-colors text-text-secondary hover:text-text-primary"
                 >
                   <Plus size={16} />
-                  <span className="text-[13px]">Add file</span>
+                  <span className="type-detail">Add file</span>
                 </button>
                 <input
                   ref={fileInputRef}
@@ -352,7 +352,7 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                   onChange={handleFileInput}
                 />
                 {fileError && (
-                  <div className="px-3 py-1 text-[12px] text-[#B42318]">{fileError}</div>
+                  <div className="px-3 py-1 type-detail text-[#B42318]">{fileError}</div>
                 )}
               </div>
             </SideCard>
@@ -364,7 +364,7 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-primary shrink-0">
                     <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                   </svg>
-                  <span className="text-[14px] text-text-primary flex-1 text-left">{content.contextLabel}</span>
+                  <span className="type-detail text-text-primary flex-1 text-left">{content.contextLabel}</span>
                   <ChevronRight size={14} className="text-text-primary shrink-0" />
                 </button>
               </div>
@@ -417,7 +417,7 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                   onClick={() => setOutputOpen(o => !o)}
                   className="flex items-center justify-between w-full text-left"
                 >
-                  <h3 className="text-[16px] font-bold text-text-primary">Output</h3>
+                  <h3 className="type-h2-emphasized text-text-primary">Output</h3>
                   <ChevronDown
                     size={16}
                     className={`text-text-primary transition-transform ${outputOpen ? '' : '-rotate-90'}`}
@@ -481,7 +481,7 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                                 className={isSelected ? 'text-[#3171ff]' : 'text-text-secondary/40 dark:text-white'}
                                 strokeWidth={1.2}
                               />
-                              <span className={`text-[14px] text-center leading-[1.2] line-clamp-2 w-full ${isSelected ? 'text-[#3171ff]' : 'text-text-primary'}`}>
+                              <span className={`type-detail text-center leading-[1.2] line-clamp-2 w-full ${isSelected ? 'text-[#3171ff]' : 'text-text-primary'}`}>
                                 {o.name}
                               </span>
                             </button>
@@ -499,7 +499,7 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                   onClick={() => setRecentsOpen(o => !o)}
                   className="flex items-center justify-between w-full text-left"
                 >
-                  <h3 className="text-[16px] font-bold text-text-primary">Recents</h3>
+                  <h3 className="type-h2-emphasized text-text-primary">Recents</h3>
                   <ChevronDown
                     size={16}
                     className={`text-text-primary transition-transform ${recentsOpen ? '' : '-rotate-90'}`}
@@ -535,13 +535,13 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                             </div>
                             <div className="flex-1 min-w-0 flex flex-col gap-0">
                               <div className="flex items-center justify-between gap-3">
-                                <span className="text-[14px] font-bold text-text-primary truncate">{r.title}</span>
-                                <span className="text-[13px] text-text-primary whitespace-nowrap shrink-0">{r.time}</span>
+                                <span className="type-detail-emphasized text-text-primary truncate">{r.title}</span>
+                                <span className="type-detail text-text-primary whitespace-nowrap shrink-0">{r.time}</span>
                               </div>
-                              <p className="text-[13px] text-text-primary leading-relaxed line-clamp-1">{r.description}</p>
+                              <p className="type-detail text-text-primary line-clamp-1">{r.description}</p>
                               {r.outputTag && (
                                 <div className="flex items-center gap-1.5 mt-2">
-                                  <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-stroke-outline text-[12px] text-text-primary">
+                                  <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-stroke-outline type-detail text-text-primary">
                                     <FileCode2 size={12} />
                                     {r.outputTag}
                                   </span>

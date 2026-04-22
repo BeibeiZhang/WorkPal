@@ -49,7 +49,7 @@ interface DesignSystemPageProps {
 
 function SectionTitle({ children, id }: { children: React.ReactNode; id?: string }) {
   return (
-    <h2 id={id} className="text-[18px] font-bold text-text-primary tracking-[-0.43px] mt-8 mb-6 scroll-mt-[120px]">
+    <h2 id={id} className="type-h1 text-text-primary mt-8 mb-6 scroll-mt-[120px]">
       {children}
     </h2>
   );
@@ -312,7 +312,7 @@ function Swatch({ token, withBorder = true }: { token: ColorToken; withBorder?: 
 
 /**
  * Typography Scale — the single source of truth. Every text surface in
- * the app picks one of these 5 canonical styles via its `.type-*` class.
+ * the app picks one of these 8 canonical styles via its `.type-*` class.
  * The `appearances` field collapses what used to be three tables (Typography
  * Scale + Headings in Use + Row Titles in Use) into one — grouped by
  * actual font parameters, not by surface type.
@@ -339,20 +339,29 @@ const TYPE_SCALE: {
     ],
   },
   {
+    className: 'type-h1',
+    label: 'H1',
+    size: '22', lh: '—', weight: '700', tracking: '0',
+    sample: 'Life Health Index',
+    usage: 'Section headers — top-level regions inside a page',
+    appearances: [
+      'DesignSystemPage section headers (<h2 id=…>)',
+      'Agent showcase headers',
+      'OverviewPage — Life Health Index, Needs Your Eyes, Agents at Work, Scheduled, Your Positive Impact This Week',
+      'PermissionPrompt modal title',
+      'CompleteSessionModal title',
+      'NewProjectDialog title — "New Project" / "Promote to Project"',
+    ],
+  },
+  {
     className: 'type-body-emphasized',
     label: 'Body / Emphasized',
     size: '16', lh: '32', weight: '700', tracking: '0',
     sample: 'Section headings, scenario prompts',
-    usage: 'Subheads, card titles, question prompts',
+    usage: 'Subheads, question prompts, long-form section headings',
     appearances: [
-      'SidePanelHeader — DetailPanel, TaskContextPanel',
-      'MessageCard header — Meeting, Ticket, Research, Schedule, Agent',
-      'ArtifactCard name — inline artifact cards in chat',
       'SideCard titles — Instructions, Scheduled, Files, Context (ProjectPage)',
-      'ProjectPage section headers — "Output", "Recents"',
       'MemoryPage empty-state — "Teach your AI about you"',
-      'DemoExplainerModal — "About this demo"',
-      'PasswordModal — "Confirm with password"',
       'Sidebar section headers — "Projects", "Recents"',
       'Sidebar profile name — "Beibei Zhang"',
     ],
@@ -364,20 +373,42 @@ const TYPE_SCALE: {
     sample: 'This is body copy — the workhorse size for paragraphs and chat bubbles.',
     usage: 'Paragraphs, chat messages, descriptions',
     appearances: [
+      'ChatMessage — user message bubble',
       'NewProjectDialog — project-name input, description textarea',
       'Onboarding — scenario question, drop-zone labels',
       'TaskContextPanel — Changes / Folder / Context / Tools rows',
     ],
   },
   {
-    className: 'type-title',
-    label: 'Title / Regular',
+    className: 'type-h2',
+    label: 'H2 / Regular',
     size: '16', lh: '22', weight: '400', tracking: '0',
     sample: 'Alcohol Delivery Issues',
-    usage: 'Row labels — list items, single-line nav labels',
+    usage: 'Row labels — list items, single-line nav labels, compact body',
     appearances: [
       'Sidebar — chat rows in Recents, project rows in Projects',
       'Sidebar — New Session / Overview / Search / New Project buttons',
+      'ChatMessage — assistant message text (markdown body)',
+      'MessageCard — body text inside Meeting / Ticket / Research / Agent cards',
+      'DetailPanel — document body viewer',
+      'ChatInput — suggestion chips, input placeholders',
+      'Onboarding — draggable scenario chips',
+    ],
+  },
+  {
+    className: 'type-h2-emphasized',
+    label: 'H2 / Emphasized',
+    size: '16', lh: '22', weight: '700', tracking: '0',
+    sample: 'Alcohol Delivery Issues',
+    usage: 'Card titles, row headings — bold 16/22 pair for dense surfaces',
+    appearances: [
+      'SidePanelHeader — DetailPanel, TaskContextPanel',
+      'MessageCard titles — Meeting, Ticket, Research, Schedule, Agent',
+      'ArtifactCard name — inline artifact cards in chat and Output grid',
+      'ProjectPage Output / Recents section headers',
+      'OverviewPage — Work / Family / Self category headers',
+      'DemoExplainerModal — "About this demo"',
+      'PasswordModal — "Confirm with password"',
     ],
   },
   {
@@ -403,18 +434,23 @@ const TYPE_SCALE: {
     label: 'Detail / Regular',
     size: '14', lh: '22', weight: '400', tracking: '0',
     sample: 'Helper text, captions, chip labels, inline hints.',
-    usage: 'Helper text, captions, chip labels',
+    usage: 'Helper text, captions, chip labels, form labels, dense menu rows',
     appearances: [
       'Helper text, captions, chip labels (generic)',
       'PermissionPrompt body, CompleteSessionModal body',
-      'NewProjectDialog folder-path input',
+      'NewProjectDialog — field labels, folder-path input',
+      'ConnectorsPage — API key / folder labels',
+      'Sidebar row context menu (Move / Delete / project targets)',
+      'AvatarMenu items — Connectors, Library, Memory, Onboarding, Design System',
+      'OverviewPage — body text, impact details, scheduled cron description',
+      'DetailPanel — error banner, cancel / retry / undo buttons',
     ],
   },
 ];
 
 /**
  * Typography Outliers — non-canonical styles that intentionally depart
- * from the 5 tokens. Listed here so they stay visible; if a new design
+ * from the 8 tokens. Listed here so they stay visible; if a new design
  * needs something not in the scale, it belongs here (or becomes a new
  * token) rather than being hidden as a hardcoded inline size.
  */
@@ -435,6 +471,51 @@ const TYPE_OUTLIERS: {
     sampleStyle: { fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' },
     usedIn: ['MetricCard title — Overview dashboard metrics'],
     note: 'Intentional uppercase modifier of detail-emphasized for dashboard metrics.',
+  },
+  {
+    label: 'Brand Logo',
+    classes: 'text-[22px] font-medium leading-none',
+    maps: '22 / none / 500 / 0',
+    sample: 'WorkPal',
+    sampleStyle: { fontSize: 22, fontWeight: 500, lineHeight: 1 },
+    usedIn: ['Sidebar — app wordmark'],
+    note: 'Brand lockup only. Sits above the type-scale and is the single callsite.',
+  },
+  {
+    label: 'Docs Chrome — Caption',
+    classes: 'text-[11px] / text-[12px] / text-[13px]',
+    maps: '11-13 / — / 400',
+    sample: 'Token: --color-text-primary',
+    sampleStyle: { fontSize: 12, lineHeight: '16px' },
+    usedIn: ['DesignSystemPage — token tables, search results, caption rows', 'ChatPanel path breadcrumb', 'Sidebar dropdown "Back" row'],
+    note: 'Documentation/chrome surfaces only. Never use in product copy — forbidden sizes per §1.3.',
+  },
+  {
+    label: 'Docs Chrome — Mono',
+    classes: 'font-mono text-[10px] / text-[11px] / text-[12px]',
+    maps: '10-12 / — / 400 mono',
+    sample: '--color-text-primary',
+    sampleStyle: { fontSize: 12, fontFamily: 'ui-monospace, SFMono-Regular, monospace' },
+    usedIn: ['DesignSystemPage — inline code, CSS var names, Tailwind class names'],
+    note: 'Mono code references inside docs. Chrome-only; product code must use type-detail.',
+  },
+  {
+    label: 'Uppercase Label (11)',
+    classes: 'text-[11px] font-semibold uppercase tracking-[0.5px]',
+    maps: '11 / — / 600 uppercase tracking 0.5',
+    sample: 'USED IN',
+    sampleStyle: { fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' },
+    usedIn: ['DesignSystemPage — component meta labels', 'VoiceMode — hint section header'],
+    note: 'Eyebrow label for secondary meta rows. Does not replace StatusTag.',
+  },
+  {
+    label: 'Chart Legend',
+    classes: 'text-[12px] opacity-70',
+    maps: '12 / — / 400',
+    sample: '■ Energy  ■ Sleep  ■ Stress',
+    sampleStyle: { fontSize: 12, opacity: 0.7 },
+    usedIn: ['OverviewPage — Weekly Trends chart legend'],
+    note: 'Small data-viz legend label. 12px is forbidden for running text per §1.3 — allowed here because the legend sits alongside a chart and must stay compact.',
   },
 ];
 
@@ -611,7 +692,7 @@ const PRINCIPLES: { n: number; title: string; rule: string; why?: string; refTab
   {
     n: 7,
     title: '5 text styles only',
-    rule: 'Use .type-display, .type-body, .type-body-emphasized, .type-title, .type-detail, .type-detail-emphasized. Forbidden running-text sizes: 9, 10, 11, 12, 13, 17, 18, 24, 28, 32 px.',
+    rule: 'Use .type-display, .type-h1, .type-body, .type-body-emphasized, .type-h2, .type-h2-emphasized, .type-detail, .type-detail-emphasized. Forbidden running-text sizes: 9, 10, 11, 12, 13, 17, 18, 24, 28, 32 px.',
     refTab: 'Design Foundations',
   },
   {
@@ -990,7 +1071,7 @@ function FoundationsTab() {
 
       <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
         <p className="type-detail text-text-secondary mb-4">
-          Six canonical styles — every text surface in the app picks one. Use the <code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: 'var(--color-accent-blue)' }}>type-*</code> utility classes — never inline <code className="text-[12px] font-mono">text-[Xpx]</code>. Editing the <code className="text-[12px] font-mono">--font-*</code> variables in <code className="text-[12px] font-mono">src/index.css</code> updates every usage app-wide. Each row lists all the surfaces that share the same parameters. <strong>Responsive rule:</strong> detail scales up to 16px on mobile (&lt;768px) so the smallest tier stays readable on phones.
+          Eight canonical styles — every text surface in the app picks one. Use the <code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: 'var(--color-accent-blue)' }}>type-*</code> utility classes — never inline <code className="text-[12px] font-mono">text-[Xpx]</code>. Editing the <code className="text-[12px] font-mono">--font-*</code> variables in <code className="text-[12px] font-mono">src/index.css</code> updates every usage app-wide. Each row lists all the surfaces that share the same parameters. <strong>Responsive rule:</strong> detail scales up to 16px on mobile (&lt;768px) so the smallest tier stays readable on phones.
         </p>
         <div className="flex flex-col divide-y divide-stroke-outline">
           {TYPE_SCALE.map(row => (
@@ -1019,7 +1100,7 @@ function FoundationsTab() {
 
       <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
         <p className="type-detail text-text-secondary mb-4">
-          Non-canonical styles that intentionally depart from the 5 tokens. Everything else must map to a row in <strong>Typography Scale</strong> above. If a new design needs a style that isn&apos;t there, add it here (or as a new token) — never inline a one-off size.
+          Non-canonical styles that intentionally depart from the 8 tokens. Everything else must map to a row in <strong>Typography Scale</strong> above. If a new design needs a style that isn&apos;t there, add it here (or as a new token) — never inline a one-off size.
         </p>
         <div className="flex flex-col divide-y divide-stroke-outline">
           {TYPE_OUTLIERS.map((row, i) => (
@@ -1272,7 +1353,7 @@ function FoundationsTab() {
         <div className="type-body-emphasized text-text-primary mb-2">Foundation usage checklist</div>
         <ul className="list-disc pl-5 type-detail text-text-primary space-y-1">
           <li>Colors: use <code className="text-[12px] font-mono">text-text-*</code> / <code className="text-[12px] font-mono">bg-bg-*</code> / <code className="text-[12px] font-mono">border-stroke-outline</code>, or <code className="text-[12px] font-mono">var(--color-*)</code> inline. Never a raw hex.</li>
-          <li>Typography: one of <code className="text-[12px] font-mono">type-display</code>, <code className="text-[12px] font-mono">type-body</code>, <code className="text-[12px] font-mono">type-body-emphasized</code>, <code className="text-[12px] font-mono">type-title</code>, <code className="text-[12px] font-mono">type-detail</code>, <code className="text-[12px] font-mono">type-detail-emphasized</code>.</li>
+          <li>Typography: one of <code className="text-[12px] font-mono">type-display</code>, <code className="text-[12px] font-mono">type-h1</code>, <code className="text-[12px] font-mono">type-body</code>, <code className="text-[12px] font-mono">type-body-emphasized</code>, <code className="text-[12px] font-mono">type-h2</code>, <code className="text-[12px] font-mono">type-h2-emphasized</code>, <code className="text-[12px] font-mono">type-detail</code>, <code className="text-[12px] font-mono">type-detail-emphasized</code>.</li>
           <li>Spacing: Tailwind scale (<code className="text-[12px] font-mono">p-*, gap-*, mt-*</code>). No arbitrary <code className="text-[12px] font-mono">gap-[9px]</code>.</li>
           <li>Radius: <code className="text-[12px] font-mono">rounded-lg</code> for cards, <code className="text-[12px] font-mono">rounded-full</code> for pills, <code className="text-[12px] font-mono">rounded-[40px]</code> for the app shell.</li>
           <li>Icons: <code className="text-[12px] font-mono">lucide-react</code> only.</li>
@@ -2494,7 +2575,7 @@ function AgentVideosTab() {
                 <img src={agent.avatar} alt={agent.name} className="w-full h-full object-cover" />
               </div>
               <div>
-                <h2 className="text-[18px] font-bold text-text-primary tracking-[-0.43px]">{agent.name}</h2>
+                <h2 className="type-h1 text-text-primary">{agent.name}</h2>
                 <p className="text-[12px] text-text-secondary">
                   {lightVideos.length} light · {darkVideos.length} dark
                 </p>

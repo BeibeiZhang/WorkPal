@@ -56,16 +56,22 @@ strong, b {
   --brand-grad-mid:   #B46470;
   --brand-grad-end:   #CA9D8C;
 
-  /* Typography scale — 6 canonical styles. Edit here to update app-wide. */
+  /* Typography scale — 8 canonical styles. Edit here to update app-wide. */
   --font-display-size: 40px;
   --font-display-lh: 48px;
   --font-display-weight: 700;
   --font-display-tracking: -0.5px;
 
-  --font-title-size: 16px;
-  --font-title-lh: 22px;
-  --font-title-weight: 400;
-  --font-title-tracking: 0px;
+  --font-h1-size: 22px;
+  --font-h1-lh: normal;
+  --font-h1-weight: 700;
+  --font-h1-tracking: 0px;
+
+  --font-h2-size: 16px;
+  --font-h2-lh: 22px;
+  --font-h2-weight: 400;
+  --font-h2-emphasized-weight: 700;
+  --font-h2-tracking: 0px;
 
   --font-body-size: 16px;
   --font-body-lh: 32px;
@@ -540,11 +546,23 @@ html, body, #root {
   font-weight: var(--font-display-weight);
   letter-spacing: var(--font-display-tracking);
 }
-.type-title {
-  font-size: var(--font-title-size);
-  line-height: var(--font-title-lh);
-  font-weight: var(--font-title-weight);
-  letter-spacing: var(--font-title-tracking);
+.type-h1 {
+  font-size: var(--font-h1-size);
+  line-height: var(--font-h1-lh);
+  font-weight: var(--font-h1-weight);
+  letter-spacing: var(--font-h1-tracking);
+}
+.type-h2 {
+  font-size: var(--font-h2-size);
+  line-height: var(--font-h2-lh);
+  font-weight: var(--font-h2-weight);
+  letter-spacing: var(--font-h2-tracking);
+}
+.type-h2-emphasized {
+  font-size: var(--font-h2-size);
+  line-height: var(--font-h2-lh);
+  font-weight: var(--font-h2-emphasized-weight);
+  letter-spacing: var(--font-h2-tracking);
 }
 .type-body {
   font-size: var(--font-body-size);

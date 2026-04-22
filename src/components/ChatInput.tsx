@@ -332,7 +332,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
             <button
               key={chip}
               onClick={() => onSend(chip)}
-              className="chip-gradient-hover flex items-center gap-1 px-3 py-1 rounded-full border border-stroke-outline text-base leading-[22px] text-text-primary transition-colors cursor-pointer"
+              className="chip-gradient-hover flex items-center gap-1 px-3 py-1 rounded-full border border-stroke-outline type-h2 text-text-primary transition-colors cursor-pointer"
             >
               {CHIP_ICONS[chip] && (
                 <div className="relative overflow-hidden w-4 h-4 shrink-0 flex items-center justify-center">
@@ -352,7 +352,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
             <button
               key={chip.action}
               onClick={() => onChipClick?.(chip)}
-              className="chip-gradient-hover shrink-0 px-3 py-1 rounded-full border border-stroke-outline text-base leading-[22px] text-text-primary transition-colors cursor-pointer whitespace-nowrap"
+              className="chip-gradient-hover shrink-0 px-3 py-1 rounded-full border border-stroke-outline type-h2 text-text-primary transition-colors cursor-pointer whitespace-nowrap"
             >
               {chip.label}
             </button>
@@ -487,7 +487,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
                       if (item.action === 'mention') { setShowAttachMenu(false); return; }
                       openPicker(item.action);
                     }}
-                    className="w-full flex items-center gap-[18px] md:gap-3 px-6 md:px-4 py-[15px] md:py-2.5 hover:bg-bg-hover transition-colors text-text-primary text-[21px] md:text-sm cursor-pointer"
+                    className="w-full flex items-center gap-[18px] md:gap-3 px-6 md:px-4 py-[15px] md:py-2.5 hover:bg-bg-hover transition-colors type-detail text-text-primary cursor-pointer"
                   >
                     {item.isMention ? (
                       <div className="flex items-center justify-center shrink-0 w-6 h-6 md:w-4 md:h-4">
