@@ -208,11 +208,8 @@ function LibraryCard({ item }: { item: LibraryItem }) {
             {/* Bottom title overlay for thumbnail items */}
             <div className="absolute inset-x-0 bottom-0 px-3 pb-3 pointer-events-none">
               <p
-                className="text-white"
+                className="type-detail-emphasized text-white"
                 style={{
-                  fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-                  fontSize: 14,
-                  fontWeight: 600,
                   lineHeight: '18px',
                   letterSpacing: '-0.16px',
                   display: '-webkit-box',
@@ -234,11 +231,8 @@ function LibraryCard({ item }: { item: LibraryItem }) {
             >
               <TypeIcon size={24} strokeWidth={1.6} style={{ color: '#fff' }} />
               <p
-                className="text-white"
+                className="type-detail-emphasized text-white"
                 style={{
-                  fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-                  fontSize: 14,
-                  fontWeight: 600,
                   lineHeight: '18px',
                   letterSpacing: '-0.16px',
                   display: '-webkit-box',
@@ -253,9 +247,8 @@ function LibraryCard({ item }: { item: LibraryItem }) {
 
             {item.summary && (
               <p
+                className="type-footnote"
                 style={{
-                  fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-                  fontSize: 11,
                   lineHeight: '15px',
                   color: 'rgba(255,255,255,0.9)',
                   display: '-webkit-box',
@@ -435,22 +428,10 @@ export default function LibraryPage({ sidebarOpen, onToggleSidebar, onNewChat }:
           >
             <BookOpen size={26} className="text-text-primary" />
           </div>
-          <p
-            className="text-text-primary"
-            style={{
-              fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-              fontSize: 16, fontWeight: 600,
-            }}
-          >
+          <p className="type-h2-emphasized text-text-primary">
             No artifacts match your filters
           </p>
-          <p
-            className="text-text-secondary text-center max-w-[360px]"
-            style={{
-              fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-              fontSize: 14, lineHeight: '20px',
-            }}
-          >
+          <p className="type-detail text-text-secondary text-center max-w-[360px]">
             Try a different category or clear your search to see everything WorkPal has produced.
           </p>
         </div>

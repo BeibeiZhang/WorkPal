@@ -77,11 +77,7 @@ export default function PermissionPrompt({ request, onAllow, onAlwaysAllow, onCa
           <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: 'var(--color-bg-hover)' }}>
             <ShieldAlert size={20} className="text-text-primary" />
           </div>
-          <h2
-            id="perm-title"
-            className="type-h1--emphasized text-text-primary flex-1"
-            style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
-          >
+          <h2 id="perm-title" className="type-h1--emphasized text-text-primary flex-1">
             {title}
           </h2>
         </div>
@@ -99,7 +95,7 @@ export default function PermissionPrompt({ request, onAllow, onAlwaysAllow, onCa
         )}
 
         {request.reason && (
-          <p className="text-[13px] leading-[18px] text-text-secondary mb-5">
+          <p className="type-detail leading-[18px] text-text-secondary mb-5">
             <span className="font-semibold text-text-primary">Why: </span>{request.reason}
           </p>
         )}

@@ -266,10 +266,7 @@ export function PageLayout({
         <div className={`px-4 sm:px-8 pb-10 ${widthClass}`}>
           {/* Title row — wraps rightSlot to next line when space is tight */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-            <h1
-              className="flex-1 min-w-[240px] type-display text-text-primary"
-              style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
-            >
+            <h1 className="flex-1 min-w-[240px] type-display text-text-primary">
               {title}
             </h1>
             {rightSlot && <div className="shrink-0">{rightSlot}</div>}
@@ -336,7 +333,7 @@ export function SearchBox({
           placeholder={placeholder}
           value={value}
           onChange={e => onChange(e.target.value)}
-          className="flex-1 min-w-0 bg-transparent outline-none text-[14px] text-text-primary placeholder-text-secondary"
+          className="flex-1 min-w-0 bg-transparent outline-none type-detail text-text-primary placeholder-text-secondary"
         />
       </div>
 
@@ -373,7 +370,7 @@ export function SearchBox({
               placeholder={placeholder}
               value={value}
               onChange={e => onChange(e.target.value)}
-              className="flex-1 min-w-0 bg-transparent outline-none text-[16px] text-text-primary placeholder-text-secondary"
+              className="flex-1 min-w-0 bg-transparent outline-none type-body text-text-primary placeholder-text-secondary"
             />
             {value && (
               <button
@@ -562,7 +559,7 @@ export function SideCard({
         onClick={() => setOpen(o => !o)}
         className="flex items-center gap-2.5 w-full px-2 py-4 text-left transition-colors"
       >
-        <span className="flex-1 text-[16px] font-bold text-text-primary">{title}</span>
+        <span className="flex-1 type-h2-emphasized text-text-primary">{title}</span>
         {icon && (
           <span className="text-text-primary" onClick={e => e.stopPropagation()}>
             {icon}
@@ -815,7 +812,7 @@ export function Switch<T extends string>({
             onClick={() => {
               if (!isSelected) onChange(seg.value);
             }}
-            className={`h-full px-3 text-[12px] transition-colors ${
+            className={`h-full px-3 type-caption transition-colors ${
               isSelected
                 ? 'cursor-default'
                 : 'text-text-primary hover:bg-bg-hover cursor-pointer'
@@ -846,17 +843,18 @@ export function SectionTitle({
   count?: number;
   size?: number;
 }) {
-  const fontSize = size || 14;
   return (
     <div className="flex items-center gap-2 mb-4">
-      {emoji && <span style={{ fontSize }}>{emoji}</span>}
+      {emoji && (size ? <span style={{ fontSize: size }}>{emoji}</span> : <span className="type-detail">{emoji}</span>)}
       {size === 20 ? (
         <span className="type-h1--emphasized text-text-primary">{title}</span>
+      ) : size ? (
+        <span className="font-bold text-text-primary" style={{ fontSize: size }}>{title}</span>
       ) : (
-        <span className="font-bold text-text-primary" style={{ fontSize }}>{title}</span>
+        <span className="type-detail-emphasized text-text-primary">{title}</span>
       )}
       {count !== undefined && (
-        <span className="text-[12px] px-2 py-0.5 rounded-[4px] bg-bg-hover text-text-primary tracking-[-0.3px]">{count}</span>
+        <span className="type-caption px-2 py-0.5 rounded-[4px] bg-bg-hover text-text-primary tracking-[-0.3px]">{count}</span>
       )}
     </div>
   );
@@ -882,7 +880,7 @@ export function ProgressBar({
           style={{ width: `${Math.min(100, Math.max(0, value))}%`, background: color }}
         />
       </div>
-      {showLabel && <span className="text-[14px] font-bold text-text-primary shrink-0">{value}%</span>}
+      {showLabel && <span className="type-detail-emphasized text-text-primary shrink-0">{value}%</span>}
     </div>
   );
 }
@@ -1069,7 +1067,7 @@ export function StatusTag({
   return (
     <span
       className={`status-${variant} inline-flex items-center whitespace-nowrap shrink-0 rounded-[4px] tracking-[-0.3px] font-normal ${
-        isSmall ? 'gap-1 px-2 py-0.5 text-[12px]' : 'gap-1.5 px-3 py-1 type-detail'
+        isSmall ? 'gap-1 px-2 py-0.5 type-caption' : 'gap-1.5 px-3 py-1 type-detail'
       } ${tooltip ? 'cursor-help' : ''}`}
       style={surface}
       title={tooltip}
@@ -1236,15 +1234,12 @@ export function ConnectorCard({
   return (
     <div className="flex items-center gap-3 p-3 rounded-lg border border-stroke-outline bg-bg-page dark:bg-[rgba(226,243,255,0.05)]">
       {logo}
-      <span
-        className="flex-1 text-[14px] text-text-primary font-bold truncate"
-        style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
-      >
+      <span className="flex-1 type-detail-emphasized text-text-primary truncate">
         {name}
       </span>
       {connecting ? (
         <span
-          className="text-[11px] px-3 py-1 rounded-full border border-stroke-outline text-text-secondary inline-flex items-center gap-1.5"
+          className="type-footnote px-3 py-1 rounded-full border border-stroke-outline text-text-secondary inline-flex items-center gap-1.5"
           aria-live="polite"
         >
           <span
@@ -1287,7 +1282,7 @@ export function ConnectorCard({
       ) : (
         <button
           onClick={onConnect}
-          className="text-[11px] px-3 py-1 rounded-full border border-stroke-outline text-text-primary hover:bg-bg-hover transition-colors"
+          className="type-footnote px-3 py-1 rounded-full border border-stroke-outline text-text-primary hover:bg-bg-hover transition-colors"
         >
           {connectLabel}
         </button>
@@ -1345,10 +1340,10 @@ export function SolutionRow({
 }) {
   return (
     <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-bg-hover mb-1.5">
-      <span className="text-[16px]">{icon}</span>
+      <span className="type-body">{icon}</span>
       <div className="flex-1 min-w-0">
-        <span className="text-[14px] font-bold text-text-primary">{title}</span>
-        <span className="text-[14px] text-text-primary"> — {desc}</span>
+        <span className="type-detail-emphasized text-text-primary">{title}</span>
+        <span className="type-detail text-text-primary"> — {desc}</span>
       </div>
       <Tag outline>{tag}</Tag>
     </div>
@@ -1358,7 +1353,7 @@ export function SolutionRow({
 /* ─── 9. SummaryFooter ─── */
 export function SummaryFooter({ children }: { children: ReactNode }) {
   return (
-    <div className="flex items-center justify-end gap-1.5 py-1.5 text-[14px] text-text-primary">
+    <div className="flex items-center justify-end gap-1.5 py-1.5 type-detail text-text-primary">
       <Clock size={12} />
       <span>{children}</span>
     </div>
@@ -1378,8 +1373,8 @@ export function MetricCard({
   return (
     <div className="text-center mb-3.5">
       <div className="text-[14px] font-bold text-text-primary uppercase tracking-[0.5px] mb-1">{title}</div>
-      <div className="text-[40px] font-bold text-text-primary leading-none">{value}</div>
-      <div className="text-[14px] text-text-primary">{subtitle}</div>
+      <div className="type-display text-text-primary leading-none">{value}</div>
+      <div className="type-detail text-text-primary">{subtitle}</div>
     </div>
   );
 }
@@ -1394,7 +1389,7 @@ export function InsightCard({
 }) {
   return (
     <div className="rounded-2xl p-7 bg-bg-hover">
-      <div className="text-[14px] font-bold text-text-primary mb-3 flex items-center gap-1.5">
+      <div className="type-detail-emphasized text-text-primary mb-3 flex items-center gap-1.5">
         <Sparkles size={14} className="text-text-primary" /> STEPHEN'S INSIGHT
       </div>
       <p className="type-detail text-text-primary mb-4">{body}</p>
@@ -1754,18 +1749,18 @@ export function TaskProgressCard({
       <Ic size={22} strokeWidth={1.75} className="text-text-primary shrink-0 icon-theme" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-3.5">
-          <div className="flex-1 min-w-0 text-[14px] font-bold text-text-primary">{title}</div>
+          <div className="flex-1 min-w-0 type-detail-emphasized text-text-primary">{title}</div>
           <StatusTag variant="submitted" size="sm" icon={Timer} label={eta} tooltip={`Agent estimates ${eta} to complete this task`} />
         </div>
         <div className="flex items-center gap-3 mt-1.5">
           <div className="flex-1"><ProgressBar value={progress} height={6} /></div>
-          <span className="text-[14px] text-text-primary shrink-0">{progress}%</span>
+          <span className="type-detail text-text-primary shrink-0">{progress}%</span>
         </div>
       </div>
       <ChevronRight size={16} className="text-text-primary shrink-0" />
       {expanded && (
-        <div className="mt-3.5 p-3.5 bg-bg-hover rounded-xl text-[14px] text-text-primary leading-[1.8] ml-[52px]">
-          <div className="font-bold text-text-primary mb-1">Steps:</div>
+        <div className="mt-3.5 p-3.5 bg-bg-hover rounded-xl type-detail text-text-primary leading-[1.8] ml-[52px]">
+          <div className="type-detail-emphasized text-text-primary mb-1">Steps:</div>
           {steps.map((s, j) => (
             <div key={j} className="flex items-center gap-2">
               <StepIndicator status={j < steps.length - 1 ? 'done' : 'in-progress'} />
@@ -1814,8 +1809,8 @@ export function HealthDimensionRow({
     >
       <Icon size={22} strokeWidth={1.75} className="text-text-primary shrink-0 icon-theme" />
       <div className="flex-1 min-w-0">
-        <div className="text-[14px] font-bold text-text-primary">{label}</div>
-        <div className="text-[14px] text-text-primary mt-0.5">{desc}</div>
+        <div className="type-detail-emphasized text-text-primary">{label}</div>
+        <div className="type-detail text-text-primary mt-0.5">{desc}</div>
       </div>
       <StatusTag
         variant={tagProps.variant}
@@ -1862,10 +1857,10 @@ export function ReviewItemCard({
     >
       <Icon size={22} strokeWidth={1.75} className="text-text-primary shrink-0 icon-theme" />
       <div className="flex-1 min-w-0">
-        <div className={`text-[14px] font-bold text-text-primary ${done ? 'line-through' : ''}`}>
+        <div className={`type-detail-emphasized text-text-primary ${done ? 'line-through' : ''}`}>
           {title}
         </div>
-        <div className="text-[14px] text-text-primary mt-1">
+        <div className="type-detail text-text-primary mt-1">
           {type} · {time}
         </div>
       </div>

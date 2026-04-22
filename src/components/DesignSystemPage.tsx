@@ -108,7 +108,7 @@ function PageLayoutDemo() {
           <span className="type-caption font-mono text-text-secondary">Toggle bar · h-12</span>
         </div>
         <div className="mt-2 rounded border border-dashed border-stroke-outline px-3 py-2" style={{ background: 'var(--color-bg-page)' }}>
-          <span className="text-[16px] font-bold text-text-primary">Page Title</span>
+          <span className="type-h2-emphasized text-text-primary">Page Title</span>
         </div>
         <div className="mt-2 rounded border border-dashed border-stroke-outline flex items-center justify-center" style={{ background: 'var(--color-bg-page)', height: 80 }}>
           <span className="type-caption font-mono text-text-secondary">children · maxWidth: 'full' | 'reading'</span>
@@ -150,7 +150,7 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
             <button
               key={tab.id}
               onClick={() => handleTabClick(tab.id)}
-              className={`shrink-0 px-4 py-1.5 rounded-full text-[14px] transition-colors border ${
+              className={`shrink-0 px-4 py-1.5 rounded-full type-detail transition-colors border ${
                 activeTab === tab.id && !isSearching
                   ? 'border-transparent'
                   : 'border-stroke-outline text-text-primary hover:bg-bg-hover chip-gradient-hover'
@@ -522,6 +522,55 @@ const TYPE_OUTLIERS: {
     usedIn: ['DesignSystemPage — component meta labels', 'VoiceMode — hint section header'],
     note: 'Eyebrow label for secondary meta rows. Does not replace StatusTag.',
   },
+  {
+    label: 'Eyebrow Micro (10)',
+    classes: 'text-[10px] font-semibold uppercase tracking-[0.5px] (or tracking-wider)',
+    maps: '10 / — / 600 uppercase tracking 0.5–wider',
+    sample: 'CODE',
+    sampleStyle: { fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' },
+    usedIn: [
+      'DesignSystemPage — "Code" eyebrow above snippets',
+      'DesignSystemPage — Component meta labels',
+      'DesignSystemPage — Preview badge (tracking-wider variant)',
+    ],
+    note: 'Smaller cousin of Uppercase Label (11). Reserved for DS-internal meta chrome; do not use in product UI.',
+  },
+  {
+    label: 'Icon Usage Meta (10)',
+    classes: 'text-[10px] leading-[13px]',
+    maps: '10 / 13 / 400',
+    sample: 'Sidebar, MiniSidebar',
+    sampleStyle: { fontSize: 10, lineHeight: '13px' },
+    usedIn: ['DesignSystemPage — Icon card "usedIn" caption'],
+    note: 'Truncated metadata under icon cards. Smallest text tier anywhere — DS only.',
+  },
+  {
+    label: 'Tooltip (11 tight)',
+    classes: 'text-[11px] leading-tight',
+    maps: '11 / 1.25 / 400',
+    sample: 'Copy to clipboard',
+    sampleStyle: { fontSize: 11, lineHeight: 1.25, background: '#1a1a1a', color: '#fff', padding: '4px 8px', borderRadius: 6, display: 'inline-block' },
+    usedIn: ['shared — Tooltip hover bubble'],
+    note: 'Footnote (11/1) variant with a 1.25 leading cushion. Always on a dark 1a1a1a bubble.',
+  },
+  {
+    label: 'Tight Tracking (−0.3)',
+    classes: 'tracking-[-0.3px]',
+    maps: 'any size + tracking −0.3',
+    sample: 'Pending · 12',
+    sampleStyle: { fontSize: 12, letterSpacing: '-0.3px' },
+    usedIn: ['shared — StatusTag', 'shared — ChatListItem unread count chip'],
+    note: 'Micro letter-spacing tighten for dense chip/tag labels. Pair with caption (12) size.',
+  },
+  {
+    label: 'Inline Code (0.9em relative)',
+    classes: 'text-[0.9em] font-mono',
+    maps: '0.9× parent / inherited / 400 mono',
+    sample: 'const x = 1;',
+    sampleStyle: { fontSize: '0.9em', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', padding: '2px 4px', borderRadius: 4, background: 'var(--color-bg-hover)' },
+    usedIn: ['markdown — inline `code` spans inside AI responses'],
+    note: 'The only em-based (relative) size in the app — scales with the surrounding paragraph so inline code matches running text.',
+  },
 ];
 
 const SPACING_SCALE: { token: string; css: string; tailwind: string; usage: string }[] = [
@@ -887,7 +936,7 @@ function SearchResults({
         className="rounded-2xl border border-dashed border-stroke-outline p-8 text-center"
         style={{ background: 'var(--color-bg-page)' }}
       >
-        <p className="text-[14px] text-text-primary mb-1">No matches for &ldquo;{query}&rdquo;</p>
+        <p className="type-detail text-text-primary mb-1">No matches for &ldquo;{query}&rdquo;</p>
         <p className="type-caption text-text-secondary">
           Try a token name (<code className="font-mono">--color-text-primary</code>), a component name (<code className="font-mono">StatusTag</code>), or a principle keyword (<code className="font-mono">gradient</code>).
         </p>
@@ -916,8 +965,8 @@ function SearchResults({
           >
             <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
               <div className="flex items-baseline gap-2">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-text-secondary">Tab</span>
-                <span className="text-[14px] font-bold text-text-primary">{tabMeta.label}</span>
+                <span className="type-footnote font-semibold uppercase tracking-[0.5px] text-text-secondary">Tab</span>
+                <span className="type-detail-emphasized text-text-primary">{tabMeta.label}</span>
                 <span className="type-caption text-text-secondary">· {entries.length}</span>
               </div>
               <button
@@ -961,7 +1010,7 @@ function PrinciplesTab() {
         style={{ background: 'var(--color-bg-hover)', borderColor: 'var(--color-stroke-outline)' }}
       >
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-[16px]">📏</span>
+          <span className="type-body">📏</span>
           <span className="type-body-emphasized text-text-primary">The rules, and only the rules</span>
         </div>
         <p className="type-detail text-text-secondary">
@@ -1019,7 +1068,7 @@ function FoundationsTab() {
       {/* Intro card */}
       <div className="mb-6 rounded-2xl border p-5" style={{ background: 'var(--color-bg-hover)', borderColor: 'var(--color-stroke-outline)' }}>
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-[16px]">🎨</span>
+          <span className="type-body">🎨</span>
           <span className="type-body-emphasized text-text-primary">Single source of truth</span>
         </div>
         <p className="type-detail text-text-primary">
@@ -1379,12 +1428,12 @@ function LayoutCard({
   return (
     <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
       <div className="flex items-center gap-2 mb-1">
-        <span className="text-[16px] font-bold text-text-primary">{name}</span>
+        <span className="type-h2-emphasized text-text-primary">{name}</span>
         <span className="type-caption px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
       </div>
       <div className="mt-3">{children}</div>
       <div className="mt-4 pt-3 border-t border-stroke-outline">
-        <div className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.5px] mb-2">Used by</div>
+        <div className="type-footnote font-semibold text-text-primary uppercase tracking-[0.5px] mb-2">Used by</div>
         <div className="flex flex-wrap gap-2">
           {pagesUsing.map(p => (
             <span key={p} className="type-caption px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">{p}</span>
@@ -1402,7 +1451,7 @@ function LayoutsTab() {
       {/* ─── App shell: the three-panel structure every surface plugs into ─── */}
       <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-[16px] font-bold text-text-primary">App Shell — Three-Panel Structure</span>
+          <span className="type-h2-emphasized text-text-primary">App Shell — Three-Panel Structure</span>
           <span className="type-caption px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">App.tsx</span>
         </div>
         <p className="type-caption text-text-primary mt-2 mb-4">
@@ -1515,7 +1564,7 @@ function LayoutsTab() {
               <span className="type-caption font-mono text-text-secondary">Toggle bar · h-12</span>
             </div>
             <div className="mt-3 rounded border border-dashed border-stroke-outline px-4 py-3" style={{ background: 'var(--color-bg-page)' }}>
-              <span className="text-[16px] font-bold text-text-primary">Page Title</span>
+              <span className="type-h2-emphasized text-text-primary">Page Title</span>
               <span className="ml-3 type-caption font-mono text-text-secondary">text-[40px] / 48 / 700</span>
             </div>
             <div className="mt-3 rounded border border-dashed border-stroke-outline flex items-center gap-2 px-3 py-2" style={{ background: 'var(--color-bg-page)' }}>
@@ -1895,7 +1944,7 @@ function LibraryEntry({ entry }: { entry: LibEntry }) {
   return (
     <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
       <div className="flex items-center gap-2 mb-1">
-        <span className="text-[14px] font-bold text-text-primary">{entry.name}</span>
+        <span className="type-detail-emphasized text-text-primary">{entry.name}</span>
         <span className="type-caption px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
       </div>
       <p className="type-caption text-text-primary mb-3">{entry.description}</p>
@@ -1903,7 +1952,7 @@ function LibraryEntry({ entry }: { entry: LibEntry }) {
         {entry.preview}
       </div>
       <div>
-        <div className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.5px] mb-2">Used in</div>
+        <div className="type-footnote font-semibold text-text-primary uppercase tracking-[0.5px] mb-2">Used in</div>
         <div className="flex flex-wrap gap-2">
           {entry.usedIn.map(page => (
             <span key={page} className="type-caption px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">{page}</span>
@@ -2029,10 +2078,10 @@ function ComponentsTab() {
       usedIn: ['Overview (score ring, health dimensions)'],
       preview: (
         <div className="flex items-center gap-6">
-          <CircularProgress value={100} color="#3171ff"><span className="text-[16px] font-bold text-text-primary">4/4</span></CircularProgress>
-          <CircularProgress value={65}  color="#3171ff"><span className="text-[16px] font-bold text-text-primary">65%</span></CircularProgress>
-          <CircularProgress value={50}  color="#F59E0B"><span className="text-[16px] font-bold text-text-primary">50%</span></CircularProgress>
-          <CircularProgress value={30}  color="#EF4444"><span className="text-[16px] font-bold text-text-primary">30%</span></CircularProgress>
+          <CircularProgress value={100} color="#3171ff"><span className="type-h2-emphasized text-text-primary">4/4</span></CircularProgress>
+          <CircularProgress value={65}  color="#3171ff"><span className="type-h2-emphasized text-text-primary">65%</span></CircularProgress>
+          <CircularProgress value={50}  color="#F59E0B"><span className="type-h2-emphasized text-text-primary">50%</span></CircularProgress>
+          <CircularProgress value={30}  color="#EF4444"><span className="type-h2-emphasized text-text-primary">30%</span></CircularProgress>
         </div>
       ),
     },
@@ -2215,7 +2264,7 @@ function ComponentsTab() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {DEMO_CARDS.map(c => (
             <div key={c.key}>
-              <div className="text-[11px] uppercase font-semibold tracking-[0.5px] text-text-secondary mb-1">{c.label}</div>
+              <div className="type-footnote uppercase font-semibold tracking-[0.5px] text-text-secondary mb-1">{c.label}</div>
               <MessageCard card={c.card} />
             </div>
           ))}
@@ -2554,7 +2603,7 @@ function AgentVideosTab() {
       <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
         <div className="flex items-center gap-2 mb-2">
           <Video size={16} className="text-text-primary" />
-          <span className="text-[16px] font-bold text-text-primary">Welcome-state avatar videos</span>
+          <span className="type-h2-emphasized text-text-primary">Welcome-state avatar videos</span>
         </div>
         <p className="type-caption text-text-primary mb-3">
           Each agent has a pool of idle videos that play in the welcome state of a new chat. One is picked at random per
@@ -2591,7 +2640,7 @@ function AgentVideosTab() {
               <>
                 <div className="flex items-center gap-2 mb-2 mt-4">
                   <Sun size={14} className="text-text-primary" />
-                  <span className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.5px]">Light mode</span>
+                  <span className="type-footnote font-semibold text-text-primary uppercase tracking-[0.5px]">Light mode</span>
                 </div>
                 <div className="flex flex-col gap-2 mb-4">
                   {lightVideos.map(v => (
@@ -2611,7 +2660,7 @@ function AgentVideosTab() {
               <>
                 <div className="flex items-center gap-2 mb-2 mt-4">
                   <Moon size={14} className="text-text-primary" />
-                  <span className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.5px]">Dark mode</span>
+                  <span className="type-footnote font-semibold text-text-primary uppercase tracking-[0.5px]">Dark mode</span>
                 </div>
                 <div className="flex flex-col gap-2">
                   {darkVideos.map(v => (
@@ -2789,8 +2838,8 @@ function ReviewTab() {
     <div>
       <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-[16px]">🧪</span>
-          <span className="text-[16px] font-bold text-text-primary">How the review queue works</span>
+          <span className="type-body">🧪</span>
+          <span className="type-h2-emphasized text-text-primary">How the review queue works</span>
         </div>
         <ol className="list-decimal pl-5 type-caption text-text-primary space-y-1">
           <li>When building a feature, I always check the <strong>Component Library</strong> first.</li>
@@ -2804,7 +2853,7 @@ function ReviewTab() {
       <SharedSectionTitle emoji="⏳" title="Pending review" count={pending.length} />
       {pending.length === 0 ? (
         <div className="mb-6 rounded-2xl border border-dashed border-stroke-outline p-8 text-center" style={{ background: 'var(--color-bg-page)' }}>
-          <p className="text-[14px] text-text-primary mb-1">No components awaiting review</p>
+          <p className="type-detail text-text-primary mb-1">No components awaiting review</p>
           <p className="type-caption text-text-secondary">When I build something new that isn't in the library yet, it will show up here for your approval.</p>
         </div>
       ) : (
@@ -2812,7 +2861,7 @@ function ReviewTab() {
           {pending.map(item => (
             <div key={item.id} className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-[14px] font-bold text-text-primary">{item.name}</span>
+                <span className="type-detail-emphasized text-text-primary">{item.name}</span>
                 <StatusTag variant="in-review" label="Pending review" size="sm" />
               </div>
               <p className="type-caption text-text-primary mb-1"><strong>Built for:</strong> {item.builtFor}</p>
@@ -2836,7 +2885,7 @@ function ReviewTab() {
             {approved.map(item => (
               <div key={item.id} className="rounded-2xl border border-stroke-outline p-4 flex items-center gap-3" style={{ background: 'var(--color-bg-page)' }}>
                 <StatusTag variant="success" label="Approved" size="sm" />
-                <span className="text-[14px] font-bold text-text-primary">{item.name}</span>
+                <span className="type-detail-emphasized text-text-primary">{item.name}</span>
                 <span className="type-caption text-text-secondary flex-1">{item.builtFor}</span>
                 <TertiaryButton onClick={() => setStatus(item.id, 'pending')}>Move back to pending</TertiaryButton>
               </div>
@@ -2853,7 +2902,7 @@ function ReviewTab() {
             {rejected.map(item => (
               <div key={item.id} className="rounded-2xl border border-stroke-outline p-4 flex items-center gap-3" style={{ background: 'var(--color-bg-page)' }}>
                 <StatusTag variant="failed" label="Rejected" size="sm" />
-                <span className="text-[14px] font-bold text-text-primary">{item.name}</span>
+                <span className="type-detail-emphasized text-text-primary">{item.name}</span>
                 <span className="type-caption text-text-secondary flex-1">Switched back to: {item.closestExisting}</span>
                 <TertiaryButton onClick={() => setStatus(item.id, 'pending')}>Move back to pending</TertiaryButton>
               </div>

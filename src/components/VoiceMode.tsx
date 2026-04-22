@@ -226,7 +226,7 @@ export default function VoiceMode({ onClose, onMessage, onImages, onVideos, onWe
       </div>
 
       {/* Status text */}
-      <span className="text-sm text-text-secondary flex-1 min-w-0 truncate">
+      <span className="type-detail text-text-secondary flex-1 min-w-0 truncate">
         {errorMsg || stateLabel}
       </span>
 
@@ -234,7 +234,7 @@ export default function VoiceMode({ onClose, onMessage, onImages, onVideos, onWe
       <div ref={pickerRef} className="relative shrink-0">
         <button
           onClick={() => setVoicePickerOpen((o) => !o)}
-          className="h-7 px-2.5 rounded-full flex items-center gap-1.5 bg-bg-hover hover:bg-bg-message transition-all text-xs text-text-primary"
+          className="h-7 px-2.5 rounded-full flex items-center gap-1.5 bg-bg-hover hover:bg-bg-message transition-all type-caption text-text-primary"
           title="Change voice"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -255,7 +255,7 @@ export default function VoiceMode({ onClose, onMessage, onImages, onVideos, onWe
             className="absolute bottom-full right-0 mb-2 min-w-[200px] rounded-xl border border-stroke-outline shadow-lg overflow-hidden z-50"
             style={{ backgroundColor: 'var(--color-card-panel-bg)' }}
           >
-            <div className="px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-text-tertiary border-b border-stroke-outline">
+            <div className="px-3 py-2 type-footnote font-semibold uppercase tracking-[0.5px] text-text-tertiary border-b border-stroke-outline">
               Voice
             </div>
             <div className="py-1 max-h-[280px] overflow-y-auto">
@@ -268,7 +268,7 @@ export default function VoiceMode({ onClose, onMessage, onImages, onVideos, onWe
                     className={`w-full text-left px-3 py-2 flex items-center justify-between gap-3 hover:bg-bg-hover transition-colors ${active ? 'bg-bg-hover' : ''}`}
                   >
                     <div className="min-w-0">
-                      <div className="text-sm text-text-primary truncate">{v.hint}</div>
+                      <div className="type-detail text-text-primary truncate">{v.hint}</div>
                     </div>
                     {active && (
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-primary shrink-0">

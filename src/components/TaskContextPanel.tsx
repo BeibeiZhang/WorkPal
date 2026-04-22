@@ -118,7 +118,7 @@ function ActiveIcon({ number }: { number: number }) {
       className="w-[22px] h-[22px] rounded-full flex items-center justify-center shrink-0 border-[1.5px]"
       style={{ borderColor: '#3171ff' }}
     >
-      <span className="text-[11px] font-medium" style={{ color: '#3171ff' }}>{number}</span>
+      <span className="type-footnote font-medium" style={{ color: '#3171ff' }}>{number}</span>
     </div>
   );
 }
@@ -126,7 +126,7 @@ function ActiveIcon({ number }: { number: number }) {
 function PendingIcon({ number }: { number: number }) {
   return (
     <div className="w-[22px] h-[22px] rounded-full flex items-center justify-center shrink-0 border-[1.5px] border-stroke-outline">
-      <span className="text-[11px] font-medium text-text-primary">{number}</span>
+      <span className="type-footnote font-medium text-text-primary">{number}</span>
     </div>
   );
 }
@@ -205,7 +205,7 @@ export default function TaskContextPanel({
                         <div className={`type-body text-text-primary truncate ${change.undone ? 'line-through' : ''}`}>
                           {change.label}
                         </div>
-                        <div className="text-[11px] text-text-secondary">
+                        <div className="type-footnote text-text-secondary">
                           {relativeTime(change.timestamp)}
                           {change.undone && ' · Undone'}
                         </div>
@@ -238,7 +238,7 @@ export default function TaskContextPanel({
         {/* Progress */}
         <SideCard title="Progress" defaultOpen>
           {progressList.length === 0 ? (
-            <p className="text-[13px] text-text-secondary px-1">No steps yet. Send a task message to see live progress.</p>
+            <p className="type-detail text-text-secondary px-1">No steps yet. Send a task message to see live progress.</p>
           ) : (
             <div className="flex flex-col gap-0">
               {progressList.map((step, i) => {
@@ -270,7 +270,7 @@ export default function TaskContextPanel({
                     )}
                     {/* Step label */}
                     <span
-                      className="flex-1 min-w-0 text-[13px] leading-[22px] pt-px"
+                      className="flex-1 min-w-0 type-detail leading-[22px] pt-px"
                       style={{
                         color: isCompleted
                           ? 'var(--color-text-secondary)'
@@ -307,7 +307,7 @@ export default function TaskContextPanel({
                 </div>
               )}
               {folderList.length === 0 ? (
-                <p className="text-[13px] text-text-secondary px-1">No files in this task.</p>
+                <p className="type-detail text-text-secondary px-1">No files in this task.</p>
               ) : (
                 <div className="flex flex-col gap-1">
                   {folderList.map((f) => (
@@ -328,7 +328,7 @@ export default function TaskContextPanel({
         {/* Context */}
         <SideCard title="Context" defaultOpen>
           {contextList.length === 0 ? (
-            <p className="text-[13px] text-text-secondary px-1">No context attached.</p>
+            <p className="type-detail text-text-secondary px-1">No context attached.</p>
           ) : (
             <div className="flex flex-col gap-1">
               {contextList.map((f) => (
@@ -347,7 +347,7 @@ export default function TaskContextPanel({
         {/* Tools active */}
         <SideCard title="Tools active" defaultOpen>
           {toolsList.length === 0 ? (
-            <p className="text-[13px] text-text-secondary px-1">No tools running.</p>
+            <p className="type-detail text-text-secondary px-1">No tools running.</p>
           ) : (
             <div className="flex flex-col gap-1">
               {toolsList.map((f) => (

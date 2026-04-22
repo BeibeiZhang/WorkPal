@@ -213,10 +213,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                 />
               </div>
               <div className="min-w-0 p-6 md:p-8 flex flex-col justify-center">
-                <h2
-                  className="type-body-emphasized text-text-primary mb-2.5"
-                  style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
-                >
+                <h2 className="type-body-emphasized text-text-primary mb-2.5">
                   Good morning, Beibei! Today feels like a steady day ☀️
                 </h2>
                 <p className="type-detail text-text-primary">
