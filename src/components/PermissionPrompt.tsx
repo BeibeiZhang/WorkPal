@@ -79,7 +79,7 @@ export default function PermissionPrompt({ request, onAllow, onAlwaysAllow, onCa
           </div>
           <h2
             id="perm-title"
-            className="type-h1 text-text-primary flex-1"
+            className="type-h1--emphasized text-text-primary flex-1"
             style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
           >
             {title}
@@ -91,7 +91,7 @@ export default function PermissionPrompt({ request, onAllow, onAlwaysAllow, onCa
 
         {showTarget && (
           <div
-            className="px-3 py-2 rounded-lg font-mono text-[13px] leading-[18px] text-text-primary break-all mb-4"
+            className="px-3 py-2 rounded-lg font-mono type-caption text-text-primary break-all mb-4"
             style={{ background: 'var(--color-bg-hover)' }}
           >
             {request.target}

@@ -47,7 +47,7 @@ function FolderChip({ path, onOpen }: { path: string; onOpen?: (path: string) =>
       {copied
         ? <Check size={14} className="shrink-0 text-[#028901]" />
         : <FolderClosed size={14} className="shrink-0" />}
-      <span className="font-mono text-[12px] leading-[16px] truncate">{path}</span>
+      <span className="font-mono type-caption truncate">{path}</span>
     </button>
   );
 }
@@ -210,19 +210,7 @@ function WelcomeState({ isDark, selectedAvatarId, onAvatarChange }: { isDark?: b
         </button>
       )}
       {/* Greeting */}
-      <h1
-        className="text-[24px] text-center w-full"
-        style={{
-          fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
-          fontWeight: 400,
-          lineHeight: '22px',
-          letterSpacing: '-0.43px',
-          backgroundImage: 'linear-gradient(31.6deg, #7652B9 0%, #B46470 51.9%, #CA9D8C 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
-        }}
-      >
+      <h1 className="type-h1 gradient-text text-center w-full">
         Hi, Beibei
       </h1>
       {/* Subtitle */}

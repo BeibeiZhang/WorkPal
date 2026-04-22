@@ -73,6 +73,8 @@ Every CSS variable with its resolved light / dark value. If you need a token, fi
 --font-body-size/lh/weight/tracking        16px / 32px / 400 (emph 700) / 0px
 --font-h2-size/lh/weight/tracking          16px / 22px / 400 (emph 700) / 0px
 --font-detail-size/lh/weight/tracking      14px / 22px / 400 (emph 700) / 0
+--font-caption-size/lh/weight/tracking     12px / 16px / 400 / 0
+--font-footnote-size/lh/weight/tracking    11px / 1   / 400 / 0
 
 # Spacing (Tailwind-aligned)
 --space-1..10                 4 · 8 · 12 · 16 · 20 · 24 · 32 · 40 px
@@ -132,24 +134,27 @@ CSS vars: --brand-grad-start, --brand-grad-mid, --brand-grad-end
 
 **Never** use brand gradient for body text, icons, data viz, progress bars, or >1 button per view.
 
-### 1.3 Typography (8 styles, no more)
+### 1.3 Typography (11 styles, no more)
 
 | Class | Size / LH / Weight / Tracking | Use |
 |---|---|---|
 | `.type-display` | 40 / 48 / 700 / −0.5 | Page H1 (only one per page) |
-| `.type-h1` | 22 / normal / 700 / 0 | Section headers — top-level regions inside a page |
+| `.type-h1` | 22 / normal / 500 / 0 | Brand wordmark, hero greetings (display-weight regular H1) |
+| `.type-h1--emphasized` | 22 / normal / 700 / 0 | Section headers — top-level regions inside a page |
 | `.type-body-emphasized` | 16 / 32 / 700 / 0 | Subheads, question prompts, long-form section headings |
 | `.type-body` | 16 / 32 / 400 / 0 | Default paragraph, chat messages |
 | `.type-h2-emphasized` | 16 / 22 / 700 / 0 | Card titles, row headings — bold 16/22 pair for dense surfaces |
 | `.type-h2` | 16 / 22 / 400 / 0 | Row labels, chat markdown body, compact 16px copy |
 | `.type-detail-emphasized` | 14 / 22 / 700 / 0 | Form labels, emphasized metadata, button labels |
 | `.type-detail` | 14 / 22 / 400 / 0 | Helper text, captions, chip labels |
+| `.type-caption` | 12 / 16 / 400 / 0 | Chart legends, mono code / command blocks (pair with `font-mono`), file path chips, diff stats |
+| `.type-footnote` | 11 / 1 / 400 / 0 | Compact citation chips, micro pill labels (line-height collapses to 1) |
 
 **Responsive rule:** detail scales up to **16px** on mobile (`<768px`, line-height stays 22px) so the smallest tier never drops below 16px on phones. Defined via a `@media (min-width: 768px)` override of `--font-detail-size` in `src/index.css`. No other token scales across breakpoints.
 
 Font stack: `-apple-system, BlinkMacSystemFont, 'SF Pro', 'Inter', sans-serif`.
 
-**Forbidden sizes:** 9, 10, 11, 12, 13, 17, 18, 24, 28, 32 px for running text. Large display numbers inside cards (e.g. MetricCard's "+2h") are allowed; set inline.
+**Forbidden sizes:** 9, 10, 13, 17, 18, 24, 28, 32 px for running text. 11/12 are valid only via `.type-caption` / `.type-footnote`. Large display numbers inside cards (e.g. MetricCard's "+2h") are allowed; set inline.
 
 ### 1.4 Spacing (Tailwind scale only)
 
@@ -333,7 +338,7 @@ All snap to `--toolbar-btn-h` so they line up vertically in one row.
 4. **1–2% gradient budget.** The brand gradient is a focal point, not decoration.
 5. **Callouts are blue (`#3171FF`), not gradient.** Selected chips, links, progress, focus.
 6. **StatusTag success green is unique.** Only `--color-accent-green` / `-green-bg`. Not used anywhere else.
-7. **8 text styles only.** `.type-display` / `.type-h1` / `.type-body` / `.type-body-emphasized` / `.type-h2` / `.type-h2-emphasized` / `.type-detail` / `.type-detail-emphasized`.
+7. **11 text styles only.** `.type-display` / `.type-h1` / `.type-h1--emphasized` / `.type-body` / `.type-body-emphasized` / `.type-h2` / `.type-h2-emphasized` / `.type-detail` / `.type-detail-emphasized` / `.type-caption` / `.type-footnote`.
 8. **Icons = lucide-react.** Never render letters or abbreviations as icon stand-ins. Never import other icon libraries.
 9. **Dark-mode automatic.** All colors come from CSS vars bound to `:root` / `.dark`. PNGs use `.icon-theme`. Lucide SVGs inherit `currentColor`.
 10. **Three-panel shell.** Every feature is a slot in NavPanel / ConversationPanel / InspectorPanel. No new top-level chrome.
@@ -394,7 +399,7 @@ Nothing fits? → build in shared.tsx, register in Review Queue.
 
 | Class | Effect |
 |---|---|
-| `.type-display` / `.type-h1` / `.type-body` / `.type-body-emphasized` / `.type-h2` / `.type-h2-emphasized` / `.type-detail` / `.type-detail-emphasized` | Type scale |
+| `.type-display` / `.type-h1` / `.type-h1--emphasized` / `.type-body` / `.type-body-emphasized` / `.type-h2` / `.type-h2-emphasized` / `.type-detail` / `.type-detail-emphasized` / `.type-caption` / `.type-footnote` | Type scale |
 | `.gradient-btn` | Primary CTA gradient fill + shadow |
 | `.gradient-text` | Brand gradient text |
 | `.chip-gradient-hover` | Unselected chip: gradient border on hover (`padding-box/border-box`) |

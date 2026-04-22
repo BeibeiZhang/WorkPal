@@ -535,7 +535,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
             <div className="border border-stroke-outline rounded-2xl p-5">
               <div className="flex items-center justify-between mb-4">
                 <div className="type-detail-emphasized text-text-primary">Weekly Trends</div>
-                <div className="flex items-center gap-4 text-[12px] text-text-primary opacity-70">
+                <div className="flex items-center gap-4 type-caption text-text-primary opacity-70">
                   <span className="flex items-center gap-1.5"><span className="w-5 h-[2.5px] rounded-full inline-block" style={{ background: '#3171FF' }} />Energy</span>
                   <span className="flex items-center gap-1.5"><span className="w-5 h-[2.5px] rounded-full inline-block" style={{ background: '#8B5CF6' }} />Sleep</span>
                   <span className="flex items-center gap-1.5"><span className="w-5 h-[2.5px] rounded-full inline-block" style={{ background: '#028901' }} />Stress</span>

@@ -417,7 +417,7 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                   onClick={() => setOutputOpen(o => !o)}
                   className="flex items-center justify-between w-full text-left"
                 >
-                  <h3 className="type-h2-emphasized text-text-primary">Output</h3>
+                  <h3 className="type-body-emphasized text-text-primary">Output</h3>
                   <ChevronDown
                     size={16}
                     className={`text-text-primary transition-transform ${outputOpen ? '' : '-rotate-90'}`}
@@ -499,7 +499,7 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                   onClick={() => setRecentsOpen(o => !o)}
                   className="flex items-center justify-between w-full text-left"
                 >
-                  <h3 className="type-h2-emphasized text-text-primary">Recents</h3>
+                  <h3 className="type-body-emphasized text-text-primary">Recents</h3>
                   <ChevronDown
                     size={16}
                     className={`text-text-primary transition-transform ${recentsOpen ? '' : '-rotate-90'}`}

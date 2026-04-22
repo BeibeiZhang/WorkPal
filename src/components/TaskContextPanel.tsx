@@ -223,7 +223,7 @@ export default function TaskContextPanel({
                       )}
                     </div>
                     {change.undoError && (
-                      <div className="px-3 pb-1 text-[11px]" style={{ color: '#B42318' }}>
+                      <div className="px-3 pb-1 type-caption" style={{ color: '#B42318' }}>
                         Undo failed: {change.undoError}
                       </div>
                     )}
@@ -299,7 +299,7 @@ export default function TaskContextPanel({
             <div className="flex flex-col gap-2">
               {folderPath && (
                 <div
-                  className="px-2 py-1 rounded font-mono text-[12px] leading-[16px] text-text-secondary truncate"
+                  className="px-2 py-1 rounded font-mono type-caption text-text-secondary truncate"
                   style={{ background: 'var(--color-bg-hover)' }}
                   title={folderPath}
                 >

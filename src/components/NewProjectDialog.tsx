@@ -82,7 +82,7 @@ export default function NewProjectDialog({
 
         {/* Header */}
         <h2
-          className="type-h1 text-text-primary mb-2"
+          className="type-h1--emphasized text-text-primary mb-2"
           style={{ fontFamily: 'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif' }}
         >
           {isPromote ? 'Promote to Project' : 'New Project'}

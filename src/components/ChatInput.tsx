@@ -302,8 +302,8 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
                 </div>
               )}
               <div className="min-w-0 max-w-[160px] pr-1">
-                <div className="text-[13px] leading-[16px] text-text-primary truncate">{att.name}</div>
-                <div className="text-[11px] leading-[14px] text-text-secondary">{formatBytes(att.size)}</div>
+                <div className="type-detail text-text-primary truncate">{att.name}</div>
+                <div className="type-detail text-text-secondary">{formatBytes(att.size)}</div>
               </div>
               <button
                 type="button"
@@ -319,7 +319,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
       )}
 
       {attachError && (
-        <div className="text-[12px] leading-[16px] text-[#B42318]" role="status">
+        <div className="type-caption text-[#B42318]" role="status">
           {attachError}
         </div>
       )}
