@@ -141,7 +141,7 @@ export default function CompleteSessionModal({
       >
         <h2
           id="complete-session-title"
-          className="type-h1 text-text-primary mb-3"
+          className="type-h1--emphasized text-text-primary mb-3"
           style={{
             fontFamily:
               'SF Pro, -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
@@ -182,13 +182,13 @@ export default function CompleteSessionModal({
                         {basename(f.path)}
                       </span>
                       <span
-                        className="shrink-0 font-mono text-[12px]"
+                        className="shrink-0 font-mono type-caption"
                         style={{ color: '#028901' }}
                       >
                         +{formatCount(f.insertions)}
                       </span>
                       <span
-                        className="shrink-0 font-mono text-[12px]"
+                        className="shrink-0 font-mono type-caption"
                         style={{ color: '#B42318' }}
                       >
                         -{formatCount(f.deletions)}
@@ -258,7 +258,7 @@ export default function CompleteSessionModal({
             </p>
             <div className="relative">
               <pre
-                className="pl-3 pr-12 py-2 rounded-lg font-mono text-[12px] leading-[18px] text-text-primary whitespace-pre-wrap break-all select-all"
+                className="pl-3 pr-12 py-2 rounded-lg font-mono type-caption text-text-primary whitespace-pre-wrap break-all select-all"
                 style={{ background: 'var(--color-bg-hover)' }}
               >
                 {phase.cliCommand}

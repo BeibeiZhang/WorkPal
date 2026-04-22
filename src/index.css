@@ -64,7 +64,9 @@ strong, b {
 
   --font-h1-size: 22px;
   --font-h1-lh: normal;
-  --font-h1-weight: 700;
+  --font-h1-weight: 500;
+  --font-h1-emphasized-lh: normal;
+  --font-h1-emphasized-weight: 700;
   --font-h1-tracking: 0px;
 
   --font-h2-size: 16px;
@@ -88,6 +90,22 @@ strong, b {
   --font-detail-weight: 400;
   --font-detail-emphasized-weight: 700;
   --font-detail-tracking: 0px;
+
+  /* Caption — 12/16/400. Chart legends, inline mono code/command blocks
+     (pair with font-mono), file path chips, diff stats. Below Detail in
+     hierarchy; never use for running copy. */
+  --font-caption-size: 12px;
+  --font-caption-lh: 16px;
+  --font-caption-weight: 400;
+  --font-caption-tracking: 0px;
+
+  /* Footnote — 11/1/400. Eyebrow rows, compact URL/citation chips,
+     tooltip labels. Line-height collapses to 1 so the chip hugs its text.
+     Smallest tier; below Caption. */
+  --font-footnote-size: 11px;
+  --font-footnote-lh: 1;
+  --font-footnote-weight: 400;
+  --font-footnote-tracking: 0px;
 
   /* Spacing scale — mirrors Tailwind scale; expose for docs/live wiring */
   --space-1: 4px;
@@ -552,6 +570,12 @@ html, body, #root {
   font-weight: var(--font-h1-weight);
   letter-spacing: var(--font-h1-tracking);
 }
+.type-h1--emphasized {
+  font-size: var(--font-h1-size);
+  line-height: var(--font-h1-emphasized-lh);
+  font-weight: var(--font-h1-emphasized-weight);
+  letter-spacing: var(--font-h1-tracking);
+}
 .type-h2 {
   font-size: var(--font-h2-size);
   line-height: var(--font-h2-lh);
@@ -587,6 +611,18 @@ html, body, #root {
   line-height: var(--font-detail-lh);
   font-weight: var(--font-detail-emphasized-weight);
   letter-spacing: var(--font-detail-tracking);
+}
+.type-caption {
+  font-size: var(--font-caption-size);
+  line-height: var(--font-caption-lh);
+  font-weight: var(--font-caption-weight);
+  letter-spacing: var(--font-caption-tracking);
+}
+.type-footnote {
+  font-size: var(--font-footnote-size);
+  line-height: var(--font-footnote-lh);
+  font-weight: var(--font-footnote-weight);
+  letter-spacing: var(--font-footnote-tracking);
 }
 
 /* Selected chip — uses mode-aware tokens, Figma node 142:16529 / 142:16548 */

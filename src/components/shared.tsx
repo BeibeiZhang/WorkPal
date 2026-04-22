@@ -851,7 +851,7 @@ export function SectionTitle({
     <div className="flex items-center gap-2 mb-4">
       {emoji && <span style={{ fontSize }}>{emoji}</span>}
       {size === 20 ? (
-        <span className="type-h1 text-text-primary">{title}</span>
+        <span className="type-h1--emphasized text-text-primary">{title}</span>
       ) : (
         <span className="font-bold text-text-primary" style={{ fontSize }}>{title}</span>
       )}

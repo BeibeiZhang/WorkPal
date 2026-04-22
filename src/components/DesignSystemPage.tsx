@@ -49,7 +49,7 @@ interface DesignSystemPageProps {
 
 function SectionTitle({ children, id }: { children: React.ReactNode; id?: string }) {
   return (
-    <h2 id={id} className="type-h1 text-text-primary mt-8 mb-6 scroll-mt-[120px]">
+    <h2 id={id} className="type-h1--emphasized text-text-primary mt-8 mb-6 scroll-mt-[120px]">
       {children}
     </h2>
   );
@@ -83,13 +83,13 @@ function SplitViewDemo() {
         side={
           <div className="h-full border-l border-stroke-outline p-4" style={{ background: 'var(--color-bg-hover)' }}>
             <SidePanelHeader title="Side panel" onClose={() => setOpen(false)} />
-            <p className="text-[12px] text-text-secondary">Side column content</p>
+            <p className="type-caption text-text-secondary">Side column content</p>
           </div>
         }
       >
         <div className="flex-1 p-4 flex items-center justify-center">
           <div className="text-center">
-            <p className="text-[13px] text-text-primary mb-2">Main column</p>
+            <p className="type-caption text-text-primary mb-2">Main column</p>
             {!open && (
               <TertiaryButton onClick={() => setOpen(true)}>Open side panel</TertiaryButton>
             )}
@@ -105,13 +105,13 @@ function PageLayoutDemo() {
     <div className="rounded-lg overflow-hidden border border-stroke-outline" style={{ background: 'var(--color-bg-hover)' }}>
       <div className="p-4">
         <div className="rounded border border-dashed border-stroke-outline flex items-center px-3" style={{ height: 32, background: 'var(--color-bg-page)' }}>
-          <span className="text-[11px] font-mono text-text-secondary">Toggle bar · h-12</span>
+          <span className="type-caption font-mono text-text-secondary">Toggle bar · h-12</span>
         </div>
         <div className="mt-2 rounded border border-dashed border-stroke-outline px-3 py-2" style={{ background: 'var(--color-bg-page)' }}>
           <span className="text-[16px] font-bold text-text-primary">Page Title</span>
         </div>
         <div className="mt-2 rounded border border-dashed border-stroke-outline flex items-center justify-center" style={{ background: 'var(--color-bg-page)', height: 80 }}>
-          <span className="text-[12px] font-mono text-text-secondary">children · maxWidth: 'full' | 'reading'</span>
+          <span className="type-caption font-mono text-text-secondary">children · maxWidth: 'full' | 'reading'</span>
         </div>
       </div>
     </div>
@@ -168,7 +168,7 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
         ) : (
           <>
             {/* Tab hint */}
-            <p className="text-[13px] text-text-secondary leading-[20px] -mt-4 mb-6">{activeTabMeta.hint}</p>
+            <p className="type-caption text-text-secondary -mt-4 mb-6">{activeTabMeta.hint}</p>
 
             {activeTab === 'foundations' && <FoundationsTab />}
 
@@ -292,19 +292,19 @@ function Swatch({ token, withBorder = true }: { token: ColorToken; withBorder?: 
         style={{ background: `var(${token.cssVar})` }}
       />
       <div className="p-3">
-        <div className="text-[13px] font-bold text-text-primary leading-[18px]">{token.name}</div>
+        <div className="type-caption font-bold text-text-primary">{token.name}</div>
         {resolved && (
           <div className="mt-1 flex items-center gap-1.5">
-            <code className="text-[11px] font-mono text-text-primary">{resolved.hex}</code>
-            <span className="text-[11px] text-text-tertiary">·</span>
-            <code className="text-[11px] font-mono text-text-secondary">{opacityPct}%</code>
+            <code className="type-caption font-mono text-text-primary">{resolved.hex}</code>
+            <span className="type-caption text-text-tertiary">·</span>
+            <code className="type-caption font-mono text-text-secondary">{opacityPct}%</code>
           </div>
         )}
-        <code className="block mt-1 text-[11px] font-mono text-text-secondary break-all">{token.cssVar}</code>
+        <code className="block mt-1 type-caption font-mono text-text-secondary break-all">{token.cssVar}</code>
         {token.tailwind && (
-          <code className="block mt-0.5 text-[11px] font-mono" style={{ color: 'var(--color-accent-blue)' }}>{token.tailwind}</code>
+          <code className="block mt-0.5 type-caption font-mono" style={{ color: 'var(--color-accent-blue)' }}>{token.tailwind}</code>
         )}
-        <p className="mt-1 text-[11px] text-text-secondary leading-[15px]">{token.usage}</p>
+        <p className="mt-1 type-caption text-text-secondary">{token.usage}</p>
       </div>
     </div>
   );
@@ -340,7 +340,18 @@ const TYPE_SCALE: {
   },
   {
     className: 'type-h1',
-    label: 'H1',
+    label: 'H1 / Regular',
+    size: '22', lh: '—', weight: '500', tracking: '0',
+    sample: 'WorkPal',
+    usage: 'Display-weight H1 — brand wordmark, hero greetings',
+    appearances: [
+      'Sidebar — app wordmark ("WorkPal")',
+      'ChatPanel — welcome-state greeting ("Hi, Beibei", combined with .gradient-text)',
+    ],
+  },
+  {
+    className: 'type-h1--emphasized',
+    label: 'H1 / Emphasized',
     size: '22', lh: '—', weight: '700', tracking: '0',
     sample: 'Life Health Index',
     usage: 'Section headers — top-level regions inside a page',
@@ -364,6 +375,7 @@ const TYPE_SCALE: {
       'MemoryPage empty-state — "Teach your AI about you"',
       'Sidebar section headers — "Projects", "Recents"',
       'Sidebar profile name — "Beibei Zhang"',
+      'ProjectPage Output / Recents section headers',
     ],
   },
   {
@@ -405,7 +417,6 @@ const TYPE_SCALE: {
       'SidePanelHeader — DetailPanel, TaskContextPanel',
       'MessageCard titles — Meeting, Ticket, Research, Schedule, Agent',
       'ArtifactCard name — inline artifact cards in chat and Output grid',
-      'ProjectPage Output / Recents section headers',
       'OverviewPage — Work / Family / Self category headers',
       'DemoExplainerModal — "About this demo"',
       'PasswordModal — "Confirm with password"',
@@ -444,13 +455,40 @@ const TYPE_SCALE: {
       'AvatarMenu items — Connectors, Library, Memory, Onboarding, Design System',
       'OverviewPage — body text, impact details, scheduled cron description',
       'DetailPanel — error banner, cancel / retry / undo buttons',
+      'ChatInput — attachment pill name & file-size meta',
+    ],
+  },
+  {
+    className: 'type-caption',
+    label: 'Caption',
+    size: '12', lh: '16', weight: '400', tracking: '0',
+    sample: 'Smallest non-mono tier — chart legends, mono code blocks, docs chrome.',
+    usage: 'Chart legends, mono code/command blocks, docs-chrome tables, captions & meta rows',
+    appearances: [
+      'PermissionPrompt — command target box (with font-mono)',
+      'CompleteSessionModal — command + diff stats (with font-mono)',
+      'markdown.tsx — fenced code blocks (with font-mono)',
+      'TaskContextPanel — file path chips (with font-mono)',
+      'ChatPanel — path breadcrumb (with font-mono)',
+      'DesignSystemPage — token tables, search result rows, usage captions, inline code references, panel-spec meta (with font-mono)',
+      'OverviewPage — Weekly Trends chart legend (with opacity-70)',
+    ],
+  },
+  {
+    className: 'type-footnote',
+    label: 'Footnote',
+    size: '11', lh: '—', weight: '400', tracking: '0',
+    sample: 'wikipedia.org',
+    usage: 'Compact citation chips, micro pill labels; line-height collapses to 1',
+    appearances: [
+      'ChatMessage — follow-up citation chips (favicon + host)',
     ],
   },
 ];
 
 /**
  * Typography Outliers — non-canonical styles that intentionally depart
- * from the 8 tokens. Listed here so they stay visible; if a new design
+ * from the 11 tokens. Listed here so they stay visible; if a new design
  * needs something not in the scale, it belongs here (or becomes a new
  * token) rather than being hidden as a hardcoded inline size.
  */
@@ -473,31 +511,16 @@ const TYPE_OUTLIERS: {
     note: 'Intentional uppercase modifier of detail-emphasized for dashboard metrics.',
   },
   {
-    label: 'Brand Logo',
-    classes: 'text-[22px] font-medium leading-none',
-    maps: '22 / none / 500 / 0',
-    sample: 'WorkPal',
-    sampleStyle: { fontSize: 22, fontWeight: 500, lineHeight: 1 },
-    usedIn: ['Sidebar — app wordmark'],
-    note: 'Brand lockup only. Sits above the type-scale and is the single callsite.',
-  },
-  {
-    label: 'Docs Chrome — Caption',
-    classes: 'text-[11px] / text-[12px] / text-[13px]',
-    maps: '11-13 / — / 400',
-    sample: 'Token: --color-text-primary',
-    sampleStyle: { fontSize: 12, lineHeight: '16px' },
-    usedIn: ['DesignSystemPage — token tables, search results, caption rows', 'ChatPanel path breadcrumb', 'Sidebar dropdown "Back" row'],
-    note: 'Documentation/chrome surfaces only. Never use in product copy — forbidden sizes per §1.3.',
-  },
-  {
-    label: 'Docs Chrome — Mono',
-    classes: 'font-mono text-[10px] / text-[11px] / text-[12px]',
-    maps: '10-12 / — / 400 mono',
-    sample: '--color-text-primary',
-    sampleStyle: { fontSize: 12, fontFamily: 'ui-monospace, SFMono-Regular, monospace' },
-    usedIn: ['DesignSystemPage — inline code, CSS var names, Tailwind class names'],
-    note: 'Mono code references inside docs. Chrome-only; product code must use type-detail.',
+    label: 'Inline Error',
+    classes: 'text-[12px] / text-[13px] leading-[16–18px] text-[#B42318]',
+    maps: '12–13 / 16–18 / 400',
+    sample: 'File too large — max 25 MB',
+    sampleStyle: { fontSize: 12, lineHeight: '16px', color: '#B42318' },
+    usedIn: [
+      'ChatInput — attachment validation error',
+      'TaskContextPanel — step execution error',
+    ],
+    note: 'Inline validation/error message attached to a specific input or step. Red fixed; size forbidden per §1.3 but allowed as compact inline feedback.',
   },
   {
     label: 'Uppercase Label (11)',
@@ -509,13 +532,20 @@ const TYPE_OUTLIERS: {
     note: 'Eyebrow label for secondary meta rows. Does not replace StatusTag.',
   },
   {
-    label: 'Chart Legend',
-    classes: 'text-[12px] opacity-70',
-    maps: '12 / — / 400',
-    sample: '■ Energy  ■ Sleep  ■ Stress',
-    sampleStyle: { fontSize: 12, opacity: 0.7 },
-    usedIn: ['OverviewPage — Weekly Trends chart legend'],
-    note: 'Small data-viz legend label. 12px is forbidden for running text per §1.3 — allowed here because the legend sits alongside a chart and must stay compact.',
+    label: 'Image Caption Overlay',
+    classes: 'text-[10px] leading-[14px] text-white',
+    maps: '10 / 14 / 400',
+    sample: 'Photo · wikipedia.org',
+    sampleStyle: {
+      fontSize: 10,
+      lineHeight: '14px',
+      color: '#fff',
+      background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)',
+      padding: '4px 8px',
+      borderRadius: 4,
+    },
+    usedIn: ['ChatMessage — image attribution overlay on hover'],
+    note: 'Below the docs-chrome floor intentionally. Overlay on image thumbnails, visible only on hover; kept tiny so it never dominates the image.',
   },
 ];
 
@@ -692,7 +722,7 @@ const PRINCIPLES: { n: number; title: string; rule: string; why?: string; refTab
   {
     n: 7,
     title: '5 text styles only',
-    rule: 'Use .type-display, .type-h1, .type-body, .type-body-emphasized, .type-h2, .type-h2-emphasized, .type-detail, .type-detail-emphasized. Forbidden running-text sizes: 9, 10, 11, 12, 13, 17, 18, 24, 28, 32 px.',
+    rule: 'Use .type-display, .type-h1, .type-h1--emphasized, .type-body, .type-body-emphasized, .type-h2, .type-h2-emphasized, .type-detail, .type-detail-emphasized, .type-caption, .type-footnote. Forbidden running-text sizes: 9, 10, 13, 17, 18, 24, 28, 32 px. 11/12 are valid only via .type-footnote / .type-caption.',
     refTab: 'Design Foundations',
   },
   {
@@ -883,7 +913,7 @@ function SearchResults({
         style={{ background: 'var(--color-bg-page)' }}
       >
         <p className="text-[14px] text-text-primary mb-1">No matches for &ldquo;{query}&rdquo;</p>
-        <p className="text-[13px] text-text-secondary">
+        <p className="type-caption text-text-secondary">
           Try a token name (<code className="font-mono">--color-text-primary</code>), a component name (<code className="font-mono">StatusTag</code>), or a principle keyword (<code className="font-mono">gradient</code>).
         </p>
       </div>
@@ -897,7 +927,7 @@ function SearchResults({
 
   return (
     <div className="flex flex-col gap-5">
-      <p className="text-[13px] text-text-secondary">
+      <p className="type-caption text-text-secondary">
         {matches.length} result{matches.length === 1 ? '' : 's'} for{' '}
         <strong className="text-text-primary">&ldquo;{query}&rdquo;</strong>
       </p>
@@ -913,11 +943,11 @@ function SearchResults({
               <div className="flex items-baseline gap-2">
                 <span className="text-[11px] font-semibold uppercase tracking-[0.5px] text-text-secondary">Tab</span>
                 <span className="text-[14px] font-bold text-text-primary">{tabMeta.label}</span>
-                <span className="text-[12px] text-text-secondary">· {entries.length}</span>
+                <span className="type-caption text-text-secondary">· {entries.length}</span>
               </div>
               <button
                 onClick={() => onPick(tab)}
-                className="text-[12px] font-medium px-3 py-1 rounded-full border border-stroke-outline hover:bg-bg-hover transition-colors text-text-primary"
+                className="type-caption font-medium px-3 py-1 rounded-full border border-stroke-outline hover:bg-bg-hover transition-colors text-text-primary"
               >
                 Open tab
               </button>
@@ -930,11 +960,11 @@ function SearchResults({
                     className="w-full text-left rounded-xl border border-stroke-outline hover:bg-bg-hover transition-colors p-3"
                   >
                     <div className="flex items-baseline gap-2 mb-0.5 flex-wrap">
-                      <span className="text-[13px] font-semibold text-text-primary">{e.name}</span>
-                      <span className="text-[11px] text-text-secondary">· {e.section}</span>
+                      <span className="type-caption font-semibold text-text-primary">{e.name}</span>
+                      <span className="type-caption text-text-secondary">· {e.section}</span>
                     </div>
                     {e.description && (
-                      <p className="text-[12px] text-text-secondary leading-[17px]">{e.description}</p>
+                      <p className="type-caption text-text-secondary">{e.description}</p>
                     )}
                   </button>
                 </li>
@@ -1019,7 +1049,7 @@ function FoundationsTab() {
         </div>
         <p className="type-detail text-text-primary">
           Every color, font size, spacing step, and radius below is a <strong>token</strong>, not a hardcoded value.
-          Edit the CSS variable in <code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-page)', color: 'var(--color-accent-blue)' }}>src/index.css</code> once and every component, page, and screen — onboarding, chat messages, cards, charts — picks up the change automatically through the Tailwind mapping in <code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-page)', color: 'var(--color-accent-blue)' }}>tailwind.config.js</code>.
+          Edit the CSS variable in <code className="type-caption font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-page)', color: 'var(--color-accent-blue)' }}>src/index.css</code> once and every component, page, and screen — onboarding, chat messages, cards, charts — picks up the change automatically through the Tailwind mapping in <code className="type-caption font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-page)', color: 'var(--color-accent-blue)' }}>tailwind.config.js</code>.
         </p>
         <p className="type-detail text-text-primary mt-2">
           <strong>Rule:</strong> never hardcode a hex, font size, or pixel spacing. If a token is missing, add it here first, then use it.
@@ -1030,7 +1060,7 @@ function FoundationsTab() {
       <SectionTitle id="ds-foundation-color">Color Palette</SectionTitle>
 
       <div className="mb-5 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
-        <div className="type-detail-emphasized text-text-primary mb-3">Surface & Text — bound to <code className="text-[12px] font-mono">--color-*</code>, mode-aware (light/dark)</div>
+        <div className="type-detail-emphasized text-text-primary mb-3">Surface & Text — bound to <code className="type-caption font-mono">--color-*</code>, mode-aware (light/dark)</div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {SURFACE_TOKENS.map(t => <Swatch key={t.cssVar} token={t} />)}
         </div>
@@ -1059,7 +1089,7 @@ function FoundationsTab() {
               <div className="h-12" style={{ background: `var(${s.cssVar})` }} />
               <div className="p-2">
                 <div className="type-detail-emphasized text-text-primary">{s.stop}</div>
-                <code className="block text-[11px] font-mono text-text-secondary">{s.cssVar}</code>
+                <code className="block type-caption font-mono text-text-secondary">{s.cssVar}</code>
               </div>
             </div>
           ))}
@@ -1071,22 +1101,22 @@ function FoundationsTab() {
 
       <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
         <p className="type-detail text-text-secondary mb-4">
-          Eight canonical styles — every text surface in the app picks one. Use the <code className="text-[12px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: 'var(--color-accent-blue)' }}>type-*</code> utility classes — never inline <code className="text-[12px] font-mono">text-[Xpx]</code>. Editing the <code className="text-[12px] font-mono">--font-*</code> variables in <code className="text-[12px] font-mono">src/index.css</code> updates every usage app-wide. Each row lists all the surfaces that share the same parameters. <strong>Responsive rule:</strong> detail scales up to 16px on mobile (&lt;768px) so the smallest tier stays readable on phones.
+          Eight canonical styles — every text surface in the app picks one. Use the <code className="type-caption font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: 'var(--color-accent-blue)' }}>type-*</code> utility classes — never inline <code className="type-caption font-mono">text-[Xpx]</code>. Editing the <code className="type-caption font-mono">--font-*</code> variables in <code className="type-caption font-mono">src/index.css</code> updates every usage app-wide. Each row lists all the surfaces that share the same parameters. <strong>Responsive rule:</strong> detail scales up to 16px on mobile (&lt;768px) so the smallest tier stays readable on phones.
         </p>
         <div className="flex flex-col divide-y divide-stroke-outline">
           {TYPE_SCALE.map(row => (
             <div key={row.className} className="py-4 first:pt-0 last:pb-0 grid grid-cols-1 md:grid-cols-[240px_1fr] gap-3 md:gap-6 items-start">
               <div>
                 <div className="type-detail-emphasized text-text-primary">{row.label}</div>
-                <code className="block mt-1 text-[11px] font-mono" style={{ color: 'var(--color-accent-blue)' }}>.{row.className}</code>
-                <div className="mt-1 text-[11px] font-mono text-text-secondary leading-[16px]">
+                <code className="block mt-1 type-caption font-mono" style={{ color: 'var(--color-accent-blue)' }}>.{row.className}</code>
+                <div className="mt-1 type-caption font-mono text-text-secondary">
                   {row.size}px / {row.lh}px / {row.weight} / {row.tracking}px
                 </div>
-                <p className="mt-1 text-[11px] text-text-secondary leading-[15px]">{row.usage}</p>
+                <p className="mt-1 type-caption text-text-secondary">{row.usage}</p>
               </div>
               <div className="flex flex-col gap-3">
                 <div className={`${row.className} text-text-primary`}>{row.sample}</div>
-                <ul className="text-[11px] text-text-secondary leading-[16px] flex flex-col gap-0.5">
+                <ul className="type-caption text-text-secondary flex flex-col gap-0.5">
                   {row.appearances.map(a => <li key={a}>• {a}</li>)}
                 </ul>
               </div>
@@ -1100,22 +1130,22 @@ function FoundationsTab() {
 
       <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
         <p className="type-detail text-text-secondary mb-4">
-          Non-canonical styles that intentionally depart from the 8 tokens. Everything else must map to a row in <strong>Typography Scale</strong> above. If a new design needs a style that isn&apos;t there, add it here (or as a new token) — never inline a one-off size.
+          Non-canonical styles that intentionally depart from the 11 tokens. Everything else must map to a row in <strong>Typography Scale</strong> above. If a new design needs a style that isn&apos;t there, add it here (or as a new token) — never inline a one-off size.
         </p>
         <div className="flex flex-col divide-y divide-stroke-outline">
           {TYPE_OUTLIERS.map((row, i) => (
             <div key={i} className="py-4 first:pt-0 last:pb-0 grid grid-cols-1 md:grid-cols-[240px_1fr] gap-3 md:gap-6 items-start">
               <div>
                 <div className="type-detail-emphasized text-text-primary">{row.label}</div>
-                <code className="block mt-1 text-[11px] font-mono leading-[16px]" style={{ color: 'var(--color-accent-blue)' }}>{row.classes}</code>
-                <div className="mt-1 text-[11px] font-mono text-text-secondary leading-[16px]">
+                <code className="block mt-1 type-caption font-mono leading-[16px]" style={{ color: 'var(--color-accent-blue)' }}>{row.classes}</code>
+                <div className="mt-1 type-caption font-mono text-text-secondary">
                   Maps to <code>{row.maps}</code>
                 </div>
               </div>
               <div className="flex flex-col gap-2">
                 <div className="text-text-primary" style={row.sampleStyle}>{row.sample}</div>
-                <p className="text-[11px] text-text-secondary leading-[16px]">{row.note}</p>
-                <ul className="text-[11px] text-text-secondary leading-[16px] flex flex-col gap-0.5">
+                <p className="type-caption text-text-secondary">{row.note}</p>
+                <ul className="type-caption text-text-secondary flex flex-col gap-0.5">
                   {row.usedIn.map(u => <li key={u}>• {u}</li>)}
                 </ul>
               </div>
@@ -1129,7 +1159,7 @@ function FoundationsTab() {
 
       <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
         <p className="type-detail text-text-secondary mb-4">
-          Mirrors the Tailwind spacing scale. Always snap to a step — never <code className="text-[12px] font-mono">gap-[9px]</code> or <code className="text-[12px] font-mono">p-[17px]</code>.
+          Mirrors the Tailwind spacing scale. Always snap to a step — never <code className="type-caption font-mono">gap-[9px]</code> or <code className="type-caption font-mono">p-[17px]</code>.
         </p>
         <div className="flex flex-col gap-3">
           {SPACING_SCALE.map(s => {
@@ -1137,12 +1167,12 @@ function FoundationsTab() {
             return (
               <div key={s.token} className="grid grid-cols-[120px_1fr_140px] md:grid-cols-[140px_1fr_180px_1fr] gap-3 items-center">
                 <div>
-                  <code className="text-[12px] font-mono text-text-primary">{s.token}</code>
-                  <div className="text-[11px] font-mono text-text-secondary">{s.css}</div>
+                  <code className="type-caption font-mono text-text-primary">{s.token}</code>
+                  <div className="type-caption font-mono text-text-secondary">{s.css}</div>
                 </div>
                 <div className="h-4 rounded" style={{ width: px, background: 'var(--color-accent-blue)' }} aria-hidden />
-                <code className="text-[11px] font-mono text-text-secondary">{s.tailwind}</code>
-                <p className="hidden md:block text-[12px] text-text-secondary leading-[16px]">{s.usage}</p>
+                <code className="type-caption font-mono text-text-secondary">{s.tailwind}</code>
+                <p className="hidden md:block type-caption text-text-secondary">{s.usage}</p>
               </div>
             );
           })}
@@ -1161,9 +1191,9 @@ function FoundationsTab() {
                 style={{ background: 'var(--color-bg-hover)', borderRadius: `var(${r.token})` }}
                 aria-hidden
               />
-              <code className="text-[12px] font-mono text-text-primary">{r.token}</code>
-              <div className="text-[11px] font-mono text-text-secondary">{r.css}</div>
-              <p className="mt-1 text-[11px] text-text-secondary leading-[15px]">{r.usage}</p>
+              <code className="type-caption font-mono text-text-primary">{r.token}</code>
+              <div className="type-caption font-mono text-text-secondary">{r.css}</div>
+              <p className="mt-1 type-caption text-text-secondary">{r.usage}</p>
             </div>
           ))}
         </div>
@@ -1173,9 +1203,9 @@ function FoundationsTab() {
       <SectionTitle id="ds-foundation-icons">Icon Library</SectionTitle>
 
       <div className="mb-4 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
-        <p className="type-detail text-text-primary mb-1"><strong>Library:</strong> <code className="text-[12px] font-mono" style={{ color: 'var(--color-accent-blue)' }}>lucide-react</code> — the single icon source.</p>
+        <p className="type-detail text-text-primary mb-1"><strong>Library:</strong> <code className="type-caption font-mono" style={{ color: 'var(--color-accent-blue)' }}>lucide-react</code> — the single icon source.</p>
         <p className="type-detail text-text-secondary">
-          Never import from any other icon library, and never inline custom SVGs in components. Icons inherit <code className="text-[12px] font-mono">currentColor</code> — size with the <code className="text-[12px] font-mono">size</code> prop; color via parent text color or a direct <code className="text-[12px] font-mono">color</code> style. Default stroke width is <code className="text-[12px] font-mono">2</code>.
+          Never import from any other icon library, and never inline custom SVGs in components. Icons inherit <code className="type-caption font-mono">currentColor</code> — size with the <code className="type-caption font-mono">size</code> prop; color via parent text color or a direct <code className="type-caption font-mono">color</code> style. Default stroke width is <code className="type-caption font-mono">2</code>.
         </p>
       </div>
 
@@ -1183,7 +1213,7 @@ function FoundationsTab() {
       <div className="mb-4 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
         <div className="type-detail-emphasized text-text-primary mb-1">Size ramp</div>
         <p className="type-detail text-text-secondary mb-4">
-          Preferred sizes. Snap to one of these; avoid arbitrary values. Showcasing <code className="text-[12px] font-mono">&lt;Search /&gt;</code> at each step.
+          Preferred sizes. Snap to one of these; avoid arbitrary values. Showcasing <code className="type-caption font-mono">&lt;Search /&gt;</code> at each step.
         </p>
         <div className="flex flex-wrap items-end gap-6">
           {[12, 14, 16, 20, 24, 28, 32].map(sz => (
@@ -1194,8 +1224,8 @@ function FoundationsTab() {
               >
                 <SHOWCASE_ICON size={sz} />
               </div>
-              <code className="text-[11px] font-mono text-text-primary">size={sz}</code>
-              <span className="text-[11px] text-text-secondary">{sz === 16 ? 'default' : sz === 20 ? 'sidebar' : sz === 24 ? 'toolbar' : ''}</span>
+              <code className="type-caption font-mono text-text-primary">size={sz}</code>
+              <span className="type-caption text-text-secondary">{sz === 16 ? 'default' : sz === 20 ? 'sidebar' : sz === 24 ? 'toolbar' : ''}</span>
             </div>
           ))}
         </div>
@@ -1205,7 +1235,7 @@ function FoundationsTab() {
       <div className="mb-4 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
         <div className="type-detail-emphasized text-text-primary mb-1">Color</div>
         <p className="type-detail text-text-secondary mb-4">
-          Icons render with <code className="text-[12px] font-mono">currentColor</code> — color comes from the text color of the parent, or an inline <code className="text-[12px] font-mono">color</code> style pointing at a token. Showcasing <code className="text-[12px] font-mono">&lt;BadgeCheck /&gt;</code>, <code className="text-[12px] font-mono">&lt;AlertTriangle /&gt;</code>, <code className="text-[12px] font-mono">&lt;XCircle /&gt;</code>, <code className="text-[12px] font-mono">&lt;Clock /&gt;</code>, <code className="text-[12px] font-mono">&lt;Sparkles /&gt;</code>.
+          Icons render with <code className="type-caption font-mono">currentColor</code> — color comes from the text color of the parent, or an inline <code className="type-caption font-mono">color</code> style pointing at a token. Showcasing <code className="type-caption font-mono">&lt;BadgeCheck /&gt;</code>, <code className="type-caption font-mono">&lt;AlertTriangle /&gt;</code>, <code className="type-caption font-mono">&lt;XCircle /&gt;</code>, <code className="type-caption font-mono">&lt;Clock /&gt;</code>, <code className="type-caption font-mono">&lt;Sparkles /&gt;</code>.
         </p>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {[
@@ -1231,7 +1261,7 @@ function FoundationsTab() {
                 </div>
                 <div className="min-w-0">
                   <div className="type-detail-emphasized text-text-primary truncate">{r.label}</div>
-                  <code className="block text-[11px] font-mono text-text-secondary truncate">{r.token}</code>
+                  <code className="block type-caption font-mono text-text-secondary truncate">{r.token}</code>
                 </div>
               </div>
             );
@@ -1243,7 +1273,7 @@ function FoundationsTab() {
       <div className="mb-4 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
         <div className="type-detail-emphasized text-text-primary mb-1">Stroke weight</div>
         <p className="type-detail text-text-secondary mb-4">
-          Default is <code className="text-[12px] font-mono">2</code>. Heavier weights read better at very small sizes; lighter weights at large display sizes.
+          Default is <code className="type-caption font-mono">2</code>. Heavier weights read better at very small sizes; lighter weights at large display sizes.
         </p>
         <div className="flex flex-wrap items-end gap-6">
           {[1, 1.5, 2, 2.5, 3].map(sw => (
@@ -1254,7 +1284,7 @@ function FoundationsTab() {
               >
                 <SHOWCASE_ICON size={24} strokeWidth={sw} />
               </div>
-              <code className="text-[11px] font-mono text-text-primary">strokeWidth={sw}</code>
+              <code className="type-caption font-mono text-text-primary">strokeWidth={sw}</code>
             </div>
           ))}
         </div>
@@ -1318,7 +1348,7 @@ function FoundationsTab() {
             <div key={g.group}>
               <div className="flex items-baseline gap-2 mb-2">
                 <div className="type-detail-emphasized text-text-primary">{g.group}</div>
-                <span className="text-[11px] text-text-secondary">· {g.blurb}</span>
+                <span className="type-caption text-text-secondary">· {g.blurb}</span>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                 {g.icons.map(ic => {
@@ -1332,8 +1362,8 @@ function FoundationsTab() {
                         <Ico size={20} />
                       </div>
                       <div className="min-w-0">
-                        <code className="block text-[12px] font-mono text-text-primary truncate">{ic.name}</code>
-                        <p className="text-[11px] text-text-secondary leading-[14px] truncate">{ic.purpose}</p>
+                        <code className="block type-caption font-mono text-text-primary truncate">{ic.name}</code>
+                        <p className="type-caption text-text-secondary truncate">{ic.purpose}</p>
                         <p className="text-[10px] text-text-tertiary leading-[13px] truncate">{ic.usedIn}</p>
                       </div>
                     </div>
@@ -1344,7 +1374,7 @@ function FoundationsTab() {
           ))}
         </div>
         <p className="type-detail text-text-secondary mt-4">
-          <strong>Monochrome PNGs in dark mode:</strong> any <code className="text-[12px] font-mono">.png</code> logo uses the <code className="text-[12px] font-mono">.icon-theme</code> class for auto black→white inversion. Lucide SVGs inherit <code className="text-[12px] font-mono">currentColor</code> and need no inversion.
+          <strong>Monochrome PNGs in dark mode:</strong> any <code className="type-caption font-mono">.png</code> logo uses the <code className="type-caption font-mono">.icon-theme</code> class for auto black→white inversion. Lucide SVGs inherit <code className="type-caption font-mono">currentColor</code> and need no inversion.
         </p>
       </div>
 
@@ -1352,11 +1382,11 @@ function FoundationsTab() {
       <div className="mb-6 rounded-2xl border p-5" style={{ background: 'var(--color-bg-hover)', borderColor: 'var(--color-stroke-outline)' }}>
         <div className="type-body-emphasized text-text-primary mb-2">Foundation usage checklist</div>
         <ul className="list-disc pl-5 type-detail text-text-primary space-y-1">
-          <li>Colors: use <code className="text-[12px] font-mono">text-text-*</code> / <code className="text-[12px] font-mono">bg-bg-*</code> / <code className="text-[12px] font-mono">border-stroke-outline</code>, or <code className="text-[12px] font-mono">var(--color-*)</code> inline. Never a raw hex.</li>
-          <li>Typography: one of <code className="text-[12px] font-mono">type-display</code>, <code className="text-[12px] font-mono">type-h1</code>, <code className="text-[12px] font-mono">type-body</code>, <code className="text-[12px] font-mono">type-body-emphasized</code>, <code className="text-[12px] font-mono">type-h2</code>, <code className="text-[12px] font-mono">type-h2-emphasized</code>, <code className="text-[12px] font-mono">type-detail</code>, <code className="text-[12px] font-mono">type-detail-emphasized</code>.</li>
-          <li>Spacing: Tailwind scale (<code className="text-[12px] font-mono">p-*, gap-*, mt-*</code>). No arbitrary <code className="text-[12px] font-mono">gap-[9px]</code>.</li>
-          <li>Radius: <code className="text-[12px] font-mono">rounded-lg</code> for cards, <code className="text-[12px] font-mono">rounded-full</code> for pills, <code className="text-[12px] font-mono">rounded-[40px]</code> for the app shell.</li>
-          <li>Icons: <code className="text-[12px] font-mono">lucide-react</code> only.</li>
+          <li>Colors: use <code className="type-caption font-mono">text-text-*</code> / <code className="type-caption font-mono">bg-bg-*</code> / <code className="type-caption font-mono">border-stroke-outline</code>, or <code className="type-caption font-mono">var(--color-*)</code> inline. Never a raw hex.</li>
+          <li>Typography: one of <code className="type-caption font-mono">type-display</code>, <code className="type-caption font-mono">type-h1</code>, <code className="type-caption font-mono">type-body</code>, <code className="type-caption font-mono">type-body-emphasized</code>, <code className="type-caption font-mono">type-h2</code>, <code className="type-caption font-mono">type-h2-emphasized</code>, <code className="type-caption font-mono">type-detail</code>, <code className="type-caption font-mono">type-detail-emphasized</code>.</li>
+          <li>Spacing: Tailwind scale (<code className="type-caption font-mono">p-*, gap-*, mt-*</code>). No arbitrary <code className="type-caption font-mono">gap-[9px]</code>.</li>
+          <li>Radius: <code className="type-caption font-mono">rounded-lg</code> for cards, <code className="type-caption font-mono">rounded-full</code> for pills, <code className="type-caption font-mono">rounded-[40px]</code> for the app shell.</li>
+          <li>Icons: <code className="type-caption font-mono">lucide-react</code> only.</li>
         </ul>
       </div>
     </div>
@@ -1375,14 +1405,14 @@ function LayoutCard({
     <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
       <div className="flex items-center gap-2 mb-1">
         <span className="text-[16px] font-bold text-text-primary">{name}</span>
-        <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
+        <span className="type-caption px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
       </div>
       <div className="mt-3">{children}</div>
       <div className="mt-4 pt-3 border-t border-stroke-outline">
         <div className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.5px] mb-2">Used by</div>
         <div className="flex flex-wrap gap-2">
           {pagesUsing.map(p => (
-            <span key={p} className="text-[12px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">{p}</span>
+            <span key={p} className="type-caption px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">{p}</span>
           ))}
         </div>
       </div>
@@ -1398,9 +1428,9 @@ function LayoutsTab() {
       <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
         <div className="flex items-center gap-2 mb-1">
           <span className="text-[16px] font-bold text-text-primary">App Shell — Three-Panel Structure</span>
-          <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">App.tsx</span>
+          <span className="type-caption px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">App.tsx</span>
         </div>
-        <p className="text-[13px] text-text-primary leading-[20px] mt-2 mb-4">
+        <p className="type-caption text-text-primary mt-2 mb-4">
           Every WorkPal view composes into a single three-panel shell: <strong>NavPanel</strong> (global navigation), <strong>ConversationPanel</strong> (primary working surface), and <strong>InspectorPanel</strong> (contextual detail). Foundations tokens flow through all three; edit a color once and every panel updates.
         </p>
 
@@ -1411,7 +1441,7 @@ function LayoutsTab() {
             <div className="relative border-r border-dashed border-stroke-outline p-3 flex flex-col justify-between" style={{ background: 'var(--color-sidebar-bg)' }}>
               <div>
                 <div className="type-detail-emphasized text-text-primary">NavPanel</div>
-                <div className="text-[10px] font-mono text-text-secondary leading-[14px] mt-1">300px / 64px collapsed</div>
+                <div className="type-caption font-mono text-text-secondary mt-1">300px / 64px collapsed</div>
               </div>
               <div className="flex flex-col gap-1.5" aria-hidden>
                 <div className="h-3 rounded" style={{ background: 'var(--color-bg-hover)' }} />
@@ -1424,9 +1454,9 @@ function LayoutsTab() {
             <div className="relative p-3 flex flex-col" style={{ background: 'var(--color-bg-page)' }}>
               <div className="flex items-center justify-between">
                 <div className="type-detail-emphasized text-text-primary">ConversationPanel</div>
-                <span className="text-[10px] font-mono text-text-secondary">flex-1</span>
+                <span className="type-caption font-mono text-text-secondary">flex-1</span>
               </div>
-              <div className="text-[10px] font-mono text-text-secondary leading-[14px] mt-1 mb-3">primary working surface · max-w 863px</div>
+              <div className="type-caption font-mono text-text-secondary mt-1 mb-3">primary working surface · max-w 863px</div>
               <div className="flex-1 flex flex-col justify-end gap-2" aria-hidden>
                 <div className="h-5 w-2/3 rounded-lg self-start" style={{ background: 'var(--color-bg-hover)' }} />
                 <div className="h-5 w-3/4 rounded-lg self-end" style={{ background: 'var(--color-selected-bg)' }} />
@@ -1440,7 +1470,7 @@ function LayoutsTab() {
                   <div className="type-detail-emphasized text-text-primary">InspectorPanel</div>
                   <PanelRight size={14} />
                 </div>
-                <div className="text-[10px] font-mono text-text-secondary leading-[14px] mt-1">280–504px · optional</div>
+                <div className="type-caption font-mono text-text-secondary mt-1">280–504px · optional</div>
               </div>
               <div className="flex flex-col gap-1.5" aria-hidden>
                 <div className="h-3 rounded w-full" style={{ background: 'var(--color-bg-hover)' }} />
@@ -1479,53 +1509,53 @@ function LayoutsTab() {
             <div key={p.panel} className="rounded-xl border border-stroke-outline p-4" style={{ background: 'var(--color-bg-hover)' }}>
               <div className="flex items-center justify-between mb-2">
                 <span className="type-detail-emphasized text-text-primary">{p.panel}</span>
-                <span className="text-[10px] font-mono text-text-secondary">{p.widthHint}</span>
+                <span className="type-caption font-mono text-text-secondary">{p.widthHint}</span>
               </div>
-              <p className="text-[12px] text-text-primary leading-[17px] mb-3">{p.role}</p>
+              <p className="type-caption text-text-primary mb-3">{p.role}</p>
               <div className="text-[10px] font-semibold uppercase tracking-[0.5px] text-text-secondary mb-1">Code</div>
               <div className="flex flex-wrap gap-1 mb-3">
                 {p.components.map(c => (
-                  <code key={c} className="text-[11px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-page)', color: 'var(--color-accent-blue)' }}>{c}</code>
+                  <code key={c} className="type-caption font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-page)', color: 'var(--color-accent-blue)' }}>{c}</code>
                 ))}
               </div>
-              <pre className="text-[10px] font-mono text-text-secondary leading-[14px] whitespace-pre-wrap">{p.sizing}</pre>
+              <pre className="type-caption font-mono text-text-secondary whitespace-pre-wrap">{p.sizing}</pre>
             </div>
           ))}
         </div>
 
         <div className="mt-4 pt-3 border-t border-stroke-outline">
-          <p className="text-[12px] text-text-primary leading-[18px]">
-            <strong>Rule:</strong> a new feature is a <em>slot</em> in one of these three panels — never a new top-level chrome element. If you need a new panel primitive, build it in <code className="text-[11px] font-mono">shared.tsx</code> and register it under the relevant panel here.
+          <p className="type-caption text-text-primary">
+            <strong>Rule:</strong> a new feature is a <em>slot</em> in one of these three panels — never a new top-level chrome element. If you need a new panel primitive, build it in <code className="type-caption font-mono">shared.tsx</code> and register it under the relevant panel here.
           </p>
         </div>
       </div>
 
       <LayoutCard name="PageLayout" pagesUsing={['OverviewPage', 'LibraryPage', 'ConnectorsPage', 'DesignSystemPage', 'Onboarding', 'ProjectPage', 'ComingSoonPage']}>
-        <p className="text-[13px] text-text-primary leading-[20px] mb-3">
-          Canonical page shell. Toggle bar + H1 + optional filters + scrollable body. Edit the spec in <code className="text-[12px] font-mono px-1 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>shared.tsx</code> once — every page updates.
+        <p className="type-caption text-text-primary mb-3">
+          Canonical page shell. Toggle bar + H1 + optional filters + scrollable body. Edit the spec in <code className="type-caption font-mono px-1 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>shared.tsx</code> once — every page updates.
         </p>
         <div className="rounded-lg border border-stroke-outline overflow-hidden" style={{ background: 'var(--color-bg-hover)' }}>
           <div className="p-5">
             <div className="rounded border border-dashed border-stroke-outline flex items-center px-3" style={{ height: 40, background: 'var(--color-bg-page)' }}>
-              <span className="text-[11px] font-mono text-text-secondary">Toggle bar · h-12</span>
+              <span className="type-caption font-mono text-text-secondary">Toggle bar · h-12</span>
             </div>
             <div className="mt-3 rounded border border-dashed border-stroke-outline px-4 py-3" style={{ background: 'var(--color-bg-page)' }}>
               <span className="text-[16px] font-bold text-text-primary">Page Title</span>
-              <span className="ml-3 text-[11px] font-mono text-text-secondary">text-[40px] / 48 / 700</span>
+              <span className="ml-3 type-caption font-mono text-text-secondary">text-[40px] / 48 / 700</span>
             </div>
             <div className="mt-3 rounded border border-dashed border-stroke-outline flex items-center gap-2 px-3 py-2" style={{ background: 'var(--color-bg-page)' }}>
-              <span className="px-3 py-1 rounded-full text-[11px] text-text-primary border border-stroke-outline">Filter A</span>
-              <span className="px-3 py-1 rounded-full text-[11px] text-text-primary border border-stroke-outline">Filter B</span>
-              <span className="ml-auto text-[11px] font-mono text-text-secondary">filters? (optional)</span>
+              <span className="px-3 py-1 rounded-full type-caption text-text-primary border border-stroke-outline">Filter A</span>
+              <span className="px-3 py-1 rounded-full type-caption text-text-primary border border-stroke-outline">Filter B</span>
+              <span className="ml-auto type-caption font-mono text-text-secondary">filters? (optional)</span>
             </div>
             <div className="mt-3 rounded border border-dashed border-stroke-outline flex items-center justify-center" style={{ background: 'var(--color-bg-page)', height: 100 }}>
-              <span className="text-[12px] font-mono text-text-secondary">children · maxWidth: 'full' | 'reading' (863px)</span>
+              <span className="type-caption font-mono text-text-secondary">children · maxWidth: 'full' | 'reading' (863px)</span>
             </div>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-[13px] text-text-primary mt-4">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-2 type-caption text-text-primary mt-4">
           <div><strong>Toggle bar:</strong> h-12 (48px)</div>
-          <div><strong>Horizontal pad:</strong> <code className="font-mono text-[12px]">px-4 sm:px-8</code></div>
+          <div><strong>Horizontal pad:</strong> <code className="font-mono type-caption">px-4 sm:px-8</code></div>
           <div><strong>Title → filters:</strong> mt-6</div>
           <div><strong>Title/filters → content:</strong> mt-8</div>
           <div><strong>maxWidth 'full':</strong> no limit</div>
@@ -1534,7 +1564,7 @@ function LayoutsTab() {
       </LayoutCard>
 
       <LayoutCard name="HeaderBar" pagesUsing={['ChatPanel']}>
-        <p className="text-[13px] text-text-primary leading-[20px] mb-3">
+        <p className="type-caption text-text-primary mb-3">
           Slim top bar — hamburger (when sidebar closed) + optional right slot. Used by pages that don't take PageLayout (mainly ChatPanel).
         </p>
         <div className="rounded-lg overflow-hidden border border-stroke-outline" style={{ background: 'var(--color-bg-page)' }}>
@@ -1544,13 +1574,13 @@ function LayoutsTab() {
             headerRight={<TertiaryButton>Panel</TertiaryButton>}
           />
         </div>
-        <div className="text-[12px] text-text-primary leading-[18px] mt-3">
-          <strong>Props:</strong> <code className="font-mono text-[12px]">sidebarOpen</code>, <code className="font-mono text-[12px]">onToggleSidebar</code>, <code className="font-mono text-[12px]">headerRight</code>
+        <div className="type-caption text-text-primary mt-3">
+          <strong>Props:</strong> <code className="font-mono type-caption">sidebarOpen</code>, <code className="font-mono type-caption">onToggleSidebar</code>, <code className="font-mono type-caption">headerRight</code>
         </div>
       </LayoutCard>
 
       <LayoutCard name="SplitView" pagesUsing={['ProjectPage', 'LibraryPage (detail panel)']}>
-        <p className="text-[13px] text-text-primary leading-[20px] mb-3">
+        <p className="type-caption text-text-primary mb-3">
           Main column + collapsible side column. Auto-switches to overlay mode when the viewport is too narrow to fit both inline.
         </p>
         <div className="rounded-lg overflow-hidden border border-stroke-outline mb-3" style={{ background: 'var(--color-bg-page)', height: 220 }}>
@@ -1562,13 +1592,13 @@ function LayoutsTab() {
             side={
               <div className="h-full border-l border-stroke-outline p-4" style={{ background: 'var(--color-bg-hover)' }}>
                 <SidePanelHeader title="Side panel" onClose={() => setSideOpen(false)} />
-                <p className="text-[12px] text-text-secondary">Side column content</p>
+                <p className="type-caption text-text-secondary">Side column content</p>
               </div>
             }
           >
             <div className="flex-1 p-4 flex items-center justify-center">
               <div className="text-center">
-                <p className="text-[13px] text-text-primary mb-2">Main column</p>
+                <p className="type-caption text-text-primary mb-2">Main column</p>
                 {!sideOpen && (
                   <TertiaryButton onClick={() => setSideOpen(true)}>Open side panel</TertiaryButton>
                 )}
@@ -1576,13 +1606,13 @@ function LayoutsTab() {
             </div>
           </SplitView>
         </div>
-        <div className="text-[12px] text-text-primary leading-[18px]">
-          <strong>Props:</strong> <code className="font-mono text-[12px]">side</code>, <code className="font-mono text-[12px]">sideOpen</code>, <code className="font-mono text-[12px]">onCloseSide</code>, <code className="font-mono text-[12px]">sideWidth</code>, <code className="font-mono text-[12px]">mainMinWidth</code>
+        <div className="type-caption text-text-primary">
+          <strong>Props:</strong> <code className="font-mono type-caption">side</code>, <code className="font-mono type-caption">sideOpen</code>, <code className="font-mono type-caption">onCloseSide</code>, <code className="font-mono type-caption">sideWidth</code>, <code className="font-mono type-caption">mainMinWidth</code>
         </div>
       </LayoutCard>
 
       <LayoutCard name="SidePanelHeader" pagesUsing={['ProjectPage side panel', 'TaskContextPanel', 'DetailPanel']}>
-        <p className="text-[13px] text-text-primary leading-[20px] mb-3">
+        <p className="type-caption text-text-primary mb-3">
           Shared header row for any side panel. Unifies close-button size (40px rounded-xl), hover, and typography across every panel.
         </p>
         <div className="rounded-lg overflow-hidden border border-stroke-outline mb-3" style={{ background: 'var(--color-bg-page)' }}>
@@ -1591,28 +1621,28 @@ function LayoutsTab() {
         <div className="rounded-lg overflow-hidden border border-stroke-outline mb-3" style={{ background: 'var(--color-bg-page)' }}>
           <SidePanelHeader title="With panel-right toggle" onClose={() => {}} closeIcon="panel-right" />
         </div>
-        <div className="text-[12px] text-text-primary leading-[18px]">
-          <strong>Props:</strong> <code className="font-mono text-[12px]">title</code>, <code className="font-mono text-[12px]">onClose</code>, <code className="font-mono text-[12px]">closeIcon</code> ('x' | 'panel-right'), <code className="font-mono text-[12px]">closeLabel</code>
+        <div className="type-caption text-text-primary">
+          <strong>Props:</strong> <code className="font-mono type-caption">title</code>, <code className="font-mono type-caption">onClose</code>, <code className="font-mono type-caption">closeIcon</code> ('x' | 'panel-right'), <code className="font-mono type-caption">closeLabel</code>
         </div>
       </LayoutCard>
 
       <LayoutCard name="SideCard" pagesUsing={['ProjectPage (Instructions/Scheduled/Files/Context)', 'TaskContextPanel']}>
-        <p className="text-[13px] text-text-primary leading-[20px] mb-3">
+        <p className="type-caption text-text-primary mb-3">
           Collapsible card for right-column side panels. Header with title + optional icon + optional add affordance + chevron.
         </p>
         <div className="flex flex-col gap-2 p-3 rounded-lg" style={{ background: 'var(--color-bg-hover)' }}>
           <SideCard title="Instructions" defaultOpen>
-            <p className="text-[13px] text-text-primary">Write guidance for how the assistant should act in this project.</p>
+            <p className="type-caption text-text-primary">Write guidance for how the assistant should act in this project.</p>
           </SideCard>
           <SideCard title="Scheduled" hasAdd>
-            <p className="text-[13px] text-text-primary">Recurring briefings and workflows.</p>
+            <p className="type-caption text-text-primary">Recurring briefings and workflows.</p>
           </SideCard>
           <SideCard title="Files">
-            <p className="text-[13px] text-text-primary">Attached documents.</p>
+            <p className="type-caption text-text-primary">Attached documents.</p>
           </SideCard>
         </div>
-        <div className="text-[12px] text-text-primary leading-[18px] mt-3">
-          <strong>Props:</strong> <code className="font-mono text-[12px]">title</code>, <code className="font-mono text-[12px]">icon</code>, <code className="font-mono text-[12px]">hasAdd</code>, <code className="font-mono text-[12px]">defaultOpen</code>
+        <div className="type-caption text-text-primary mt-3">
+          <strong>Props:</strong> <code className="font-mono type-caption">title</code>, <code className="font-mono type-caption">icon</code>, <code className="font-mono type-caption">hasAdd</code>, <code className="font-mono type-caption">defaultOpen</code>
         </div>
       </LayoutCard>
     </div>
@@ -1775,7 +1805,7 @@ function LiveNewProjectDialog() {
   return (
     <div className="flex flex-col items-start gap-3">
       <PrimaryButton onClick={() => setOpen(true)}>Open &ldquo;New Project&rdquo; dialog</PrimaryButton>
-      <p className="text-[12px] text-text-secondary">Modal mounts into a portal and overlays the page.</p>
+      <p className="type-caption text-text-secondary">Modal mounts into a portal and overlays the page.</p>
       <NewProjectDialog open={open} onClose={() => setOpen(false)} onCreate={() => setOpen(false)} />
     </div>
   );
@@ -1842,11 +1872,11 @@ function LivePermissionPrompt() {
           </PrimaryButton>
         ))}
       </div>
-      <p className="text-[12px] text-text-secondary">
+      <p className="type-caption text-text-secondary">
         Cancel / Always allow / Allow — mirrors the Claude Cowork permission prompt.
       </p>
       {lastDecision && (
-        <p className="text-[12px] text-text-primary" aria-live="polite">
+        <p className="type-caption text-text-primary" aria-live="polite">
           Last decision: <span className="font-semibold">{lastDecision}</span>
         </p>
       )}
@@ -1891,9 +1921,9 @@ function LibraryEntry({ entry }: { entry: LibEntry }) {
     <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
       <div className="flex items-center gap-2 mb-1">
         <span className="text-[14px] font-bold text-text-primary">{entry.name}</span>
-        <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
+        <span className="type-caption px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
       </div>
-      <p className="text-[13px] text-text-primary leading-[18px] mb-3">{entry.description}</p>
+      <p className="type-caption text-text-primary mb-3">{entry.description}</p>
       <div className="p-4 rounded-xl mb-3" style={{ background: 'var(--color-bg-hover)' }}>
         {entry.preview}
       </div>
@@ -1901,7 +1931,7 @@ function LibraryEntry({ entry }: { entry: LibEntry }) {
         <div className="text-[11px] font-semibold text-text-primary uppercase tracking-[0.5px] mb-2">Used in</div>
         <div className="flex flex-wrap gap-2">
           {entry.usedIn.map(page => (
-            <span key={page} className="text-[12px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">{page}</span>
+            <span key={page} className="type-caption px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">{page}</span>
           ))}
         </div>
       </div>
@@ -2063,9 +2093,9 @@ function ComponentsTab() {
       usedIn: ['TaskProgressCard steps'],
       preview: (
         <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2"><StepIndicator status="done" /><span className="text-[12px] text-text-primary">Done</span></div>
-          <div className="flex items-center gap-2"><StepIndicator status="in-progress" /><span className="text-[12px] text-text-primary">In progress</span></div>
-          <div className="flex items-center gap-2"><StepIndicator status="pending" /><span className="text-[12px] text-text-primary">Pending</span></div>
+          <div className="flex items-center gap-2"><StepIndicator status="done" /><span className="type-caption text-text-primary">Done</span></div>
+          <div className="flex items-center gap-2"><StepIndicator status="in-progress" /><span className="type-caption text-text-primary">In progress</span></div>
+          <div className="flex items-center gap-2"><StepIndicator status="pending" /><span className="type-caption text-text-primary">Pending</span></div>
         </div>
       ),
     },
@@ -2315,13 +2345,13 @@ function ComponentsTab() {
       preview: (
         <div className="flex flex-col gap-2">
           <SideCard title="Instructions" defaultOpen>
-            <p className="text-[13px] text-text-primary">Write guidance for how the assistant should act in this project.</p>
+            <p className="type-caption text-text-primary">Write guidance for how the assistant should act in this project.</p>
           </SideCard>
           <SideCard title="Scheduled" hasAdd>
-            <p className="text-[13px] text-text-primary">Recurring briefings and workflows.</p>
+            <p className="type-caption text-text-primary">Recurring briefings and workflows.</p>
           </SideCard>
           <SideCard title="Files">
-            <p className="text-[13px] text-text-primary">Attached documents.</p>
+            <p className="type-caption text-text-primary">Attached documents.</p>
           </SideCard>
         </div>
       ),
@@ -2384,12 +2414,12 @@ function ComponentsTab() {
 
   return (
     <div>
-      <p className="text-[13px] text-text-primary leading-[20px] mb-5">
+      <p className="type-caption text-text-primary mb-5">
         All components below are <strong>rendered live</strong> from the real WorkPal codebase — not screenshots or mocks.
         Foundations changes (colors, typography, spacing, radius) propagate here automatically. Shared primitives live in
-        <code className="text-[12px] font-mono px-1.5 py-0.5 rounded mx-1" style={{ background: 'var(--color-bg-hover)', color: 'var(--color-accent-blue)' }}>src/components/shared.tsx</code>;
+        <code className="type-caption font-mono px-1.5 py-0.5 rounded mx-1" style={{ background: 'var(--color-bg-hover)', color: 'var(--color-accent-blue)' }}>src/components/shared.tsx</code>;
         feature components (chat, panels, pages) live next to them in
-        <code className="text-[12px] font-mono px-1.5 py-0.5 rounded mx-1" style={{ background: 'var(--color-bg-hover)', color: 'var(--color-accent-blue)' }}>src/components/*</code>.
+        <code className="type-caption font-mono px-1.5 py-0.5 rounded mx-1" style={{ background: 'var(--color-bg-hover)', color: 'var(--color-accent-blue)' }}>src/components/*</code>.
         <strong> Always check this library first</strong> before building anything new.
       </p>
 
@@ -2496,12 +2526,12 @@ function AgentVideoRow({
         {/* Metadata */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <span className="text-[13px] font-mono text-text-primary truncate">{fileName}</span>
-            <span className="text-[11px] px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary capitalize">
+            <span className="type-caption font-mono text-text-primary truncate">{fileName}</span>
+            <span className="type-caption px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary capitalize">
               {mode}
             </span>
           </div>
-          <p className="text-[11px] text-text-secondary font-mono truncate">{src}</p>
+          <p className="type-caption text-text-secondary font-mono truncate">{src}</p>
         </div>
       </div>
 
@@ -2551,7 +2581,7 @@ function AgentVideosTab() {
           <Video size={16} className="text-text-primary" />
           <span className="text-[16px] font-bold text-text-primary">Welcome-state avatar videos</span>
         </div>
-        <p className="text-[13px] text-text-primary leading-[20px] mb-3">
+        <p className="type-caption text-text-primary mb-3">
           Each agent has a pool of idle videos that play in the welcome state of a new chat. One is picked at random per
           session (separately for light / dark mode). The toggle on each row flips between <strong>Active</strong>{' '}
           (in rotation) and <strong>Inactive</strong> (skipped). State syncs across browsers via the server (with a
@@ -2560,7 +2590,7 @@ function AgentVideosTab() {
         <div className="flex flex-wrap gap-2">
           <StatusTag variant="success" label={`${totals.active} active`}    size="sm" showIcon={false} />
           <StatusTag variant="pending" label={`${totals.inactive} inactive`} size="sm" showIcon={false} />
-          <span className="text-[12px] text-text-secondary self-center">of {totals.total} total</span>
+          <span className="type-caption text-text-secondary self-center">of {totals.total} total</span>
         </div>
       </div>
 
@@ -2575,8 +2605,8 @@ function AgentVideosTab() {
                 <img src={agent.avatar} alt={agent.name} className="w-full h-full object-cover" />
               </div>
               <div>
-                <h2 className="type-h1 text-text-primary">{agent.name}</h2>
-                <p className="text-[12px] text-text-secondary">
+                <h2 className="type-h1--emphasized text-text-primary">{agent.name}</h2>
+                <p className="type-caption text-text-secondary">
                   {lightVideos.length} light · {darkVideos.length} dark
                 </p>
               </div>
@@ -2748,7 +2778,7 @@ function ReviewTab() {
       preview: (
         <div className="flex flex-wrap items-center gap-3">
           <ToolbarSegmentedPreview />
-          <span className="text-[13px] text-text-secondary">
+          <span className="type-caption text-text-secondary">
             Click a segment — selected widens to show its label, others show tooltip on hover.
           </span>
         </div>
@@ -2764,7 +2794,7 @@ function ReviewTab() {
       preview: (
         <div className="flex flex-wrap items-center gap-3">
           <SwitchPreview />
-          <span className="text-[13px] text-text-secondary">
+          <span className="type-caption text-text-secondary">
             Click either segment — selected uses --color-selected-bg / --color-selected-text.
           </span>
         </div>
@@ -2787,11 +2817,11 @@ function ReviewTab() {
           <span className="text-[16px]">🧪</span>
           <span className="text-[16px] font-bold text-text-primary">How the review queue works</span>
         </div>
-        <ol className="list-decimal pl-5 text-[13px] text-text-primary leading-[22px] space-y-1">
+        <ol className="list-decimal pl-5 type-caption text-text-primary space-y-1">
           <li>When building a feature, I always check the <strong>Component Library</strong> first.</li>
           <li>Whenever possible, I reuse an existing shared component.</li>
           <li>If nothing fits, I build a new component and <strong>add it here</strong> so you can review.</li>
-          <li>You <strong>Approve</strong> (promote to <code className="font-mono text-[12px] px-1 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>shared.tsx</code> permanently) or <strong>Reject</strong> (I remove it and switch back to the closest existing component).</li>
+          <li>You <strong>Approve</strong> (promote to <code className="font-mono type-caption px-1 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>shared.tsx</code> permanently) or <strong>Reject</strong> (I remove it and switch back to the closest existing component).</li>
         </ol>
       </div>
 
@@ -2800,7 +2830,7 @@ function ReviewTab() {
       {pending.length === 0 ? (
         <div className="mb-6 rounded-2xl border border-dashed border-stroke-outline p-8 text-center" style={{ background: 'var(--color-bg-page)' }}>
           <p className="text-[14px] text-text-primary mb-1">No components awaiting review</p>
-          <p className="text-[13px] text-text-secondary leading-[20px]">When I build something new that isn't in the library yet, it will show up here for your approval.</p>
+          <p className="type-caption text-text-secondary">When I build something new that isn't in the library yet, it will show up here for your approval.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-4 mb-6">
@@ -2810,9 +2840,9 @@ function ReviewTab() {
                 <span className="text-[14px] font-bold text-text-primary">{item.name}</span>
                 <StatusTag variant="in-review" label="Pending review" size="sm" />
               </div>
-              <p className="text-[13px] text-text-primary leading-[20px] mb-1"><strong>Built for:</strong> {item.builtFor}</p>
-              <p className="text-[13px] text-text-primary leading-[20px] mb-1"><strong>Reason new component was needed:</strong> {item.reason}</p>
-              <p className="text-[13px] text-text-primary leading-[20px] mb-3"><strong>Closest existing component:</strong> {item.closestExisting}</p>
+              <p className="type-caption text-text-primary mb-1"><strong>Built for:</strong> {item.builtFor}</p>
+              <p className="type-caption text-text-primary mb-1"><strong>Reason new component was needed:</strong> {item.reason}</p>
+              <p className="type-caption text-text-primary mb-3"><strong>Closest existing component:</strong> {item.closestExisting}</p>
               <div className="p-4 rounded-xl mb-3" style={{ background: 'var(--color-bg-hover)' }}>{item.preview}</div>
               <div className="flex gap-2">
                 <PrimaryButton onClick={() => setStatus(item.id, 'approved')}>Approve</PrimaryButton>
@@ -2832,7 +2862,7 @@ function ReviewTab() {
               <div key={item.id} className="rounded-2xl border border-stroke-outline p-4 flex items-center gap-3" style={{ background: 'var(--color-bg-page)' }}>
                 <StatusTag variant="success" label="Approved" size="sm" />
                 <span className="text-[14px] font-bold text-text-primary">{item.name}</span>
-                <span className="text-[12px] text-text-secondary flex-1">{item.builtFor}</span>
+                <span className="type-caption text-text-secondary flex-1">{item.builtFor}</span>
                 <TertiaryButton onClick={() => setStatus(item.id, 'pending')}>Move back to pending</TertiaryButton>
               </div>
             ))}
@@ -2849,7 +2879,7 @@ function ReviewTab() {
               <div key={item.id} className="rounded-2xl border border-stroke-outline p-4 flex items-center gap-3" style={{ background: 'var(--color-bg-page)' }}>
                 <StatusTag variant="failed" label="Rejected" size="sm" />
                 <span className="text-[14px] font-bold text-text-primary">{item.name}</span>
-                <span className="text-[12px] text-text-secondary flex-1">Switched back to: {item.closestExisting}</span>
+                <span className="type-caption text-text-secondary flex-1">Switched back to: {item.closestExisting}</span>
                 <TertiaryButton onClick={() => setStatus(item.id, 'pending')}>Move back to pending</TertiaryButton>
               </div>
             ))}

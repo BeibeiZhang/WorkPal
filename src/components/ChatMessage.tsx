@@ -109,7 +109,7 @@ function WebSourceChips({ results }: { results: WebResult[] }) {
             target="_blank"
             rel="noreferrer"
             title={r.title || host}
-            className="inline-flex items-center gap-1.5 h-6 px-2 rounded-full bg-bg-hover hover:bg-stroke-outline border border-stroke-outline text-[11px] leading-none text-text-secondary hover:text-text-primary transition-colors no-underline max-w-[200px]"
+            className="inline-flex items-center gap-1.5 h-6 px-2 rounded-full bg-bg-hover hover:bg-stroke-outline border border-stroke-outline type-footnote text-text-secondary hover:text-text-primary transition-colors no-underline max-w-[200px]"
           >
             <img
               src={`https://www.google.com/s2/favicons?domain=${host}&sz=64`}

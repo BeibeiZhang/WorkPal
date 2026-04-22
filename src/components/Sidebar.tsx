@@ -491,7 +491,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
 
       {/* Top toolbar — brand title on the left, collapse toggle on the right */}
       <div className="flex items-center justify-between px-6 pt-6 shrink-0">
-        <span className="text-[22px] font-medium text-text-primary leading-none">
+        <span className="type-h1 text-text-primary">
           WorkPal
         </span>
         <button onClick={onToggleSidebar} title="Close sidebar" className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-bg-hover transition-colors" style={{ color: 'var(--color-icon-primary)' }}>
@@ -503,7 +503,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
       <div className="flex-1 overflow-y-auto min-h-0 py-4 scrollbar-autohide">
 
         {/* Top menu items */}
-        <div className="px-4 flex flex-col gap-0">
+        <div className="px-4 flex flex-col gap-1">
           {/* 1. New Session (default page) */}
           <button
             onClick={onNewChat}

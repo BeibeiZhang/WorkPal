@@ -59,7 +59,7 @@ export function renderMarkdownBlocks(text: string): ReactNode[] {
       blocks.push(
         <pre
           key={key++}
-          className="mb-4 p-3 rounded-lg bg-bg-hover border border-stroke-outline overflow-x-auto text-[13px] font-mono leading-[1.5]"
+          className="mb-4 p-3 rounded-lg bg-bg-hover border border-stroke-outline overflow-x-auto font-mono type-caption"
         >
           <code>{code}</code>
         </pre>,
