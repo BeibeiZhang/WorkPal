@@ -223,7 +223,7 @@ export default function TaskContextPanel({
                       )}
                     </div>
                     {change.undoError && (
-                      <div className="px-3 pb-1 text-[11px]" style={{ color: '#B42318' }}>
+                      <div className="px-3 pb-1 type-caption" style={{ color: '#B42318' }}>
                         Undo failed: {change.undoError}
                       </div>
                     )}

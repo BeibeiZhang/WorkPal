@@ -153,7 +153,7 @@ function ImageResultsGrid({ images }: { images: ImageResult[] }) {
             className="block w-full h-full object-cover aspect-[4/3] transition-transform duration-300 group-hover/img:scale-[1.02]"
           />
           {img.attribution && (
-            <div className="absolute bottom-0 left-0 right-0 px-2 py-1 text-[10px] leading-[14px] text-white opacity-0 group-hover/img:opacity-100 transition-opacity bg-gradient-to-t from-black/60 to-transparent truncate">
+            <div className="absolute bottom-0 left-0 right-0 px-2 py-1 type-footnote text-white opacity-0 group-hover/img:opacity-100 transition-opacity bg-gradient-to-t from-black/60 to-transparent truncate">
               {img.attribution}
             </div>
           )}

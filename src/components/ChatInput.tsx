@@ -319,7 +319,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
       )}
 
       {attachError && (
-        <div className="text-[12px] leading-[16px] text-[#B42318]" role="status">
+        <div className="type-caption text-[#B42318]" role="status">
           {attachError}
         </div>
       )}

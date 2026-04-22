@@ -472,6 +472,8 @@ const TYPE_SCALE: {
       'ChatPanel — path breadcrumb (with font-mono)',
       'DesignSystemPage — token tables, search result rows, usage captions, inline code references, panel-spec meta (with font-mono)',
       'OverviewPage — Weekly Trends chart legend (with opacity-70)',
+      'ChatInput — attachment validation error (with red inline color)',
+      'TaskContextPanel — step execution error (with red inline color)',
     ],
   },
   {
@@ -482,6 +484,7 @@ const TYPE_SCALE: {
     usage: 'Compact citation chips, micro pill labels; line-height collapses to 1',
     appearances: [
       'ChatMessage — follow-up citation chips (favicon + host)',
+      'ChatMessage — image attribution overlay on hover',
     ],
   },
 ];
@@ -511,18 +514,6 @@ const TYPE_OUTLIERS: {
     note: 'Intentional uppercase modifier of detail-emphasized for dashboard metrics.',
   },
   {
-    label: 'Inline Error',
-    classes: 'text-[12px] / text-[13px] leading-[16–18px] text-[#B42318]',
-    maps: '12–13 / 16–18 / 400',
-    sample: 'File too large — max 25 MB',
-    sampleStyle: { fontSize: 12, lineHeight: '16px', color: '#B42318' },
-    usedIn: [
-      'ChatInput — attachment validation error',
-      'TaskContextPanel — step execution error',
-    ],
-    note: 'Inline validation/error message attached to a specific input or step. Red fixed; size forbidden per §1.3 but allowed as compact inline feedback.',
-  },
-  {
     label: 'Uppercase Label (11)',
     classes: 'text-[11px] font-semibold uppercase tracking-[0.5px]',
     maps: '11 / — / 600 uppercase tracking 0.5',
@@ -530,22 +521,6 @@ const TYPE_OUTLIERS: {
     sampleStyle: { fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' },
     usedIn: ['DesignSystemPage — component meta labels', 'VoiceMode — hint section header'],
     note: 'Eyebrow label for secondary meta rows. Does not replace StatusTag.',
-  },
-  {
-    label: 'Image Caption Overlay',
-    classes: 'text-[10px] leading-[14px] text-white',
-    maps: '10 / 14 / 400',
-    sample: 'Photo · wikipedia.org',
-    sampleStyle: {
-      fontSize: 10,
-      lineHeight: '14px',
-      color: '#fff',
-      background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)',
-      padding: '4px 8px',
-      borderRadius: 4,
-    },
-    usedIn: ['ChatMessage — image attribution overlay on hover'],
-    note: 'Below the docs-chrome floor intentionally. Overlay on image thumbnails, visible only on hover; kept tiny so it never dominates the image.',
   },
 ];
 
