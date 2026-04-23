@@ -170,18 +170,6 @@ function DemoExplainerModal({ open, onClose }: { open: boolean; onClose: () => v
           >
             Both advanced voice chat and search functionalities are available. The local task management requires local installation. If you would like to experience the full product, please schedule with me, and I will provide a live demonstration.
           </div>
-
-          <div className="type-detail text-text-secondary">
-            Source /{' '}
-            <a
-              href="https://github.com/BeibeiZhang/WorkPal"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-text-primary"
-            >
-              github.com/BeibeiZhang/WorkPal
-            </a>
-          </div>
         </div>
       </div>
     </div>,
