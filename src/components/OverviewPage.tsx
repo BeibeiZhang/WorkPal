@@ -358,7 +358,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                 <p className="type-detail text-text-primary">
                   Your life commitments are all locked in — 2h family time, 7h sleep, check ✓. I've protected your 3–5am focus block, and today's workload is light. I finished your meeting notes and drafted 3 tickets — review them whenever you're ready.
                 </p>
-                <PrimaryButton onClick={toggleSpeak} className="mt-3 gap-2">
+                <PrimaryButton onClick={toggleSpeak} className="mt-6 gap-2">
                   <Volume2 size={16} />
                   {isSpeaking ? 'Stop' : 'Listen'}
                 </PrimaryButton>

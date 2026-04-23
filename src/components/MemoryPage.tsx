@@ -224,12 +224,12 @@ export default function MemoryPage({
       sidebarOpen={sidebarOpen}
       onToggleSidebar={onToggleSidebar}
       onNewChat={onNewChat}
-      headerRight={
+      rightSlot={
         IS_DEMO ? undefined : !adding ? (
           <button
             onClick={() => { setAdding(true); setEditingId(null); }}
             aria-label="Add memory"
-            className="h-10 px-4 flex items-center gap-2 rounded-xl hover:bg-bg-hover transition-colors text-text-primary"
+            className="h-10 px-4 flex items-center gap-2 rounded-full hover:bg-bg-hover transition-colors text-text-primary"
             style={{ border: '1px solid var(--color-stroke-outline)' }}
           >
             <Plus size={16} />
