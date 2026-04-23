@@ -6,7 +6,7 @@ import {
   FileCode2, MessageCircle, Pen, File, Plus, X,
   FolderOpen, Inbox,
 } from 'lucide-react';
-import { EmptyState, FilterChip, PageLayout, SearchBox, SideCard, SidePanelHeader, SplitView, outputIconFor } from './shared';
+import { AddRowButton, EmptyState, FilterChip, PageLayout, SearchBox, SideCard, SidePanelHeader, SplitView, outputIconFor } from './shared';
 import type { Chat, Attachment, OutputItem, OutputType } from '../types';
 import { filesToAttachments, formatFileSize } from '../lib/attachments';
 import { IS_DEMO } from '../lib/demoMode';
@@ -337,13 +337,12 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                     )}
                   </div>
                 ))}
-                <button
+                <AddRowButton
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-2 w-full px-3 py-2 rounded-lg hover:bg-bg-hover transition-colors text-text-secondary hover:text-text-primary"
+                  icon={<Plus size={16} />}
                 >
-                  <Plus size={16} />
-                  <span className="type-detail">Add file</span>
-                </button>
+                  Add file
+                </AddRowButton>
                 <input
                   ref={fileInputRef}
                   type="file"

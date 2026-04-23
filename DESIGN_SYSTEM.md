@@ -210,7 +210,11 @@ Scan this first. Subsections §2.1–§2.7 have the deeper reference.
 | `SearchBox` | Input | Responsive search pill | `value`, `onChange`, `placeholder?` |
 | `PrimaryButton` | Button | Single gradient CTA per view | `onClick`, `icon?`, `children` |
 | `SecondaryButton` | Button | Inverted solid fill | `onClick`, `icon?`, `children` |
-| `TertiaryButton` | Button | Bordered transparent | `onClick`, `icon?`, `children` |
+| `TertiaryButton` | Button | Bordered transparent, `rounded-[4px]` | `onClick`, `icon?`, `children` |
+| `GhostPillButton` | Button | Pill-shaped bordered secondary, `h-10 rounded-full` | `onClick`, `icon?`, `ariaLabel?`, `children` |
+| `HeaderIconButton` | Button | Square icon-only for page headers, `w-10 h-10 rounded-xl` | `onClick`, `ariaLabel?`, `children` |
+| `NavItem` | Nav | Sidebar main-nav row: icon + label + optional trailing, `.gradient-ring` active | `icon?`, `label`, `active?`, `onClick`, `rightElement?`, `reserveRightPadding?` |
+| `AddRowButton` | Button | Inline "add a new row" button — full-width `rounded-lg` row w/ leading Plus; secondary → primary text on hover | `onClick`, `icon?`, `children` |
 | `ToolbarPill` | Toolbar | Labeled pill in a toolbar row, snaps to `--toolbar-btn-h` | `leading`, `children`, `trailing?`, `as?` |
 | `ToolbarIconButton` | Toolbar | Icon-only square control, height = `--toolbar-btn-h` | `onClick`, `ariaLabel`, `children` |
 | `ToolbarSegmented` | Toolbar | Connected-segment pill (e.g. Chat/Tasks/Code) | `value`, `onChange`, `segments[]` |
@@ -255,7 +259,11 @@ Scan this first. Subsections §2.1–§2.7 have the deeper reference.
 |---|---|---|
 | `PrimaryButton` | Gradient CTA | `.gradient-btn`, `rounded-[4px]` — only ONE per view |
 | `SecondaryButton` | Inverted solid | Black bg light / white bg dark |
-| `TertiaryButton` | Bordered transparent | `.chip-gradient-hover` on hover |
+| `TertiaryButton` | Bordered transparent | `rounded-[4px]`, `.chip-gradient-hover` on hover |
+| `GhostPillButton` | Bordered pill secondary | `h-10 px-4 rounded-full`, 1px stroke-outline border, `hover:bg-bg-hover`. Use when a `rounded-[4px]` TertiaryButton would clash with pill chrome (FilterChip rows, page headers). Single leading icon + short label is the canonical shape. |
+| `HeaderIconButton` | Header icon | `w-10 h-10 rounded-xl` icon-only, no border, `hover:bg-bg-hover`. Used at the top of pages for sidebar/panel toggles and modal-style "close" actions. Bigger and rounder than `ToolbarIconButton` (composer-scale). |
+| `NavItem` | Sidebar nav | `w-full px-4 py-2 rounded-full gap-4` list-item: icon (20px) + flex-1 label (`type-h2`) + optional trailing element. Active = `.gradient-ring`; inactive = `hover:bg-bg-hover`. `reserveRightPadding` shifts padding to `pl-4 pr-10` so a hover-revealed row-menu can sit on top. |
+| `AddRowButton` | Inline add-row | `w-full px-3 py-2 rounded-lg gap-2` row button. Text is `text-text-secondary` by default and darkens to `text-text-primary` on hover, signalling an empty slot. Pair with a leading Plus icon. Sits at the end of an editable list. Distinct from `NavItem` (pill navigation) and `GhostPillButton` (standalone pill CTA). |
 
 ### 2.2a Toolbar primitives (ChatInput composer + similar)
 
@@ -346,7 +354,11 @@ All snap to `--toolbar-btn-h` so they line up vertically in one row.
 Need a button?
   └─ primary CTA (one per view)       → PrimaryButton
   └─ secondary emphasis               → SecondaryButton
-  └─ tertiary / bordered              → TertiaryButton
+  └─ tertiary / bordered (square)     → TertiaryButton
+  └─ pill-shaped bordered secondary   → GhostPillButton
+  └─ square icon-only in page header  → HeaderIconButton
+  └─ sidebar main-nav row             → NavItem
+  └─ inline "add a new row" in a list → AddRowButton
 
 Need a pill / tag?
   └─ status meaning (success/fail/…) → StatusTag + variant

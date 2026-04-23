@@ -46,26 +46,18 @@ export function HeaderBar({
   return (
     <div className="flex items-center gap-4 px-4 pt-6 shrink-0">
       {!sidebarOpen && onToggleSidebar && (
-        <button
-          onClick={onToggleSidebar}
-          aria-label="Toggle sidebar"
-          className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors shrink-0 text-text-primary"
-        >
+        <HeaderIconButton onClick={onToggleSidebar} ariaLabel="Toggle sidebar">
           <PanelLeft size={20} />
-        </button>
+        </HeaderIconButton>
       )}
       {headerLeft}
       {hasRight && (
         <div className="ml-auto flex items-center gap-2">
           {IS_DEMO && <DemoBadge />}
           {onNewChat && (
-            <button
-              onClick={onNewChat}
-              aria-label="New session"
-              className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-primary"
-            >
+            <HeaderIconButton onClick={onNewChat} ariaLabel="New session">
               <SquarePen size={20} />
-            </button>
+            </HeaderIconButton>
           )}
           {headerRight}
         </div>
@@ -1108,6 +1100,166 @@ export function TertiaryButton({
       className={`flex items-center justify-center px-5 py-2.5 rounded-[4px] border border-stroke-outline text-text-primary type-detail-emphasized cursor-pointer hover:bg-bg-hover chip-gradient-hover transition-colors disabled:opacity-40 ${fullWidth ? 'w-full' : ''} ${extra}`}
     >
       {children}
+    </button>
+  );
+}
+
+/* ─── 7d-pill. GhostPillButton ─── Pill-shaped bordered secondary action.
+ * Sibling of TertiaryButton with a `rounded-full` shape and a smaller
+ * fixed height (`h-10`). Used as a page-header secondary CTA where a
+ * TertiaryButton's square corners would clash with surrounding pill chrome
+ * (FilterChip row, etc). One leading icon + short label is the canonical
+ * shape.
+ *
+ * Used by: MemoryPage "Add memory".
+ */
+export function GhostPillButton({
+  onClick,
+  icon,
+  children,
+  ariaLabel,
+  disabled,
+  className: extra = '',
+}: {
+  onClick?: () => void;
+  icon?: ReactNode;
+  children: ReactNode;
+  ariaLabel?: string;
+  disabled?: boolean;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={ariaLabel}
+      disabled={disabled}
+      className={`h-10 px-4 flex items-center gap-2 rounded-full border border-stroke-outline hover:bg-bg-hover transition-colors text-text-primary type-detail cursor-pointer disabled:opacity-40 ${extra}`}
+    >
+      {icon}
+      {children}
+    </button>
+  );
+}
+
+/* ─── 7d-header. HeaderIconButton ─── Square icon-only button for page headers.
+ * 40×40, `rounded-xl`, no border — bigger and rounder than `ToolbarIconButton`
+ * (which is composer-scale: --toolbar-btn-h + rounded-full). Used at the top
+ * of pages for sidebar/panel toggles and modal-style "close" actions, where
+ * the icon needs to read from a distance across the page chrome.
+ *
+ * Used by: HeaderBar (toggle + new-session), MemoryPage close, ChatPanel
+ * context-panel toggle.
+ */
+export function HeaderIconButton({
+  onClick,
+  ariaLabel,
+  title,
+  children,
+  className: extra = '',
+}: {
+  onClick?: () => void;
+  ariaLabel?: string;
+  title?: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={ariaLabel}
+      title={title}
+      className={`w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors shrink-0 text-text-primary cursor-pointer ${extra}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/* ─── 7d-addrow. AddRowButton ─── Inline "add a new row" button.
+ * Full-width `rounded-lg` row styled like a placeholder list entry — text is
+ * `text-text-secondary` by default and darkens to `text-text-primary` on
+ * hover, signalling "this is an empty slot, click to fill it". Pair with a
+ * leading Plus icon. Sits at the end of an editable list (file list, tag
+ * list, etc), sized and padded to match the other rows in that list.
+ *
+ * Distinct from `NavItem` (pill-shaped navigation row) and `GhostPillButton`
+ * (standalone pill-shaped CTA).
+ *
+ * Used by: ProjectPage (Add file).
+ */
+export function AddRowButton({
+  onClick,
+  icon,
+  children,
+  disabled,
+  className: extra = '',
+}: {
+  onClick?: () => void;
+  icon?: ReactNode;
+  children: ReactNode;
+  disabled?: boolean;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg hover:bg-bg-hover transition-colors text-text-secondary hover:text-text-primary type-detail cursor-pointer disabled:opacity-40 ${extra}`}
+    >
+      {icon}
+      <span>{children}</span>
+    </button>
+  );
+}
+
+/* ─── 7d-nav. NavItem ─── Sidebar main-nav list-item button.
+ * Pill-shaped full-width row (rounded-full + `gap-4 px-4 py-2`) with a
+ * leading icon, a flex-1 label, and an optional trailing element. Active
+ * state uses `.gradient-ring` (brand gradient border); inactive uses
+ * `hover:bg-bg-hover`. Designed for the expanded Sidebar — not for the
+ * MiniSidebar's icon-only nav (which uses a different 44×44 shape).
+ *
+ * `reserveRightPadding` shifts the padding to `pl-4 pr-10` so callers can
+ * overlay an absolute-positioned affordance (e.g. a hover-to-reveal row
+ * menu) without the label running under it.
+ *
+ * Used by: Sidebar (New Session / Overview / Search / New Project / project
+ * rows / chat rows).
+ */
+export function NavItem({
+  icon,
+  label,
+  active = false,
+  onClick,
+  rightElement,
+  reserveRightPadding = false,
+  className: extra = '',
+  title,
+}: {
+  icon?: ReactNode;
+  label: ReactNode;
+  active?: boolean;
+  onClick?: () => void;
+  rightElement?: ReactNode;
+  reserveRightPadding?: boolean;
+  className?: string;
+  title?: string;
+}) {
+  const padX = reserveRightPadding ? 'pl-4 pr-10' : 'px-4';
+  const stateClass = active ? 'gradient-ring' : 'hover:bg-bg-hover';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className={`flex items-center gap-4 w-full ${padX} py-2 rounded-full transition-colors text-left ${stateClass} ${extra}`}
+    >
+      {icon}
+      <span className="flex-1 type-h2 text-text-primary truncate">{label}</span>
+      {rightElement}
     </button>
   );
 }
