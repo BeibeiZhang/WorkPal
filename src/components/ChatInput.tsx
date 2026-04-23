@@ -76,9 +76,11 @@ function VoiceIcon16() {
   );
 }
 
-/** Per-attachment cap (8MB) and per-message cap (10 files). Keeps localStorage
- *  and in-memory data URLs manageable for a frontend-only prototype. */
-const MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024;
+/** Per-attachment cap (2MB) and per-message cap (10 files). 2MB binary
+ *  inflates to ~2.7MB after base64, leaving margin under Vercel's 4.5MB
+ *  serverless body limit for PUT /api/chats/[id]. Past MVP, larger
+ *  attachments would need Supabase Storage rather than a raised ceiling. */
+const MAX_ATTACHMENT_BYTES = 2 * 1024 * 1024;
 const MAX_ATTACHMENTS_PER_MESSAGE = 10;
 
 function formatBytes(bytes: number): string {

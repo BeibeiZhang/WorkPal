@@ -18,8 +18,7 @@ import { Chat, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleC
 import PermissionPrompt from './components/PermissionPrompt';
 import CompleteSessionModal, { type CompleteSessionPhase } from './components/CompleteSessionModal';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
-import { INITIAL_CHATS } from './data';
-import { DEMO_EXTRA_CHATS, DEMO_EXTRA_CHAT_IDS } from './data/demo/chats';
+import { DEMO_EXTRA_CHAT_IDS } from './data/demo/chats';
 import { DEMO_CHANGES_ALCOHOL } from './data/demo/changes';
 import { IS_DEMO, IS_CLAUDE_CODE_AVAILABLE } from './lib/demoMode';
 import { postClaudePermissionDecision, postInitProject, postOpenFile, postOpenFolder, postReadFile, postReaperRun, postSessionComplete, postSessionMerge, postUndoChange, streamChat, streamClaudeChat } from './lib/api';
@@ -36,11 +35,55 @@ import {
   updateMemoryOnServer,
   deleteMemoryOnServer,
 } from './lib/memory';
+import {
+  loadChatsCache,
+  saveChatsCache,
+  loadChatsUpdatedAtMap,
+  saveChatsUpdatedAtMap,
+  isChatsMigrationDone,
+  markChatsMigrationDone,
+  fetchChatsMetadata,
+  fetchChat,
+  upsertChatOnServer,
+  deleteChatOnServer,
+  bulkUploadChats,
+  ChatAuthError,
+  type ChatMetadataWire,
+} from './lib/chatStore';
+import {
+  loadProjectsCache,
+  saveProjectsCache,
+  loadProjectsUpdatedAtMap,
+  saveProjectsUpdatedAtMap,
+  isProjectsMigrationDone,
+  markProjectsMigrationDone,
+  fetchProjects,
+  upsertProjectOnServer,
+  deleteProjectOnServer,
+  bulkUploadProjects,
+  ProjectAuthError,
+} from './lib/projectStore';
 import { useMemoryAuth } from './lib/useMemoryAuth';
 
-// Projects are persisted separately from chats so uploads survive a refresh.
-// Bump the version if the shape changes in an incompatible way.
-const PROJECTS_STORAGE_KEY = 'workpal-projects-v1';
+// Cross-device persistence lives in src/lib/chatStore.ts + projectStore.ts.
+// localStorage is the offline-first cache; Supabase (via /api/chats and
+// /api/projects, gated by MEMORY_PASSWORD) is the canonical source of truth.
+// IDs use crypto.randomUUID so two devices creating chats simultaneously
+// can't collide on the primary key.
+
+function newChatId(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return `chat-${crypto.randomUUID()}`;
+  }
+  return `chat-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function newProjectId(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return `proj-${crypto.randomUUID()}`;
+  }
+  return `proj-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
 
 // Seeded Instructions.md for the demo project. Stored as a real data URL so
 // it round-trips through the same extract → prompt-block path as user uploads.
@@ -72,25 +115,12 @@ function seedInstructionsFile(): Attachment {
   };
 }
 
-function loadProjects(): Project[] {
-  try {
-    const raw = localStorage.getItem(PROJECTS_STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    }
-  } catch { /* ignore corrupted data */ }
+function defaultProjects(): Project[] {
   return [{
     id: 'proj-1',
     name: 'Agent Design',
     files: [seedInstructionsFile()],
   }];
-}
-
-function saveProjects(projects: Project[]) {
-  try {
-    localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(projects));
-  } catch { /* quota exceeded — silently drop, matches saveChats behavior */ }
 }
 
 // Demo chat IDs — these always use hardcoded flows, never call the API.
@@ -103,55 +133,11 @@ const DEMO_CHAT_IDS = [
   ...(IS_DEMO ? DEMO_EXTRA_CHAT_IDS : []),
 ];
 
-// Bump this whenever INITIAL_CHATS gains new seed fields (e.g. draftPrompt) so
-// returning visitors with stale localStorage drop their cached chats and pick
-// up the new demo data on next load.
-const STORAGE_KEY = 'workpal-chats-v2';
-const LEGACY_STORAGE_KEYS = ['workpal-chats'];
-
-function loadChats(): Chat[] {
-  // Demo mode: ignore any localStorage cache and always return a fresh seed
-  // — HRs get the same pristine state on every visit. Principle #6 also:
-  // don't write to or read from localStorage in demo.
-  if (IS_DEMO) return [...INITIAL_CHATS, ...DEMO_EXTRA_CHATS];
-  try {
-    // Drop any pre-versioned cache so old demo data can't shadow new seed fields.
-    LEGACY_STORAGE_KEYS.forEach(k => localStorage.removeItem(k));
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      // Dedupe by id (earlier bug seeded multiple chats with id 'draft-session').
-      // Keep the first occurrence of each id.
-      const seen = new Set<string>();
-      const deduped = parsed.filter((c: any) => {
-        if (seen.has(c.id)) return false;
-        seen.add(c.id);
-        return true;
-      });
-      // Backfill new seed fields so cached visitors get Phase 2 behavior
-      // without wiping their real chats. Keep this list narrow — every
-      // entry here is a documented field added post-v2 storage key.
-      const seedById: Record<string, Partial<Chat>> = Object.fromEntries(
-        INITIAL_CHATS.map(c => [c.id, c]),
-      );
-      return deduped.map((c: any): Chat => ({
-        ...c,
-        timestamp: new Date(c.timestamp),
-        messages: c.messages.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) })),
-        hasInspector: c.hasInspector ?? seedById[c.id]?.hasInspector,
-        sessionFolder: c.sessionFolder ?? seedById[c.id]?.sessionFolder,
-        folderMaterialized: c.folderMaterialized ?? seedById[c.id]?.folderMaterialized,
-      }));
-    }
-  } catch { /* ignore corrupted data */ }
-  return INITIAL_CHATS;
-}
-
 function getInitialChatState(): { chats: Chat[]; activeChatId: string } {
-  const loaded = loadChats();
+  const loaded = loadChatsCache();
   const existingDraft = loaded.find(c => c.isDraft);
   if (existingDraft) return { chats: loaded, activeChatId: existingDraft.id };
-  const newDraftId = `chat-${Date.now()}`;
+  const newDraftId = newChatId();
   const draft: Chat = {
     id: newDraftId,
     title: 'New Session',
@@ -163,14 +149,17 @@ function getInitialChatState(): { chats: Chat[]; activeChatId: string } {
   return { chats: [draft, ...loaded], activeChatId: newDraftId };
 }
 
-function saveChats(chats: Chat[]) {
-  // Demo mode: principle #6 lazy-clean — don't leave any trace in
-  // localStorage. Refreshing the demo URL should always snap back to the
-  // canonical seed.
-  if (IS_DEMO) return;
+// Matches the sessionStorage key used by useMemoryAuth.tsx — the cross-device
+// sync layer reads it directly (rather than calling ensurePassword) so it can
+// stay strictly lazy: never prompt unprompted, only piggyback on whatever
+// password the user typed for memory / connectors / etc.
+const SESSION_PW_KEY = 'workpal-memory-pw';
+function getCachedPasswordSync(): string | null {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
-  } catch { /* quota exceeded — ignore */ }
+    return sessionStorage.getItem(SESSION_PW_KEY);
+  } catch {
+    return null;
+  }
 }
 
 const REPORT_CONTENT = `**Introduction**
@@ -562,7 +551,7 @@ export default function App() {
   const [selectedAvatarId, setSelectedAvatarId] = useState('white-man');
   const [detailOpen, setDetailOpen] = useState(false);
   const [onboardingDone, setOnboardingDone] = useState(() => localStorage.getItem('workpal-onboarding-done') === 'true');
-  const [projects, setProjects] = useState<Project[]>(loadProjects);
+  const [projects, setProjects] = useState<Project[]>(() => loadProjectsCache() ?? defaultProjects());
 
   // Routing: URL is the source of truth for active view / chat / project.
   // `rootChatId` is the one piece of state not derivable from URL — it's
@@ -703,15 +692,451 @@ export default function App() {
     }
   }, [canFitAllThree]);
 
-  // Persist chats to localStorage on every change
-  useEffect(() => {
-    saveChats(chats);
-  }, [chats]);
+  /* ─── Cross-device persistence ──────────────────────────────────────
+   *
+   * localStorage is a synchronous offline cache. Supabase (via /api/chats
+   * and /api/projects, gated by MEMORY_PASSWORD) is the canonical source
+   * of truth.
+   *
+   *   - cache writes happen immediately on every state change
+   *   - cloud writes are debounced (1.5s), per-id; chats currently being
+   *     streamed are skipped via streamingChatIdsRef so a long Claude run
+   *     doesn't PUT on every token
+   *   - hydration runs on mount IF a session password is already cached
+   *     (we never prompt unprompted — the user types the password somewhere
+   *     password-gated like the memory page, and from that point on chat
+   *     sync comes alive in this tab)
+   *   - one-shot migration uploads any local-only chats/projects on first
+   *     hydrate, then markChatsMigrationDone so subsequent reloads skip it
+   *   - visibilitychange flushes pending edits FIRST, then reconciles, so
+   *     coming back to a phone that's been editing offline doesn't lose work
+   */
+  const prevChatsRef = useRef<Chat[]>(initialChatState.chats);
+  const dirtyChatsRef = useRef<Set<string>>(new Set());
+  const tombstoneChatsRef = useRef<Set<string>>(new Set());
+  const chatsUpdatedAtMapRef = useRef<Record<string, string>>(loadChatsUpdatedAtMap());
+  const streamingChatIdsRef = useRef<Set<string>>(new Set());
+  const flushChatsTimerRef = useRef<number | null>(null);
+  const inFlightChatFlushesRef = useRef<Map<string, AbortController>>(new Map());
+  const chatsHydratedRef = useRef<boolean>(false);
 
-  // Persist projects (including uploaded files) so uploads survive a refresh.
+  const prevProjectsRef = useRef<Project[]>(projects);
+  const dirtyProjectsRef = useRef<Set<string>>(new Set());
+  const tombstoneProjectsRef = useRef<Set<string>>(new Set());
+  const projectsUpdatedAtMapRef = useRef<Record<string, string>>(loadProjectsUpdatedAtMap());
+  const flushProjectsTimerRef = useRef<number | null>(null);
+  const projectsHydratedRef = useRef<boolean>(false);
+
+  const flushChats = useCallback(async () => {
+    if (IS_DEMO) return;
+    const password = getCachedPasswordSync();
+    if (!password) return;
+
+    // Skip dirty chats that are still streaming. They'll get re-added by the
+    // next state change and flushed once the stream finishes.
+    const eligible: string[] = [];
+    for (const id of dirtyChatsRef.current) {
+      if (streamingChatIdsRef.current.has(id)) continue;
+      eligible.push(id);
+    }
+    for (const id of eligible) dirtyChatsRef.current.delete(id);
+
+    const tombstones = Array.from(tombstoneChatsRef.current);
+    tombstoneChatsRef.current.clear();
+
+    const tasks: Promise<unknown>[] = [];
+    const now = new Date().toISOString();
+
+    for (const id of eligible) {
+      const chat = prevChatsRef.current.find((c) => c.id === id);
+      if (!chat) continue;
+
+      // Cancel any in-flight PUT for the same chat — newer state supersedes.
+      inFlightChatFlushesRef.current.get(id)?.abort();
+      const ctrl = new AbortController();
+      inFlightChatFlushesRef.current.set(id, ctrl);
+
+      chatsUpdatedAtMapRef.current[id] = now;
+      tasks.push(
+        upsertChatOnServer(chat, now, password)
+          .then((serverUpdatedAt) => {
+            chatsUpdatedAtMapRef.current[id] = serverUpdatedAt;
+          })
+          .catch((err) => {
+            if (ctrl.signal.aborted) return;
+            if (err instanceof ChatAuthError) {
+              console.warn(`Chat ${id} flush 401 — staying dirty`);
+            } else {
+              console.warn(`Chat ${id} flush failed`, err);
+            }
+            dirtyChatsRef.current.add(id);
+          })
+          .finally(() => {
+            if (inFlightChatFlushesRef.current.get(id) === ctrl) {
+              inFlightChatFlushesRef.current.delete(id);
+            }
+          }),
+      );
+    }
+
+    for (const id of tombstones) {
+      tasks.push(
+        deleteChatOnServer(id, password)
+          .then(() => {
+            delete chatsUpdatedAtMapRef.current[id];
+          })
+          .catch((err) => {
+            console.warn(`Chat ${id} delete failed`, err);
+            tombstoneChatsRef.current.add(id);
+          }),
+      );
+    }
+
+    await Promise.allSettled(tasks);
+    saveChatsUpdatedAtMap(chatsUpdatedAtMapRef.current);
+  }, []);
+
+  const scheduleChatFlush = useCallback(() => {
+    if (IS_DEMO) return;
+    if (flushChatsTimerRef.current !== null) {
+      window.clearTimeout(flushChatsTimerRef.current);
+    }
+    flushChatsTimerRef.current = window.setTimeout(() => {
+      flushChatsTimerRef.current = null;
+      void flushChats();
+    }, 1500);
+  }, [flushChats]);
+
+  // Cache + dirty detection. Cache write is unconditional so offline edits
+  // survive a refresh; dirty detection compares object references (every
+  // setChats(prev => prev.map(...)) returns fresh objects for changed rows).
   useEffect(() => {
-    saveProjects(projects);
-  }, [projects]);
+    saveChatsCache(chats);
+    if (IS_DEMO) {
+      prevChatsRef.current = chats;
+      return;
+    }
+    const prevById = new Map(prevChatsRef.current.map((c) => [c.id, c]));
+    const currById = new Map(chats.map((c) => [c.id, c]));
+    let dirty = false;
+    for (const [id, chat] of currById) {
+      if (chat.isDraft) continue;
+      if (DEMO_CHAT_IDS.includes(id)) continue;
+      const prev = prevById.get(id);
+      if (prev !== chat) {
+        dirtyChatsRef.current.add(id);
+        dirty = true;
+      }
+    }
+    for (const [id, prev] of prevById) {
+      if (currById.has(id)) continue;
+      if (prev.isDraft) continue;
+      if (DEMO_CHAT_IDS.includes(id)) continue;
+      tombstoneChatsRef.current.add(id);
+      dirtyChatsRef.current.delete(id);
+      dirty = true;
+    }
+    prevChatsRef.current = chats;
+    if (dirty) scheduleChatFlush();
+  }, [chats, scheduleChatFlush]);
+
+  const flushProjects = useCallback(async () => {
+    if (IS_DEMO) return;
+    const password = getCachedPasswordSync();
+    if (!password) return;
+
+    const ids = Array.from(dirtyProjectsRef.current);
+    dirtyProjectsRef.current.clear();
+    const tombstones = Array.from(tombstoneProjectsRef.current);
+    tombstoneProjectsRef.current.clear();
+
+    const tasks: Promise<unknown>[] = [];
+    const now = new Date().toISOString();
+
+    for (const id of ids) {
+      const project = prevProjectsRef.current.find((p) => p.id === id);
+      if (!project) continue;
+      projectsUpdatedAtMapRef.current[id] = now;
+      tasks.push(
+        upsertProjectOnServer(project, now, password)
+          .then((serverUpdatedAt) => {
+            projectsUpdatedAtMapRef.current[id] = serverUpdatedAt;
+          })
+          .catch((err) => {
+            if (err instanceof ProjectAuthError) {
+              console.warn(`Project ${id} flush 401 — staying dirty`);
+            } else {
+              console.warn(`Project ${id} flush failed`, err);
+            }
+            dirtyProjectsRef.current.add(id);
+          }),
+      );
+    }
+    for (const id of tombstones) {
+      tasks.push(
+        deleteProjectOnServer(id, password)
+          .then(() => {
+            delete projectsUpdatedAtMapRef.current[id];
+          })
+          .catch((err) => {
+            console.warn(`Project ${id} delete failed`, err);
+            tombstoneProjectsRef.current.add(id);
+          }),
+      );
+    }
+    await Promise.allSettled(tasks);
+    saveProjectsUpdatedAtMap(projectsUpdatedAtMapRef.current);
+  }, []);
+
+  const scheduleProjectFlush = useCallback(() => {
+    if (IS_DEMO) return;
+    if (flushProjectsTimerRef.current !== null) {
+      window.clearTimeout(flushProjectsTimerRef.current);
+    }
+    flushProjectsTimerRef.current = window.setTimeout(() => {
+      flushProjectsTimerRef.current = null;
+      void flushProjects();
+    }, 1500);
+  }, [flushProjects]);
+
+  useEffect(() => {
+    saveProjectsCache(projects);
+    if (IS_DEMO) {
+      prevProjectsRef.current = projects;
+      return;
+    }
+    const prevById = new Map(prevProjectsRef.current.map((p) => [p.id, p]));
+    const currById = new Map(projects.map((p) => [p.id, p]));
+    let dirty = false;
+    for (const [id, p] of currById) {
+      const prev = prevById.get(id);
+      if (prev !== p) {
+        dirtyProjectsRef.current.add(id);
+        dirty = true;
+      }
+    }
+    for (const [id] of prevById) {
+      if (currById.has(id)) continue;
+      tombstoneProjectsRef.current.add(id);
+      dirtyProjectsRef.current.delete(id);
+      dirty = true;
+    }
+    prevProjectsRef.current = projects;
+    if (dirty) scheduleProjectFlush();
+  }, [projects, scheduleProjectFlush]);
+
+  const reconcileChats = useCallback(
+    async (cloudMeta: ChatMetadataWire[], password: string) => {
+      const cloudById = new Map(cloudMeta.map((m) => [m.id, m]));
+      const idsToFetch: string[] = [];
+      for (const [id, meta] of cloudById) {
+        if (dirtyChatsRef.current.has(id)) continue; // local has unflushed edits
+        const localUpdated = chatsUpdatedAtMapRef.current[id];
+        const local = prevChatsRef.current.find((c) => c.id === id);
+        if (!local) {
+          idsToFetch.push(id);
+          continue;
+        }
+        if (!localUpdated || meta.updatedAt > localUpdated) idsToFetch.push(id);
+      }
+      const fetched = await Promise.all(
+        idsToFetch.map((id) =>
+          fetchChat(id, password).catch((err) => {
+            console.warn(`fetchChat ${id} failed`, err);
+            return null;
+          }),
+        ),
+      );
+      setChats((prev) => {
+        const map = new Map(prev.map((c) => [c.id, c]));
+        for (const chat of fetched) if (chat) map.set(chat.id, chat);
+        for (const [id, c] of Array.from(map.entries())) {
+          if (cloudById.has(id)) continue;
+          if (c.isDraft) continue;
+          if (DEMO_CHAT_IDS.includes(id)) continue;
+          if (dirtyChatsRef.current.has(id)) continue;
+          if (tombstoneChatsRef.current.has(id)) continue;
+          map.delete(id); // deleted on another device
+        }
+        return Array.from(map.values());
+      });
+      for (const chat of fetched) {
+        if (!chat) continue;
+        const meta = cloudById.get(chat.id);
+        if (meta) chatsUpdatedAtMapRef.current[chat.id] = meta.updatedAt;
+      }
+      saveChatsUpdatedAtMap(chatsUpdatedAtMapRef.current);
+    },
+    [],
+  );
+
+  const hydrateChats = useCallback(
+    async (password: string) => {
+      if (IS_DEMO || chatsHydratedRef.current) return;
+      try {
+        let cloudMeta = await fetchChatsMetadata(password);
+        if (!isChatsMigrationDone()) {
+          const cloudIds = new Set(cloudMeta.map((m) => m.id));
+          const localOnly = prevChatsRef.current.filter(
+            (c) => !c.isDraft && !cloudIds.has(c.id),
+          );
+          if (localOnly.length > 0) {
+            await bulkUploadChats(localOnly, chatsUpdatedAtMapRef.current, password);
+            cloudMeta = await fetchChatsMetadata(password);
+          }
+          markChatsMigrationDone();
+        }
+        await reconcileChats(cloudMeta, password);
+        chatsHydratedRef.current = true;
+      } catch (err) {
+        if (err instanceof ChatAuthError) {
+          console.warn('Chat hydration: invalid password — staying on cache');
+        } else {
+          console.warn('Chat hydration failed:', err);
+        }
+      }
+    },
+    [reconcileChats],
+  );
+
+  const reconcileProjects = useCallback(
+    (cloudList: { project: Project; updatedAt: string }[]) => {
+      const cloudById = new Map(
+        cloudList.map(({ project, updatedAt }) => [project.id, { project, updatedAt }]),
+      );
+      setProjects((prev) => {
+        const map = new Map(prev.map((p) => [p.id, p]));
+        for (const [id, { project, updatedAt }] of cloudById) {
+          if (dirtyProjectsRef.current.has(id)) continue;
+          const localUpdated = projectsUpdatedAtMapRef.current[id];
+          if (!localUpdated || updatedAt > localUpdated) {
+            map.set(id, project);
+            projectsUpdatedAtMapRef.current[id] = updatedAt;
+          }
+        }
+        for (const [id] of Array.from(map.entries())) {
+          if (cloudById.has(id)) continue;
+          if (dirtyProjectsRef.current.has(id)) continue;
+          if (tombstoneProjectsRef.current.has(id)) continue;
+          map.delete(id);
+        }
+        return Array.from(map.values());
+      });
+      saveProjectsUpdatedAtMap(projectsUpdatedAtMapRef.current);
+    },
+    [],
+  );
+
+  const hydrateProjects = useCallback(
+    async (password: string) => {
+      if (IS_DEMO || projectsHydratedRef.current) return;
+      try {
+        let cloudList = await fetchProjects(password);
+        if (!isProjectsMigrationDone()) {
+          const cloudIds = new Set(cloudList.map(({ project }) => project.id));
+          const localOnly = prevProjectsRef.current.filter((p) => !cloudIds.has(p.id));
+          if (localOnly.length > 0) {
+            await bulkUploadProjects(localOnly, projectsUpdatedAtMapRef.current, password);
+            cloudList = await fetchProjects(password);
+          }
+          markProjectsMigrationDone();
+        }
+        reconcileProjects(cloudList);
+        projectsHydratedRef.current = true;
+      } catch (err) {
+        if (err instanceof ProjectAuthError) {
+          console.warn('Project hydration: invalid password — staying on cache');
+        } else {
+          console.warn('Project hydration failed:', err);
+        }
+      }
+    },
+    [reconcileProjects],
+  );
+
+  // Mount-time hydration — only if a session password is already cached.
+  // We never trigger the password modal from here; the user picks it up via
+  // the memory / connectors flow and hydration kicks in on next visibility.
+  useEffect(() => {
+    if (IS_DEMO) return;
+    const password = getCachedPasswordSync();
+    if (!password) return;
+    void hydrateChats(password);
+    void hydrateProjects(password);
+  }, [hydrateChats, hydrateProjects]);
+
+  // visibilitychange — flush local first (so cloud doesn't trample fresh
+  // edits) then reconcile. Also catches the case where the user typed the
+  // password in this session AFTER mount: the next focus event triggers
+  // hydration if we haven't done it yet.
+  useEffect(() => {
+    if (IS_DEMO) return;
+    function onVisible() {
+      if (document.visibilityState !== 'visible') return;
+      const password = getCachedPasswordSync();
+      if (!password) return;
+      void (async () => {
+        await Promise.allSettled([flushChats(), flushProjects()]);
+        try {
+          if (chatsHydratedRef.current) {
+            const meta = await fetchChatsMetadata(password);
+            await reconcileChats(meta, password);
+          } else {
+            await hydrateChats(password);
+          }
+        } catch (err) {
+          console.warn('Visibility chat reconcile failed', err);
+        }
+        try {
+          if (projectsHydratedRef.current) {
+            const list = await fetchProjects(password);
+            reconcileProjects(list);
+          } else {
+            await hydrateProjects(password);
+          }
+        } catch (err) {
+          console.warn('Visibility project reconcile failed', err);
+        }
+      })();
+    }
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [
+    flushChats,
+    flushProjects,
+    hydrateChats,
+    hydrateProjects,
+    reconcileChats,
+    reconcileProjects,
+  ]);
+
+  // Same-browser other-tab edits: when the storage event fires for our cache
+  // keys, refetch from cloud so the in-memory state catches up. Cross-tab
+  // cloud sync without needing Supabase Realtime.
+  useEffect(() => {
+    if (IS_DEMO) return;
+    function onStorage(e: StorageEvent) {
+      if (e.key !== 'workpal-chats-v2' && e.key !== 'workpal-projects-v1') return;
+      const password = getCachedPasswordSync();
+      if (!password) return;
+      void (async () => {
+        try {
+          if (e.key === 'workpal-chats-v2' && chatsHydratedRef.current) {
+            const meta = await fetchChatsMetadata(password);
+            await reconcileChats(meta, password);
+          }
+          if (e.key === 'workpal-projects-v1' && projectsHydratedRef.current) {
+            const list = await fetchProjects(password);
+            reconcileProjects(list);
+          }
+        } catch (err) {
+          console.warn('Storage event reconcile failed', err);
+        }
+      })();
+    }
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [reconcileChats, reconcileProjects]);
 
   // Refresh local cache (used as the first-paint snapshot before the next
   // network fetch) whenever memories change.
@@ -1066,6 +1491,10 @@ export default function App() {
      *  the chat row the way the post-submit path does. */
     projectIdOverride?: string,
   ) => {
+    // Mark streaming so the persistence layer skips this chat for the
+    // duration of the run — the trailing scheduleChatFlush() in finally
+    // catches the final state once the stream stabilizes.
+    streamingChatIdsRef.current.add(chatId);
     // Collect conversation history for context
     // We pass userText/attachments explicitly because setChats hasn't committed yet.
     // Historical messages forward their own image attachments too so the model keeps
@@ -1246,8 +1675,11 @@ export default function App() {
           ),
         };
       }));
+    } finally {
+      streamingChatIdsRef.current.delete(chatId);
+      scheduleChatFlush();
     }
-  }, [chats, projects, memories, addMessage, openInspector]);
+  }, [chats, projects, memories, addMessage, openInspector, scheduleChatFlush]);
 
   // Phase 5.4b/5.4c — Claude Agent SDK path. Picked by src/lib/intentRouter
   // when the user's message contains a code/file keyword. 5.4b: text streaming.
@@ -1273,6 +1705,7 @@ export default function App() {
     // callsite — rule stays "user shared something → SDK can touch local".
     hasAttachedFiles = false,
   ) => {
+    streamingChatIdsRef.current.add(chatId);
     const chat = chats.find(c => c.id === chatId);
     const previousMessages = (chat?.messages || [])
       .filter(m => !m.isLoading)
@@ -1425,7 +1858,7 @@ export default function App() {
           // If this chat lives under a project, promote the committed file
           // into the project's Output grid. De-dup by filename — re-editing
           // the same file shouldn't produce a duplicate output card. Persists
-          // through saveProjects on the effect below.
+          // through the projects persistence effect (cache + cloud flush).
           const committedPath = toolUsePaths.get(chunk.toolUseId);
           if (committedPath && chat?.projectId) {
             const name = basename(committedPath);
@@ -1500,8 +1933,11 @@ export default function App() {
           ),
         };
       }));
+    } finally {
+      streamingChatIdsRef.current.delete(chatId);
+      scheduleChatFlush();
     }
-  }, [chats, projects, addMessage, openInspector, addChange, stampCommit]);
+  }, [chats, projects, addMessage, openInspector, addChange, stampCommit, scheduleChatFlush]);
 
   // Candidate #3 — artifact generation path. Picked by shouldGenerateArtifact
   // when the user's message combines an artifact noun ("周刊", "digest") with
@@ -1759,7 +2195,7 @@ export default function App() {
         }
       } else {
         // No active chat at all — create a new one
-        chatId = `chat-${Date.now()}`;
+        chatId = newChatId();
         const newChat: Chat = {
           id: chatId,
           title: derivedTitle,
@@ -2168,7 +2604,7 @@ export default function App() {
         setRootChatId(existingDraft.id);
         return prev;
       }
-      const newId = `chat-${Date.now()}`;
+      const newId = newChatId();
       setRootChatId(newId);
       return [{
         id: newId,
@@ -2240,7 +2676,7 @@ export default function App() {
     text: string,
     attachments?: Attachment[],
   ) => {
-    const chatId = `chat-${Date.now()}`;
+    const chatId = newChatId();
     const titleSource = text || (attachments && attachments.length ? attachments[0].name : '');
     const derivedTitle = titleSource
       ? titleSource.slice(0, 40) + (titleSource.length > 40 ? '...' : '')
@@ -2279,7 +2715,7 @@ export default function App() {
   }, [streamFromAPI, projects, navigate]);
 
   const handleCreateProject = useCallback((name: string, description: string) => {
-    const projectId = `proj-${Date.now()}`;
+    const projectId = newProjectId();
     const newProject: Project = {
       id: projectId,
       name,
@@ -2310,7 +2746,7 @@ export default function App() {
     const idSet = new Set(chatIds);
     const targets = chats.filter(c => idSet.has(c.id));
     if (targets.length === 0) return;
-    const projectId = `proj-${Date.now()}`;
+    const projectId = newProjectId();
     const newProject: Project = {
       id: projectId,
       name,
@@ -2346,7 +2782,7 @@ export default function App() {
       if (id !== activeChatId) return remaining;
       // Deleted the active chat — land on a fresh draft so the sidebar always
       // has something selected and the main pane shows the welcome state.
-      const newDraftId = `chat-${Date.now()}`;
+      const newDraftId = newChatId();
       const draft: Chat = {
         id: newDraftId,
         title: 'New Session',

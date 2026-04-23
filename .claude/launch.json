@@ -92,6 +92,24 @@
       "port": 2009
     },
     {
+      "name": "WorkPal Dev Eloquent",
+      "runtimeExecutable": "/usr/local/bin/node",
+      "runtimeArgs": ["/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/node_modules/vite/bin/vite.js", "/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/.claude/worktrees/eloquent-jones-d13a8d", "--port", "3030", "--strictPort"],
+      "port": 3030
+    },
+    {
+      "name": "WorkPal Demo Eloquent",
+      "runtimeExecutable": "/usr/bin/env",
+      "runtimeArgs": ["VITE_WORKPAL_DEMO=true", "/usr/local/bin/node", "/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/node_modules/vite/bin/vite.js", "/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/.claude/worktrees/eloquent-jones-d13a8d", "--port", "3031", "--strictPort"],
+      "port": 3031
+    },
+    {
+      "name": "WorkPal Backend Eloquent",
+      "runtimeExecutable": "/usr/bin/env",
+      "runtimeArgs": ["PORT=3002", "npm", "--prefix", "/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/.claude/worktrees/eloquent-jones-d13a8d/server", "run", "dev"],
+      "port": 3002
+    },
+    {
       "name": "WorkPal Backend",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "server", "run", "dev"],
