@@ -1,36 +1,21 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-/** Mirror of api/_lib/usage-store.ts — local Express + Vercel serverless
- *  share a schema but each has its own copy because /server is ESM NodeNext
- *  and the api/ side compiles standalone. Keep both in sync if the schema
- *  or pricing table changes.
- *
- *  Both sides write into the same public.usage_log table (migration 0004),
- *  so anything you chat with locally also shows up on the Overview page at
- *  workpal-beibei.vercel.app/overview — one combined history across devices
- *  and environments. */
+/** Append-only log of every API call made against OpenAI / Anthropic / Tavily.
+ *  Mirrors server/src/lib/usageLog.ts — both files share the Supabase-backed
+ *  `usage_log` table (migration 0004), so local dev and Vercel write into the
+ *  same place and the Overview dashboard shows the combined history. Keep the
+ *  two copies in sync if the schema or pricing table changes. */
 
 export type Provider = 'openai' | 'anthropic' | 'tavily';
-
-// What the user was actually trying to do. Drives the Subscription Health
-// Check breakdown — each capability maps to a different subscription quota
-// (chat ↔ Plus/Pro message count, voice ↔ Plus's ~30h/mo, etc). `other` is
-// a catch-all for side-effect entries like Tavily that shouldn't be counted
-// as a user-facing query.
 export type Capability = 'chat' | 'voice' | 'web_query' | 'agent' | 'other';
 
 export interface UsageEntry {
   ts: string;
   provider: Provider;
   model: string;
-  /** Optional for backward compat: entries written before the field was added
-   *  are classified via a best-effort fallback in `inferCapability`. */
   capability?: Capability;
   input_tokens: number;
   output_tokens: number;
-  /** How many images the user attached to this turn. Used by the dashboard
-   *  to compare against ChatGPT Plus's ~80 msg / 3h cap (images count the
-   *  same as text messages toward that quota). */
   images_count?: number;
   cache_read_tokens?: number;
   cache_write_tokens?: number;
@@ -51,9 +36,9 @@ interface DbRow {
   cost_usd: number;
 }
 
-/** Fallback when an entry predates the `capability` field. Cheap heuristic
- *  based on provider + model — kept here so older rows still show up in the
- *  right bucket on the dashboard instead of silently disappearing. */
+/** Fallback for rows written before the `capability` column existed or when a
+ *  caller forgot to pass it — keeps old entries in the right bucket on the
+ *  dashboard instead of silently disappearing. */
 function inferCapability(e: UsageEntry): Capability {
   if (e.capability) return e.capability;
   if (e.provider === 'anthropic') return 'agent';
@@ -62,8 +47,8 @@ function inferCapability(e: UsageEntry): Capability {
   return 'chat';
 }
 
-// Per 1M tokens, USD. Prefix match so versioned ids (e.g. "claude-opus-4-7-20260115")
-// still land on the right price. If no prefix matches, priceFor returns 0 — the
+// Per 1M tokens, USD. Prefix match so versioned ids ("claude-opus-4-7-20260115")
+// still land on the right price. If nothing matches, priceFor returns 0 — the
 // dashboard shows $0 rather than crashing, and we'll notice via the model label.
 const PRICING: Record<string, { in: number; out: number }> = {
   'gpt-4o-mini': { in: 0.15, out: 0.60 },
@@ -102,6 +87,10 @@ function client(): SupabaseClient {
 const TABLE = 'usage_log';
 
 export async function logUsage(entry: Omit<UsageEntry, 'ts'>): Promise<void> {
+  // Fire-and-forget in the caller's eyes: a dropped log entry just means that
+  // one turn doesn't show up on the dashboard, not a user-visible failure.
+  // We still await and catch here so the caller can `await` without worrying
+  // about unhandled rejections.
   try {
     const { error } = await client()
       .from(TABLE)
@@ -116,9 +105,9 @@ export async function logUsage(entry: Omit<UsageEntry, 'ts'>): Promise<void> {
         images_count: entry.images_count ?? null,
         cost_usd: entry.cost_usd,
       });
-    if (error) console.warn('[usageLog] insert failed', error);
+    if (error) console.warn('[usage-store] insert failed', error);
   } catch (err) {
-    console.warn('[usageLog] insert threw', err);
+    console.warn('[usage-store] insert threw', err);
   }
 }
 
@@ -133,12 +122,12 @@ export async function countCallsSince(provider: Provider, sinceIso: string): Pro
       .eq('provider', provider)
       .gte('ts', sinceIso);
     if (error) {
-      console.warn('[usageLog] countCallsSince failed', error);
+      console.warn('[usage-store] countCallsSince failed', error);
       return 0;
     }
     return count ?? 0;
   } catch (err) {
-    console.warn('[usageLog] countCallsSince threw', err);
+    console.warn('[usage-store] countCallsSince threw', err);
     return 0;
   }
 }
@@ -148,7 +137,6 @@ export interface UsageSummary {
   total_cost_usd: number;
   total_input_tokens: number;
   total_output_tokens: number;
-  /** Total images the user uploaded to the model over the window. */
   total_images_uploaded: number;
   call_count: number;
   by_model: Array<{
@@ -164,8 +152,6 @@ export interface UsageSummary {
     capability: Capability;
     call_count: number;
     cost_usd: number;
-    /** Only meaningful for voice — minutes approximated from audio tokens
-     *  (`audio_tokens / 600` at 10 tokens/sec). 0 for other capabilities. */
     voice_minutes: number;
     images_count: number;
   }>;
@@ -195,7 +181,7 @@ export async function summarize(rangeDays: number): Promise<UsageSummary> {
       .gte('ts', cutoff)
       .order('ts', { ascending: false });
     if (error) {
-      console.warn('[usageLog] summarize select failed', error);
+      console.warn('[usage-store] summarize select failed', error);
       return EMPTY_SUMMARY(rangeDays);
     }
     rows = (data ?? []).map((r: DbRow): UsageEntry => ({
@@ -211,7 +197,7 @@ export async function summarize(rangeDays: number): Promise<UsageSummary> {
       cost_usd: r.cost_usd,
     }));
   } catch (err) {
-    console.warn('[usageLog] summarize threw', err);
+    console.warn('[usage-store] summarize threw', err);
     return EMPTY_SUMMARY(rangeDays);
   }
 
