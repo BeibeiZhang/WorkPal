@@ -141,26 +141,27 @@ function DemoExplainerModal({ open, onClose }: { open: boolean; onClose: () => v
         </div>
 
         <div className="flex flex-col gap-4 type-detail text-text-primary">
-          <ul className="flex flex-col gap-2.5">
+          <ul className="flex flex-col gap-4">
             <li className="flex gap-2.5">
               <span aria-hidden className="shrink-0">✨</span>
-              <span>Combine OpenAI's natural language capabilities with Claude Cowork's task management, so you can seamlessly integrate your two favorite tools.</span>
-            </li>
-            <li className="flex gap-2.5">
-              <span aria-hidden className="shrink-0">📂</span>
-              <span>Center everything around projects—tasks and conversations all take place within project folders, sharing project memory.</span>
+              <div>
+                <div className="type-detail-emphasized text-text-primary">Chat + tasks in one project</div>
+                <div className="type-detail text-text-secondary mt-0.5">Combining OpenAI's natural conversation with Claude Cowork's task execution—sharing project memory.</div>
+              </div>
             </li>
             <li className="flex gap-2.5">
               <span aria-hidden className="shrink-0">🤖</span>
-              <span>AI automatically determines your needs, so you don't have to manually distinguish between chats and tasks.</span>
+              <div>
+                <div className="type-detail-emphasized text-text-primary">AI handles the routing</div>
+                <div className="type-detail text-text-secondary mt-0.5">No need to manually switch between chat and task modes. AI detects your intent.</div>
+              </div>
             </li>
             <li className="flex gap-2.5">
               <span aria-hidden className="shrink-0">📊</span>
-              <span>Add an Overview page, giving you a complete view of the agent's work status and providing a reporting entry point.</span>
-            </li>
-            <li className="flex gap-2.5">
-              <span aria-hidden className="shrink-0">⚖️</span>
-              <span>In a human-centered design, emphasize your personal needs in both Onboarding and Overview, balancing every aspect of your work and life.</span>
+              <div>
+                <div className="type-detail-emphasized text-text-primary">Overview page</div>
+                <div className="type-detail text-text-secondary mt-0.5">One glance at your agent's progress across every project.</div>
+              </div>
             </li>
           </ul>
 
@@ -168,7 +169,14 @@ function DemoExplainerModal({ open, onClose }: { open: boolean; onClose: () => v
             className="pt-3 type-detail text-text-secondary"
             style={{ borderTop: '1px solid var(--color-stroke-outline)' }}
           >
-            Both advanced voice chat and search functionalities are available. The local task management requires local installation. If you would like to experience the full product, please schedule with me, and I will provide a live demonstration.
+            Voice chat and search are live in this demo. Full task execution requires local setup—
+            <a
+              href="#"
+              className="underline hover:text-text-primary"
+            >
+              schedule a live demo
+            </a>
+            {' '}to see it in action.
           </div>
         </div>
       </div>
