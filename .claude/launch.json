@@ -80,6 +80,12 @@
       "port": 2008
     },
     {
+      "name": "WorkPal Demo Noether",
+      "runtimeExecutable": "/usr/bin/env",
+      "runtimeArgs": ["VITE_WORKPAL_DEMO=true", "/usr/local/bin/node", "/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/node_modules/vite/bin/vite.js", "/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/.claude/worktrees/hardcore-noether-11e161", "--port", "2009", "--strictPort"],
+      "port": 2009
+    },
+    {
       "name": "WorkPal Backend",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "server", "run", "dev"],

@@ -16,6 +16,7 @@ import {
 } from './shared';
 import { fetchUnreadArtifacts, markArtifactViewed, artifactItemCount, type Artifact } from '../lib/artifacts';
 import { fetchUsage, formatUsd, type UsageSummary } from '../lib/usage';
+import { IS_DEMO } from '../lib/demoMode';
 
 /* ═══════════════════════════════════════════════════════════════
    Overview Page — "Morning Briefing" dashboard
@@ -694,7 +695,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
           </div>
 
           {/* ━━━ 6. SUBSCRIPTION HEALTH CHECK ━━━ */}
-          {health && (
+          {!IS_DEMO && health && (
             <div className="mb-12">
               <SectionTitle emoji="" title="Subscription Health Check" size={20} />
 
