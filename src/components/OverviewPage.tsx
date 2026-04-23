@@ -301,21 +301,29 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
     window.open(`/artifact/${a.slug}`, '_blank', 'noopener,noreferrer');
   };
 
-  // API Spend — live OpenAI + Anthropic token usage logged server-side after
-  // every chat turn. Re-fetches when the 1/7/30 range flips so the card stays
-  // in sync without a full page reload.
+  // API Spend — live OpenAI + Anthropic + Tavily usage logged to Supabase
+  // after every call. Re-fetches on range change (with loading state) and
+  // also polls every 60s in the background so the card stays roughly live
+  // without a page reload. Background polls don't flip `spendLoading` so
+  // the number doesn't flash to "—" while refreshing.
   const [spendRange, setSpendRange] = useState<1 | 7 | 30>(7);
   const [spend, setSpend] = useState<UsageSummary | null>(null);
   const [spendLoading, setSpendLoading] = useState(true);
   useEffect(() => {
     let cancelled = false;
-    setSpendLoading(true);
-    fetchUsage(spendRange).then((s) => {
+    const load = async (showLoading: boolean) => {
+      if (showLoading) setSpendLoading(true);
+      const s = await fetchUsage(spendRange);
       if (cancelled) return;
       setSpend(s);
-      setSpendLoading(false);
-    });
-    return () => { cancelled = true; };
+      if (showLoading) setSpendLoading(false);
+    };
+    load(true);
+    const interval = window.setInterval(() => { load(false); }, 60_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
   }, [spendRange]);
 
   // Subscription Health Check — compares observed usage against ChatGPT Plus

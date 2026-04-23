@@ -12,6 +12,18 @@ import {
   type CardJson,
   type ToolResult,
 } from './_lib/google-tools.js';
+import { logUsage, priceFor, countCallsSince } from './_lib/usage-store.js';
+
+// Tavily's basic-search rate + free-tier cap. Mirrors server/src/lib/webSearch
+// .ts — update in both places if pricing changes. Free tier covers 1,000
+// searches/month; we log quota-covered calls with cost_usd=0 so the dashboard
+// can show "X/1000 used" without pretending every click cost money.
+const TAVILY_PER_SEARCH_USD = 0.005;
+const TAVILY_FREE_PER_MONTH = 1000;
+function startOfCurrentMonthIso(): string {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+}
 
 export const config = { maxDuration: 60 };
 
@@ -171,6 +183,19 @@ async function searchWeb(query: string, maxResults: number): Promise<{ results: 
       signal: AbortSignal.timeout(12000),
     });
     if (!res.ok) return { results: [], images: [] };
+    // Log the Tavily call regardless of cost — the dashboard uses the count
+    // to render "X/1,000 free tier used". Capability is 'other' so it doesn't
+    // double-count against the triggering OpenAI turn's 'web_query' bucket.
+    const usedThisMonth = await countCallsSince('tavily', startOfCurrentMonthIso());
+    const cost = usedThisMonth < TAVILY_FREE_PER_MONTH ? 0 : TAVILY_PER_SEARCH_USD;
+    await logUsage({
+      provider: 'tavily',
+      model: 'tavily-search-basic',
+      capability: 'other',
+      input_tokens: 0,
+      output_tokens: 0,
+      cost_usd: cost,
+    });
     const data = (await res.json()) as {
       results?: Array<{ title?: string; url?: string; content?: string; score?: number }>;
       images?: Array<string | { url?: string }>;
@@ -396,17 +421,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ...messages.map(toOpenAIMessage),
   ];
 
+  // Running totals across first + (optional) follow-up pass — logged once at
+  // stream end so the dashboard sees one row per user turn rather than two.
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+
   try {
     const stream = await openai.chat.completions.create({
       model,
       messages: baseMessages,
       stream: true,
+      stream_options: { include_usage: true },
       ...(tools.length > 0 ? { tools, tool_choice: 'auto' as const } : {}),
     });
 
     const toolCallsBuffer: Array<{ id: string; function: { name: string; arguments: string } }> = [];
 
     for await (const chunk of stream) {
+      if (chunk.usage) {
+        totalInputTokens += chunk.usage.prompt_tokens ?? 0;
+        totalOutputTokens += chunk.usage.completion_tokens ?? 0;
+      }
       const delta = chunk.choices[0]?.delta;
       if (!delta) continue;
       if (delta.content) write({ type: 'text', content: delta.content });
@@ -545,9 +580,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         model,
         messages: followupMessages,
         stream: true,
+        stream_options: { include_usage: true },
       });
 
       for await (const chunk of followup) {
+        if (chunk.usage) {
+          totalInputTokens += chunk.usage.prompt_tokens ?? 0;
+          totalOutputTokens += chunk.usage.completion_tokens ?? 0;
+        }
         const delta = chunk.choices[0]?.delta;
         if (delta?.content) write({ type: 'text', content: delta.content });
       }
@@ -565,6 +605,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           }],
         });
       }
+    }
+
+    if (totalInputTokens > 0 || totalOutputTokens > 0) {
+      // Classify the turn for the Subscription Health Check: web_search
+      // invocations map to the Deep Research quota; otherwise plain chat.
+      // Image uploads get their own counter so the card can separately
+      // surface "you sent N images this month" regardless of classification.
+      const calledWebSearch = webCalls.length > 0;
+      const imagesCount = messages.reduce(
+        (n, m) => n + (m.role === 'user' && m.images ? m.images.length : 0),
+        0,
+      );
+      await logUsage({
+        provider: 'openai',
+        model,
+        capability: calledWebSearch ? 'web_query' : 'chat',
+        input_tokens: totalInputTokens,
+        output_tokens: totalOutputTokens,
+        images_count: imagesCount,
+        cost_usd: priceFor(model, totalInputTokens, totalOutputTokens),
+      });
     }
 
     write({ type: 'done', content: '' });

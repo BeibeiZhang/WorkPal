@@ -120,6 +120,18 @@
       "runtimeExecutable": "sleep",
       "runtimeArgs": ["3600"],
       "port": 5173
+    },
+    {
+      "name": "WorkPal Dev Busy-Kalam",
+      "runtimeExecutable": "/usr/local/bin/node",
+      "runtimeArgs": ["/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/node_modules/vite/bin/vite.js", "/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/.claude/worktrees/busy-kalam-97dbc2", "--port", "3032", "--strictPort"],
+      "port": 3032
+    },
+    {
+      "name": "WorkPal Backend Busy-Kalam",
+      "runtimeExecutable": "/usr/bin/env",
+      "runtimeArgs": ["PORT=3033", "npm", "--prefix", "/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/.claude/worktrees/busy-kalam-97dbc2/server", "run", "dev"],
+      "port": 3033
     }
   ]
 }
