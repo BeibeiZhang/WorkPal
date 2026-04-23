@@ -80,6 +80,12 @@
       "port": 2020
     },
     {
+      "name": "WorkPal Dev Laughing",
+      "runtimeExecutable": "/usr/local/bin/node",
+      "runtimeArgs": ["/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/node_modules/vite/bin/vite.js", "/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/.claude/worktrees/laughing-wu-2f82be", "--port", "2013", "--strictPort"],
+      "port": 2013
+    },
+    {
       "name": "WorkPal Demo 2008",
       "runtimeExecutable": "/usr/bin/env",
       "runtimeArgs": ["VITE_WORKPAL_DEMO=true", "/usr/local/bin/node", "/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/node_modules/vite/bin/vite.js", "/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/.claude/worktrees/distracted-gates-c93141", "--port", "2008", "--strictPort"],
