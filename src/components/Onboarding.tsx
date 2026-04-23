@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import ChatInput from './ChatInput';
-import { Chip, Tag, PageLayout } from './shared';
+import { Chip, PageLayout } from './shared';
 
 interface OnboardingProps {
   onComplete: (mostImportant: string[], avoid: string[], description?: string) => void;
@@ -130,23 +130,15 @@ export default function Onboarding({ onComplete, sidebarOpen, onToggleSidebar }:
     >
       {/* Scenario question — H2 / Regular (see .type-h2 in index.css) */}
       <p className="type-h2 text-text-primary">
-        Think about the teammates you've admired most in your career — what qualities inspired you the most?
+        Think about the teammates you've admired most in your career — pick the 3 qualities that inspire you the most.
       </p>
-
-      {/* Drop zone header */}
-      <div className="mt-8 flex items-center gap-3">
-        <p className="type-h2 text-text-primary">
-          Extra Weight — Your Top 3
-        </p>
-        <Tag>{important.length}/3</Tag>
-      </div>
 
       {/* Drop zone */}
       <div
         onDragOver={(e) => handleDragOver(e, 'important')}
         onDragLeave={handleDragLeave}
         onDrop={(e) => handleDrop(e, 'important')}
-        className="mt-3 rounded-2xl p-5 transition-all"
+        className="mt-8 rounded-2xl p-5 transition-all"
         style={{
           border: `1px ${dragOverZone === 'important' ? 'solid' : 'dashed'} var(--color-stroke-outline)`,
           background: dragOverZone === 'important' ? 'var(--color-bg-hover)' : 'transparent',
