@@ -1,5 +1,11 @@
 {
   "rewrites": [
+    { "source": "/api/chats/bulk-upsert",     "destination": "/api/chats?endpoint=bulk-upsert" },
+    { "source": "/api/chats/:id",             "destination": "/api/chats?id=:id" },
+    { "source": "/api/projects/bulk-upsert",  "destination": "/api/projects?endpoint=bulk-upsert" },
+    { "source": "/api/projects/:id",          "destination": "/api/projects?id=:id" },
+    { "source": "/api/memories/verify",       "destination": "/api/memories?endpoint=verify" },
+    { "source": "/api/memories/:id",          "destination": "/api/memories?id=:id" },
     { "source": "/api/connectors/:id/:action", "destination": "/api/connectors?id=:id&action=:action" },
     { "source": "/api/artifacts/latest",     "destination": "/api/artifacts?endpoint=latest" },
     { "source": "/api/artifacts/generate",   "destination": "/api/artifacts?endpoint=generate" },
