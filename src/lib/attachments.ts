@@ -120,7 +120,11 @@ export async function buildAttachmentContextBlock(
 
 /** Per-file size cap for project reference files. Larger than per-message
  *  attachments since these are long-lived. 25MB — matches ChatInput's cap. */
-export const MAX_PROJECT_FILE_BYTES = 25 * 1024 * 1024;
+// 2 MB cap so the base64-inflated payload (~2.7 MB) fits under Vercel
+// serverless's 4.5 MB body limit on PUT /api/projects. If a real need
+// surfaces for larger attachments, the next step is moving Project.files
+// to Supabase Storage rather than raising this ceiling.
+export const MAX_PROJECT_FILE_BYTES = 2 * 1024 * 1024;
 
 let projectFileIdCounter = 0;
 const nextProjectFileId = () => `pf-${Date.now()}-${++projectFileIdCounter}`;
