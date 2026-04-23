@@ -180,6 +180,47 @@ Deliberately parked. Re-evaluate when UI surface stabilizes. Unchanged from 2026
 
 ---
 
+## 7. `shipped` — Chats + projects to Supabase (cross-device sync)
+
+**Shipped**: 2026-04-23 (PR [#123](https://github.com/BeibeiZhang/WorkPal/pull/123), merge commit `cbc749e`). Supabase-backed persistence for chats + projects replaces the localStorage-only story — step 1 toward `workpal-beibei.vercel.app` as primary entry across Mac + iPhone. Independent of candidate #5 (deployment shape).
+
+**Why this existed**: `chats` and `projects` used to live in `localStorage` only — each browser an isolated island even when pointed at the same URL. Memory / artifacts / connectors / Gmail / Calendar were already cross-device; these were the last local-only stores blocking read-anywhere use.
+
+**Implemented scope**:
+- **Schema** ([`supabase/migrations/0003_chats_projects.sql`](../supabase/migrations/0003_chats_projects.sql)): two tables with text PKs (legacy `chat-<ts>` + new `chat-<uuid>` coexist), JSONB `messages` / `files` / `outputs`, `(updated_at desc)` index + partial `project_id` index. RLS open, API layer is the gate. Chat **GET also requires password** (unlike memory) — chat content is more sensitive.
+- **Dual-track stores** ([`api/_lib/chat-store.ts`](../api/_lib/chat-store.ts), [`server/src/lib/chatStore.ts`](../server/src/lib/chatStore.ts), same for projects): Vercel serverless + local Express share one module. `upsertChat` idempotent on `id`, `bulkUpsertChats` uses `ignoreDuplicates: true` so two devices uploading the same legacy chat don't collide.
+- **Client** ([`src/lib/chatStore.ts`](../src/lib/chatStore.ts), [`src/App.tsx`](../src/App.tsx)):
+  - localStorage stays as offline first-paint cache
+  - Mount-time hydration only if password is session-cached (never triggers the password modal itself)
+  - 1.5s debounced per-id PUT on state change, `streamingChatIdsRef` guard so long Claude runs don't write-storm (flush happens only after stream completes)
+  - `visibilitychange` → flush local dirty set first, then fetch cloud + reconcile; dirty ids skipped on reconcile so local pending edits don't get trampled
+  - 401 on flush → chat stays in dirty set for retry
+  - Per-device migration flag `workpal-chats-cloud-migrated-v1` + `ignoreDuplicates`-backed one-time upload (seed + draft ids excluded)
+- **UUID IDs** ([`src/App.tsx:71-83`](../src/App.tsx#L71)): new chats / projects get `crypto.randomUUID()`; legacy `chat-<ts>` / `proj-1` preserved — text PK, no forced migration.
+- **Attachment cap** ([`src/components/ChatInput.tsx:83`](../src/components/ChatInput.tsx#L83), [`src/lib/attachments.ts`](../src/lib/attachments.ts)): 2MB per attachment (post-base64 ~2.7MB) to stay under Vercel's 4.5MB body limit; 10 attachments per message max.
+- **Demo mode preserved**: 8 `IS_DEMO` short-circuits guard every cloud entry point — `workpal` Vercel project never initializes Supabase.
+
+**Restructure during PR**: impl added a follow-up commit [`0feb8eb`](https://github.com/BeibeiZhang/WorkPal/commit/0feb8eb) consolidating `api/{chats,projects,memories}/` directory-of-files into three single-file handlers routed via `vercel.json` rewrites. Reason: Vercel Hobby-plan 12-function limit. Behavior-equivalent (same auth gate, same route handlers, all `checkPassword` positions preserved) with one small hardening — `PUT /api/chats/:id` overrides body `id` with path `id` so a client typo can't silently retarget. **Process note for future PRs**: this commit landed after planning green-lighted the original directory structure and was not re-reviewed before merge. Next time: impl should ping planning before pushing new commits to an already-greenlit PR, even for refactors believed to be behavior-preserving.
+
+**Live-test results** (impl self-test, all ✅):
+1. Streaming write storm: 0 PUT during stream + 1 PUT after 1.5s debounce
+2. Multi-tab race: `storage` event → cloud re-fetch triggered, dirty-set protected
+3. Migration idempotent: first reload bulk-upserts, second reload GET-only
+4. 1.5MB attachment round-trip: SHA256 identical both directions, PUT/GET each ~2.0MB (2.5MB Vercel headroom)
+5. Demo URL isolation: `VITE_WORKPAL_DEMO=true` → zero `/api/chats` calls
+6. UUID id format: `chat-086a0fc9-…` shape landed in Supabase
+7. Password cached hydration: sessionStorage inject → reload → normal GET + bulk-upsert + per-id GET flow
+8. 401 fallback: no password on first mount → 0 cloud calls, 0 console errors, UI rendered from cache
+
+**Known limits** (documented in the PR's "Known limits" section):
+- **Single message with ≥2 cap-size attachments** will 413 — 2 × ~2.7MB (base64-inflated) exceeds Vercel's 4.5MB body limit once JSON wrapping is added. If this surfaces in practice, the fix is moving attachments to Supabase Storage, not raising the cap.
+- **Sidebar sorts by `updated_at desc`** (server-authoritative), not by `timestamp` (user-activity). First paint on a freshly-migrated new device reshuffles seed chats to the top once because `bulkUpsert` rewrote their `updated_at`. UX cosmetic; not a data bug.
+- **Projects fetch is not metadata-only** (projects tend to be few — full-payload GET acceptable for now). Future optimization if project file sizes grow.
+
+**Risk classification (as executed)**: medium. Planning reviewed schema / stores / client hydration / streaming guard / migration / visibilitychange statically; declined to live-rerun impl's #2 (multi-tab race) and #5 (demo isolation) after confirming they were statically auditable — `IS_DEMO` is build-time inlined so a network-panel re-run proves nothing new, and the `storage`-event + dirty-set + reconcile three-way interaction is traceable in the diff. Playbook principle #12 (risk-routed testing) applied.
+
+---
+
 ## How to revisit / add candidates
 
 When a candidate ships → remove or mark `shipped`.
