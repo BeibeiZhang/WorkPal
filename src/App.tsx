@@ -2552,7 +2552,7 @@ export default function App() {
   return (
     <div className="flex h-full w-full overflow-hidden" style={{ background: 'var(--color-outer-bg)' }}>
       {/* Outer rounded container */}
-      <div className="flex-1 flex overflow-hidden m-2 rounded-[40px] shadow-2xl relative app-shell-bg" style={{ border: `1px solid var(--color-outer-border)` }}>
+      <div className="flex-1 flex overflow-hidden relative app-shell-bg p-4">
         {/* ─── NavPanel (priority 3: collapses first) ───
             • wide  (≥ 1200px): inline expanded Sidebar when open, MiniSidebar rail when closed
             • compact (768–1199px): MiniSidebar rail inline; expanded Sidebar overlays with dark backdrop
