@@ -2015,7 +2015,7 @@ function ComponentsTab() {
     {
       name: 'GhostPillButton',
       description: 'Pill-shaped bordered secondary action — h-10, rounded-full, optional leading icon. Sibling of TertiaryButton for page headers where a pill shape fits the surrounding chrome (FilterChip row, etc).',
-      usedIn: ['MemoryPage (Add memory)'],
+      usedIn: ['MemoryPage (Add memory)', 'OverviewPage (Export report)'],
       preview: (
         <div className="flex flex-wrap gap-3 items-center">
           <GhostPillButton icon={<Plus size={16} />}>Add memory</GhostPillButton>

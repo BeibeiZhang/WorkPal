@@ -10,7 +10,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import {
   SectionTitle,
-  Tag, SummaryFooter, PrimaryButton, TertiaryButton,
+  Tag, SummaryFooter, PrimaryButton, GhostPillButton,
   MetricCard, TaskProgressCard, ReviewItemCard,
   PageLayout, CategoryBreakdown, Switch,
 } from './shared';
@@ -505,10 +505,13 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                     <Briefcase size={16} className="text-text-primary" />
                   </div>
                   <span className="type-h2-emphasized text-text-primary">Work</span>
-                  <TertiaryButton onClick={() => { /* cosmetic — no real export yet */ }} className="gap-1.5 ml-auto">
-                    <Download size={14} />
+                  <GhostPillButton
+                    onClick={() => { /* cosmetic — no real export yet */ }}
+                    icon={<Download size={14} />}
+                    className="ml-auto"
+                  >
                     Export report
-                  </TertiaryButton>
+                  </GhostPillButton>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-0">
