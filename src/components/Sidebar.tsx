@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Chat, Attachment, OutputItem } from '../types';
 import { LayoutDashboard, SquarePen, Link, BookOpen, Brain, FolderPlus, ChevronDown, Search, Palette, PanelLeft, MoreHorizontal, Trash2, FolderInput, Check, Sparkles } from 'lucide-react';
 import { iconSun, iconMoon } from '../assets';
+import { NavItem } from './shared';
 
 /**
  * Hover-visible "⋯" menu anchored to a sidebar row. Opens a popover with
@@ -502,38 +503,26 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
         {/* Top menu items */}
         <div className="px-4 flex flex-col gap-1">
           {/* 1. New Session (default page) */}
-          <button
+          <NavItem
             onClick={onNewChat}
-            className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${
-              isNewSessionActive ? 'gradient-ring' : 'hover:bg-bg-hover'
-            }`}
-          >
-            <SquarePen size={20} className="shrink-0 text-text-primary" />
-            <span className="flex-1 type-h2 text-text-primary">
-              New Session
-            </span>
-          </button>
+            active={isNewSessionActive}
+            icon={<SquarePen size={20} className="shrink-0 text-text-primary" />}
+            label="New Session"
+          />
 
           {/* 2. Overview */}
-          <button
+          <NavItem
             onClick={() => onViewChange?.('overview')}
-            className={`flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left ${activeView === 'overview' ? 'gradient-ring' : 'hover:bg-bg-hover'}`}
-          >
-            <LayoutDashboard size={20} className="shrink-0 text-text-primary" />
-            <span className="flex-1 type-h2 text-text-primary">
-              Overview
-            </span>
-          </button>
+            active={activeView === 'overview'}
+            icon={<LayoutDashboard size={20} className="shrink-0 text-text-primary" />}
+            label="Overview"
+          />
 
           {/* 3. Search */}
-          <button
-            className="flex items-center gap-4 w-full px-4 py-2 rounded-full transition-colors text-left hover:bg-bg-hover"
-          >
-            <Search size={20} className="shrink-0 text-text-primary" />
-            <span className="flex-1 type-h2 text-text-primary">
-              Search
-            </span>
-          </button>
+          <NavItem
+            icon={<Search size={20} className="shrink-0 text-text-primary" />}
+            label="Search"
+          />
         </div>
 
         {/* 4. Projects section */}
@@ -553,28 +542,20 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
           {projectsOpen && (
             <>
               {/* New Project */}
-              <button
+              <NavItem
                 onClick={onNewProject}
-                className="flex items-center gap-4 w-full px-4 py-2 rounded-full hover:bg-bg-hover transition-colors text-left"
-              >
-                <FolderPlus size={18} className="shrink-0 text-text-primary" />
-                <span className="flex-1 type-h2 text-text-primary">
-                  New Project
-                </span>
-              </button>
+                icon={<FolderPlus size={18} className="shrink-0 text-text-primary" />}
+                label="New Project"
+              />
 
               {projects.map(proj => (
                 <div key={proj.id} className="relative group">
-                  <button
+                  <NavItem
                     onClick={() => onProjectSelect(proj.id)}
-                    className={`flex items-center gap-4 w-full pl-4 pr-10 py-2 rounded-full transition-colors text-left ${
-                      activeProjectId === proj.id ? 'gradient-ring' : 'hover:bg-bg-hover'
-                    }`}
-                  >
-                    <span className="flex-1 type-h2 text-text-primary truncate">
-                      {proj.name}
-                    </span>
-                  </button>
+                    active={activeProjectId === proj.id}
+                    label={proj.name}
+                    reserveRightPadding
+                  />
                   {onDeleteProject && <RowMoreMenu onDelete={() => onDeleteProject(proj.id)} />}
                 </div>
               ))}
@@ -600,16 +581,12 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
             const isActive = activeChatId === chat.id && activeView === 'chat';
             return (
               <div key={chat.id} className="relative group">
-                <button
+                <NavItem
                   onClick={() => onChatSelect(chat.id)}
-                  className={`flex items-center gap-4 w-full pl-4 pr-10 py-2 rounded-full transition-colors text-left ${
-                    isActive ? 'gradient-ring' : 'hover:bg-bg-hover'
-                  }`}
-                >
-                  <span className="flex-1 type-h2 text-text-primary truncate">
-                    {chat.title}
-                  </span>
-                </button>
+                  active={isActive}
+                  label={chat.title}
+                  reserveRightPadding
+                />
                 {onDeleteChat && (
                   <RowMoreMenu
                     onDelete={() => onDeleteChat(chat.id)}

@@ -15,6 +15,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   SectionTitle as SharedSectionTitle, ProgressBar, CategoryBreakdown,
   TimePill, StepIndicator, Tag, FilterChip, Chip, UtilityChip, PrimaryButton, SecondaryButton, TertiaryButton,
+  GhostPillButton, HeaderIconButton, NavItem, AddRowButton,
   SolutionRow, SummaryFooter,
   MetricCard, InsightCard, TaskProgressCard, ReviewItemCard,
   StatusTag, ConnectorCard, HealthDimensionRow, SearchBox, PageLayout,
@@ -918,6 +919,10 @@ const SEARCH_INDEX: SearchEntry[] = [
   { tab: 'layouts', section: 'Layout Templates', name: 'SideCard', description: 'Collapsible card for right-column panels (Instructions / Scheduled / Files / Context)' },
   // Components — shared primitives
   { tab: 'components', section: 'Components · Shared Primitives', name: 'PrimaryButton · SecondaryButton · TertiaryButton', description: 'Three-tier button system. Only ONE Primary per view.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'GhostPillButton', description: 'Pill-shaped bordered secondary action — h-10 rounded-full with optional leading icon.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'HeaderIconButton', description: 'Square 40×40 rounded-xl icon-only button for page headers (close/toggle).' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'NavItem', description: 'Sidebar main-nav list-item — icon + label + optional trailing, .gradient-ring when active.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'AddRowButton', description: 'Inline "add a new row" button — full-width rounded-lg row with leading Plus, secondary → primary text on hover.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'StatusTag', description: 'Semantic status pill — 7 variants (pending, in-progress, submitted, in-review, success, failed, expired).' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'Tag', description: 'Neutral display pill (filled or outline).' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'TimePill', description: 'Neutral pill with user icon + time.' },
@@ -2004,6 +2009,63 @@ function ComponentsTab() {
           <SecondaryButton disabled>Disabled</SecondaryButton>
           <TertiaryButton>Tertiary</TertiaryButton>
           <TertiaryButton disabled>Disabled</TertiaryButton>
+        </div>
+      ),
+    },
+    {
+      name: 'GhostPillButton',
+      description: 'Pill-shaped bordered secondary action — h-10, rounded-full, optional leading icon. Sibling of TertiaryButton for page headers where a pill shape fits the surrounding chrome (FilterChip row, etc).',
+      usedIn: ['MemoryPage (Add memory)'],
+      preview: (
+        <div className="flex flex-wrap gap-3 items-center">
+          <GhostPillButton icon={<Plus size={16} />}>Add memory</GhostPillButton>
+          <GhostPillButton>No icon</GhostPillButton>
+          <GhostPillButton icon={<Plus size={16} />} disabled>Disabled</GhostPillButton>
+        </div>
+      ),
+    },
+    {
+      name: 'HeaderIconButton',
+      description: 'Square 40×40 rounded-xl icon-only button for page headers and modal-style close/toggle actions. Bigger and rounder than ToolbarIconButton (which is composer-scale: --toolbar-btn-h + rounded-full).',
+      usedIn: ['HeaderBar (sidebar toggle, new session)', 'ChatPanel (context panel toggle)', 'MemoryPage (close add form)'],
+      preview: (
+        <div className="flex flex-wrap gap-3 items-center">
+          <HeaderIconButton ariaLabel="Close"><X size={18} /></HeaderIconButton>
+          <HeaderIconButton ariaLabel="New session"><SquarePen size={20} /></HeaderIconButton>
+          <HeaderIconButton ariaLabel="Open panel"><Sparkles size={20} /></HeaderIconButton>
+        </div>
+      ),
+    },
+    {
+      name: 'NavItem',
+      description: 'Sidebar main-nav list-item button — pill-shaped full-width row with leading icon, flex-1 label, and optional trailing element. Active uses .gradient-ring; inactive uses hover:bg-bg-hover. reserveRightPadding leaves room for a hover-revealed row-menu.',
+      usedIn: ['Sidebar (New Session · Overview · Search · New Project · project rows · chat rows)'],
+      preview: (
+        <div className="flex flex-col gap-1 p-3 rounded-xl" style={{ background: 'var(--color-bg-page)', border: '1px solid var(--color-stroke-outline)', width: 280 }}>
+          <NavItem
+            icon={<SquarePen size={20} className="shrink-0 text-text-primary" />}
+            label="New Session"
+            active
+          />
+          <NavItem
+            icon={<LayoutDashboard size={20} className="shrink-0 text-text-primary" />}
+            label="Overview"
+          />
+          <NavItem
+            label="Untitled chat (reserveRightPadding)"
+            reserveRightPadding
+          />
+        </div>
+      ),
+    },
+    {
+      name: 'AddRowButton',
+      description: 'Inline "add a new row" button — full-width rounded-lg row with a leading Plus icon. Secondary text by default, darkens to primary on hover to signal "empty slot, click to fill". Sits at the end of an editable list (file list, tag list, etc).',
+      usedIn: ['ProjectPage (Add file)'],
+      preview: (
+        <div className="flex flex-col gap-1 p-3 rounded-xl" style={{ background: 'var(--color-bg-page)', border: '1px solid var(--color-stroke-outline)', width: 280 }}>
+          <AddRowButton icon={<Plus size={16} />}>Add file</AddRowButton>
+          <AddRowButton icon={<Plus size={16} />} disabled>Disabled</AddRowButton>
         </div>
       ),
     },

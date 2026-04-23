@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Brain, Plus, Trash2, Pencil, X, Info } from 'lucide-react';
-import { FilterChip, PageLayout, PrimaryButton, TertiaryButton } from './shared';
+import { FilterChip, GhostPillButton, HeaderIconButton, PageLayout, PrimaryButton, TertiaryButton } from './shared';
 import type { MemoryEntry, MemoryKind } from '../types';
 import { KIND_LABEL } from '../lib/memory';
 import { IS_DEMO } from '../lib/demoMode';
@@ -64,18 +64,12 @@ function MemoryForm({
       {/* Kind + (project picker when kind=project) */}
       <div className="flex items-center gap-2 flex-wrap">
         {(['core', 'preference', 'project'] as MemoryKind[]).map(k => (
-          <button
+          <FilterChip
             key={k}
-            type="button"
+            label={KIND_LABEL[k]}
+            active={kind === k}
             onClick={() => setKind(k)}
-            className={`px-3 py-1.5 rounded-full type-detail border transition-colors ${
-              kind === k
-                ? 'bg-[#3171ff] text-white border-[#3171ff]'
-                : 'text-text-primary border-stroke-outline hover:bg-bg-hover'
-            }`}
-          >
-            {KIND_LABEL[k]}
-          </button>
+          />
         ))}
         {kind === 'project' && (
           <select
@@ -226,23 +220,20 @@ export default function MemoryPage({
       onNewChat={onNewChat}
       rightSlot={
         IS_DEMO ? undefined : !adding ? (
-          <button
+          <GhostPillButton
             onClick={() => { setAdding(true); setEditingId(null); }}
-            aria-label="Add memory"
-            className="h-10 px-4 flex items-center gap-2 rounded-full hover:bg-bg-hover transition-colors text-text-primary"
-            style={{ border: '1px solid var(--color-stroke-outline)' }}
+            ariaLabel="Add memory"
+            icon={<Plus size={16} />}
           >
-            <Plus size={16} />
-            <span className="type-detail">Add memory</span>
-          </button>
+            Add memory
+          </GhostPillButton>
         ) : (
-          <button
+          <HeaderIconButton
             onClick={() => setAdding(false)}
-            aria-label="Close add form"
-            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-primary"
+            ariaLabel="Close add form"
           >
             <X size={18} />
-          </button>
+          </HeaderIconButton>
         )
       }
       filters={

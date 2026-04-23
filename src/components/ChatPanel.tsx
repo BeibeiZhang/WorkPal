@@ -4,7 +4,7 @@ import { Chat, Message, ActionChip, Attachment, ImageResult, VideoResult, WebRes
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import VoiceMode from './VoiceMode';
-import { HeaderBar, UtilityChip } from './shared';
+import { HeaderBar, HeaderIconButton, UtilityChip } from './shared';
 import { AGENTS, useAgentVideoStatus } from '../agentVideos';
 
 /** Chip showing the session's folder path.
@@ -267,13 +267,12 @@ export default function ChatPanel({
 
   const contextToggleButton =
     showContextToggle && !contextPanelOpen ? (
-      <button
+      <HeaderIconButton
         onClick={onToggleContextPanel}
-        aria-label="Open context panel"
-        className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors text-text-primary"
+        ariaLabel="Open context panel"
       >
         <PanelRight size={20} />
-      </button>
+      </HeaderIconButton>
     ) : null;
 
   return (

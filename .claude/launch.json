@@ -8,6 +8,12 @@
       "port": 2006
     },
     {
+      "name": "WorkPal Dev Recursing",
+      "runtimeExecutable": "/usr/local/bin/node",
+      "runtimeArgs": ["/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/node_modules/vite/bin/vite.js", "/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/.claude/worktrees/recursing-visvesvaraya-6cfeb0", "--port", "2007", "--strictPort"],
+      "port": 2007
+    },
+    {
       "name": "WorkPal Dev 2010",
       "runtimeExecutable": "/usr/local/bin/node",
       "runtimeArgs": ["/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/.claude/worktrees/admiring-vaughan-f19752/node_modules/vite/bin/vite.js", "--port", "2010", "--strictPort"],
