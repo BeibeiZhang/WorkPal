@@ -399,8 +399,8 @@ interface MiniSidebarProps {
 
 export function MiniSidebar({ activeView, activeChatId, onChatSelect, onViewChange, onNewChat, onToggleSidebar }: MiniSidebarProps) {
   const items: { id: string; label: string; Icon: typeof LayoutDashboard; onClick: () => void; active: boolean }[] = [
-    { id: 'new', label: 'New Session', Icon: SquarePen, onClick: onNewChat, active: false },
-    { id: 'overview', label: 'Overview', Icon: LayoutDashboard, onClick: () => onViewChange?.('overview'), active: activeView === 'overview' && !activeChatId },
+    { id: 'new', label: 'New Session', Icon: SquarePen, onClick: onNewChat, active: activeView === 'chat' },
+    { id: 'overview', label: 'Overview', Icon: LayoutDashboard, onClick: () => onViewChange?.('overview'), active: activeView === 'overview' },
     { id: 'search', label: 'Search', Icon: Search, onClick: () => onToggleSidebar?.(), active: false },
   ];
 
