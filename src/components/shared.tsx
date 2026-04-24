@@ -1669,9 +1669,9 @@ export function MetricCard({
   subtitle: string;
 }) {
   return (
-    <div className="text-center mb-3.5">
+    <div className="text-left mb-3.5">
       <div className="text-[14px] font-bold text-text-primary uppercase tracking-[0.5px] mb-1">{title}</div>
-      <div className="type-display text-text-primary leading-none">{value}</div>
+      <div className="type-display-xl text-text-primary">{value}</div>
       <div className="type-detail text-text-primary">{subtitle}</div>
     </div>
   );
@@ -1814,7 +1814,8 @@ export function TaskProgressCard({
   return (
     <button
       onClick={onClick}
-      className="px-5 py-4 text-left transition-colors w-full dashed-border-b last:bg-none flex items-center gap-3.5"
+      disabled={!onClick}
+      className="px-5 py-4 text-left transition-colors w-full dashed-border-b last:bg-none flex items-center gap-3.5 hover:bg-bg-hover disabled:cursor-default disabled:hover:bg-transparent"
     >
       <Ic size={22} strokeWidth={1.75} className="text-text-primary shrink-0 icon-theme" />
       <div className="flex-1 min-w-0">

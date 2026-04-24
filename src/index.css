@@ -56,7 +56,12 @@ strong, b {
   --brand-grad-mid:   #B46470;
   --brand-grad-end:   #CA9D8C;
 
-  /* Typography scale — 8 canonical styles. Edit here to update app-wide. */
+  /* Typography scale — 12 canonical styles. Edit here to update app-wide. */
+  --font-display-xl-size: 60px;
+  --font-display-xl-lh: 60px;
+  --font-display-xl-weight: 700;
+  --font-display-xl-tracking: -0.5px;
+
   --font-display-size: 40px;
   --font-display-lh: 48px;
   --font-display-weight: 700;
@@ -145,10 +150,10 @@ strong, b {
   --color-outer-border: #001424;
   --color-selected-bg: #3171ff;
   --color-selected-text: #ffffff;
-  /* Dark mode card panel: 30% black. */
-  --color-card-panel-bg: rgba(0, 0, 0, 0.3);
-  /* Dark mode chat input inner fill: 30% black. */
-  --color-input-bg: rgba(0, 0, 0, 0.3);
+  /* Dark mode card panel: 25% black. */
+  --color-card-panel-bg: rgba(0, 0, 0, 0.25);
+  /* Dark mode chat input inner fill: 20% black. */
+  --color-input-bg: rgba(0, 0, 0, 0.2);
   --color-progress-bar: #3171ff;
 }
 
@@ -478,30 +483,40 @@ html, body, #root {
   pointer-events: none;
 }
 
-/* Chip gradient border on hover — inner fill stays page-color in both modes
-   so hover only reveals the 1px brand-gradient border, no interior color
-   shift. */
-.chip-gradient-hover:hover {
-  border-color: transparent !important;
-  background:
-    linear-gradient(var(--color-bg-page), var(--color-bg-page)) padding-box,
-    linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box !important;
+/* Gradient-border hover — brand-gradient 1px border on hover, interior stays
+   transparent so the shell gradient reads through (no solid patch in dark mode).
+   Uses the same masked ::before pattern as .input-gradient-border.
+   - chip:    all modes
+   - input:   all modes
+   - toolbar: dark mode only */
+.chip-gradient-hover,
+.input-gradient-hover,
+.dark .toolbar-gradient-hover {
+  position: relative;
 }
-
-/* Toolbar buttons — gradient border on hover in dark mode only */
+.chip-gradient-hover:hover,
+.input-gradient-hover:hover,
 .dark .toolbar-gradient-hover:hover {
   border-color: transparent !important;
-  background:
-    linear-gradient(var(--color-bg-page), var(--color-bg-page)) padding-box,
-    linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box !important;
 }
-
-/* Input field — gradient border on hover when inactive */
-.input-gradient-hover:hover {
-  border-color: transparent !important;
-  background:
-    linear-gradient(var(--color-bg-page), var(--color-bg-page)) padding-box,
-    linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%) border-box !important;
+.chip-gradient-hover:hover::before,
+.input-gradient-hover:hover::before,
+.dark .toolbar-gradient-hover:hover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 /* Gradient border for ChatInput's active state that keeps the brand gradient
@@ -566,6 +581,12 @@ html, body, #root {
    Edit the CSS variables in :root above to propagate
    app-wide. Always prefer these over inline text-[Xpx].
    ═══════════════════════════════════════════════════ */
+.type-display-xl {
+  font-size: var(--font-display-xl-size);
+  line-height: var(--font-display-xl-lh);
+  font-weight: var(--font-display-xl-weight);
+  letter-spacing: var(--font-display-xl-tracking);
+}
 .type-display {
   font-size: var(--font-display-size);
   line-height: var(--font-display-lh);

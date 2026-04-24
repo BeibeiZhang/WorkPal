@@ -40,8 +40,8 @@ Every CSS variable with its resolved light / dark value. If you need a token, fi
 --color-bg-page               #F7F7F8              / #001424
 --color-bg-message            rgba(20,39,64,0.05)  / rgba(226,243,255,0.1)
 --color-bg-hover              rgba(20,39,64,0.05)  / rgba(226,243,255,0.1)
---color-card-panel-bg         #FFFFFF              / rgba(0,0,0,0.3)
---color-input-bg              var(--color-bg-page) / rgba(0,0,0,0.3)
+--color-card-panel-bg         #FFFFFF              / rgba(0,0,0,0.25)
+--color-input-bg              var(--color-bg-page) / rgba(0,0,0,0.2)
 --color-icon-primary          #142740              / #FFFFFF
 --color-sidebar-bg            #F7F7F8              / #001424
 --color-outer-bg              #F5F5F7              / #001424
@@ -68,6 +68,7 @@ Every CSS variable with its resolved light / dark value. If you need a token, fi
 --brand-grad-end              #CA9D8C
 
 # Typography
+--font-display-xl-size/lh/weight/tracking  60px / 60px / 700 / -0.5px
 --font-display-size/lh/weight/tracking     40px / 48px / 700 / -0.5px
 --font-h1-size/lh/weight/tracking          22px / normal / 700 / 0px
 --font-body-size/lh/weight/tracking        16px / 32px / 400 (emph 700) / 0px
@@ -100,8 +101,8 @@ Every CSS variable with its resolved light / dark value. If you need a token, fi
 | `--color-text-tertiary` | `rgba(20,39,64,0.4)` | `rgba(226,243,255,0.4)` | Disabled, muted metadata |
 | `--color-bg-page` | `#F7F7F8` | `#001424` | Main surfaces |
 | `--color-bg-message` / `--color-bg-hover` | `rgba(20,39,64,0.05)` | `rgba(226,243,255,0.1)` | Message bubbles, hover, input fields |
-| `--color-card-panel-bg` | `#FFFFFF` | `rgba(0,0,0,0.3)` | CardShell background, DarkToggle pill, VoiceMode panel |
-| `--color-input-bg` | `var(--color-bg-page)` | `rgba(0,0,0,0.3)` | ChatInput inner fill |
+| `--color-card-panel-bg` | `#FFFFFF` | `rgba(0,0,0,0.25)` | CardShell background, DarkToggle pill, VoiceMode panel |
+| `--color-input-bg` | `var(--color-bg-page)` | `rgba(0,0,0,0.2)` | ChatInput inner fill |
 | `--color-sidebar-bg` | `#F7F7F8` | `#001424` | NavPanel surface |
 | `--color-stroke-outline` | `#E8E8E8` | `rgba(115,178,255,0.2)` | Borders, dividers |
 | `--color-stroke-toggle` | `#E6E8EA` | `rgba(115,178,255,0.2)` | Inputs, toggles |
@@ -134,10 +135,11 @@ CSS vars: --brand-grad-start, --brand-grad-mid, --brand-grad-end
 
 **Never** use brand gradient for body text, icons, data viz, progress bars, or >1 button per view.
 
-### 1.3 Typography (11 styles, no more)
+### 1.3 Typography (12 styles, no more)
 
 | Class | Size / LH / Weight / Tracking | Use |
 |---|---|---|
+| `.type-display-xl` | 60 / 60 / 700 / −0.5 | Oversized numeric — MetricCard values |
 | `.type-display` | 40 / 48 / 700 / −0.5 | Page H1 (only one per page) |
 | `.type-h1` | 22 / normal / 500 / 0 | Brand wordmark, hero greetings (display-weight regular H1) |
 | `.type-h1--emphasized` | 22 / normal / 700 / 0 | Section headers — top-level regions inside a page |
@@ -342,7 +344,7 @@ All snap to `--toolbar-btn-h` so they line up vertically in one row.
 4. **1–2% gradient budget.** The brand gradient is a focal point, not decoration.
 5. **Callouts are blue (`#3171FF`), not gradient.** Selected chips, links, progress, focus.
 6. **StatusTag success green is unique.** Only `--color-accent-green` / `-green-bg`. Not used anywhere else.
-7. **11 text styles only.** `.type-display` / `.type-h1` / `.type-h1--emphasized` / `.type-body` / `.type-body-emphasized` / `.type-h2` / `.type-h2-emphasized` / `.type-detail` / `.type-detail-emphasized` / `.type-caption` / `.type-footnote`.
+7. **12 text styles only.** `.type-display-xl` / `.type-display` / `.type-h1` / `.type-h1--emphasized` / `.type-body` / `.type-body-emphasized` / `.type-h2` / `.type-h2-emphasized` / `.type-detail` / `.type-detail-emphasized` / `.type-caption` / `.type-footnote`.
 8. **Icons = lucide-react.** Never render letters or abbreviations as icon stand-ins. Never import other icon libraries.
 9. **Dark-mode automatic.** All colors come from CSS vars bound to `:root` / `.dark`. PNGs use `.icon-theme`. Lucide SVGs inherit `currentColor`.
 10. **Three-panel shell.** Every feature is a slot in NavPanel / ConversationPanel / InspectorPanel. No new top-level chrome.
@@ -405,12 +407,12 @@ Nothing fits? → build in shared.tsx, register in Review Queue.
 
 | Class | Effect |
 |---|---|
-| `.type-display` / `.type-h1` / `.type-h1--emphasized` / `.type-body` / `.type-body-emphasized` / `.type-h2` / `.type-h2-emphasized` / `.type-detail` / `.type-detail-emphasized` / `.type-caption` / `.type-footnote` | Type scale |
+| `.type-display-xl` / `.type-display` / `.type-h1` / `.type-h1--emphasized` / `.type-body` / `.type-body-emphasized` / `.type-h2` / `.type-h2-emphasized` / `.type-detail` / `.type-detail-emphasized` / `.type-caption` / `.type-footnote` | Type scale |
 | `.gradient-btn` | Primary CTA gradient fill + shadow |
 | `.gradient-text` | Brand gradient text |
-| `.chip-gradient-hover` | Unselected chip: gradient border on hover (`padding-box/border-box`) |
-| `.input-gradient-hover` | Input: gradient border on focus/hover |
-| `.toolbar-gradient-hover` | Dark-mode-only gradient border for toolbar buttons |
+| `.chip-gradient-hover` | Unselected chip: gradient border on hover (masked `::before`, interior stays transparent) |
+| `.input-gradient-hover` | Input: gradient border on hover (same masked pattern) |
+| `.toolbar-gradient-hover` | Dark-mode-only toolbar gradient border on hover (same masked pattern) |
 | `.icon-theme` | PNG auto-invert in dark mode |
 | `.app-bg` | Page background (white light / radial blobs dark) |
 | `.message-appear` | fadeInUp, 0.2s ease-out |
