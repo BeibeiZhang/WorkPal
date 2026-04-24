@@ -4,6 +4,7 @@ import { iconAsana, iconGmail, iconZoom, iconDoc20, iconSheet } from '../assets'
 import { FilterChip, ConnectorCard, SecondaryButton, PageLayout, SearchBox } from './shared';
 import { fetchConnectors, connectMock, disconnect, googleAuthStartUrl, ConnectorAuthError } from '../lib/connectors';
 import { useMemoryAuth } from '../lib/useMemoryAuth';
+import { useAuth } from '../lib/useAuth';
 import { IS_DEMO } from '../lib/demoMode';
 import { DEMO_CONNECT_LABEL, DEMO_CONNECTED_LABEL } from '../data/demo/connectors';
 
@@ -108,6 +109,7 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar, onNewChat
    *  lists above at render time — absence here means disconnected. */
   const [statusMap, setStatusMap] = useState<Record<string, 'connected' | 'disconnected'>>({});
   const { ensurePassword, passwordModal } = useMemoryAuth();
+  const { signOut } = useAuth();
 
   const refresh = useCallback(async () => {
     // Demo mode: no server, statusMap is driven entirely by local clicks.
@@ -224,14 +226,15 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar, onNewChat
       await refresh();
     } catch (err) {
       if (err instanceof ConnectorAuthError) {
-        console.warn('Wrong password while connecting', id);
+        console.warn('Connector connect 401 — bouncing to login');
+        signOut();
       } else {
         console.error('Failed to connect', id, err);
       }
     } finally {
       setIsConnecting(id, false);
     }
-  }, [ensurePassword, openGoogleOAuth, refresh]);
+  }, [ensurePassword, openGoogleOAuth, refresh, signOut]);
 
   const handleDisconnect = useCallback(async (id: string) => {
     if (IS_DEMO) {
@@ -251,11 +254,16 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar, onNewChat
       await disconnect(id, password);
       await refresh();
     } catch (err) {
-      console.error('Failed to disconnect', id, err);
+      if (err instanceof ConnectorAuthError) {
+        console.warn('Connector disconnect 401 — bouncing to login');
+        signOut();
+      } else {
+        console.error('Failed to disconnect', id, err);
+      }
     } finally {
       setIsConnecting(id, false);
     }
-  }, [ensurePassword, refresh]);
+  }, [ensurePassword, refresh, signOut]);
 
   const tabs: { id: Tab; label: string }[] = [
     { id: 'apps', label: 'Apps' },

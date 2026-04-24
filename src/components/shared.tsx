@@ -1215,6 +1215,88 @@ export function AddRowButton({
   );
 }
 
+/* ─── 7e. TextField ─── Filled labeled text input.
+ * Card-style input with optional label, leading icon, and inline error.
+ * Filled background (`var(--color-bg-hover)`) instead of an outlined border
+ * keeps it visually quiet — matches `SearchBox` and the legacy raw inputs in
+ * `PasswordModal` / `NewProjectDialog`. Error state surfaces a `#B42318`
+ * caption beneath (same red as `ChatInput` attach errors).
+ *
+ * Pass `inputRef` to focus programmatically; `autoComplete` for browser
+ * keychain hints (`username`, `current-password`, etc).
+ *
+ * Used by: LoginScreen (username + password), PasswordModal.
+ */
+export function TextField({
+  label,
+  value,
+  onChange,
+  type = 'text',
+  autoComplete,
+  leadingIcon,
+  error,
+  placeholder,
+  autoFocus,
+  onKeyDown,
+  inputMode,
+  inputRef,
+  name,
+  className: extra = '',
+}: {
+  label?: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: 'text' | 'password' | 'email';
+  autoComplete?: string;
+  leadingIcon?: ReactNode;
+  error?: string | null;
+  placeholder?: string;
+  autoFocus?: boolean;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
+  inputRef?: React.RefObject<HTMLInputElement>;
+  name?: string;
+  className?: string;
+}) {
+  return (
+    <div className={`w-full ${extra}`}>
+      {label && (
+        <label className="block type-detail text-text-primary mb-2">
+          {label}
+        </label>
+      )}
+      <div
+        className="flex items-center gap-3 px-4 py-3 rounded-[12px] transition-colors"
+        style={{ background: 'var(--color-bg-hover)' }}
+      >
+        {leadingIcon && (
+          <span className="shrink-0 flex items-center text-text-secondary">
+            {leadingIcon}
+          </span>
+        )}
+        <input
+          ref={inputRef}
+          type={type}
+          name={name}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={onKeyDown}
+          placeholder={placeholder}
+          autoComplete={autoComplete}
+          autoFocus={autoFocus}
+          inputMode={inputMode}
+          className="flex-1 min-w-0 bg-transparent outline-none type-h2 text-text-primary placeholder-text-tertiary"
+        />
+      </div>
+      {error && (
+        <p className="mt-1.5 type-caption text-[#B42318]" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
 /* ─── 7d-nav. NavItem ─── Sidebar main-nav list-item button.
  * Pill-shaped full-width row (rounded-full + `gap-4 px-4 py-2`) with a
  * leading icon, a flex-1 label, and an optional trailing element. Active

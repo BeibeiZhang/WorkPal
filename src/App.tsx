@@ -34,6 +34,7 @@ import {
   createMemoryOnServer,
   updateMemoryOnServer,
   deleteMemoryOnServer,
+  MemoryAuthError,
 } from './lib/memory';
 import {
   loadChatsCache,
@@ -64,6 +65,7 @@ import {
   ProjectAuthError,
 } from './lib/projectStore';
 import { useMemoryAuth } from './lib/useMemoryAuth';
+import { useAuth } from './lib/useAuth';
 
 // Cross-device persistence lives in src/lib/chatStore.ts + projectStore.ts.
 // localStorage is the offline-first cache; Supabase (via /api/chats and
@@ -149,14 +151,19 @@ function getInitialChatState(): { chats: Chat[]; activeChatId: string } {
   return { chats: [draft, ...loaded], activeChatId: newDraftId };
 }
 
-// Matches the sessionStorage key used by useMemoryAuth.tsx — the cross-device
-// sync layer reads it directly (rather than calling ensurePassword) so it can
-// stay strictly lazy: never prompt unprompted, only piggyback on whatever
-// password the user typed for memory / connectors / etc.
-const SESSION_PW_KEY = 'workpal-memory-pw';
+// Direct read of the localStorage auth blob written by useAuth (login gate).
+// The cross-device sync layer needs the password without going through React
+// state — flush callbacks live in stable useCallback closures and read on
+// each tick. Kept here as a top-level helper instead of pulling getCachedPassword
+// out of useAuth so the callbacks don't have to thread the auth context as
+// a dep (which would invalidate them on every signIn/signOut).
+const AUTH_KEY = 'workpal-auth-v1';
 function getCachedPasswordSync(): string | null {
   try {
-    return sessionStorage.getItem(SESSION_PW_KEY);
+    const raw = localStorage.getItem(AUTH_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return typeof parsed?.password === 'string' ? parsed.password : null;
   } catch {
     return null;
   }
@@ -586,6 +593,7 @@ export default function App() {
   // localStorage acts as an offline-friendly first-paint cache.
   const [memories, setMemories] = useState<MemoryEntry[]>(loadMemoriesCache);
   const { ensurePassword, passwordModal } = useMemoryAuth();
+  const { signOut } = useAuth();
   const isMobile = useSyncExternalStore(subscribe, getIsMobile);
   const isCompactNav = useSyncExternalStore(subscribe, getIsCompactNav);
   const canFitAllThree = useSyncExternalStore(subscribe, getCanFitAllThree);
@@ -765,7 +773,8 @@ export default function App() {
           .catch((err) => {
             if (ctrl.signal.aborted) return;
             if (err instanceof ChatAuthError) {
-              console.warn(`Chat ${id} flush 401 — staying dirty`);
+              console.warn(`Chat ${id} flush 401 — bouncing to login`);
+              signOut();
             } else {
               console.warn(`Chat ${id} flush failed`, err);
             }
@@ -794,7 +803,7 @@ export default function App() {
 
     await Promise.allSettled(tasks);
     saveChatsUpdatedAtMap(chatsUpdatedAtMapRef.current);
-  }, []);
+  }, [signOut]);
 
   const scheduleChatFlush = useCallback(() => {
     if (IS_DEMO) return;
@@ -864,7 +873,8 @@ export default function App() {
           })
           .catch((err) => {
             if (err instanceof ProjectAuthError) {
-              console.warn(`Project ${id} flush 401 — staying dirty`);
+              console.warn(`Project ${id} flush 401 — bouncing to login`);
+              signOut();
             } else {
               console.warn(`Project ${id} flush failed`, err);
             }
@@ -886,7 +896,7 @@ export default function App() {
     }
     await Promise.allSettled(tasks);
     saveProjectsUpdatedAtMap(projectsUpdatedAtMapRef.current);
-  }, []);
+  }, [signOut]);
 
   const scheduleProjectFlush = useCallback(() => {
     if (IS_DEMO) return;
@@ -990,13 +1000,14 @@ export default function App() {
         chatsHydratedRef.current = true;
       } catch (err) {
         if (err instanceof ChatAuthError) {
-          console.warn('Chat hydration: invalid password — staying on cache');
+          console.warn('Chat hydration 401 — bouncing to login');
+          signOut();
         } else {
           console.warn('Chat hydration failed:', err);
         }
       }
     },
-    [reconcileChats],
+    [reconcileChats, signOut],
   );
 
   const reconcileProjects = useCallback(
@@ -1045,13 +1056,14 @@ export default function App() {
         projectsHydratedRef.current = true;
       } catch (err) {
         if (err instanceof ProjectAuthError) {
-          console.warn('Project hydration: invalid password — staying on cache');
+          console.warn('Project hydration 401 — bouncing to login');
+          signOut();
         } else {
           console.warn('Project hydration failed:', err);
         }
       }
     },
-    [reconcileProjects],
+    [reconcileProjects, signOut],
   );
 
   // Mount-time hydration — only if a session password is already cached.
@@ -2850,10 +2862,11 @@ export default function App() {
       setMemories(prev => [saved, ...prev]);
       return true;
     } catch (err) {
+      if (err instanceof MemoryAuthError) signOut();
       console.error('Failed to add memory:', err);
       return false;
     }
-  }, [ensurePassword]);
+  }, [ensurePassword, signOut]);
 
   const handleUpdateMemory = useCallback(async (id: string, patch: { kind: MemoryKind; title: string; content: string; projectId?: string }): Promise<boolean> => {
     let password: string;
@@ -2867,10 +2880,11 @@ export default function App() {
       setMemories(prev => prev.map(m => m.id === id ? saved : m));
       return true;
     } catch (err) {
+      if (err instanceof MemoryAuthError) signOut();
       console.error('Failed to update memory:', err);
       return false;
     }
-  }, [ensurePassword]);
+  }, [ensurePassword, signOut]);
 
   const handleDeleteMemory = useCallback(async (id: string): Promise<boolean> => {
     // Delete is destructive — always re-prompt for the password, even if a
@@ -2889,10 +2903,11 @@ export default function App() {
       setMemories(prev => prev.filter(m => m.id !== id));
       return true;
     } catch (err) {
+      if (err instanceof MemoryAuthError) signOut();
       console.error('Failed to delete memory:', err);
       return false;
     }
-  }, [ensurePassword]);
+  }, [ensurePassword, signOut]);
 
   // Move a chat into a project (or out of any project when projectId is null).
   // Triggered from the Recents row's 3-dot menu. Also re-nests the cosmetic

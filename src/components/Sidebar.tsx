@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Chat, Attachment, OutputItem } from '../types';
-import { LayoutDashboard, SquarePen, Link, BookOpen, Brain, FolderPlus, ChevronDown, Search, Palette, PanelLeft, MoreHorizontal, Trash2, FolderInput, Check, Sparkles } from 'lucide-react';
+import { LayoutDashboard, SquarePen, Link, BookOpen, Brain, FolderPlus, ChevronDown, Search, Palette, PanelLeft, MoreHorizontal, Trash2, FolderInput, Check, Sparkles, LogOut } from 'lucide-react';
 import { iconSun, iconMoon } from '../assets';
 import { NavItem } from './shared';
+import { useAuth } from '../lib/useAuth';
+import { IS_DEMO } from '../lib/demoMode';
 
 /**
  * Hover-visible "⋯" menu anchored to a sidebar row. Opens a popover with
@@ -210,6 +212,8 @@ interface AvatarMenuProps {
  * Dismisses on outside click or Escape.
  */
 function AvatarMenu({ compact = false, activeView, activeChatId, onViewChange, onChatSelect }: AvatarMenuProps) {
+  const { user, signOut } = useAuth();
+  const displayName = user || 'Beibei Zhang';
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -278,14 +282,14 @@ function AvatarMenu({ compact = false, activeView, activeChatId, onViewChange, o
         style={compact ? { width: 35, height: 35 } : undefined}
       >
         {compact ? (
-          <img src={USER_PROFILE_IMG} alt="Beibei Zhang" className="w-full h-full object-cover" />
+          <img src={USER_PROFILE_IMG} alt={displayName} className="w-full h-full object-cover" />
         ) : (
           <>
             <div className="rounded-full overflow-hidden shrink-0" style={{ width: 35, height: 35 }}>
-              <img src={USER_PROFILE_IMG} alt="Beibei Zhang" className="w-full h-full object-cover" />
+              <img src={USER_PROFILE_IMG} alt={displayName} className="w-full h-full object-cover" />
             </div>
             <p className="type-h2-emphasized text-text-primary truncate">
-              Beibei Zhang
+              {displayName}
             </p>
           </>
         )}
@@ -312,6 +316,19 @@ function AvatarMenu({ compact = false, activeView, activeChatId, onViewChange, o
               <span className="type-detail text-text-primary">{label}</span>
             </button>
           ))}
+          {!IS_DEMO && (
+            <>
+              <div className="my-1 border-t border-stroke-outline" />
+              <button
+                role="menuitem"
+                onClick={() => { setOpen(false); signOut(); }}
+                className="w-full flex items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-bg-hover"
+              >
+                <LogOut size={16} className="shrink-0 text-text-primary" />
+                <span className="type-detail text-text-primary">Sign out</span>
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>
