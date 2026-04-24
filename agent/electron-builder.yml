@@ -23,3 +23,16 @@ files:
   - assets/**/*
   - package.json
   - "!**/*.map"
+# asar unpack — Claude Agent SDK's sdk.mjs uses `import.meta.url` to resolve
+# the bundled `claude` CLI binary at runtime. When sdk.mjs lives inside
+# app.asar, that resolution returns a path with `/app.asar/...` baked in,
+# and `child_process.spawn` then ENOTDIRs because asar is a single file, not
+# a real directory. Smart-unpack only pulls out platform-binary packages
+# (claude-agent-sdk-darwin-arm64/claude), but the JS that *resolves* that
+# path stays in asar — so the spawn still fails. Unpack the whole SDK main
+# package so its module-relative paths land on the real filesystem.
+# The second pattern is a forward-looking guard against any future *.node
+# native bindings under the @anthropic-ai scope.
+asarUnpack:
+  - "node_modules/@anthropic-ai/claude-agent-sdk/**"
+  - "node_modules/@anthropic-ai/**/*.node"
