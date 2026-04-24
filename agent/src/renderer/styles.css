@@ -142,7 +142,9 @@ body {
   background: currentColor;
 }
 
-/* macOS system-style switch: green #34C759 on, neutral fill off, white thumb. */
+/* macOS system-shaped switch with WorkPal brand tint: #142740 (DS icon
+   default) on, neutral fill off, white thumb. Form factor follows the
+   macOS native switch (38×22 track, 18px thumb). */
 .wp-toggle {
   position: relative;
   display: inline-block;
@@ -185,7 +187,7 @@ body {
 }
 
 .wp-toggle input:checked + .wp-toggle__track {
-  background: #34c759;
+  background: #142740;
 }
 
 .wp-toggle input:checked + .wp-toggle__track::after {
