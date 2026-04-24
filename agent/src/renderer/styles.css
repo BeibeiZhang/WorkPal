@@ -64,11 +64,10 @@ body {
 }
 
 .wp-mark {
-  display: inline-block;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--gradient);
+  display: block;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
 }
 
 .wp-version {
