@@ -1,0 +1,321 @@
+:root {
+  --text-primary: #142740;
+  --text-secondary: rgba(20, 39, 64, 0.7);
+  --text-muted: rgba(20, 39, 64, 0.5);
+  --bg: #ffffff;
+  --bg-hover: #f2f3f4;
+  --bg-card: #ffffff;
+  --stroke: #e8e8e8;
+  --ok: #028901;
+  --ok-bg: rgba(2, 137, 1, 0.1);
+  --danger: #b4384b;
+  --gradient: linear-gradient(90deg, #7652b9 0%, #b46470 40%, #ca9d8c 96%);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text-primary: #f5f5f5;
+    --text-secondary: rgba(245, 245, 245, 0.7);
+    --text-muted: rgba(245, 245, 245, 0.45);
+    --bg: #1c1c1e;
+    --bg-hover: #2a2a2c;
+    --bg-card: #242426;
+    --stroke: #3a3a3c;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font);
+  color: var(--text-primary);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.wp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+}
+
+.wp-header__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wp-header h1 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.wp-mark {
+  display: block;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.wp-version {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.wp-accent {
+  height: 2px;
+  background: var(--gradient);
+  opacity: 0.9;
+  margin: 0 20px 16px;
+  border-radius: 2px;
+}
+
+.wp-main {
+  padding: 0 20px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.wp-card {
+  border: 1px solid var(--stroke);
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+
+.wp-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 28px;
+}
+
+.wp-row + .wp-row {
+  margin-top: 10px;
+  border-top: 1px solid var(--stroke);
+  padding-top: 10px;
+}
+
+.wp-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.wp-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--ok-bg);
+  color: var(--ok);
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.wp-status[data-state="idle"] {
+  background: var(--bg-hover);
+  color: var(--text-muted);
+}
+
+.wp-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* macOS system-shaped switch with WorkPal brand tint: #142740 (DS icon
+   default) on, neutral fill off, white thumb. Form factor follows the
+   macOS native switch (38×22 track, 18px thumb). */
+.wp-toggle {
+  position: relative;
+  display: inline-block;
+  width: 38px;
+  height: 22px;
+  cursor: pointer;
+}
+
+.wp-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.wp-toggle__track {
+  position: absolute;
+  inset: 0;
+  background: rgba(120, 120, 128, 0.16);
+  border-radius: 999px;
+  transition: background 180ms ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  .wp-toggle__track {
+    background: rgba(120, 120, 128, 0.32);
+  }
+}
+
+.wp-toggle__track::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15), 0 0 0 0.5px rgba(0, 0, 0, 0.04);
+  transition: transform 180ms ease;
+}
+
+.wp-toggle input:checked + .wp-toggle__track {
+  background: #142740;
+}
+
+.wp-toggle input:checked + .wp-toggle__track::after {
+  transform: translateX(16px);
+}
+
+.wp-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.wp-hint {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.wp-hint[data-state="set"] {
+  color: var(--ok);
+}
+
+.wp-input-group {
+  display: flex;
+  gap: 8px;
+}
+
+.wp-input-group input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  outline: none;
+  transition: border-color 160ms ease;
+}
+
+.wp-input-group input:focus {
+  border-color: #7652b9;
+}
+
+.wp-btn {
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--stroke);
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 160ms ease, opacity 160ms ease, transform 80ms ease;
+}
+
+.wp-btn:hover {
+  background: var(--bg-hover);
+}
+
+.wp-btn:active {
+  transform: translateY(1px);
+}
+
+.wp-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* WorkPal DS SecondaryButton: inverted solid surface.
+   Light: #142740 bg / #ffffff text. Dark: #ffffff bg / #001424 text.
+   Color stays put on hover; picks up the DS lift shadow. */
+.wp-btn--secondary {
+  background: var(--text-primary);
+  color: var(--bg);
+  border-color: transparent;
+  padding: 9px 20px;
+  transition: box-shadow 160ms ease, transform 80ms ease;
+}
+
+.wp-btn--secondary:hover {
+  background: var(--text-primary);
+  box-shadow: 0 8px 11.7px rgba(20, 39, 64, 0.17);
+}
+
+.wp-btn--secondary:active {
+  box-shadow: 0 4px 8px rgba(20, 39, 64, 0.2);
+}
+
+.wp-btn--ghost {
+  background: transparent;
+}
+
+.wp-btn--danger {
+  color: var(--danger);
+}
+
+.wp-btn--danger:hover {
+  background: rgba(180, 56, 75, 0.08);
+}
+
+.wp-footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 12px 20px 18px;
+  border-top: 1px solid var(--stroke);
+  margin-top: 4px;
+}
+
+.wp-toast {
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text-primary);
+  color: var(--bg);
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
+.wp-toast[data-show="true"] {
+  opacity: 0.92;
+}

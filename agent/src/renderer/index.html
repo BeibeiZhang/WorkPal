@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';" />
+    <title>WorkPal Agent</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="wp-header">
+      <div class="wp-header__title">
+        <img class="wp-mark" src="workpal-logo.svg" width="28" height="28" alt="" />
+        <h1>WorkPal Agent</h1>
+      </div>
+      <span class="wp-version" id="version">v—</span>
+    </header>
+    <div class="wp-accent" aria-hidden="true"></div>
+
+    <main class="wp-main">
+      <section class="wp-card">
+        <div class="wp-row">
+          <span class="wp-label">Status</span>
+          <span class="wp-status" id="status">
+            <span class="wp-dot" id="status-dot"></span>
+            <span id="status-text">—</span>
+          </span>
+        </div>
+        <div class="wp-row">
+          <span class="wp-label">Auto-start at login</span>
+          <label class="wp-toggle">
+            <input type="checkbox" id="auto-launch" />
+            <span class="wp-toggle__track"></span>
+          </label>
+        </div>
+      </section>
+
+      <section class="wp-card">
+        <div class="wp-section-title">Anthropic API key</div>
+        <p class="wp-hint" id="api-hint">Not set — paste a key to activate the agent.</p>
+        <div class="wp-input-group">
+          <input
+            type="password"
+            id="api-key"
+            placeholder="sk-ant-..."
+            spellcheck="false"
+            autocomplete="off"
+          />
+          <button class="wp-btn wp-btn--secondary" id="save-api-key">Save</button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="wp-footer">
+      <button class="wp-btn wp-btn--ghost" id="restart">Restart Agent</button>
+      <button class="wp-btn wp-btn--ghost wp-btn--danger" id="quit">Quit</button>
+    </footer>
+
+    <script type="module" src="renderer.js"></script>
+  </body>
+</html>
