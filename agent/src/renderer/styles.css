@@ -116,23 +116,53 @@ body {
   color: var(--text-secondary);
 }
 
+/* StatusTag — mirrors WorkPal's `.status-*` variants in src/index.css.
+   Three states used by the agent:
+     running    → success variant (green) — API listening on :3001
+     idle       → neutral variant (muted) — pre-startup / shutting down
+     port-busy  → failed variant (red)    — EADDRINUSE or listen error
+   Light-mode tokens come from src/index.css lines 741-743; dark-mode from
+   lines 750-752. Replicated here instead of imported because the agent
+   renderer loads no external CSS pipeline — keep in sync with those lines
+   when the main-app tokens change. */
 .wp-status {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--ok-bg);
-  color: var(--ok);
   padding: 3px 10px;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
+  background: var(--status-bg);
+  color: var(--status-fg);
+}
+
+.wp-status[data-state="running"] {
+  --status-bg: rgba(2, 137, 1, 0.1);
+  --status-fg: #028901;
 }
 
 .wp-status[data-state="idle"] {
-  background: var(--bg-hover);
-  color: var(--text-muted);
+  --status-bg: var(--bg-hover);
+  --status-fg: var(--text-muted);
+}
+
+.wp-status[data-state="port-busy"] {
+  --status-bg: rgba(220, 38, 38, 0.12);
+  --status-fg: #c93838;
+}
+
+@media (prefers-color-scheme: dark) {
+  .wp-status[data-state="running"] {
+    --status-bg: #028901;
+    --status-fg: #ffffff;
+  }
+  .wp-status[data-state="port-busy"] {
+    --status-bg: #dc2626;
+    --status-fg: #ffffff;
+  }
 }
 
 .wp-dot {
@@ -318,4 +348,39 @@ body {
 
 .wp-toast[data-show="true"] {
   opacity: 0.92;
+}
+
+/* Port-busy detail block under the Status tag. Mirrors the same spacing /
+   border treatment as `.wp-row + .wp-row` but without the flex row — this is
+   a vertical stack of copy → PID → Retry button. Hidden via the [hidden]
+   attribute when state is running/idle; JS flips `hidden` off on port-busy. */
+.wp-server-error {
+  margin-top: 10px;
+  border-top: 1px solid var(--stroke);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wp-server-error__copy {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.wp-server-error__pid {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Tighter SecondaryButton for the inline Retry — the default 9px/20px
+   padding is too heavy inside a compact card, 6px/14px reads as a single
+   inline action. */
+.wp-btn--tight {
+  padding: 6px 14px;
+  align-self: flex-start;
 }

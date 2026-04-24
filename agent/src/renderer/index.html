@@ -21,10 +21,19 @@
       <section class="wp-card">
         <div class="wp-row">
           <span class="wp-label">Status</span>
-          <span class="wp-status" id="status">
+          <span class="wp-status" id="status" data-state="idle">
             <span class="wp-dot" id="status-dot"></span>
             <span id="status-text">—</span>
           </span>
+        </div>
+        <!-- Port-busy details — hidden in running/idle. Shows the one-line
+             error, the PID of whoever's on :3001 (if we looked it up), and a
+             Retry button. Kept inside the Status card so it sits directly
+             under the state tag instead of elsewhere on the page. -->
+        <div class="wp-server-error" id="server-error" hidden>
+          <p class="wp-server-error__copy" id="server-error-text"></p>
+          <p class="wp-server-error__pid" id="server-error-pid" hidden></p>
+          <button class="wp-btn wp-btn--secondary wp-btn--tight" id="retry-server" type="button">Retry</button>
         </div>
         <div class="wp-row">
           <span class="wp-label">Auto-start at login</span>

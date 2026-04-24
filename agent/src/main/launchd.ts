@@ -1,9 +1,9 @@
-import { promises as fs } from 'fs';
-import { exec } from 'child_process';
-import * as path from 'path';
-import * as os from 'os';
-import { promisify } from 'util';
-import { log } from './logger';
+import { promises as fs } from 'node:fs';
+import { exec } from 'node:child_process';
+import * as path from 'node:path';
+import * as os from 'node:os';
+import { promisify } from 'node:util';
+import { log } from './logger.js';
 
 const execAsync = promisify(exec);
 

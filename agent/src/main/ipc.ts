@@ -1,7 +1,8 @@
 import { app, ipcMain } from 'electron';
-import { readConfig, updateConfig } from './config';
-import { autoLaunchStatus, reconcileAutoLaunch } from './launchd';
-import { log } from './logger';
+import { readConfig, updateConfig } from './config.js';
+import { autoLaunchStatus, reconcileAutoLaunch } from './launchd.js';
+import { log } from './logger.js';
+import { getServerState, findPortHolder } from './serverState.js';
 
 function previewKey(key: string): string {
   if (!key) return '';
@@ -18,12 +19,23 @@ async function buildConfigView() {
   };
 }
 
-export function registerIpc(opts: { onQuit: () => void; onRestart: () => void }) {
+export function registerIpc(opts: {
+  onQuit: () => void;
+  onRestart: () => void;
+  onRetryServer: () => Promise<void> | void;
+}) {
   ipcMain.handle('agent:getStatus', async () => {
-    const ls = await autoLaunchStatus();
+    const [ls, server] = await Promise.all([autoLaunchStatus(), Promise.resolve(getServerState())]);
+    // Front-facing `state` now reflects the API server, not the process. The
+    // process is always alive when this IPC responds — what the user cares
+    // about in Settings is "is the local API listening for web-UI calls?".
+    // `serverError` / `portHolderPid` drive the Port-busy copy + Retry button.
     return {
       version: app.getVersion(),
-      state: 'running' as const,
+      state: server.state,
+      serverPort: server.port,
+      serverError: server.errorMessage,
+      portHolderPid: server.portHolderPid,
       execPath: process.execPath,
       plistExec: ls.execPath,
       autoLaunchBootstrapped: ls.bootstrapped,
@@ -43,6 +55,19 @@ export function registerIpc(opts: { onQuit: () => void; onRestart: () => void })
     await reconcileAutoLaunch(process.execPath, cfg.autoLaunch);
     await log('info', `config: autoLaunch set to ${enabled}`);
     return buildConfigView();
+  });
+
+  ipcMain.handle('agent:retryServer', async () => {
+    await log('info', 'server: retry requested via IPC');
+    await opts.onRetryServer();
+    return getServerState();
+  });
+
+  ipcMain.handle('agent:lookupPortHolder', async () => {
+    // `lsof` lookup only fires on user request — running it speculatively on
+    // every getStatus poll would be wasteful (it spawns a subprocess).
+    const pid = await findPortHolder();
+    return { pid };
   });
 
   ipcMain.handle('agent:quit', async () => {
