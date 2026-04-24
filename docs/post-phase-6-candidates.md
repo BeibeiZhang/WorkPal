@@ -270,6 +270,30 @@ Deliberately parked. Re-evaluate when UI surface stabilizes. Unchanged from 2026
 
 ---
 
+## 10. `candidate` — Sidebar Recents sort fix (post-#7 follow-up, corrects the §7 known-limit)
+
+**Surfaced**: 2026-04-24 — Beibei noticed the Recents list in the sidebar is not ordered by most-recently-active chat; seed demo chats stick to the top even after sending new messages in real chats.
+
+**Bug**: [`src/components/Sidebar.tsx:487`](../src/components/Sidebar.tsx#L487) filters `chats` but never sorts. Display order = `chats` state insertion order = mix of `INITIAL_CHATS` hardcoded order + whatever the hydration reconcile appended from the cloud. Each chat's `timestamp` field IS updated on every message send (10+ `timestamp: new Date()` sites in [`src/App.tsx`](../src/App.tsx)), but the sidebar doesn't consume it.
+
+**Correction of §7's "Known limit"**: when §7 shipped I described this as *"Sidebar sorts by `updated_at desc`; first-paint reshuffles seed chats once because bulkUpsert rewrote updated_at"*. That was wrong. The sidebar doesn't sort at all. The server returns `updated_at desc` from `listChatMetadata`, but the client never propagates that order to the Recents UI — `reconcileChats` uses `map.set` which preserves insertion order of the prev state, so cloud-fetched chats that already existed locally keep their stale position. Net: Recents order is arbitrary.
+
+**Fix**: one line —
+
+```ts
+const filteredChats = chats
+  .filter(c => c.id !== 'my-workpal' && !isDraftLike(c))
+  .sort((a, b) => +new Date(b.timestamp) - +new Date(a.timestamp));
+```
+
+**Effort**: 2 minutes. Single-file UI-render change, zero data-layer impact.
+
+**Depends on**: nothing. Natural to bundle with candidate #9 into one 10-minute Cowork impl PR.
+
+**Risk classification**: low. Impl self-test: send a new message in a mid-list chat → that chat moves to the top of Recents; seed chats fall into place by their `timestamp`.
+
+---
+
 ## How to revisit / add candidates
 
 When a candidate ships → remove or mark `shipped`.
