@@ -19,7 +19,6 @@ export interface AgentApi {
   getConfig(): Promise<ConfigView>;
   setApiKey(key: string): Promise<ConfigView>;
   setAutoLaunch(enabled: boolean): Promise<ConfigView>;
-  getLogs(n?: number): Promise<string[]>;
   quit(): Promise<void>;
   restart(): Promise<void>;
 }
@@ -29,7 +28,6 @@ const api: AgentApi = {
   getConfig: () => ipcRenderer.invoke('agent:getConfig'),
   setApiKey: (key) => ipcRenderer.invoke('agent:setApiKey', key),
   setAutoLaunch: (enabled) => ipcRenderer.invoke('agent:setAutoLaunch', enabled),
-  getLogs: (n = 20) => ipcRenderer.invoke('agent:getLogs', n),
   quit: () => ipcRenderer.invoke('agent:quit'),
   restart: () => ipcRenderer.invoke('agent:restart'),
 };

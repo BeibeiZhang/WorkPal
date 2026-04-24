@@ -1,7 +1,7 @@
 import { app, ipcMain } from 'electron';
 import { readConfig, updateConfig } from './config';
 import { autoLaunchStatus, reconcileAutoLaunch } from './launchd';
-import { tailMemory, log } from './logger';
+import { log } from './logger';
 
 function previewKey(key: string): string {
   if (!key) return '';
@@ -44,8 +44,6 @@ export function registerIpc(opts: { onQuit: () => void; onRestart: () => void })
     await log('info', `config: autoLaunch set to ${enabled}`);
     return buildConfigView();
   });
-
-  ipcMain.handle('agent:getLogs', async (_e, n: number = 20) => tailMemory(n));
 
   ipcMain.handle('agent:quit', async () => {
     await log('info', 'quit requested via IPC');

@@ -17,7 +17,6 @@ interface AgentApi {
   getConfig(): Promise<ConfigView>;
   setApiKey(key: string): Promise<ConfigView>;
   setAutoLaunch(enabled: boolean): Promise<ConfigView>;
-  getLogs(n?: number): Promise<string[]>;
   quit(): Promise<void>;
   restart(): Promise<void>;
 }
@@ -51,11 +50,9 @@ function showToast(msg: string): void {
 async function renderStatus(): Promise<void> {
   const s = await window.agent.getStatus();
   $('version').textContent = `v${s.version}`;
-  const dot = $('status-dot');
   const txt = $('status-text');
   const wrap = $('status');
   wrap.dataset.state = s.state;
-  dot.style.background = s.state === 'running' ? 'currentColor' : 'currentColor';
   txt.textContent = s.state === 'running' ? 'Running' : 'Idle';
 }
 
@@ -74,13 +71,8 @@ async function renderConfig(): Promise<ConfigView> {
   return c;
 }
 
-async function renderLogs(): Promise<void> {
-  const lines = await window.agent.getLogs(20);
-  $('log').textContent = lines.length ? lines.join('\n') : 'No log entries yet.';
-}
-
 async function refresh(): Promise<void> {
-  await Promise.all([renderStatus(), renderConfig(), renderLogs()]);
+  await Promise.all([renderStatus(), renderConfig()]);
 }
 
 function bindHandlers(): void {
@@ -95,7 +87,6 @@ function bindHandlers(): void {
       await window.agent.setApiKey(raw);
       input.value = '';
       await renderConfig();
-      await renderLogs();
       showToast('Key saved');
     } catch (err) {
       showToast(`Save failed: ${(err as Error).message}`);
@@ -113,16 +104,11 @@ function bindHandlers(): void {
     const enabled = (e.target as HTMLInputElement).checked;
     try {
       await window.agent.setAutoLaunch(enabled);
-      await renderLogs();
       showToast(enabled ? 'Auto-start enabled' : 'Auto-start disabled');
     } catch (err) {
       showToast(`Failed: ${(err as Error).message}`);
       await renderConfig();
     }
-  });
-
-  $('refresh-logs').addEventListener('click', () => {
-    void renderLogs();
   });
 
   $('restart').addEventListener('click', () => {
@@ -137,7 +123,6 @@ function bindHandlers(): void {
 document.addEventListener('DOMContentLoaded', () => {
   bindHandlers();
   void refresh();
-  setInterval(() => void renderLogs(), 4000);
 });
 
 export {};

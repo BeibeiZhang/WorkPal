@@ -34,7 +34,7 @@ function buildTrayIcon(): Electron.NativeImage {
 function createSettingsWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: 480,
-    height: 560,
+    height: 420,
     resizable: false,
     minimizable: false,
     maximizable: false,
