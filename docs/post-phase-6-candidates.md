@@ -135,14 +135,16 @@ Deliberately parked. Re-evaluate when UI surface stabilizes. Unchanged from 2026
 
 ---
 
-## 5. `blocked` / `deferred-by-design` — Deployment shape decision
+## 5. `in-flight` — Deployment shape: C (Web + local agent) picked, Phase 7 kicked off 2026-04-24
 
 **Three shapes on the table** (locked in `memory/project_architecture_direction.md`):
 - **A. localhost-only** — `npm run dev` + browser. Current. No sharable link, dev-only.
 - **B. Tauri / Electron desktop app** — download `.dmg`, double-click. Works offline; no terminal; can't send a URL link; users re-install on each machine. User UX very low-friction once installed.
 - **C. Web + local agent** — Vercel-hosted frontend, user installs an agent (packaged as a `.dmg` like Dropbox / Docker Desktop — **does NOT require the user to open a terminal**, just double-click install and menu-bar icon appears). User gets a shareable URL once set up; agent does file/git ops that browsers can't.
 
-**Current state**: deferred until candidate #2 (demo deployment) ships + gets some real HR usage data. Principle: observation-driven decision beats pure analysis.
+**Current state**: **C is picked, Phase 7 in flight (2026-04-24).** Beibei signaled directly into Phase 7 without A/B ordering debate — "认定 C 是最终形态，不等验证". Full Phase 7 scope + locked decisions live in [`docs/phase-7-requirements.md`](./phase-7-requirements.md). Phase 7.1 (Electron agent shell) is the first step, prompt pending Cowork session.
+
+**Original deferral reasoning** (kept for record): observation-driven decision was the plan until #2 demo deployment accumulated HR reactions + #7 + #8 made `workpal-beibei.vercel.app` cross-device usable. In practice Beibei skipped the observation phase once #7 + #8 proved the cross-device foundation worked; "I open the web page and edit local files" remains the core value prop and is the only shape that delivers it.
 
 **Discussion notes from 2026-04-20**:
 - **CLI clarification** — "install a CLI" in option C was initially confusing for non-technical users. The reality: the agent can be packaged as a normal `.dmg` app that auto-starts on login and runs in the menu bar. Dropbox / Docker Desktop / Cloudflare WARP all distribute this way. Users never open a terminal.
@@ -250,45 +252,19 @@ Deliberately parked. Re-evaluate when UI surface stabilizes. Unchanged from 2026
 
 ---
 
-## 9. `candidate` — LoginScreen double-submit race fix (post-#8 follow-up)
+## 9. `shipped` — LoginScreen double-submit race fix (post-#8 follow-up)
 
-**Surfaced**: 2026-04-24 planning-session live-test of PR #126.
+**Shipped**: 2026-04-24 (bundled with §10 into PR [#127](https://github.com/BeibeiZhang/WorkPal/pull/127), merge commit `8dfec64`). Dropped the `onClick` prop from the PrimaryButton in [`src/components/LoginScreen.tsx`](../src/components/LoginScreen.tsx), letting `<form onSubmit>` + button default `type="submit"` handle the click path in a single `handleSubmit` run. Click path now renders the inline error correctly, matching the Enter-key path.
 
-**Bug**: In [`src/components/LoginScreen.tsx`](../src/components/LoginScreen.tsx), `<PrimaryButton onClick={() => void handleSubmit()}>` inside `<form onSubmit={handleSubmit}>` with button default `type="submit"` causes `handleSubmit` to run twice on mouse click — once from `onClick`, once from native form submission. Network panel confirms two `POST /api/memories/verify` requests per click. Some React batching of the overlapping `setError(null)` / `setError('Wrong username or password')` calls across the two concurrent runs leaves `error` state `null` after both complete, so the inline error message doesn't render.
-
-**Not a repro for Enter-key**: password input's `onKeyDown` calls `preventDefault() + handleSubmit()` once, bypassing the native submit and running handleSubmit a single time. Error renders correctly.
-
-**Impact**: low. Keychain-autofilled flows on Mac / iOS typically submit via Enter. Only users who *click* "Sign in" after typing a wrong password lose the inline error feedback — they'd be confused until they try again.
-
-**Fix**: drop the `onClick` prop from the PrimaryButton in LoginScreen; rely on the form's `onSubmit` + button default `type="submit"`. Single entry, single run.
-
-**Effort**: 5 minutes. One-line change. Low risk, trivial regression surface.
-
-**Depends on**: nothing. Can be picked any time.
-
-**Risk classification**: low. Impl self-test on the click path + planning preview-verify the error renders after click is sufficient.
+**Root cause (preserved for record)**: `<PrimaryButton onClick={handleSubmit}>` inside `<form onSubmit={handleSubmit}>` with button default `type="submit"` caused two concurrent `handleSubmit` runs per click (one from `onClick`, one from native submit), and the overlapping `setError(null)` / `setError('Wrong...')` calls across the two runs left `error` state `null` after both completed. Enter-key path was unaffected because password `onKeyDown` calls `preventDefault()` + `handleSubmit()` in a single run.
 
 ---
 
-## 10. `candidate` — Sidebar Recents sort fix (post-#7 follow-up, corrects the §7 known-limit)
+## 10. `shipped` — Sidebar Recents sort fix (post-#7 follow-up, corrects the §7 known-limit)
 
-**Surfaced**: 2026-04-24 — Beibei noticed the Recents list in the sidebar is not ordered by most-recently-active chat; seed demo chats stick to the top even after sending new messages in real chats.
+**Shipped**: 2026-04-24 (bundled with §9 into PR [#127](https://github.com/BeibeiZhang/WorkPal/pull/127), merge commit `8dfec64`). One-line change in [`src/components/Sidebar.tsx`](../src/components/Sidebar.tsx) — `filteredChats` now `.sort((a, b) => +new Date(b.timestamp) - +new Date(a.timestamp))` after the existing `.filter(...)`. Seed demo chats and real chats interleave correctly by last-active time.
 
-**Bug**: [`src/components/Sidebar.tsx:487`](../src/components/Sidebar.tsx#L487) filters `chats` but never sorts. Display order = `chats` state insertion order = mix of `INITIAL_CHATS` hardcoded order + whatever the hydration reconcile appended from the cloud. Each chat's `timestamp` field IS updated on every message send (10+ `timestamp: new Date()` sites in [`src/App.tsx`](../src/App.tsx)), but the sidebar doesn't consume it.
-
-**Correction of §7's "Known limit"**: when §7 shipped I described this as *"Sidebar sorts by `updated_at desc`; first-paint reshuffles seed chats once because bulkUpsert rewrote updated_at"*. That was wrong. The sidebar doesn't sort at all. The server returns `updated_at desc` from `listChatMetadata`, but the client never propagates that order to the Recents UI — `reconcileChats` uses `map.set` which preserves insertion order of the prev state, so cloud-fetched chats that already existed locally keep their stale position. Net: Recents order is arbitrary.
-
-**Fix**: one line —
-
-```ts
-const filteredChats = chats
-  .filter(c => c.id !== 'my-workpal' && !isDraftLike(c))
-  .sort((a, b) => +new Date(b.timestamp) - +new Date(a.timestamp));
-```
-
-**Effort**: 2 minutes. Single-file UI-render change, zero data-layer impact.
-
-**Depends on**: nothing. Natural to bundle with candidate #9 into one 10-minute Cowork impl PR.
+**Root cause + §7 correction (preserved for record)**: the sidebar never sorted at all — my §7 "known limit" description that *"sidebar sorts by `updated_at desc`; first-paint reshuffles seed chats once"* was wrong. The server returns `updated_at desc` from `listChatMetadata`, but the client never propagated that order to the Recents UI — `reconcileChats` uses `map.set` which preserves insertion order of the prev state, so cloud-fetched chats that already existed locally kept their stale position. Net: Recents order was arbitrary (initial `INITIAL_CHATS` + whatever reconcile appended). Fix propagates each chat's `timestamp` field (which App.tsx already updates on every send) into the render sort.
 
 **Risk classification**: low. Impl self-test: send a new message in a mid-list chat → that chat moves to the top of Recents; seed chats fall into place by their `timestamp`.
 

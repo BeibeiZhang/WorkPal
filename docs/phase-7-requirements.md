@@ -13,7 +13,7 @@
 | Axis | Pick | Alternative(s) rejected | Why |
 |---|---|---|---|
 | Agent packaging | **Electron** | Tauri / pure Node daemon + Swift menu-bar | Fastest path to MVP; bundles Node runtime so Claude Agent SDK runs without host Node install; trade-off is ~80 MB `.dmg` |
-| Web ↔ Agent transport | **Agent-hosted HTTPS with self-signed cert** (Plex / Spotify Connect model) | Let's Encrypt + DNS / Cloudflare Tunnel | MVP simplicity; one-time trust at install, no external dependency. Upgrade path to Let's Encrypt or Tunnel later if trust UX proves painful |
+| Web ↔ Agent transport | **Local CA (mkcert-pattern)** — Agent installs a local CA into the system Keychain during first launch, then issues its own server cert off that CA | Pure self-signed cert (per-browser trust) / Let's Encrypt + DNS / Cloudflare Tunnel | Single sudo prompt at install trusts the CA system-wide; every browser afterward sees a valid cert with no warning. Avoids the per-browser "trust this cert" UX of pure self-signed. No external dependency (unlike Let's Encrypt / Tunnel). Used by Docker Desktop / `mkcert` dev-tool ecosystem |
 | `ANTHROPIC_API_KEY` location | **Agent menu-bar Settings window** | Passed from web UI over API | `.dmg` stays secret-free; first-launch onboarding asks for key; decoupled from web auth |
 | Platform | **macOS only** | + Windows / + Linux | Beibei uses Mac; Windows only if future users demand it |
 | Repo layout | **Monorepo: `agent/` at repo root** | Separate repo | Shares `ChatRecord` / `ProjectRecord` / types + lets one PR touch both halves when protocol changes |
@@ -26,7 +26,7 @@
 |---|---|---|---|
 | **7.1** | Agent shell: Electron app, menu-bar icon + Settings window (`ANTHROPIC_API_KEY` input, status, Quit/Restart), launchd auto-start, `.dmg` output. **No API content yet.** | 3–4 d | ⏳ Next |
 | **7.2** | Port `server/src/routes/*` into Agent's bundled Node runtime. Agent reads `ANTHROPIC_API_KEY` from config and injects into Claude SDK spawn env. All endpoints work, just served over plain HTTP on localhost. | 2 d | ⏳ Pending |
-| **7.3** | Generate self-signed cert on first launch, serve HTTPS on `127.0.0.1:3001`. First-use trust flow (user clicks link that opens cert import). | 2–3 d | ⏳ Pending |
+| **7.3** | First launch: generate a local CA, install it into macOS System Keychain (one sudo prompt), then issue a server cert off the CA for `127.0.0.1:3001`. Subsequent launches reuse the existing CA. No per-browser trust warnings. | 2–3 d | ⏳ Pending |
 | **7.4** | Frontend: replace hostname-based `IS_CLAUDE_CODE_AVAILABLE` with live `/ping` detection against agent. Build an "Install WorkPal Agent" onboarding view for when agent is unreachable. Re-point `fetch('/api/claude-chat')` etc. to agent URL. | 2 d | ⏳ Pending |
 | **7.5** | GitHub Releases as CDN. `.dmg` build CI. Optional auto-update (agent polls latest release on boot). | 1–2 d | ⏳ Pending |
 
