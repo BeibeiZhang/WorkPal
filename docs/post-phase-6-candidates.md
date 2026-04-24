@@ -221,6 +221,55 @@ Deliberately parked. Re-evaluate when UI surface stabilizes. Unchanged from 2026
 
 ---
 
+## 8. `shipped` — Login gate: full-screen sign-in for self-use (closes the #7 UX gap)
+
+**Shipped**: 2026-04-24 (PR [#126](https://github.com/BeibeiZhang/WorkPal/pull/126), merge commit `60ab48d`). Full-screen username + password sign-in for `workpal-beibei.vercel.app`, localStorage-persisted session, 401 auto-bounce across every `*AuthError` path, Sign out in AvatarMenu. Demo URL is never gated.
+
+**Why this existed**: after #7 shipped, users had cloud-sync plumbing but no way to enable it without blundering into Memory / Connectors to accidentally trigger a password modal — zero UI feedback that "sync is off". Users saw the localStorage first-paint cache and thought it worked, then discovered days later that nothing synced. The fix is a proper sign-in entry point that makes "I'm logged in" a first-class app state.
+
+**Implemented scope**:
+- **`<AuthProvider><AuthGate><App/></AuthGate></AuthProvider>`** wiring in [`src/main.tsx`](../src/main.tsx): wrapper-component pattern (not conditional hooks), hooks order stays constant across authed/unauthed transitions. `/artifact/:slug` route bypasses the gate so candidate #3's public pages stay public.
+- **`useAuth` context** ([`src/lib/useAuth.tsx`](../src/lib/useAuth.tsx)): `workpal-auth-v1` localStorage key, `{ user, password }` stored plaintext (same-origin JS can already read localStorage; obfuscation = 0 value), `signIn` verifies via `/api/memories/verify`, `signOut` clears cache + flips state, **cross-tab `storage` event** sync so one tab's signOut propagates. Legacy `sessionStorage['workpal-memory-pw']` dropped on first boot.
+- **`useMemoryAuth` re-plumbed** ([`src/lib/useMemoryAuth.tsx`](../src/lib/useMemoryAuth.tsx)): default-path `ensurePassword()` resolves synchronously from `useAuth.getCachedPassword()` — **no modal pop for first-touch Memory / Connectors edits**. Force-path (destructive delete) still re-prompts + re-verifies with backend; on success `updateCachedPassword(pw)` keeps user signed in if the server password rotated.
+- **LoginScreen** ([`src/components/LoginScreen.tsx`](../src/components/LoginScreen.tsx)): centered card on brand-gradient background, WorkPal `.gradient-text` title + sub-copy, two `TextField` inputs with `autoComplete="username"` / `autoComplete="current-password"` + `name` attrs (Keychain-compatible), gradient "Sign in" button. Enter on username focuses password; Enter on password submits.
+- **New shared `TextField` primitive** ([`src/components/shared.tsx` §7e](../src/components/shared.tsx)): filled (`bg-hover`) card-style input with label / leadingIcon / inline red `#B42318` error + `role="alert"`. Consumed by LoginScreen × 2 and migrated into [`PasswordModal.tsx`](../src/components/PasswordModal.tsx). Shows up on the Design System page automatically.
+- **Sign out** ([`Sidebar.tsx` `AvatarMenu`](../src/components/Sidebar.tsx)): appended at the end of the items list with a `border-t border-stroke-outline` divider + `LogOut` icon. `!IS_DEMO &&` gate — demo URL's AvatarMenu stays at 5 items, unchanged.
+- **401 auto-bounce**: 8 catch sites unified — `flushChats` + `flushProjects` + `hydrateChats` + `hydrateProjects` + 3 memory CRUD handlers + Connectors connect/disconnect — all call `signOut()` on `*AuthError`. Stale password → automatic return to LoginScreen.
+- **App.tsx auth-read helper** ([`src/App.tsx`](../src/App.tsx)): direct `localStorage.getItem(AUTH_KEY)` inside stable `useCallback` closures (rather than pulling through `useAuth`) so flush callbacks don't get invalidated on every signIn/signOut state change. Minor `AUTH_KEY` duplication across `useAuth.tsx` and `App.tsx` acknowledged as a nit — can be `export`/`import`ed in a future pass.
+- **Demo preserved**: `IS_DEMO=true` synthesizes `isAuthed: true` + hardcoded `user: 'Beibei Zhang'` in the AuthProvider value memo, short-circuits all localStorage I/O, hides Sign out. Demo URL behavior is bitwise-identical to pre-gate.
+
+**Live-test results** — impl self-test ✅ + planning independent complement ✅:
+- **Impl self-test (all ✅)**: LoginScreen render + autocomplete attrs • wrong-password inline error • correct-password → "Hi, Beibei" • Memory first Add **no modal** (cache hit) • Memory Delete **pops modal** (force path) • Sign out → cache cleared + LoginScreen returns • Demo URL zero localStorage writes + Sign out hidden • 401 bounce via tampered localStorage.
+- **Planning independent (Chromium preview, complementary)**: `autoComplete` DOM-verified both inputs; wrong-password `<p role="alert">` renders at `rgb(180, 35, 24)` + `type-caption` class; localStorage stays `null` on failure; LoginScreen preserved; demo URL (`VITE_WORKPAL_DEMO=true`) shows "Hi, Beibei" + Demo badge + AvatarMenu 5 items **without** Sign out, zero `workpal-auth-v1` written.
+- ⚠️ **Keychain real-device**: iOS Safari + macOS Safari still need real-device verification (Chromium preview can't exercise system-level Keychain).
+
+**Known limits / follow-ups**:
+- **LoginScreen double-submit race on mouse click** (candidate #9): click path suppresses inline error due to double-fire; Enter path works. 5-min fix. See §9.
+
+**Risk classification (as executed)**: medium. Planning code-reviewed AuthGate wrapper structure, IS_DEMO short-circuit placement, cross-tab storage event, force-path `updateCachedPassword`, legacy-key migration, `/artifact/:slug` bypass, all 8 signOut wiring sites, TextField primitive quality. Independently live-tested LoginScreen render + autocomplete + wrong-password flow + demo URL zero-pollution on local Chromium preview. Playbook principle #12 applied — Keychain system behavior punted to real-device since preview can't reach it.
+
+---
+
+## 9. `candidate` — LoginScreen double-submit race fix (post-#8 follow-up)
+
+**Surfaced**: 2026-04-24 planning-session live-test of PR #126.
+
+**Bug**: In [`src/components/LoginScreen.tsx`](../src/components/LoginScreen.tsx), `<PrimaryButton onClick={() => void handleSubmit()}>` inside `<form onSubmit={handleSubmit}>` with button default `type="submit"` causes `handleSubmit` to run twice on mouse click — once from `onClick`, once from native form submission. Network panel confirms two `POST /api/memories/verify` requests per click. Some React batching of the overlapping `setError(null)` / `setError('Wrong username or password')` calls across the two concurrent runs leaves `error` state `null` after both complete, so the inline error message doesn't render.
+
+**Not a repro for Enter-key**: password input's `onKeyDown` calls `preventDefault() + handleSubmit()` once, bypassing the native submit and running handleSubmit a single time. Error renders correctly.
+
+**Impact**: low. Keychain-autofilled flows on Mac / iOS typically submit via Enter. Only users who *click* "Sign in" after typing a wrong password lose the inline error feedback — they'd be confused until they try again.
+
+**Fix**: drop the `onClick` prop from the PrimaryButton in LoginScreen; rely on the form's `onSubmit` + button default `type="submit"`. Single entry, single run.
+
+**Effort**: 5 minutes. One-line change. Low risk, trivial regression surface.
+
+**Depends on**: nothing. Can be picked any time.
+
+**Risk classification**: low. Impl self-test on the click path + planning preview-verify the error renders after click is sufficient.
+
+---
+
 ## How to revisit / add candidates
 
 When a candidate ships → remove or mark `shipped`.
