@@ -138,6 +138,12 @@
       "runtimeExecutable": "/usr/bin/env",
       "runtimeArgs": ["PORT=3033", "npm", "--prefix", "/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/.claude/worktrees/busy-kalam-97dbc2/server", "run", "dev"],
       "port": 3033
+    },
+    {
+      "name": "WorkPal Dev Inspiring-Mahavira",
+      "runtimeExecutable": "/usr/local/bin/node",
+      "runtimeArgs": ["/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/node_modules/vite/bin/vite.js", "/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/.claude/worktrees/inspiring-mahavira-7c04be", "--port", "3034", "--strictPort"],
+      "port": 3034
     }
   ]
 }
