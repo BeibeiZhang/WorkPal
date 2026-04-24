@@ -24,8 +24,8 @@
 
 | Step | Deliverable | Est | Status |
 |---|---|---|---|
-| **7.1** | Agent shell: Electron app, menu-bar icon + Settings window (`ANTHROPIC_API_KEY` input, status, Quit/Restart), launchd auto-start, `.dmg` output. **No API content yet.** | 3–4 d | ⏳ Next |
-| **7.2** | Port `server/src/routes/*` into Agent's bundled Node runtime. Agent reads `ANTHROPIC_API_KEY` from config and injects into Claude SDK spawn env. All endpoints work, just served over plain HTTP on localhost. | 2 d | ⏳ Pending |
+| **7.1** | Agent shell: Electron app, menu-bar icon + Settings window (`ANTHROPIC_API_KEY` input, status, Quit/Restart), launchd auto-start, `.dmg` output. **No API content yet.** | 3–4 d | ✅ Shipped 2026-04-24 (PR [#128](https://github.com/BeibeiZhang/WorkPal/pull/128), commit `8702171`) |
+| **7.2** | Port local-only routes (`claudeChat` / `project` / `session` / `reaper`, + any others impl audits as local-touching) from `server/src/routes/*` into Agent's bundled Node runtime. Agent reads `ANTHROPIC_API_KEY` from config + injects into Claude SDK spawn env. Served over plain HTTP on 127.0.0.1:3001; HTTPS arrives in 7.3. Cloud-data routes (memory / chats / projects / artifacts / connectors / usage) stay on Vercel serverless — NOT in agent. | 2 d | ⏳ Next |
 | **7.3** | First launch: generate a local CA, install it into macOS System Keychain (one sudo prompt), then issue a server cert off the CA for `127.0.0.1:3001`. Subsequent launches reuse the existing CA. No per-browser trust warnings. | 2–3 d | ⏳ Pending |
 | **7.4** | Frontend: replace hostname-based `IS_CLAUDE_CODE_AVAILABLE` with live `/ping` detection against agent. Build an "Install WorkPal Agent" onboarding view for when agent is unreachable. Re-point `fetch('/api/claude-chat')` etc. to agent URL. | 2 d | ⏳ Pending |
 | **7.5** | GitHub Releases as CDN. `.dmg` build CI. Optional auto-update (agent polls latest release on boot). | 1–2 d | ⏳ Pending |
@@ -45,27 +45,49 @@
 
 ---
 
-## Context for 7.1 (first step)
+## Context from 7.1 (shipped 2026-04-24)
 
-**What "done" looks like for 7.1**:
-- `agent/` directory created under repo root with its own `package.json` + Electron Builder config
-- Running `npm --prefix agent run dev` launches an Electron process with a menu-bar icon (no dock icon) and a Settings window
-- Settings window fields: `ANTHROPIC_API_KEY` input (persisted to `~/.workpal-agent/config.json`), agent status (`running`), version, tail of startup log, Quit + Restart Agent buttons
-- Menu-bar click shows: `WorkPal Agent v0.1.0 • Open Settings • Quit`
-- First launch registers `~/Library/LaunchAgents/com.workpal.agent.plist` so the agent auto-starts on next login
-- `npm --prefix agent run build` outputs an unsigned `.dmg` to `agent/dist/`
-- Agent has **no API content** yet — it's an empty shell, waiting for 7.2
+**What shipped** (PR #128, commit `8702171`):
+- `agent/` monorepo sibling to `src/` / `server/`; Electron 33 + electron-builder 25; dual-arch DMG (arm64 + x64)
+- Settings window (vanilla HTML/CSS + tsc, no bundler) with WorkPal logo (`Property 1=20.svg`), SecondaryButton styling, StatusTag `success` variant for "RUNNING" (`rgba(2,137,1,0.1)` / `#028901`), API key input, auto-start toggle
+- App bundle icon (`.icns`) generated from `Property 1=110.svg`, Tray template PNG from `16 Dark.svg` (8-bit RGBA, dark mode auto-invert confirmed)
+- `LSUIElement: true` in Info.plist (menu-bar app, no dock)
+- `KeepAlive: false` + single-instance lock + window-close-hides-not-quits
+- launchd plist with **dynamic `process.execPath`** + self-heal on app move
+- Config atomic write to `~/.workpal-agent/config.json` (0600 perms, trim, `.tmp` → rename)
+- Unsigned `.dmg`; README documents the Gatekeeper right-click-Open first-launch flow
 
-**What's explicitly NOT in 7.1**:
-- HTTPS server (7.3)
-- Any `/api/*` endpoints (7.2)
-- Auto-update (7.5)
-- Frontend changes (7.4)
-- `.dmg` signing / notarization
+**Lessons for 7.2** (observed during 7.1):
+- Agent's packaged Electron runtime bundles its own Node — we don't depend on host Node. Good, but it means we re-install the `server/src/routes/*` dependency tree inside `agent/node_modules`. Treat agent as an independent npm workspace.
+- `process.execPath` inside a packaged `.app` points into `Contents/MacOS/...` — 7.1's launchd plist uses this correctly. 7.2's API code reading `process.execPath` for CWD-agnostic path resolution should match.
+- `app.isPackaged` is the clean check for "am I running from dev or from .app?"; 7.1 uses this to skip launchd registration in dev. 7.2 can use the same signal for path-resolution choices.
+- Tray PNG 8-bit RGBA is required for template-image auto-invert; verified via `file` command. Keep this invariant through icon regenerations.
+- **Process note** (not a 7.1 issue, just recording): Beibei flagged visual details (Secondary button vs gradient, StatusTag tokens, correct logo paths, app bundle icon, delete Recent log module) in the review cycle — 4–6 UI revisions landed in the same PR via additional commits. 7.2 has less visual surface, but expect similar review-loop density for the API shapes / port / HTTP envelope.
 
-**Patterns to share from the existing web app**:
-- Design system tokens (colors, typography) — 7.1 does **not** need to share primitive components with the web UI; a simple vanilla-CSS Settings window that visually echoes WorkPal (gradient accent, same `#142740` text, `#E8E8E8` borders) is enough for MVP. Cross-stack React primitive sharing is deferred.
-- `assets/icons` — reuse the WorkPal logomark if a suitable asset already exists; otherwise ship a simple mono icon for the menu bar (template image, auto-inverts in dark mode).
+---
+
+## Context for 7.2 (next step)
+
+**Local-only routes (must move to agent)**:
+- `server/src/routes/claudeChat.ts` — Claude Agent SDK spawn + streaming
+- `server/src/routes/project.ts` — git init on local repo
+- `server/src/routes/session.ts` — worktree create / complete
+- `server/src/routes/reaper.ts` — orphan worktree cleanup
+
+**Cloud / dual-track routes (stay on Vercel serverless, NOT in agent)**:
+- `memory.ts` / `chats.ts` / `projects.ts` / `artifacts.ts` / `connectors.ts` / `usage.ts` — Supabase-backed, already have Vercel equivalents at `api/*.ts`
+- `chat.ts` — OpenAI proxy, stateless, Vercel is fine
+- `editArticle.ts` / `animations.ts` / `agentVideoStatus.ts` — impl to audit: if the route is pure OpenAI / Supabase / no local file touch, stays on Vercel
+
+**Impl audit expected**: open each of the "local-only" candidates + the 3 gray-area routes, confirm whether it reads / writes the user's local file system, spawns git, or invokes Claude Agent SDK. Produce a final "moves to agent" list before coding.
+
+**Agent side**:
+- New `agent/src/main/server.ts` (or similar) — starts an Express (or raw HTTP) server on 127.0.0.1:3001 after Electron is ready
+- Port conflict handling: if 3001 is busy (e.g. user runs `npm --prefix server run dev` simultaneously), log the error to Settings and keep agent alive with a visible "port busy" state
+- Claude SDK receives `ANTHROPIC_API_KEY` from `readConfig()` (already implemented in 7.1)
+- Code sharing strategy between `server/` and `agent/` — open for impl change-list: copy-paste (risk of drift) vs monorepo shared package vs TS path alias
+
+**Not in 7.2**: HTTPS (7.3), frontend rewire (7.4), auto-update (7.5). 7.2 agent stays HTTP-only.
 
 ---
 
