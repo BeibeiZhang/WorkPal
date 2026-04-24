@@ -23,16 +23,14 @@ files:
   - assets/**/*
   - package.json
   - "!**/*.map"
-# asar unpack — Claude Agent SDK's sdk.mjs uses `import.meta.url` to resolve
-# the bundled `claude` CLI binary at runtime. When sdk.mjs lives inside
-# app.asar, that resolution returns a path with `/app.asar/...` baked in,
-# and `child_process.spawn` then ENOTDIRs because asar is a single file, not
-# a real directory. Smart-unpack only pulls out platform-binary packages
-# (claude-agent-sdk-darwin-arm64/claude), but the JS that *resolves* that
-# path stays in asar — so the spawn still fails. Unpack the whole SDK main
-# package so its module-relative paths land on the real filesystem.
-# The second pattern is a forward-looking guard against any future *.node
-# native bindings under the @anthropic-ai scope.
-asarUnpack:
-  - "node_modules/@anthropic-ai/claude-agent-sdk/**"
-  - "node_modules/@anthropic-ai/**/*.node"
+# asar disabled. Even with asarUnpack pulling out the SDK main package,
+# spawn still ENOTDIR'd because Electron's asar layer is a userland fuse —
+# import.meta.url inside sdk.mjs (still loaded *through* the asar VFS even
+# when the file is also unpacked) bakes `/app.asar/...` into the resolved
+# binary path, and spawn() is a syscall that bypasses Electron's path
+# rewriting and hits the kernel directly. Kernel sees app.asar as a file,
+# not a dir → ENOTDIR.
+# Disabling asar entirely costs ~marginal startup time + same bundle size,
+# but eliminates the corner case for good. WorkPal Agent is a single-user
+# desktop tool; we don't need the asar packaging optimization.
+asar: false
