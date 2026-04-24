@@ -86,7 +86,7 @@ export default function LoginScreen() {
           }}
         />
 
-        <PrimaryButton onClick={() => void handleSubmit()} disabled={!canSubmit} fullWidth>
+        <PrimaryButton disabled={!canSubmit} fullWidth>
           {busy ? 'Signing in…' : 'Sign in'}
         </PrimaryButton>
       </form>

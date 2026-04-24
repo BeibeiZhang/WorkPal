@@ -484,9 +484,9 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
   const isDraftLike = (c: Chat) =>
     c.isDraft || (c.title === 'New Session' && c.messages.length === 0);
 
-  const filteredChats = chats.filter(c =>
-    c.id !== 'my-workpal' && !isDraftLike(c)
-  );
+  const filteredChats = chats
+    .filter(c => c.id !== 'my-workpal' && !isDraftLike(c))
+    .sort((a, b) => +new Date(b.timestamp) - +new Date(a.timestamp));
 
   // The top "New Session" button shows as selected while a draft chat is the
   // active chat — i.e. the user has clicked it but hasn't sent a message yet.
