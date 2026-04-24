@@ -18,7 +18,7 @@ import {
   GhostPillButton, HeaderIconButton, NavItem, AddRowButton,
   SolutionRow, SummaryFooter,
   MetricCard, InsightCard, TaskProgressCard, ReviewItemCard,
-  StatusTag, ConnectorCard, HealthDimensionRow, SearchBox, PageLayout,
+  StatusTag, ConnectorCard, HealthDimensionRow, SearchBox, TextField, PageLayout,
   HeaderBar, SplitView, SidePanelHeader, SideCard, ToolbarPill, DemoBadge,
   ToolbarIconButton, ToolbarSegmented, Tooltip, Switch,
 } from './shared';
@@ -65,6 +65,33 @@ const TABS: { id: TabId; label: string; hint: string }[] = [
 function SearchBoxDemo() {
   const [q, setQ] = useState('');
   return <SearchBox value={q} onChange={setQ} placeholder="Search artifacts" />;
+}
+
+function TextFieldDemo() {
+  const [name, setName] = useState('');
+  const [pw, setPw] = useState('');
+  return (
+    <div className="flex flex-col gap-4 max-w-[360px]">
+      <TextField
+        label="Username"
+        value={name}
+        onChange={setName}
+        placeholder="Your name"
+        autoComplete="username"
+        leadingIcon={<User size={16} />}
+      />
+      <TextField
+        label="Password"
+        type="password"
+        value={pw}
+        onChange={setPw}
+        placeholder="Enter password"
+        autoComplete="current-password"
+        leadingIcon={<X size={16} />}
+        error={pw.length > 0 && pw.length < 4 ? 'At least 4 characters' : null}
+      />
+    </div>
+  );
 }
 
 function SplitViewDemo() {
@@ -943,6 +970,7 @@ const SEARCH_INDEX: SearchEntry[] = [
   { tab: 'components', section: 'Components · Shared Primitives', name: 'SummaryFooter', description: 'Right-aligned row with clock icon + summary text.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'SectionTitle', description: 'Emoji + bold title + optional count badge.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'SearchBox', description: 'Responsive search input — desktop pill / mobile icon that expands on tap.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'TextField', description: 'Filled labeled text input with optional leading icon and inline error. Used by LoginScreen, PasswordModal.' },
   // Components — chat & messaging
   { tab: 'components', section: 'Components · Chat & Messaging', name: 'ChatMessage', description: 'User / assistant chat bubble — markdown, chips, feedback bar.' },
   { tab: 'components', section: 'Components · Chat & Messaging', name: 'ChatInput', description: 'Text composer — textarea, attachment menu, voice input.' },
@@ -2330,6 +2358,12 @@ function ComponentsTab() {
       description: 'Responsive search input. Desktop: expanded pill. Mobile: icon-only that expands on tap.',
       usedIn: ['Library', 'Connectors', 'ProjectPage'],
       preview: <SearchBoxDemo />,
+    },
+    {
+      name: 'TextField',
+      description: 'Filled labeled text input with optional label, leading icon, and inline error. Pass `autoComplete` for browser keychain hints (username / current-password).',
+      usedIn: ['LoginScreen', 'PasswordModal'],
+      preview: <TextFieldDemo />,
     },
   ];
 

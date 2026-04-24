@@ -6,6 +6,7 @@ import ChatInput from './ChatInput';
 import VoiceMode from './VoiceMode';
 import { HeaderBar, HeaderIconButton, UtilityChip } from './shared';
 import { AGENTS, useAgentVideoStatus } from '../agentVideos';
+import { useAuth } from '../lib/useAuth';
 
 /** Chip showing the session's folder path.
  *  - Click → reveal the folder in Finder (POSTs to /api/claude-chat/open-folder
@@ -103,6 +104,10 @@ interface ChatPanelProps {
 const WELCOME_CHIPS = ['Create performance goals', 'Analyze doc(s)', 'Visualize data'];
 
 function WelcomeState({ isDark, selectedAvatarId, onAvatarChange }: { isDark?: boolean; selectedAvatarId?: string; onAvatarChange?: (id: string) => void }) {
+  const { user } = useAuth();
+  // Greeting takes only the first name — "Beibei Zhang" → "Beibei". Falls back
+  // to "Beibei" so the WelcomeState stays meaningful if user is somehow empty.
+  const firstName = (user || 'Beibei').trim().split(/\s+/)[0];
   const [pickerOpen, setPickerOpen] = useState(false);
   const selectedAgent = AGENTS.find(a => a.id === selectedAvatarId) || AGENTS[0];
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -210,7 +215,7 @@ function WelcomeState({ isDark, selectedAvatarId, onAvatarChange }: { isDark?: b
       )}
       {/* Greeting */}
       <h1 className="type-h1 gradient-text text-center w-full">
-        Hi, Beibei
+        Hi, {firstName}
       </h1>
       {/* Subtitle */}
       <div className="flex items-center justify-center px-8 w-full">
