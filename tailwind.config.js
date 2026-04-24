@@ -24,6 +24,9 @@ export default {
           hover: 'var(--color-bg-hover)',
           sidebar: 'var(--color-sidebar-bg)',
         },
+        input: {
+          bg: 'var(--color-input-bg)',
+        },
         stroke: {
           outline: 'var(--color-stroke-outline)',
         },

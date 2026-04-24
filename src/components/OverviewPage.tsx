@@ -345,7 +345,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
       bgClass="app-bg"
     >
           {/* ━━━ 1. GREETING ━━━ */}
-          <div className="rounded-2xl mb-12 relative overflow-hidden bg-bg-hover">
+          <div className="rounded-2xl mb-[48px] relative overflow-hidden bg-input-bg">
             {/* Desktop: video column fixed at 240px so the text column always has
                 room to breathe. Stretch makes the video fill the row height;
                 object-cover trims to fit. Mobile stacks with a square video. */}
@@ -376,7 +376,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
           </div>
 
           {/* ━━━ 3. NEEDS YOUR EYES ━━━ */}
-          <div className="mb-12">
+          <div className="mb-[48px]">
             <div className="flex flex-wrap items-center justify-between mb-4 [&>*]:mb-0">
               <SectionTitle emoji="" title="Needs Your Eyes" count={unreadArtifacts.length + REVIEW_ITEMS.filter((_, i) => !reviewDone[i]).length} size={20} />
               <SummaryFooter>
@@ -436,7 +436,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
           </div>
 
           {/* ━━━ 4. STEPHEN IS WORKING ON ━━━ */}
-          <div className="mb-12">
+          <div className="mb-[48px]">
             <SectionTitle emoji="" title="Agents at Work" count={IN_PROGRESS.length} size={20} />
 
             <div className="flex flex-col">
@@ -463,7 +463,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
           </div>
 
           {/* ━━━ 4b. SCHEDULED ━━━ */}
-          <div className="mb-12">
+          <div className="mb-[48px]">
             <SectionTitle emoji="" title="Scheduled" count={SCHEDULED.length} size={20} />
             <div className="flex flex-col">
               {SCHEDULED.map(job => {
@@ -498,7 +498,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
           </div>
 
           {/* ━━━ 6. POSITIVE IMPACT — 7 DAY, THREE DIMENSIONS ━━━ */}
-          <div className="mb-20">
+          <div className="mb-[48px]">
             <div className="flex flex-wrap items-center justify-between mb-4 [&>*]:mb-0">
               <SectionTitle emoji="" title="Your Positive Impact This Week" size={20} />
               <span className="type-detail text-text-primary">Apr 7 – 13, 2026 · 7 days</span>
@@ -600,7 +600,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
           </div>
 
           {/* ━━━ 5. API SPEND ━━━ */}
-          <div className="mb-12">
+          <div className="mb-[48px]">
             <SectionTitle emoji="" title="API Spend" size={20} />
 
             {/* Range segmented toggle — Switch primitive (design system) */}
@@ -623,7 +623,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                 headline number isn't knocked off center. */}
             <button
               onClick={() => setSpendDetailsOpen(!spendDetailsOpen)}
-              className="relative w-full rounded-2xl p-6 pb-[10px] bg-bg-hover mb-3 transition-colors"
+              className="relative w-full rounded-2xl p-6 pb-[10px] bg-input-bg mb-3 transition-colors"
             >
               <MetricCard
                 title={spendRange === 1 ? 'Past 24 hours' : `Past ${spendRange} days`}
@@ -707,7 +707,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
 
           {/* ━━━ 6. SUBSCRIPTION HEALTH CHECK ━━━ */}
           {!IS_DEMO && health && (
-            <div className="mb-12">
+            <div className="mb-[48px]">
               <SectionTitle emoji="" title="Subscription Health Check" size={20} />
 
               {/* Verdict header — click to expand details. Mirrors the Stress
@@ -715,7 +715,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                   familiar. */}
               <button
                 onClick={() => setHealthExpanded(!healthExpanded)}
-                className="rounded-2xl px-5 py-4 flex items-center gap-3.5 text-left transition-colors bg-bg-hover w-full"
+                className="rounded-2xl px-5 py-4 flex items-center gap-3.5 text-left transition-colors bg-input-bg w-full"
               >
                 <Gauge size={22} strokeWidth={1.75} className="text-text-primary shrink-0 icon-theme" />
                 <div className="flex-1 min-w-0">

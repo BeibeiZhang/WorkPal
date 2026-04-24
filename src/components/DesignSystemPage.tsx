@@ -176,7 +176,7 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
               className={`shrink-0 px-4 py-1.5 rounded-full type-detail transition-colors border ${
                 activeTab === tab.id && !isSearching
                   ? 'border-transparent'
-                  : 'border-stroke-outline text-text-primary hover:bg-bg-hover chip-gradient-hover'
+                  : 'border-stroke-outline text-text-primary chip-gradient-hover'
               }`}
               style={activeTab === tab.id && !isSearching ? { background: 'var(--color-selected-bg)', color: 'var(--color-selected-text)' } : undefined}
             >
@@ -263,12 +263,12 @@ const SURFACE_TOKENS: ColorToken[] = [
   {
     name: 'Background · Card',
     cssVar: '--color-card-panel-bg',
-    usage: 'Elevated surfaces — CardShell, ArtifactCard, DarkToggle pill, VoiceMode panel. White in light; 30% black in dark so the shell gradient reads through',
+    usage: 'Elevated surfaces — CardShell, ArtifactCard, DarkToggle pill, VoiceMode panel. White in light; 25% black in dark so the shell gradient reads through',
   },
   {
     name: 'Background · Input',
     cssVar: '--color-input-bg',
-    usage: 'Input field fill — ChatInput textarea and inline search surfaces. #142740 at 5% in light (same overlay as bg-hover); 30% black in dark so the shell gradient reads through',
+    usage: 'Input field fill — ChatInput textarea and inline search surfaces. #142740 at 5% in light (same overlay as bg-hover); 20% black in dark so the shell gradient reads through',
   },
   {
     name: 'Background · Outer',
@@ -408,6 +408,16 @@ const TYPE_SCALE: {
   usage: string;
   appearances: string[];
 }[] = [
+  {
+    className: 'type-display-xl',
+    label: 'Display XL',
+    size: '60', lh: '60', weight: '700', tracking: '-0.5',
+    sample: '10',
+    usage: 'Oversized numeric — MetricCard values (stat dashboards)',
+    appearances: [
+      'OverviewPage — MetricCard values (Family "10", Self "+2h", API Spend "$1.02")',
+    ],
+  },
   {
     className: 'type-display',
     label: 'Display',
@@ -831,7 +841,7 @@ const PRINCIPLES: { n: number; title: string; rule: string; why?: string; refTab
   {
     n: 7,
     title: '5 text styles only',
-    rule: 'Use .type-display, .type-h1, .type-h1--emphasized, .type-body, .type-body-emphasized, .type-h2, .type-h2-emphasized, .type-detail, .type-detail-emphasized, .type-caption, .type-footnote. Forbidden running-text sizes: 9, 10, 13, 17, 18, 24, 28, 32 px. 11/12 are valid only via .type-footnote / .type-caption.',
+    rule: 'Use .type-display-xl, .type-display, .type-h1, .type-h1--emphasized, .type-body, .type-body-emphasized, .type-h2, .type-h2-emphasized, .type-detail, .type-detail-emphasized, .type-caption, .type-footnote. Forbidden running-text sizes: 9, 10, 13, 17, 18, 24, 28, 32 px. 11/12 are valid only via .type-footnote / .type-caption.',
     refTab: 'Design Foundations',
   },
   {
