@@ -1,0 +1,25 @@
+appId: com.workpal.agent
+productName: WorkPal Agent
+directories:
+  output: dist
+  buildResources: build
+mac:
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+  category: public.app-category.productivity
+  icon: build/icon.icns
+  identity: null
+  extendInfo:
+    LSUIElement: true
+    NSHumanReadableCopyright: "© 2026 WorkPal"
+dmg:
+  title: "WorkPal Agent ${version}"
+files:
+  - dist-main/**/*
+  - dist-renderer/**/*
+  - assets/**/*
+  - package.json
+  - "!**/*.map"
