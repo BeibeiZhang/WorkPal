@@ -43,8 +43,10 @@ npm install
 npm run dev          # compile TS + launch Electron
 npm run pack         # build unpacked .app for smoke-testing
 npm run dist         # build the .dmg into dist/
-npm run build:icons  # regenerate menu-bar template PNGs from Python source
+npm run build:icons  # regenerate both icon sets: tray template PNGs + app .icns
 ```
+
+To update the branded Finder / Dock icon, replace `agent/build/AppIcon.svg` with a new square SVG and rerun `npm run build:icons`. The script rasterizes 7 sizes via `sips`, arranges them into the `.iconset` layout macOS requires, and packs them with `iconutil`.
 
 Dev mode skips launchd registration (we don't want every `npm run dev` to rewrite the user's LaunchAgents). Packaged builds handle it on first launch.
 
@@ -71,9 +73,13 @@ agent/
 ├── assets/
 │   ├── menuIconTemplate.png    # 16×16 black-alpha chat bubble
 │   └── menuIconTemplate@2x.png # 32×32 Retina version
+├── build/
+│   ├── AppIcon.svg             # brand logo source (edit to rebrand)
+│   └── icon.icns               # generated: packed iconset for app bundle
 └── scripts/
-    ├── build-icons.py          # regenerates PNGs from parametric shape
-    ├── build-icons.sh
+    ├── build-icons.py          # regenerates tray PNGs from parametric shape
+    ├── build-app-icon.sh       # rasterizes AppIcon.svg → .icns
+    ├── build-icons.sh          # chains both icon builds
     └── uninstall.sh
 ```
 
@@ -83,7 +89,7 @@ Full context lives in [`docs/phase-7-requirements.md`](../docs/phase-7-requireme
 
 - **Electron, not Tauri** — Tauri would cut ~60 MB off the DMG but we need the bundled Node runtime for Claude Agent SDK in 7.2.
 - **Vanilla CSS, not React** — 1 input + 1 toggle + 2 buttons doesn't justify a bundler. We'll migrate to React (+ a bundler) if Settings ever grows to need shared component state.
-- **Template image, not gradient logo** — macOS menu-bar icons must be pure-black-with-alpha to auto-invert in dark mode. The colored WorkPal W only appears in the dock / Applications via `.icns` (7.1 uses Electron's default; real `.icns` lands in 7.5 with release polish).
+- **Template image, not gradient logo** — macOS menu-bar icons must be pure-black-with-alpha to auto-invert in dark mode. The colored WorkPal W only appears in the Dock / Finder / Applications via `build/icon.icns` (packed from `build/AppIcon.svg`).
 - **`process.execPath` self-heal** — on each boot, we compare the current exec path against what the plist has; mismatch → silent rewrite + rebootstrap. Covers the "user dragged app from Downloads to Applications after first launch" case.
 - **Menu-bar only** — `LSUIElement=true` in Info.plist hides dock from the start (no flash); `app.dock.hide()` as dev-mode backstop.
 
@@ -93,4 +99,3 @@ Full context lives in [`docs/phase-7-requirements.md`](../docs/phase-7-requireme
 - No auto-update (7.5).
 - No HTTPS / `/api/*` yet (7.2 + 7.3).
 - Logs only show agent process events, not API traffic (nothing yet to log).
-- `.icns` for app bundle uses Electron default; v0.1 ships without a branded dock icon.

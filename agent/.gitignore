@@ -2,5 +2,6 @@ node_modules/
 dist/
 dist-main/
 dist-renderer/
+build/AppIcon.iconset/
 *.log
 .DS_Store
