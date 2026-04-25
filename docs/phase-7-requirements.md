@@ -182,13 +182,28 @@
 - New "Install WorkPal Agent" onboarding surface when agent unreachable: link to GitHub Releases download + brief "after install, click menu-bar icon to enter API key" steps. Differentiate from the existing auth gate (that's a login, this is a tool install).
 - `IS_DEMO` (workpal.vercel.app) path completely unchanged — demo never reaches an agent.
 
-**Open for impl change-list (answer in first reply, no code yet)**:
-1. **Rename `IS_CLAUDE_CODE_AVAILABLE`?** — legacy name from pre-agent era ("is the Claude Code CLI available on this box"). Current semantics = "is the local agent reachable". Rename to `IS_AGENT_REACHABLE`, or keep name for now and rename in a separate refactor?
-2. **Probe cadence** — `(a)` once at app boot + treat result as session-lifetime / `(b)` boot + on window-focus / `(c)` periodic poll every 30s. Trade-offs: (a) fast but stale if agent crashes mid-session; (c) catches transitions but chatty; (b) is probably the sweet spot for a menu-bar companion.
-3. **Timeout / retry for the probe** — `/health` is local TCP so responds in <5ms. What timeout before declaring "agent unreachable"? 500ms? 1s? If agent is starting but not yet listening (the ~200ms gap between `open` and `listen` binding), first probe fails → onboarding flashes. Debounce?
-4. **Onboarding copy** — "Install WorkPal Agent" card: what's the bilingual wording? CTA link to… a GitHub Releases page that doesn't exist yet (7.5 adds the DMG distribution). Placeholder link for now, or wait for 7.5?
-5. **Error-state propagation** — today a `/api/claude-chat` 500 shows a toast + retry. Post-rewire, a TLS error fetching agent could masquerade as a 500. Distinguish "agent unreachable" (onboarding path) from "agent errored" (keep current error UX)?
-6. **Cert uninstalled mid-session** — if user runs `uninstall.sh` and comes back to the web UI, every `fetch` hits TLS failure. Auto-detect and flip back to onboarding state? Or hard-refresh required?
+**Planning decisions for impl (answered 2026-04-24, all 6 approved by Beibei)**:
+
+1. **Rename `IS_CLAUDE_CODE_AVAILABLE` → `IS_AGENT_REACHABLE`** in the same 7.4 PR. Hostname-sniff → live HTTPS probe is a full semantic change; legacy name would mislead reviewers. Bundled with the `agent/src/main/ipc.ts:85` log-string drive-by ("opening sudo prompt" → "opening install prompt") as the first cosmetic-only commit.
+2. **Probe cadence**: boot + `window.focus` + on any agent-route fetch failure. No periodic poll — `/health` is <5ms local TCP, chatty for no gain. Hybrid covers all transitions (cold boot, agent crash, mid-session `uninstall.sh`).
+3. **Probe timeout / retry**: 1500ms timeout. First-boot debounce — one failure → wait 300ms → retry once → only flip `unreachable` after both fail. Closes the ~200ms window between `app.whenReady` and `listen()` bind that would otherwise flash the onboarding surface. Session-lifetime re-probes (focus / fetch-fail) are fail-fast — no retry, user is active and latency matters.
+4. **Onboarding copy**: bilingual card, "WorkPal Agent" kept as-is in both languages (product-name decision, not translated). Full copy below. Download link hardcoded to `https://github.com/BeibeiZhang/WorkPal/releases/latest` — 7.5 cuts the release and this URL activates automatically, cleaner than a placeholder and saves a frontend round-trip once 7.5 ships.
+5. **Error-state propagation**: front a `fetchAgent()` wrapper over the 4 local routes. Network-layer throw (`TypeError: Failed to fetch` / timeout / TLS handshake error) → `unreachable` → onboarding surface. `response.ok === false` (4xx / 5xx with JSON body) → reuse existing toast + retry UX. Clean try/catch boundary — exception vs resolved response.
+6. **Cert uninstalled mid-session**: no hard-refresh. Q2's fetch-failure-triggered re-probe already covers it — any agent-route fetch crashes on TLS → re-probe flips state to `unreachable` → onboarding appears. User re-installs CA → focus event triggers re-probe → back to `reachable`. Keeps the Vercel page state intact and cloud-only features (memory / chats list) still work while agent is absent.
+
+**Onboarding surface copy (approved 2026-04-24)**:
+
+- **Title**: `Install WorkPal Agent to enable local AI editing` / `安装 WorkPal Agent 以启用本地 AI 编辑`
+- **Body**: `WorkPal Agent runs on your Mac so the web app can edit local files, manage git, and stream Claude replies. Once it's running, this page reconnects automatically.` / `WorkPal Agent 在你的 Mac 上运行，让网页能编辑本地文件、管理 git、流式返回 Claude 回复。启动后本页面会自动重连。`
+- **CTA button**: `Download WorkPal Agent` / `下载 WorkPal Agent` → `https://github.com/BeibeiZhang/WorkPal/releases/latest`
+- **Post-install steps** (numbered list under the CTA):
+  1. `Open the .dmg, drag WorkPal Agent to Applications.` / `打开 .dmg，把 WorkPal Agent 拖进 Applications。`
+  2. `Right-click WorkPal Agent → Open (first-launch Gatekeeper bypass).` / `右键 WorkPal Agent → 打开（首次启动绕过 Gatekeeper）。`
+  3. `Click the menu-bar icon → enter your Anthropic API key → install the local CA when prompted.` / `点击菜单栏图标 → 输入 Anthropic API key → 按提示安装本地 CA。`
+
+**Commit sequence for impl**:
+- **C1 (cosmetic only)**: `IS_CLAUDE_CODE_AVAILABLE` → `IS_AGENT_REACHABLE` rename + `agent/src/main/ipc.ts:85` log-string fix. No behavior change. Lands first so the 7.4 implementation commits read cleanly against the new name.
+- **C2+**: probe implementation, `fetchAgent()` wrapper, 4-route URL rewrite, onboarding surface + copy, error-state split.
 
 **Hard constraints**:
 - `IS_DEMO` codepath untouched. `workpal.vercel.app` must still work exactly as today (no agent, mocked connectors, pre-seeded chats).
