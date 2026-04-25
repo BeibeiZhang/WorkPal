@@ -144,6 +144,12 @@
       "runtimeExecutable": "/usr/local/bin/node",
       "runtimeArgs": ["/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/node_modules/vite/bin/vite.js", "/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/.claude/worktrees/inspiring-mahavira-7c04be", "--port", "3034", "--strictPort"],
       "port": 3034
+    },
+    {
+      "name": "WorkPal Dev Mystifying-Bouman",
+      "runtimeExecutable": "/usr/local/bin/node",
+      "runtimeArgs": ["/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/node_modules/vite/bin/vite.js", "/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/.claude/worktrees/mystifying-bouman-961136", "--port", "2008", "--strictPort"],
+      "port": 2008
     }
   ]
 }

@@ -898,7 +898,7 @@ export function CategoryBreakdown({
           <div key={i} className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full shrink-0" style={{ background: c.color }} />
             <span className="type-detail text-text-secondary">{c.label}</span>
-            <span className="type-detail-emphasized text-text-primary">{c.pct}%</span>
+            <span className="type-detail text-text-primary">{c.pct}%</span>
           </div>
         ))}
       </div>
@@ -1042,7 +1042,7 @@ export function PrimaryButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`gradient-btn flex items-center justify-center gap-2 px-4 py-2 rounded-[4px] text-white type-detail-emphasized cursor-pointer transition-opacity disabled:opacity-40 ${fullWidth ? 'w-full' : ''} ${extra}`}
+      className={`gradient-btn h-[48px] flex items-center justify-center gap-2 px-4 rounded-[4px] text-white type-detail-emphasized cursor-pointer transition-opacity disabled:opacity-40 ${fullWidth ? 'w-full' : ''} ${extra}`}
     >
       {children}
     </button>
@@ -1070,7 +1070,7 @@ export function SecondaryButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`inverted-btn flex items-center justify-center px-5 py-2.5 rounded-[4px] type-detail-emphasized cursor-pointer disabled:opacity-40 ${fullWidth ? 'w-full' : ''} ${extra}`}
+      className={`inverted-btn h-[48px] flex items-center justify-center px-5 rounded-[4px] type-detail-emphasized cursor-pointer disabled:opacity-40 ${fullWidth ? 'w-full' : ''} ${extra}`}
     >
       {children}
     </button>
@@ -1097,7 +1097,7 @@ export function TertiaryButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`flex items-center justify-center px-5 py-2.5 rounded-[4px] border border-stroke-outline text-text-primary type-detail-emphasized cursor-pointer hover:bg-bg-hover chip-gradient-hover transition-colors disabled:opacity-40 ${fullWidth ? 'w-full' : ''} ${extra}`}
+      className={`h-[48px] flex items-center justify-center px-5 rounded-[4px] border border-stroke-outline text-text-primary type-detail-emphasized cursor-pointer chip-gradient-hover transition-colors disabled:opacity-40 ${fullWidth ? 'w-full' : ''} ${extra}`}
     >
       {children}
     </button>
@@ -1134,7 +1134,7 @@ export function GhostPillButton({
       onClick={onClick}
       aria-label={ariaLabel}
       disabled={disabled}
-      className={`h-10 px-4 flex items-center gap-2 rounded-full border border-stroke-outline hover:bg-bg-hover transition-colors text-text-primary type-detail cursor-pointer disabled:opacity-40 ${extra}`}
+      className={`h-10 px-4 flex items-center gap-2 rounded-full border border-stroke-outline enabled:hover:bg-bg-hover transition-colors text-text-primary type-detail cursor-pointer disabled:opacity-40 ${extra}`}
     >
       {icon}
       {children}
@@ -1266,7 +1266,7 @@ export function TextField({
         </label>
       )}
       <div
-        className="flex items-center gap-3 px-4 py-3 rounded-[12px] transition-colors"
+        className="flex items-center gap-3 px-4 py-3 rounded-[4px] transition-colors"
         style={{ background: 'var(--color-bg-hover)' }}
       >
         {leadingIcon && (

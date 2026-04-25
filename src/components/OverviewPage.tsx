@@ -646,7 +646,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                 {/* By provider */}
                 {spend && spend.total_cost_usd > 0 && spend.by_provider.some(p => p.cost_usd > 0) && (
                   <>
-                    <div className="type-detail-emphasized text-text-primary mb-3">By provider</div>
+                    <div className="type-detail text-text-primary mb-3">By provider</div>
                     <CategoryBreakdown
                       categories={spend.by_provider.filter(p => p.cost_usd > 0).map((p) => {
                         const label =
@@ -673,7 +673,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                     {spend.total_cost_usd > 0 && (
                       <div className="h-px dashed-border-b my-5" />
                     )}
-                    <div className="type-detail-emphasized text-text-primary mb-3">By model</div>
+                    <div className="type-detail text-text-primary mb-3">By model</div>
                     <div className="flex flex-col">
                       {spend.by_model.map((m) => {
                         // Tavily bills per-search (not per-token), and the first
@@ -689,10 +689,10 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                             className="flex items-center justify-between py-2.5 dashed-border-b last:bg-none"
                           >
                             <div className="min-w-0 flex-1">
-                              <div className="type-detail-emphasized text-text-primary truncate">{m.model}</div>
+                              <div className="type-detail text-text-primary truncate">{m.model}</div>
                               <div className="type-detail text-text-secondary">{meta}</div>
                             </div>
-                            <div className="type-detail-emphasized text-text-primary shrink-0">
+                            <div className="type-detail text-text-primary shrink-0">
                               {formatUsd(m.cost_usd)}
                             </div>
                           </div>
@@ -733,7 +733,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
 
               {healthExpanded && (
                 <div className="bg-bg-page rounded-2xl p-5 mt-[4px] dark:bg-[rgba(226,243,255,0.05)]">
-                  <div className="type-detail-emphasized text-text-primary mb-3">
+                  <div className="type-detail text-text-primary mb-3">
                     Your usage vs plan quotas (normalized to /month)
                   </div>
 
@@ -751,8 +751,8 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                       key={d.key}
                       className="grid grid-cols-[1.4fr_1fr_1fr_1fr] gap-3 py-2.5 dashed-border-b last:bg-none"
                     >
-                      <div className="type-detail-emphasized text-text-primary min-w-0 truncate">{d.label}</div>
-                      <div className="type-detail-emphasized text-text-primary text-right">
+                      <div className="type-detail text-text-primary min-w-0 truncate">{d.label}</div>
+                      <div className="type-detail text-text-primary text-right">
                         {d.used > 0 ? `${d.used.toLocaleString()} ${d.unit.split('/')[0]}` : '—'}
                       </div>
                       {d.quotas.map((q, i) => {
@@ -766,8 +766,8 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                             ) : (
                               <span>
                                 {q.toLocaleString()} {d.unit.split('/')[0]}
-                                {exceeds && <span className="type-detail-emphasized text-text-primary ml-1"> ⚠</span>}
-                                {d.used > 0 && !exceeds && <span className="type-detail-emphasized text-text-primary ml-1"> ✓</span>}
+                                {exceeds && <span className="type-detail text-text-primary ml-1"> ⚠</span>}
+                                {d.used > 0 && !exceeds && <span className="type-detail text-text-primary ml-1"> ✓</span>}
                               </span>
                             )}
                           </div>
@@ -780,10 +780,10 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                       a dashed-border-b above this section, so no extra
                       separator here. */}
                   <div className="mt-4">
-                    <div className="type-detail-emphasized text-text-primary mb-2.5">Plan options</div>
+                    <div className="type-detail text-text-primary mb-2.5">Plan options</div>
                     {health.planFitStatus.map((p) => (
                       <div key={p.plan.name} className="flex items-start gap-2 py-1.5">
-                        <div className="shrink-0 type-detail-emphasized text-text-primary w-[190px]">
+                        <div className="shrink-0 type-detail text-text-primary w-[190px]">
                           {p.plan.name} <span className="type-detail text-text-secondary">(${p.plan.price}/mo)</span>
                         </div>
                         <div className="flex-1 min-w-0 type-detail text-text-primary">

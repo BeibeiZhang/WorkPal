@@ -35,7 +35,7 @@ Every CSS variable with its resolved light / dark value. If you need a token, fi
 ```
 # Surface & text
 --color-text-primary          #142740              / #FFFFFF
---color-text-secondary        rgba(20,39,64,0.7)   / rgba(226,243,255,0.8)
+--color-text-secondary        rgba(20,39,64,0.6)   / rgba(226,243,255,0.8)
 --color-text-tertiary         rgba(20,39,64,0.4)   / rgba(226,243,255,0.4)
 --color-bg-page               #F7F7F8              / #001424
 --color-bg-message            rgba(20,39,64,0.05)  / rgba(226,243,255,0.1)
@@ -97,7 +97,7 @@ Every CSS variable with its resolved light / dark value. If you need a token, fi
 | Token | Light | Dark | Use |
 |---|---|---|---|
 | `--color-text-primary` | `#142740` | `#FFFFFF` | Headings, body, primary icons |
-| `--color-text-secondary` | `rgba(20,39,64,0.7)` | `rgba(226,243,255,0.8)` | Descriptions, helper text |
+| `--color-text-secondary` | `rgba(20,39,64,0.6)` | `rgba(226,243,255,0.8)` | Descriptions, helper text |
 | `--color-text-tertiary` | `rgba(20,39,64,0.4)` | `rgba(226,243,255,0.4)` | Disabled, muted metadata |
 | `--color-bg-page` | `#F7F7F8` | `#001424` | Main surfaces |
 | `--color-bg-message` / `--color-bg-hover` | `rgba(20,39,64,0.05)` | `rgba(226,243,255,0.1)` | Message bubbles, hover, input fields |
