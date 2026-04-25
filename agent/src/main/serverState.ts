@@ -1,6 +1,6 @@
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
-import type { ServerState, CertState } from './preload.cjs';
+import type { ServerState, CertState, UpdateState } from './preload.cjs';
 
 const execP = promisify(exec);
 
@@ -18,6 +18,11 @@ const execP = promisify(exec);
  * change for unrelated reasons (port collisions vs sudo cancel) and the
  * renderer surfaces them in two separate cards, so they need to be set/read
  * independently.
+ *
+ * 7.5: updateState is the fourth such axis. The boot-time GitHub Releases
+ * check (updateCheck.ts) is the sole writer; it flips state from the default
+ * 'unknown' to 'up-to-date' or 'available' and stores the latest tag +
+ * download URL. Renderer surfaces the Update card only when 'available'.
  */
 
 interface State {
@@ -39,6 +44,12 @@ interface State {
    *  ends with a "建议重装 / reinstall recommended" hint per clarify #4 so
    *  the user has a clear next step instead of staring at bare "Failed". */
   certError: string | null;
+  /** 7.5: GitHub Releases check result. */
+  updateState: UpdateState;
+  /** Latest release tag (e.g. "v0.1.1") when updateState === 'available'. */
+  updateLatestVersion: string | null;
+  /** /releases/latest URL the Update card "Download" button opens. */
+  updateDownloadUrl: string | null;
 }
 
 let current: State = {
@@ -48,6 +59,9 @@ let current: State = {
   portHolderPid: null,
   certState: 'unknown',
   certError: null,
+  updateState: 'unknown',
+  updateLatestVersion: null,
+  updateDownloadUrl: null,
 };
 
 export function getServerState(): State {
@@ -106,6 +120,28 @@ export function setCertInstalling(): void {
 export function setCertError(reason: string): void {
   const msg = reason.endsWith('。') || reason.endsWith('.') ? reason : reason + '.';
   current = { ...current, certState: 'error', certError: msg + REINSTALL_HINT };
+}
+
+/** 7.5: boot check completed and we're already running the latest. Card
+ *  hidden in this state — there's nothing for the user to do. */
+export function setUpdateUpToDate(): void {
+  current = {
+    ...current,
+    updateState: 'up-to-date',
+    updateLatestVersion: null,
+    updateDownloadUrl: null,
+  };
+}
+
+/** 7.5: a newer release exists. Settings shows the Update card with the
+ *  version + Download button opening `downloadUrl`. */
+export function setUpdateAvailable(latestVersion: string, downloadUrl: string): void {
+  current = {
+    ...current,
+    updateState: 'available',
+    updateLatestVersion: latestVersion,
+    updateDownloadUrl: downloadUrl,
+  };
 }
 
 /** Shell out to `lsof` to find the process holding :3001 (or whichever port

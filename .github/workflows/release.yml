@@ -1,0 +1,96 @@
+# Phase 7.5: build + publish the agent .dmg whenever a v*.*.* tag is pushed.
+#
+# Trigger: git tag v0.1.1 && git push origin v0.1.1
+#
+# Release flow:
+#   1. Bump agent/package.json `version` on a regular commit
+#   2. git tag v<that-version> on the same commit
+#   3. git push origin <that-tag>
+#   4. This workflow validates tag === "v" + package.json.version (fail-fast on
+#      drift so app.getVersion() at runtime always matches the release name)
+#   5. Builds dual-arch DMGs via the same `npm run dist` developers run locally
+#   6. Uploads both DMGs to the GitHub Release for that tag
+#
+# Why GitHub-hosted macOS runner: Beibei doesn't want to maintain self-hosted
+# infra; private-repo macOS minutes (10x multiplier) cover ~20 builds/month at
+# ~10min each, well above release cadence.
+#
+# Why unsigned: phase-7 kickoff locked decision. Users see Gatekeeper warning
+# and right-click → Open per OnboardingSurface step 2 + README. Apple Developer
+# enrollment + notarize step deferred to v2.
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: agent/package-lock.json
+
+      - name: Install agent dependencies
+        run: npm ci
+        working-directory: agent
+
+      # Tag/version guard: app.getVersion() reads agent/package.json.version at
+      # runtime, so the published Release name MUST match. CI fails fast if the
+      # developer pushed a tag that doesn't match — better here than after a
+      # 10-minute build produces a mis-labelled DMG.
+      - name: Validate tag matches package.json version
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          echo "tag=${GITHUB_REF_NAME} package.json=${PKG_VERSION} tag-stripped=${TAG_VERSION}"
+          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match agent/package.json version ${PKG_VERSION}"
+            echo "Bump agent/package.json to ${TAG_VERSION} (or retag to v${PKG_VERSION}) before pushing."
+            exit 1
+          fi
+        working-directory: agent
+
+      # CSC_IDENTITY_AUTO_DISCOVERY=false ensures electron-builder doesn't try
+      # to auto-detect a signing identity from the runner keychain. Phase 7.5
+      # ships unsigned; this prevents a stray identity (e.g. from a future
+      # runner image change) from silently switching us to signed builds.
+      - name: Build dual-arch DMG
+        run: npm run dist
+        working-directory: agent
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          # GitHub-hosted runners don't have an Apple ID configured; this
+          # belt-and-braces tells electron-builder not to attempt notarize.
+          NOTARIZE: 'false'
+
+      - name: List build artifacts
+        run: ls -la agent/dist
+
+      # softprops/action-gh-release creates the Release if it doesn't exist
+      # yet (this is the common case — the tag-push triggered the workflow
+      # before any Release was drafted). Glob picks up both arch DMGs:
+      #   WorkPal Agent-<version>-arm64.dmg
+      #   WorkPal Agent-<version}.dmg          (x64 has no suffix in the
+      #                                         electron-builder default name)
+      # `make_latest: true` ensures /releases/latest resolves to this Release —
+      # the OnboardingSurface CTA depends on this redirect pointing at a real
+      # .dmg asset.
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: agent/dist/*.dmg
+          draft: false
+          prerelease: false
+          make_latest: 'true'
+          generate_release_notes: true

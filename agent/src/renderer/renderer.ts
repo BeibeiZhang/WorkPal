@@ -1,5 +1,6 @@
 type ServerState = 'running' | 'idle' | 'port-busy';
 type CertState = 'unknown' | 'not-installed' | 'installing' | 'installed' | 'error';
+type UpdateState = 'unknown' | 'up-to-date' | 'available';
 
 interface AgentStatus {
   version: string;
@@ -9,6 +10,9 @@ interface AgentStatus {
   portHolderPid: number | null;
   certState: CertState;
   certError: string | null;
+  updateState: UpdateState;
+  updateLatestVersion: string | null;
+  updateDownloadUrl: string | null;
   execPath: string;
   plistExec: string | null;
   autoLaunchBootstrapped: boolean;
@@ -32,6 +36,7 @@ interface AgentApi {
   retryServer(): Promise<AgentStatus>;
   lookupPortHolder(): Promise<PortHolderLookup>;
   installCa(): Promise<AgentStatus>;
+  openLatestRelease(): Promise<void>;
   quit(): Promise<void>;
   restart(): Promise<void>;
 }
@@ -137,6 +142,22 @@ function applyCertCard(s: AgentStatus): void {
   }
 }
 
+/* 7.5: Update card mirrors AgentStatus.updateState. Card is hidden unless
+ * updateState === 'available' — 'unknown' (boot in progress / check
+ * failed) and 'up-to-date' both hide the card so Settings stays compact
+ * for the common case. */
+function applyUpdateCard(s: AgentStatus): void {
+  const card = $('update-card');
+  if (s.updateState === 'available' && s.updateLatestVersion) {
+    card.hidden = false;
+    // Strip the leading 'v' for cleaner reading inside the uppercase
+    // StatusTag (the card title carries the "version" framing already).
+    $('update-version-tag').textContent = s.updateLatestVersion.replace(/^v/i, '');
+  } else {
+    card.hidden = true;
+  }
+}
+
 function applyStatus(s: AgentStatus): void {
   $('version').textContent = `v${s.version}`;
   const wrap = $('status');
@@ -160,6 +181,7 @@ function applyStatus(s: AgentStatus): void {
   }
 
   applyCertCard(s);
+  applyUpdateCard(s);
 }
 
 async function renderStatus(): Promise<void> {
@@ -278,6 +300,13 @@ function bindHandlers(): void {
       // but if Electron itself drops the connection we surface a toast.
       showToast(`IPC failed: ${(err as Error).message}`);
     }
+  });
+
+  $('open-release').addEventListener('click', () => {
+    // Fire-and-forget: openExternal can take ~200ms to hand off to launchd
+    // (browser open is async on macOS), but the renderer doesn't need the
+    // result. The IPC handler logs success / failure on the main side.
+    void window.agent.openLatestRelease();
   });
 
   $('restart').addEventListener('click', () => {

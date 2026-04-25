@@ -178,6 +178,14 @@ body {
   --status-fg: #c93838;
 }
 
+/* 7.5: Update available — same green palette as running/installed. The card
+   itself is hidden unless an update exists; surfacing the card + showing a
+   positive-tone tag = "good news, click Download". */
+.wp-status[data-state="update-available"] {
+  --status-bg: rgba(2, 137, 1, 0.1);
+  --status-fg: #028901;
+}
+
 @media (prefers-color-scheme: dark) {
   .wp-status[data-state="running"] {
     --status-bg: #028901;
@@ -193,6 +201,10 @@ body {
   }
   .wp-status[data-state="error"] {
     --status-bg: #dc2626;
+    --status-fg: #ffffff;
+  }
+  .wp-status[data-state="update-available"] {
+    --status-bg: #028901;
     --status-fg: #ffffff;
   }
 }

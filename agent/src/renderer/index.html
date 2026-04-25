@@ -82,6 +82,28 @@
           Install local certificate · 安装本地证书
         </button>
       </section>
+
+      <!-- 7.5: Update card. Hidden unless updateState === 'available' (i.e.
+           a newer GitHub Release exists). Boot check fires once via
+           updateCheck.ts; renderer simply mirrors the result. Click →
+           shell.openExternal(/releases/latest) so the user follows the same
+           download / right-click → Open path as a fresh install (we don't
+           self-replace because the .app is unsigned). -->
+      <section class="wp-card" id="update-card" hidden>
+        <div class="wp-row">
+          <span class="wp-section-title wp-section-title--inline">Update available · 有新版本</span>
+          <span class="wp-status" data-state="update-available">
+            <span class="wp-dot"></span>
+            <span id="update-version-tag">—</span>
+          </span>
+        </div>
+        <p class="wp-hint wp-hint--cert" id="update-body">
+          A newer version of WorkPal Agent is on GitHub. Download and reinstall to update.<br />WorkPal Agent 有新版本，请下载后重新安装。
+        </p>
+        <button class="wp-btn wp-btn--secondary wp-btn--tight" id="open-release" type="button">
+          Download · 下载
+        </button>
+      </section>
     </main>
 
     <footer class="wp-footer">
