@@ -27,8 +27,8 @@
 | **7.1** | Agent shell: Electron app, menu-bar icon + Settings window (`ANTHROPIC_API_KEY` input, status, Quit/Restart), launchd auto-start, `.dmg` output. **No API content yet.** | 3–4 d | ✅ Shipped 2026-04-24 (PR [#128](https://github.com/BeibeiZhang/WorkPal/pull/128), commit `8702171`) |
 | **7.2** | Port local-only routes (`claudeChat` / `project` / `session` / `reaper`, + any others impl audits as local-touching) from `server/src/routes/*` into Agent's bundled Node runtime. Agent reads `ANTHROPIC_API_KEY` from config + injects into Claude SDK spawn env. Served over plain HTTP on 127.0.0.1:3001; HTTPS arrives in 7.3. Cloud-data routes (memory / chats / projects / artifacts / connectors / usage) stay on Vercel serverless — NOT in agent. | 2 d | ✅ Shipped 2026-04-25 (PR [#129](https://github.com/BeibeiZhang/WorkPal/pull/129), commit `40d3ac8`) |
 | **7.3** | First launch: generate a local CA + server leaf, install CA into macOS **login** Keychain (SecurityAgent Touch-ID auth, no sudo — shifted from System keychain after live-test), serve HTTPS on `127.0.0.1:3001`. Subsequent launches idempotent. Bug-fix pass added `Access-Control-Allow-Private-Network: true` for Chrome 130+ PNA. | 2–3 d | ✅ Shipped 2026-04-25 (PR [#131](https://github.com/BeibeiZhang/WorkPal/pull/131), commit `c92fcf0`) |
-| **7.4** | Frontend: replace hostname-based `IS_CLAUDE_CODE_AVAILABLE` with live `/health` detection against `https://127.0.0.1:3001`. Build an "Install WorkPal Agent" onboarding view for when agent is unreachable. Re-point `fetch('/api/claude-chat')` etc. to agent URL. | 2 d | ⏳ Next |
-| **7.5** | GitHub Releases as CDN. `.dmg` build CI. Optional auto-update (agent polls latest release on boot). | 1–2 d | ⏳ Pending |
+| **7.4** | Frontend: hostname-based `IS_CLAUDE_CODE_AVAILABLE` → live `/health` probe against `https://127.0.0.1:3001`. `fetchAgent()` wrapper over 10 local-route fetch sites. New `OnboardingSurface` (bilingual, "WorkPal Agent" untranslated). Boot probe + window.focus + on-fail re-probe with 1500ms timeout / 300ms boot debounce. | 2 d | ✅ Shipped 2026-04-25 (PR [#133](https://github.com/BeibeiZhang/WorkPal/pull/133), commit `641c85b`) |
+| **7.5** | GitHub Releases as CDN. `.dmg` build CI. Optional auto-update (agent polls latest release on boot). | 1–2 d | ⏳ Next |
 
 **Total: ~10–13 days of impl. Plus planning live-tests and rework cycles, ~2 weeks calendar.**
 
@@ -174,60 +174,80 @@
 
 ---
 
-## Context for 7.4 (next step) — frontend rewire to agent
+## Context from 7.4 (shipped 2026-04-25)
 
-**What "done" looks like for 7.4**:
-- `src/lib/isClaudeCodeAvailable.ts` (or equivalent): replace hostname-sniffing with **live probe** against `https://127.0.0.1:3001/health`. Cache result for the session but re-probe on navigation / focus to catch agent-down transitions.
-- `fetch('/api/claude-chat')` / `fetch('/api/project/*')` / `fetch('/api/session/*')` / `fetch('/api/reaper/*')` rewrite to `https://127.0.0.1:3001/api/*` when agent is reachable. **Cloud-data routes (memory / chats / projects / artifacts / connectors / usage) stay on Vercel** — no change.
-- New "Install WorkPal Agent" onboarding surface when agent unreachable: link to GitHub Releases download + brief "after install, click menu-bar icon to enter API key" steps. Differentiate from the existing auth gate (that's a login, this is a tool install).
-- `IS_DEMO` (workpal.vercel.app) path completely unchanged — demo never reaches an agent.
+**What shipped** (PR #133, commit `641c85b`, 4 commits — clean ship, zero rework cycles):
+- `src/lib/agent.ts` (new, ~150 lines) — `AGENT_BASE_URL` constant, three-state machine (`unknown` / `reachable` / `unreachable`), module-level `state` + listener Set, `useAgentState` hook (with `useState`-vs-listener-add race protection), `isAgentCurrentlyReachable()` sync getter for plain functions (e.g. `intentRouter.shouldUseClaudeCode`), `bootProbe()` (IS_DEMO short-circuit + 1500ms timeout + 300ms-debounced single retry), `triggerReprobe()` (no retry, fail-fast), `fetchAgent()` wrapper (network-throw → `unreachable` + re-probe + `AgentUnreachableError`), `initAgentProbe()` (boot probe + `window.focus` listener with Strict-Mode-safe teardown).
+- `src/components/OnboardingSurface.tsx` (new) — bilingual install card, `PrimaryButton` + DS tokens (`panel-border`, `type-h2-emphasized`, `type-detail`, `var(--color-bg-message)`), 3 numbered post-install steps, hardcoded `https://github.com/BeibeiZhang/WorkPal/releases/latest` CTA.
+- `src/lib/api.ts` — 10 fetch sites switched to `fetchAgent` (the 4 doc-listed router prefixes plus 5 sub-paths under `/api/claude-chat/*` for permission/undo/open-folder/open-file/read-file). `streamClaudeChat` wraps in try/catch yielding a bilingual error chunk on `AgentUnreachableError`.
+- `src/App.tsx` — mount `OnboardingSurface` between the existing `<Onboarding/>` first-time gate and the chat SplitView, gated `!IS_DEMO && agentState === 'unreachable'`. Sidebar + cloud-only views keep working when agent is down (only the chat surface flips). `useEffect(() => initAgentProbe(), [])`. project-init effect: gate on `agentState === 'reachable'`, deps include `agentState` so deferred init fires when state settles. reaper effect: same gate + new `reaperRanRef` to preserve "one sweep per mount" semantics under the new state-driven re-fire window.
+- `src/lib/intentRouter.ts` — uses sync getter `isAgentCurrentlyReachable()` (plain function context, not hook).
+- C1 cosmetic batch: `IS_CLAUDE_CODE_AVAILABLE` → `IS_AGENT_REACHABLE` grep-replace across `src/` + `agent/src/main/ipc.ts:85` log string `"opening sudo prompt"` → `"opening install prompt"` (post-7.3 keychain install uses Touch-ID, no sudo). Bundled in C1 so reviewer scans rename without semantics. `demoMode.ts:12` keeps a one-line comment breadcrumb pointing old name → new — intentional migration aid.
 
-**Planning decisions for impl (answered 2026-04-24, all 6 approved by Beibei)**:
+**Live-test results (7/7 ✅, all from planning, end-to-end via Chrome MCP + curl + agent log inspection)**:
+1. ✅ T1 IS_DEMO regression — demo URL loads ChatPanel, no onboarding (mount guard correct)
+2. ✅ T2 Boot probe with agent on — preview loads, ChatPanel renders, /health hits agent in ~3ms
+3. ✅ T3 Real fetch-fail with agent down — `pkill "WorkPal Agent"` + reload → OnboardingSurface renders fully (bilingual title/body, gradient CTA, 3 numbered steps)
+4. ✅ T4 Recovery — restart agent + reload → ChatPanel back (functionally equivalent to focus re-probe path)
+5. ✅ T5 SSE cross-origin — vercel preview → click "Create performance goals" chip → CORS preflight OPTIONS 204 → POST `/api/claude-chat` → full Claude markdown reply renders → action footer shows (stream closed cleanly). The 7.4 unblock for cross-origin SSE works end-to-end in Chrome 147 with the 7.3 PNA header.
+6. ✅ T6 Cloud routes alive when agent down — sidebar Recents/Projects/Account menu all populated from Vercel routes during the agent-down window
+7. ✅ T7 Mobile Safari — iPhone hits the preview URL → no `127.0.0.1` reachability → OnboardingSurface renders
 
-1. **Rename `IS_CLAUDE_CODE_AVAILABLE` → `IS_AGENT_REACHABLE`** in the same 7.4 PR. Hostname-sniff → live HTTPS probe is a full semantic change; legacy name would mislead reviewers. Bundled with the `agent/src/main/ipc.ts:85` log-string drive-by ("opening sudo prompt" → "opening install prompt") as the first cosmetic-only commit.
-2. **Probe cadence**: boot + `window.focus` + on any agent-route fetch failure. No periodic poll — `/health` is <5ms local TCP, chatty for no gain. Hybrid covers all transitions (cold boot, agent crash, mid-session `uninstall.sh`).
-3. **Probe timeout / retry**: 1500ms timeout. First-boot debounce — one failure → wait 300ms → retry once → only flip `unreachable` after both fail. Closes the ~200ms window between `app.whenReady` and `listen()` bind that would otherwise flash the onboarding surface. Session-lifetime re-probes (focus / fetch-fail) are fail-fast — no retry, user is active and latency matters.
-4. **Onboarding copy**: bilingual card, "WorkPal Agent" kept as-is in both languages (product-name decision, not translated). Full copy below. Download link hardcoded to `https://github.com/BeibeiZhang/WorkPal/releases/latest` — 7.5 cuts the release and this URL activates automatically, cleaner than a placeholder and saves a frontend round-trip once 7.5 ships.
-5. **Error-state propagation**: front a `fetchAgent()` wrapper over the 4 local routes. Network-layer throw (`TypeError: Failed to fetch` / timeout / TLS handshake error) → `unreachable` → onboarding surface. `response.ok === false` (4xx / 5xx with JSON body) → reuse existing toast + retry UX. Clean try/catch boundary — exception vs resolved response.
-6. **Cert uninstalled mid-session**: no hard-refresh. Q2's fetch-failure-triggered re-probe already covers it — any agent-route fetch crashes on TLS → re-probe flips state to `unreachable` → onboarding appears. User re-installs CA → focus event triggers re-probe → back to `reachable`. Keeps the Vercel page state intact and cloud-only features (memory / chats list) still work while agent is absent.
+**Process notes (for the playbook)**:
+- **Clean ship — zero rework cycles.** Impl answered 6 questions cleanly, Beibei picked Q4 option A (no translation), impl shipped 4 commits + self-tested before opening PR. Planning code-review found no blockers; only post-merge polish item is the `demoMode.ts:12` comment breadcrumb (intentional, not a bug). Contrast with 7.3 which needed 4 commits + 3 mid-PR fixes for live-test bugs (System keychain, userData path, PNA). 7.4's narrower client-side surface area + impl's use of monkey-patched fetch in self-test caught most issues before PR.
+- **Live-test ROI is real.** The MCP-driven Chrome flow surfaced one tooling-only issue (`computer.type` doesn't fire React onChange in some configs — coordinate-based click on chips worked instead). End-state verification was unaffected.
+- **Role boundary lapse mid-cycle.** Impl pre-emptively wrote a "planning decisions" doc commit (`3e7bfc2`) before planning had updated the doc — content was canonical and approved, but the cross-role write was caught in retrospect. No revert; lesson recorded for future cycles (impl writes code, planning writes doc).
 
-**Onboarding surface copy (approved 2026-04-24)**:
+**Lessons for 7.5**:
+- **The hardcoded URL `https://github.com/BeibeiZhang/WorkPal/releases/latest` is now load-bearing.** OnboardingSurface CTA points there. As soon as 7.5 cuts the first GitHub Release with a `.app.dmg` asset, that URL self-activates — no frontend change needed. **If 7.5 changes the release tag scheme or asset name expected by `latest`, OnboardingSurface CTA breaks.** Stick with GitHub's `/releases/latest` redirect convention.
+- **Agent base URL is a single constant** (`AGENT_BASE_URL = 'https://127.0.0.1:3001'` in `src/lib/agent.ts`). 7.5's auto-update story doesn't need to touch it — agent self-replaces in place; URL stays.
+- **`/health` is unauthenticated and stable.** 7.5 can rely on `/health` returning `{status, pid, port}` for any "is the agent alive after auto-update" checks the impl chooses to add.
+- **Cert renewal is silent on success** (cert.ts:266+ from 7.3). Auto-update flow doesn't need to handle cert lifecycle — agent regenerates leaf at boot when <30 days remain, regardless of update path.
 
-- **Title**: `Install WorkPal Agent to enable local AI editing` / `安装 WorkPal Agent 以启用本地 AI 编辑`
-- **Body**: `WorkPal Agent runs on your Mac so the web app can edit local files, manage git, and stream Claude replies. Once it's running, this page reconnects automatically.` / `WorkPal Agent 在你的 Mac 上运行，让网页能编辑本地文件、管理 git、流式返回 Claude 回复。启动后本页面会自动重连。`
-- **CTA button**: `Download WorkPal Agent` / `下载 WorkPal Agent` → `https://github.com/BeibeiZhang/WorkPal/releases/latest`
-- **Post-install steps** (numbered list under the CTA):
-  1. `Open the .dmg, drag WorkPal Agent to Applications.` / `打开 .dmg，把 WorkPal Agent 拖进 Applications。`
-  2. `Right-click WorkPal Agent → Open (first-launch Gatekeeper bypass).` / `右键 WorkPal Agent → 打开（首次启动绕过 Gatekeeper）。`
-  3. `Click the menu-bar icon → enter your Anthropic API key → install the local CA when prompted.` / `点击菜单栏图标 → 输入 Anthropic API key → 按提示安装本地 CA。`
+---
 
-**Commit sequence for impl**:
-- **C1 (cosmetic only)**: `IS_CLAUDE_CODE_AVAILABLE` → `IS_AGENT_REACHABLE` rename + `agent/src/main/ipc.ts:85` log-string fix. No behavior change. Lands first so the 7.4 implementation commits read cleanly against the new name.
-- **C2+**: probe implementation, `fetchAgent()` wrapper, 4-route URL rewrite, onboarding surface + copy, error-state split.
+## Context for 7.5 (next step) — GitHub Releases distribution + auto-update
+
+**What "done" looks like for 7.5**:
+- GitHub Actions workflow that, on a tagged release (e.g. `v0.1.0`), builds the `.dmg` (already-working `npm run dist` from 7.1) and attaches it as a release asset. Tag → release → asset, all automated.
+- The `https://github.com/BeibeiZhang/WorkPal/releases/latest` URL (already wired into 7.4's OnboardingSurface CTA) auto-resolves to the most recent tagged release with a `.dmg` asset that users can click-to-download.
+- Optional but valuable: agent boot-time check against the GitHub Releases API for a newer version → surface in Settings (or auto-download + prompt restart). MVP could ship without auto-update if scope tightens.
+- README + onboarding hint that says "right-click → Open" the `.app` on first launch (Gatekeeper bypass for unsigned). 7.4 OnboardingSurface step 2 already covers this in-product; the README is the out-of-product redundant copy.
+
+**Open for impl change-list (answer in first reply, no code yet)**:
+1. **Auto-update scope** — `(a)` ship 7.5 as distribution-only (just CI + Releases + onboarding link works), defer auto-update to a future phase / `(b)` include a minimal "check on boot, log + Settings notice if newer" / `(c)` full auto-update with download + relaunch. Each adds time. (a) is fastest to v1; (b) gets users on the latest fastest without writing self-replace code; (c) is full polish but adds the most surface.
+2. **Tag scheme + version source-of-truth** — `agent/package.json` already has a `version` field (currently `0.1.0`). Drive tags from package.json bumps (`v${version}`) or a separate `app-version` somewhere? CI release tag must match what `app.getVersion()` returns at runtime so users know which version they're on.
+3. **CI runner choice** — GitHub-hosted macOS runner (~10 min build) or a self-hosted runner (faster, but Beibei has to maintain). Note: dual-arch DMG (arm64 + x64) needs cross-build; GitHub macOS runners support both since the runner itself is arm64 + x86_64 builds via electron-builder.
+4. **Code signing** — Phase 7 locked decision was "skip Apple Developer signing for v1, users right-click → Open". Confirm 7.5 stays unsigned, OR use this CI moment to also wire up an Apple Developer cert (Beibei would need to enroll, $99/yr) and notarize so users don't see Gatekeeper warning. Recommend defer to v2 unless Beibei has the developer account already.
+5. **Auto-update channel** — if (b) or (c): just `latest` (always pull newest), or expose `stable` vs `beta` channels (more infra, low MVP value)?
+6. **Update prompt placement** — if (b) or (c): Settings card (consistent with 7.1's Local HTTPS / API key cards) or a tray-menu badge ("New version available")? Settings card aligns with the existing UI vocabulary.
 
 **Hard constraints**:
-- `IS_DEMO` codepath untouched. `workpal.vercel.app` must still work exactly as today (no agent, mocked connectors, pre-seeded chats).
-- Vercel serverless routes for cloud data (memory / chats / projects / artifacts / connectors / usage / editArticle / animations / agentVideoStatus) stay on Vercel.
-- The four local-route rewire targets: `/api/claude-chat` (SSE streaming!), `/api/project/*`, `/api/session/*`, `/api/reaper/*`. Nothing else moves.
-- Use the agent's existing `/health` endpoint for probes — don't add new endpoints on the agent for 7.4.
-- SSE streaming must survive the origin change: `fetch('https://127.0.0.1:3001/api/claude-chat')` with `ReadableStream` body handling must work end-to-end from vercel origin. Agent already has `cors({ origin: true, credentials: true })` + PNA header; browser should be happy.
+- The `.dmg` build command stays `npm run dist` from `agent/` (electron-builder, dual-arch). 7.5 wraps this in CI but doesn't change the build itself.
+- Tag-driven release flow — pushing `v0.1.0` on `main` triggers the CI + asset upload. No manual upload steps in the happy path.
+- `https://github.com/BeibeiZhang/WorkPal/releases/latest` resolution **must continue to point to a `.dmg` asset** (not a `.zip` of source). 7.4's OnboardingSurface CTA depends on this.
+- Don't rename the .app or its bundle identifier (`com.workpal.agent`). userData paths, Keychain CA name, launchd label — all keyed off this identifier from 7.1/7.2/7.3.
+- Unsigned `.app` distribution stays acceptable for v1 (locked decision from Phase 7 kickoff). Gatekeeper warning + right-click → Open is the documented user step.
 
-**What's explicitly NOT in 7.4**:
-- `.dmg` distribution / GitHub Releases (7.5)
-- Auto-update on agent boot (7.5)
-- Anything on the agent process — all changes client-side
+**What's explicitly NOT in 7.5**:
+- Apple Developer enrollment / signing / notarization — defer to v2
+- Windows / Linux builds — defer to v2 (Phase 7 locked decision: macOS only)
+- Self-hosted update server (e.g. Sparkle / electron-updater's own server) — GitHub Releases is the CDN
+- Multi-arch wars beyond what 7.1's electron-builder already handles (dual-arch DMG)
 
-**Patterns to reuse from 7.3 live-test**:
-- **Chrome PNA header requirement** — verified working. If 7.4 surfaces any other cross-origin fetch quirks, test with MCP browser in same way: `fetch(target).then(r=>r.json())` with abortable timeout, compare against curl's response headers.
-- **Three bugs caught by live-test pattern** — impl's typecheck + sandbox-preview can't catch macOS auth-session quirks, Electron packaging quirks, or browser PNA quirks. **Plan for ≥1 rework cycle after first PR**.
+**Patterns to reuse from 7.4 + 7.3 + 7.2**:
+- **Bilingual copy** in any new UI strings (keep "WorkPal Agent" untranslated per Q4 of 7.4 — same product-name decision applies to 7.5 update prompts).
+- **`.status-*` DS tokens** for any new status surfaces (success / failed / neutral — 7.2's port-busy + 7.3's Local HTTPS card established the convention).
+- **Try/catch boundary discrimination** if 7.5 adds the auto-update fetch — a network-layer throw to GitHub API → log silently (it's a non-critical background check); a 4xx/5xx response → surface in Settings.
+- **State machine in `serverState.ts`** is the right home for "update available" status if 7.5 chooses (b)/(c). Add as an independent axis (4th, after state / certState / port).
 
 **Live-test points planning will verify (heads-up to impl)**:
-1. First load on workpal-beibei.vercel.app with agent running → `/api/claude-chat` hits agent, streams SSE, cost lands in chat
-2. Agent down → onboarding surface shows with install CTA; cloud-data routes (memory, chats list) still work
-3. Transition: agent started mid-session → UI picks up on next probe (or focus event, depending on Q2 choice)
-4. `IS_DEMO` (workpal.vercel.app) path unchanged — still works with no agent
-5. 7.3 regression: Settings cert install flow still works end-to-end after 7.4's frontend changes
-6. Mobile Safari on iPhone hitting workpal-beibei.vercel.app → can't reach agent (different machine) → onboarding surface shows. (iPhone doesn't get the agent yet; that's a future cross-device story.)
+1. CI builds the `.dmg` on a tag push and uploads to the Release page (verify by inspecting the resulting Release in GitHub UI)
+2. `https://github.com/BeibeiZhang/WorkPal/releases/latest` resolves to the new asset (curl follow-redirects + check Content-Type)
+3. Click the OnboardingSurface CTA on a fresh-install browser → downloads the `.dmg` (the 7.4 → 7.5 handshake)
+4. Install + run the downloaded `.app` → 7.1/7.2/7.3 flows still work (cert install, HTTPS listener, etc.) — full E2E that the CI build is functionally identical to local `npm run pack`
+5. If (b)/(c) ships: bump version in package.json, push a new tag, watch the running agent detect + surface the update notice
+6. Gatekeeper right-click → Open works on the CI-built `.app` for first-time users (test on a clean macOS user account or a fresh Mac if available)
 
 ---
 
