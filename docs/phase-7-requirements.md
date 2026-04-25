@@ -28,7 +28,7 @@
 | **7.2** | Port local-only routes (`claudeChat` / `project` / `session` / `reaper`, + any others impl audits as local-touching) from `server/src/routes/*` into Agent's bundled Node runtime. Agent reads `ANTHROPIC_API_KEY` from config + injects into Claude SDK spawn env. Served over plain HTTP on 127.0.0.1:3001; HTTPS arrives in 7.3. Cloud-data routes (memory / chats / projects / artifacts / connectors / usage) stay on Vercel serverless — NOT in agent. | 2 d | ✅ Shipped 2026-04-25 (PR [#129](https://github.com/BeibeiZhang/WorkPal/pull/129), commit `40d3ac8`) |
 | **7.3** | First launch: generate a local CA + server leaf, install CA into macOS **login** Keychain (SecurityAgent Touch-ID auth, no sudo — shifted from System keychain after live-test), serve HTTPS on `127.0.0.1:3001`. Subsequent launches idempotent. Bug-fix pass added `Access-Control-Allow-Private-Network: true` for Chrome 130+ PNA. | 2–3 d | ✅ Shipped 2026-04-25 (PR [#131](https://github.com/BeibeiZhang/WorkPal/pull/131), commit `c92fcf0`) |
 | **7.4** | Frontend: hostname-based `IS_CLAUDE_CODE_AVAILABLE` → live `/health` probe against `https://127.0.0.1:3001`. `fetchAgent()` wrapper over 10 local-route fetch sites. New `OnboardingSurface` (bilingual, "WorkPal Agent" untranslated). Boot probe + window.focus + on-fail re-probe with 1500ms timeout / 300ms boot debounce. | 2 d | ✅ Shipped 2026-04-25 (PR [#133](https://github.com/BeibeiZhang/WorkPal/pull/133), commit `641c85b`) |
-| **7.5** | GitHub Releases as CDN. `.dmg` build CI. Optional auto-update (agent polls latest release on boot). | 1–2 d | ⏳ Next |
+| **7.5** | GitHub Releases CI on tag push (dual-arch DMG, tag/version guard, unsigned). Boot-time update check via GitHub API + 5th Settings card with bilingual "Download" CTA. Phase 7 ships. | 1–2 d | ✅ Shipped 2026-04-25 (PR [#134](https://github.com/BeibeiZhang/WorkPal/pull/134), commit `70c57b3`) |
 
 **Total: ~10–13 days of impl. Plus planning live-tests and rework cycles, ~2 weeks calendar.**
 
@@ -206,48 +206,38 @@
 
 ---
 
-## Context for 7.5 (next step) — GitHub Releases distribution + auto-update
+## Context from 7.5 (shipped 2026-04-25)
 
-**What "done" looks like for 7.5**:
-- GitHub Actions workflow that, on a tagged release (e.g. `v0.1.0`), builds the `.dmg` (already-working `npm run dist` from 7.1) and attaches it as a release asset. Tag → release → asset, all automated.
-- The `https://github.com/BeibeiZhang/WorkPal/releases/latest` URL (already wired into 7.4's OnboardingSurface CTA) auto-resolves to the most recent tagged release with a `.dmg` asset that users can click-to-download.
-- Optional but valuable: agent boot-time check against the GitHub Releases API for a newer version → surface in Settings (or auto-download + prompt restart). MVP could ship without auto-update if scope tightens.
-- README + onboarding hint that says "right-click → Open" the `.app` on first launch (Gatekeeper bypass for unsigned). 7.4 OnboardingSurface step 2 already covers this in-product; the README is the out-of-product redundant copy.
+**What shipped** (PR #134, commit `70c57b3`, 1 commit — clean ship, zero rework cycles. **Phase 7 complete.**):
+- `.github/workflows/release.yml` — tag push (`v*.*.*` glob excludes prereleases) → Setup Node + npm ci → **tag/version guard** (inline bash compare of `GITHUB_REF_NAME` minus `v` prefix vs `package.json.version`, exits 1 with actionable error message on mismatch — this fail-fast saves the ~10min DMG build) → `npm run dist` from `agent/` (`CSC_IDENTITY_AUTO_DISCOVERY: 'false'` + `NOTARIZE: 'false'` belt-and-braces against silent signing) → `softprops/action-gh-release@v2` upload of `agent/dist/*.dmg` glob with `make_latest: 'true'` (this last flag is what makes `/releases/latest` resolve correctly — load-bearing for OnboardingSurface CTA).
+- `agent/src/main/updateCheck.ts` (new, ~160 lines) — `parseSemver` (strict `/^\d+$/` per-segment regex rejects prereleases by design; strips leading `v`), `compareSemver` (-1/0/1, three-segment numeric), `fetchLatestRelease` (5s `AbortController` timeout; **never throws**; 404 downgraded to info-level log so empty-Releases case doesn't fill log; `User-Agent` header per GitHub API requirement), `bootstrapUpdateCheck` (top-level orchestration: skip on bad current version, skip on bad latest tag, log + setState). `RELEASES_LATEST_URL` exported and ipc.ts uses it server-side so renderer can't supply arbitrary URLs.
+- `agent/src/main/serverState.ts` — `updateState` is the **fourth independent axis** (after `state` / `certState` / port). Three states: `unknown` (default; check failed or hasn't run — card hidden), `up-to-date` (current >= latest — card hidden), `available` (newer release exists — card visible). Two new fields: `updateLatestVersion` (e.g. `"v0.1.1"`) and `updateDownloadUrl` (always points at `/releases/latest` rolling URL, not tag-pinned, so a delay between boot check and click still lands on newest).
+- `agent/src/main/preload.cts` — `UpdateState` type + 3 `AgentStatus` fields exposed to renderer, `agent:openLatestRelease` IPC.
+- `agent/src/main/ipc.ts` — `agent:openLatestRelease` handler (security: **renderer doesn't pass URL**; the constant is hardcoded server-side, ruling out a renderer compromise opening arbitrary URLs). `agent:getStatus` + `agent:installCa` payload builders extended to include the 3 new update fields.
+- `agent/src/main/main.ts` — `void bootstrapUpdateCheck()` after `createTray()`; non-awaited so update check failure can't block boot. Comment explicit: "nothing here can block boot."
+- `agent/src/renderer/{index.html, renderer.ts, styles.css}` — 5th Settings card "Update available" / "有新版本可用". Uses `.status-*` DS tokens (success-green for "Update available · 0.1.1" tag), bilingual body, Download CTA opens `/releases/latest` via the IPC. Card hidden when `updateState !== 'available'` so Settings stays compact in the common case.
+- `agent/README.md` — "Releasing a new version" section documenting the bump-tag-push flow + post-7.5 status accounting.
 
-**Open for impl change-list (answer in first reply, no code yet)**:
-1. **Auto-update scope** — `(a)` ship 7.5 as distribution-only (just CI + Releases + onboarding link works), defer auto-update to a future phase / `(b)` include a minimal "check on boot, log + Settings notice if newer" / `(c)` full auto-update with download + relaunch. Each adds time. (a) is fastest to v1; (b) gets users on the latest fastest without writing self-replace code; (c) is full polish but adds the most surface.
-2. **Tag scheme + version source-of-truth** — `agent/package.json` already has a `version` field (currently `0.1.0`). Drive tags from package.json bumps (`v${version}`) or a separate `app-version` somewhere? CI release tag must match what `app.getVersion()` returns at runtime so users know which version they're on.
-3. **CI runner choice** — GitHub-hosted macOS runner (~10 min build) or a self-hosted runner (faster, but Beibei has to maintain). Note: dual-arch DMG (arm64 + x64) needs cross-build; GitHub macOS runners support both since the runner itself is arm64 + x86_64 builds via electron-builder.
-4. **Code signing** — Phase 7 locked decision was "skip Apple Developer signing for v1, users right-click → Open". Confirm 7.5 stays unsigned, OR use this CI moment to also wire up an Apple Developer cert (Beibei would need to enroll, $99/yr) and notarize so users don't see Gatekeeper warning. Recommend defer to v2 unless Beibei has the developer account already.
-5. **Auto-update channel** — if (b) or (c): just `latest` (always pull newest), or expose `stable` vs `beta` channels (more infra, low MVP value)?
-6. **Update prompt placement** — if (b) or (c): Settings card (consistent with 7.1's Local HTTPS / API key cards) or a tray-menu badge ("New version available")? Settings card aligns with the existing UI vocabulary.
+**Live-test results (1/2 rounds complete; round 2 is the v1 launch itself)**:
+- ✅ **Round 1 — L6 guard fail-fast**. Tagged the PR-branch HEAD with mismatched `v9.9.9` (package.json was `0.1.0`); CI ran ~70s end-to-end, Setup Node + npm ci succeeded, Validate-tag step failed with clear error (`Tag v9.9.9 does not match agent/package.json version 0.1.0` + actionable hint to bump or retag), all subsequent build/publish steps **SKIPPED**, no Release published, tag cleaned up locally + remote. Total CI overhead for fail-fast: ~18s after npm ci. Way better than the 10min DMG build worst case.
+- ⏳ **Round 2 — L1+L2+L3+L4+L5 happy path** (the v1 launch flow): bump `agent/package.json` to `0.1.0` if not already, tag `v0.1.0`, push → CI builds dual-arch DMGs and creates the first real GitHub Release. Then bump to `0.1.1`, tag, push → second Release. Restart the running v0.1.0 agent → boot check sees v0.1.1 → 5th Settings card surfaces with Download CTA. **Beibei drives this** as the actual Phase 7 v1 ship.
 
-**Hard constraints**:
-- The `.dmg` build command stays `npm run dist` from `agent/` (electron-builder, dual-arch). 7.5 wraps this in CI but doesn't change the build itself.
-- Tag-driven release flow — pushing `v0.1.0` on `main` triggers the CI + asset upload. No manual upload steps in the happy path.
-- `https://github.com/BeibeiZhang/WorkPal/releases/latest` resolution **must continue to point to a `.dmg` asset** (not a `.zip` of source). 7.4's OnboardingSurface CTA depends on this.
-- Don't rename the .app or its bundle identifier (`com.workpal.agent`). userData paths, Keychain CA name, launchd label — all keyed off this identifier from 7.1/7.2/7.3.
-- Unsigned `.app` distribution stays acceptable for v1 (locked decision from Phase 7 kickoff). Gatekeeper warning + right-click → Open is the documented user step.
+**Process notes (for the playbook)**:
+- **Two clean-ship phases in a row** (7.4 + 7.5, both zero rework cycles). The pattern that worked: planning writes Q&A subsections in the doc with all decisions resolved before impl starts coding; impl self-tests beyond just typecheck (semver had 16/16 unit tests inline before PR opened). Phase 7.3 needed 4 commits and 3 mid-PR live-test bug fixes; 7.4 and 7.5 each needed exactly 1 PR commit cycle. Front-loaded planning + impl-side self-test catches issues earlier in the loop.
+- **L6 guard test design**: tagging the PR branch HEAD (not main) for the mismatch test let us validate the workflow file before merge. GitHub Actions runs whatever workflow exists on the tagged commit, so we exercised the actual yml from the PR without merging. Rinse/repeat pattern for any future CI-shape-change reviews.
+- **The `make_latest: 'true'` flag is non-default for `softprops/action-gh-release@v2`**: without it, `/releases/latest` may not resolve to the just-published Release (especially if there are existing draft/prerelease entries). Made explicit in the workflow.
 
-**What's explicitly NOT in 7.5**:
-- Apple Developer enrollment / signing / notarization — defer to v2
-- Windows / Linux builds — defer to v2 (Phase 7 locked decision: macOS only)
-- Self-hosted update server (e.g. Sparkle / electron-updater's own server) — GitHub Releases is the CDN
-- Multi-arch wars beyond what 7.1's electron-builder already handles (dual-arch DMG)
+**Phase 7 retrospective**:
+- 5 / 5 steps shipped over 2 days of calendar (2026-04-24 → 2026-04-25), faster than the 10–13 day estimate. Net ~14 commits + 4 doc commits across 5 PRs.
+- Bug-cost distribution: 7.1 zero / 7.2 three (the ENOTDIR saga) / 7.3 three (System keychain, userData path, Chrome PNA) / 7.4 zero / 7.5 zero. The 6 mid-PR bugs in 7.2/7.3 cost ~3-4 hours total of debug + extra commits; planning live-test caught all of them (none made it to main as a regression).
+- Most-load-bearing Beibei product calls: Q4 of 7.4 ("WorkPal Agent" untranslated) — applied also to 7.5; product-name decision once made, rippled through 5+ UI strings cleanly.
+- Most subtle bug: 7.3 Bug B (LSUIElement menu-bar app + System keychain `SecTrustSettingsSetTrustSettings` admin-domain auth path failing with "no user interaction was possible"). Only catchable on a real packaged `.app` running from launchd context — typecheck + sandbox-preview can't reach it. Shifted the entire CA-trust strategy to login keychain (mkcert pattern, no sudo, Touch-ID friendly).
 
-**Patterns to reuse from 7.4 + 7.3 + 7.2**:
-- **Bilingual copy** in any new UI strings (keep "WorkPal Agent" untranslated per Q4 of 7.4 — same product-name decision applies to 7.5 update prompts).
-- **`.status-*` DS tokens** for any new status surfaces (success / failed / neutral — 7.2's port-busy + 7.3's Local HTTPS card established the convention).
-- **Try/catch boundary discrimination** if 7.5 adds the auto-update fetch — a network-layer throw to GitHub API → log silently (it's a non-critical background check); a 4xx/5xx response → surface in Settings.
-- **State machine in `serverState.ts`** is the right home for "update available" status if 7.5 chooses (b)/(c). Add as an independent axis (4th, after state / certState / port).
-
-**Live-test points planning will verify (heads-up to impl)**:
-1. CI builds the `.dmg` on a tag push and uploads to the Release page (verify by inspecting the resulting Release in GitHub UI)
-2. `https://github.com/BeibeiZhang/WorkPal/releases/latest` resolves to the new asset (curl follow-redirects + check Content-Type)
-3. Click the OnboardingSurface CTA on a fresh-install browser → downloads the `.dmg` (the 7.4 → 7.5 handshake)
-4. Install + run the downloaded `.app` → 7.1/7.2/7.3 flows still work (cert install, HTTPS listener, etc.) — full E2E that the CI build is functionally identical to local `npm run pack`
-5. If (b)/(c) ships: bump version in package.json, push a new tag, watch the running agent detect + surface the update notice
-6. Gatekeeper right-click → Open works on the CI-built `.app` for first-time users (test on a clean macOS user account or a fresh Mac if available)
+**Lessons for post-Phase-7 work**:
+- **The Phase 7 deployment shape (vercel UI + local Electron agent) is now stable.** Future features that touch local fs / git / SDK go through the agent's existing `/api/*` routes; Phase 7.2's copy-sync mechanism (`scripts/sync-agent-shared.sh` + `check-agent-shared-sync.sh`) keeps server/ and agent/ in lockstep. **Don't drift them — always edit the source-of-truth in `server/src/` and re-sync.** Drift is a real risk now that two copies exist.
+- **Auto-update follow-up candidate** (boot-only check is the v1 baseline): periodic 24h `setTimeout` re-check inside the running agent process for users who keep the daemon up indefinitely. Single new line at the bottom of `bootstrapUpdateCheck` once we want it.
+- **Apple Developer signing follow-up candidate**: $99/yr enrollment + notarize in `release.yml` would remove the right-click → Open Gatekeeper warning. Defer until user-friction data justifies it (probably a v2 milestone). The unsigned-tier pattern works for the prototype.
+- **Onboarding step 3 ("install local CA when prompted") implicitly references 7.3's Settings flow**. If we ever rework Settings naming, OnboardingSurface step 3 + the README "Releasing" notes need to update in lockstep.
 
 ---
 
