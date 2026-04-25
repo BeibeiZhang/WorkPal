@@ -20,7 +20,8 @@ import CompleteSessionModal, { type CompleteSessionPhase } from './components/Co
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
 import { DEMO_EXTRA_CHAT_IDS } from './data/demo/chats';
 import { DEMO_CHANGES_ALCOHOL } from './data/demo/changes';
-import { IS_DEMO, IS_AGENT_REACHABLE } from './lib/demoMode';
+import { IS_DEMO } from './lib/demoMode';
+import { useAgentState, initAgentProbe } from './lib/agent';
 import { postClaudePermissionDecision, postInitProject, postOpenFile, postOpenFolder, postReadFile, postReaperRun, postSessionComplete, postSessionMerge, postUndoChange, streamChat, streamClaudeChat } from './lib/api';
 import { shouldUseClaudeCode, shouldGenerateArtifact } from './lib/intentRouter';
 import { buildAttachmentContextBlock, buildImageDescriptionBlock } from './lib/attachments';
@@ -597,6 +598,11 @@ export default function App() {
   const isMobile = useSyncExternalStore(subscribe, getIsMobile);
   const isCompactNav = useSyncExternalStore(subscribe, getIsCompactNav);
   const canFitAllThree = useSyncExternalStore(subscribe, getCanFitAllThree);
+  // Phase 7.4: live agent reachability. 'unknown' on first paint while the
+  // boot probe runs; flips to 'reachable' or 'unreachable' once /health
+  // settles. Drives the OnboardingSurface and the project-init / reaper
+  // useEffects below.
+  const agentState = useAgentState();
   const [contextPanelOpen, setContextPanelOpen] = useState(true);
   // 0–3 = current active step index in alcohol-delivery flow, 4 = all completed
   const [alcoholProgress, setAlcoholProgress] = useState(4);
@@ -1183,6 +1189,13 @@ export default function App() {
     }
   }, [projectMatch, projects, navigate]);
 
+  // Phase 7.4: kick off the agent reachability probe at mount + register the
+  // window.focus re-probe. Probe results land in `agentState` via the hook
+  // above; the project-init / reaper effects below gate on it. Demo URLs
+  // short-circuit to 'unreachable' inside the probe so this is also safe
+  // there (no probe loop, no flash).
+  useEffect(() => initAgentProbe(), []);
+
   // 6.1: first-time-entering-a-project hook. Fires `postInitProject` every
   // time `activeProjectId` transitions to a valid project, which subsumes
   // direct navigation, deep links, page reloads, and `handlePromoteToProject`
@@ -1192,10 +1205,13 @@ export default function App() {
   // upgrade lazily initializes it. Principle #6: lazy, on-demand creation.
   useEffect(() => {
     if (!activeProjectId) return;
-    // Claude Agent SDK only runs on localhost dev. Skip the project-init
-    // POST on both Vercel deployments (demo + self-use) — the endpoint
-    // would return an error and clutter the console without any upside.
-    if (!IS_AGENT_REACHABLE) return;
+    // Project-init lives on the local agent — skip when the probe says it's
+    // not there (and during the unsettled `unknown` window so we don't fire
+    // a doomed POST while the agent is still starting). When state flips
+    // 'unknown' → 'reachable' (boot probe completes, or focus re-probe
+    // succeeds after the user starts the agent), the deps array re-fires
+    // this effect and the deferred init runs.
+    if (agentState !== 'reachable') return;
     const project = projects.find(p => p.id === activeProjectId);
     if (!project) return;
     void postInitProject(slugify(project.name)).then(result => {
@@ -1203,7 +1219,7 @@ export default function App() {
         console.warn(`[project-init] open failed: ${result.error}`);
       }
     });
-  }, [activeProjectId, projects]);
+  }, [activeProjectId, projects, agentState]);
 
   // 6.5: mount-time orphan worktree reaper. Fire-and-forget sweep — for
   // each project, the backend removes `session/<slug>` worktrees whose
@@ -1211,15 +1227,20 @@ export default function App() {
   // metadata. `sessionCompleted: true` chats are included as live per the
   // 6.5 decision lock (retention policy deferred to Phase 7+). Any `skipped`
   // entry in the summary gets a console.warn so payload bugs (slug typos,
-  // cross-project leaks) surface even though the endpoint returns 200. Empty
-  // deps are intentional: one sweep per app mount; re-firing on chats /
-  // projects change would be constant noise on every message.
+  // cross-project leaks) surface even though the endpoint returns 200.
+  //
+  // Phase 7.4: deps include agentState + projects.length so the sweep can
+  // wait for the boot probe to settle (agent unreachable on first paint
+  // while it's starting). reaperRanRef preserves the original "one sweep
+  // per mount" semantics — without it, a focus re-probe that flips state
+  // 'unreachable' → 'reachable' later in the session would trigger a
+  // redundant second sweep.
+  const reaperRanRef = useRef(false);
   useEffect(() => {
+    if (reaperRanRef.current) return;
     if (projects.length === 0) return;
-    // Same reasoning as the project-init hook above: the reaper lives on the
-    // Claude Code backend and can't run on Vercel serverless. Skip outside
-    // localhost dev.
-    if (!IS_AGENT_REACHABLE) return;
+    if (agentState !== 'reachable') return;
+    reaperRanRef.current = true;
     const payload = projects.map(p => {
       const activeSessionFolders = chats
         .filter(c => c.projectId === p.id && c.sessionFolder)
@@ -1248,7 +1269,7 @@ export default function App() {
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [projects.length, agentState]);
 
   const activeChat = chats.find(c => c.id === activeChatId) || null;
 

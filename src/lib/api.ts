@@ -1,4 +1,5 @@
 import type { CardData, ImageResult, PermissionKind, VideoResult, WebResult } from '../types';
+import { fetchAgent, AgentUnreachableError } from './agent';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -106,11 +107,28 @@ export async function* streamClaudeChat(opts: {
   hasAttachedFiles?: boolean;
   messages: ChatMessage[];
 }): AsyncGenerator<StreamChunk> {
-  const res = await fetch('/api/claude-chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(opts),
-  });
+  let res: Response;
+  try {
+    res = await fetchAgent('/api/claude-chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(opts),
+    });
+  } catch (err) {
+    // fetchAgent already flipped agentState to 'unreachable' so the
+    // App-level OnboardingSurface is rendering. Yield a short error chunk
+    // here so the chat bubble closes gracefully instead of hanging on the
+    // loading indicator.
+    if (err instanceof AgentUnreachableError) {
+      yield {
+        type: 'error',
+        content: 'Local agent unreachable. Install the WorkPal Agent to enable code edits. / 本地代理不可达，安装 WorkPal Agent 以启用代码编辑。',
+      };
+      return;
+    }
+    yield { type: 'error', content: err instanceof Error ? err.message : 'Network error' };
+    return;
+  }
 
   if (!res.ok) {
     yield { type: 'error', content: `API error: ${res.status}` };
@@ -136,7 +154,7 @@ export async function postClaudePermissionDecision(
   decision: 'allow' | 'deny',
 ): Promise<void> {
   try {
-    await fetch(`/api/claude-chat/permission/${encodeURIComponent(requestId)}`, {
+    await fetchAgent(`/api/claude-chat/permission/${encodeURIComponent(requestId)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ decision, sessionId }),
@@ -163,7 +181,7 @@ export async function postUndoChange(
   | { ok: false; error: string }
 > {
   try {
-    const res = await fetch('/api/claude-chat/undo', {
+    const res = await fetchAgent('/api/claude-chat/undo', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sessionFolder, changeId }),
@@ -207,7 +225,7 @@ export async function postSessionComplete(
   | { ok: false; error: string }
 > {
   try {
-    const res = await fetch('/api/session/complete', {
+    const res = await fetchAgent('/api/session/complete', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ projectSlug, sessionFolder }),
@@ -251,7 +269,7 @@ export async function postSessionMerge(
   | { ok: false; reason: 'other'; error: string }
 > {
   try {
-    const res = await fetch('/api/session/merge', {
+    const res = await fetchAgent('/api/session/merge', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ projectSlug, sessionFolder }),
@@ -307,7 +325,7 @@ export async function postInitProject(
   projectSlug: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
-    const res = await fetch('/api/project/init', {
+    const res = await fetchAgent('/api/project/init', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ projectSlug }),
@@ -371,7 +389,7 @@ export async function postReaperRun(
   | { ok: false; error: string }
 > {
   try {
-    const res = await fetch('/api/reaper/run', {
+    const res = await fetchAgent('/api/reaper/run', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ projects }),
@@ -403,7 +421,7 @@ export async function postReaperRun(
  *  the path or the spawn failed — caller decides whether to surface feedback. */
 export async function postOpenFolder(sessionFolder: string): Promise<boolean> {
   try {
-    const res = await fetch('/api/claude-chat/open-folder', {
+    const res = await fetchAgent('/api/claude-chat/open-folder', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sessionFolder }),
@@ -421,7 +439,7 @@ export async function postOpenFolder(sessionFolder: string): Promise<boolean> {
  *  to the default app for the file type (`.html` → default browser). */
 export async function postOpenFile(filePath: string): Promise<boolean> {
   try {
-    const res = await fetch('/api/claude-chat/open-file', {
+    const res = await fetchAgent('/api/claude-chat/open-file', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ filePath }),
@@ -438,7 +456,7 @@ export async function postOpenFile(filePath: string): Promise<boolean> {
  *  failure — caller treats null as "fall back to open-externally". */
 export async function postReadFile(filePath: string): Promise<string | null> {
   try {
-    const res = await fetch('/api/claude-chat/read-file', {
+    const res = await fetchAgent('/api/claude-chat/read-file', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ filePath }),

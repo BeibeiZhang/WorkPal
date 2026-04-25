@@ -1,28 +1,17 @@
 /// <reference types="vite/client" />
 /**
- * Demo deployment flags. Two orthogonal axes:
+ * Demo deployment flag, set at build time on the `workpal` Vercel project
+ * (my-workpal.vercel.app). Controls what a shared HR/interviewer URL sees:
+ * seed chats, mock connectors, read-only memory, visible "Demo" badge.
+ * Off locally and on `workpal-beibei`.
  *
- *   IS_DEMO                  build-time, set on the `workpal` Vercel project
- *                            (my-workpal.vercel.app). Controls what a shared
- *                            HR/interviewer URL sees: seed chats, mock
- *                            connectors, read-only memory, visible "Demo"
- *                            badge. Off locally and on `workpal-beibei`.
+ * Plain const export (not a hook): build flag is inlined by Vite at build
+ * time, doesn't change across a session.
  *
- *   IS_AGENT_REACHABLE runtime, computed from `location.hostname`.
- *                            Claude Agent SDK needs a persistent cwd + native
- *                            binary — neither Vercel deployment can host it,
- *                            only localhost dev. Hides the Claude Code code
- *                            path on both Vercel builds (demo + self-use)
- *                            without tying the decision to IS_DEMO.
- *
- * Kept as plain const exports (not a hook): they don't change across a
- * session — build flag is inlined at build time, hostname is stable — so
- * importers can branch at module load without triggering re-renders.
+ * Phase 7.4 note — agent reachability used to live here as
+ * IS_CLAUDE_CODE_AVAILABLE / IS_AGENT_REACHABLE. It moved to
+ * `src/lib/agent.ts` (`useAgentState`, `isAgentCurrentlyReachable`,
+ * `fetchAgent`) when the live HTTPS probe replaced hostname sniffing.
  */
 
 export const IS_DEMO = import.meta.env.VITE_WORKPAL_DEMO === 'true';
-
-export const IS_AGENT_REACHABLE =
-  typeof window !== 'undefined' &&
-  (window.location.hostname === 'localhost' ||
-    window.location.hostname === '127.0.0.1');
