@@ -17,6 +17,17 @@ export type ServerState = 'running' | 'idle' | 'port-busy';
  *                    `certError` carries the bilingual reason + reinstall hint. */
 export type CertState = 'unknown' | 'not-installed' | 'installing' | 'installed' | 'error';
 
+/** 7.5: GitHub Releases auto-update state — fourth independent axis (after
+ *   server / cert / port). Driven by a single boot-time check against the
+ *   GitHub API; renderer surfaces the Update card only when state ===
+ *   'available'.
+ *   unknown     — pre-check or check failed (network down, rate-limited,
+ *                 GitHub outage). Card hidden — boot proceeds normally.
+ *   up-to-date  — current version >= latest release tag. Card hidden.
+ *   available   — newer release exists. Card visible with version + Download
+ *                 button opening /releases/latest in the user's browser. */
+export type UpdateState = 'unknown' | 'up-to-date' | 'available';
+
 export interface AgentStatus {
   version: string;
   state: ServerState;
@@ -32,6 +43,16 @@ export interface AgentStatus {
   certState: CertState;
   /** Bilingual error copy when certState === 'error'. Null otherwise. */
   certError: string | null;
+  /** Update-availability state (7.5, independent of all above). */
+  updateState: UpdateState;
+  /** Latest release tag when updateState === 'available' (e.g. "v0.1.1").
+   *  Null otherwise. */
+  updateLatestVersion: string | null;
+  /** URL the Settings Update card "Download" button opens. We always point
+   *  at the rolling /releases/latest URL (not a tag-pinned html_url) so a
+   *  delay between boot check and click still lands on whatever's newest.
+   *  Null when no update is available. */
+  updateDownloadUrl: string | null;
   execPath: string;
   plistExec: string | null;
   autoLaunchBootstrapped: boolean;
@@ -59,6 +80,11 @@ export interface AgentApi {
    *  'error'). Never throws across the IPC boundary — failures land in
    *  certError. */
   installCa(): Promise<AgentStatus>;
+  /** 7.5: opens the GitHub /releases/latest URL in the user's default
+   *  browser. Used by the Update card "Download" button. URL is hardcoded
+   *  in the main process (constrained by design — renderer can't be tricked
+   *  into opening arbitrary URLs through this bridge). */
+  openLatestRelease(): Promise<void>;
   quit(): Promise<void>;
   restart(): Promise<void>;
 }
@@ -71,6 +97,7 @@ const api: AgentApi = {
   retryServer: () => ipcRenderer.invoke('agent:retryServer'),
   lookupPortHolder: () => ipcRenderer.invoke('agent:lookupPortHolder'),
   installCa: () => ipcRenderer.invoke('agent:installCa'),
+  openLatestRelease: () => ipcRenderer.invoke('agent:openLatestRelease'),
   quit: () => ipcRenderer.invoke('agent:quit'),
   restart: () => ipcRenderer.invoke('agent:restart'),
 };

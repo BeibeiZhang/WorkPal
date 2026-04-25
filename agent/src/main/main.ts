@@ -8,6 +8,7 @@ import { log } from './logger.js';
 import { startApiServer, stopApiServer, retryApiServer, setCertMaterial } from './server.js';
 import { harvestShellEnv } from './pathEnv.js';
 import { bootstrapCerts, caKeychainStatus } from './cert.js';
+import { bootstrapUpdateCheck } from './updateCheck.js';
 import {
   getServerState,
   setCertInstalled,
@@ -221,6 +222,13 @@ async function main(): Promise<void> {
   await log('info', `tray: created (version ${VERSION})`);
 
   void bootstrapAutoLaunch();
+
+  // 7.5: GitHub Releases boot check. Non-awaited — completes in ~5s
+  // (timeout) at most; result populates the updateState axis, which the
+  // Settings 5th card surfaces only when 'available'. Failures (network
+  // down, rate limit, GitHub outage) leave state at 'unknown' and the card
+  // hidden; nothing here can block boot.
+  void bootstrapUpdateCheck();
 
   // 7.3: bootstrap CA + server leaf BEFORE startApiServer (HTTPS listener
   // can't bind without cert material). bootstrapCerts() always returns a

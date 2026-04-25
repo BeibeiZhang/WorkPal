@@ -1,14 +1,17 @@
 # WorkPal Agent
 
-Menu-bar companion app for [WorkPal](https://workpal-beibei.vercel.app). Phase 7.1 is an empty shell — no HTTPS, no `/api/*`, no auto-update yet (those land in 7.2–7.5).
+Menu-bar companion app for [WorkPal](https://workpal-beibei.vercel.app). Provides the local file / git / Claude Agent SDK execution that the browser UI can't do, served over `https://127.0.0.1:3001` to the web app on `workpal-beibei.vercel.app`.
 
-## What 7.1 ships
+## What ships (Phase 7.1 → 7.5)
 
 - Menu-bar icon (no dock) with template image that auto-inverts in dark mode
-- Settings window: `ANTHROPIC_API_KEY` input, agent status, auto-start toggle, recent log, Restart/Quit buttons
+- Settings window: `ANTHROPIC_API_KEY`, server status, Local HTTPS install card, Update card, auto-start toggle, Restart/Quit
+- Local-CA + leaf cert installed into the macOS login keychain on first launch (Touch ID, no sudo)
+- HTTPS API on `127.0.0.1:3001` with the local-touching routes (`claudeChat` / `project` / `session` / `reaper`)
 - Config persisted to `~/.workpal-agent/config.json` (0600 perms)
 - launchd auto-start via `~/Library/LaunchAgents/com.workpal.agent.plist`
-- Unsigned `.dmg` build via Electron Builder
+- Boot-time GitHub Releases check — Settings shows an Update card when a newer version exists
+- Unsigned `.dmg` build via Electron Builder, published from a tag-driven CI workflow
 
 ## Install (first-time user)
 
@@ -93,9 +96,21 @@ Full context lives in [`docs/phase-7-requirements.md`](../docs/phase-7-requireme
 - **`process.execPath` self-heal** — on each boot, we compare the current exec path against what the plist has; mismatch → silent rewrite + rebootstrap. Covers the "user dragged app from Downloads to Applications after first launch" case.
 - **Menu-bar only** — `LSUIElement=true` in Info.plist hides dock from the start (no flash); `app.dock.hide()` as dev-mode backstop.
 
-## Known limits (to address in later steps)
+## Releasing a new version
 
-- Unsigned: Gatekeeper shows the right-click-Open prompt every first install. 7.5 may add Apple Developer signing.
-- No auto-update (7.5).
-- No HTTPS / `/api/*` yet (7.2 + 7.3).
-- Logs only show agent process events, not API traffic (nothing yet to log).
+1. Bump `agent/package.json` `version` (e.g. `0.1.0` → `0.1.1`) and commit.
+2. Tag the commit with the matching `v`-prefix and push:
+   ```bash
+   git tag v0.1.1
+   git push origin v0.1.1
+   ```
+3. The CI workflow at `.github/workflows/release.yml` validates `tag === "v" + package.json.version`, builds dual-arch DMGs via `npm run dist`, and attaches them to the GitHub Release for that tag. `https://github.com/BeibeiZhang/WorkPal/releases/latest` then redirects to the new release.
+4. Running agents pick up the new version on their next boot via the in-app Update card. The user clicks Download → DMG → drag to `/Applications` → right-click → Open (same flow as a fresh install — see step 3 of [Install](#install-first-time-user)).
+
+Tag must be pure `vX.Y.Z` (no prerelease suffix). The boot-time update check only parses three-segment numeric versions; tags like `v1.0.0-beta.1` are ignored on the client side until the helper grows full-semver support.
+
+## Known limits (to address in later phases)
+
+- Unsigned: Gatekeeper shows the right-click → Open prompt on every first install. Apple Developer signing + notarization is deferred to v2.
+- macOS only.
+- Update check fires once at boot. Agents kept running for many days without restart won't see new versions until the next launch (Beibei restarts daily, so this is fine for now; periodic polling can be added without a release flow change).

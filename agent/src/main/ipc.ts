@@ -1,4 +1,4 @@
-import { app, ipcMain } from 'electron';
+import { app, ipcMain, shell } from 'electron';
 import { readConfig, updateConfig } from './config.js';
 import { autoLaunchStatus, reconcileAutoLaunch } from './launchd.js';
 import { log } from './logger.js';
@@ -10,6 +10,7 @@ import {
   setCertError,
 } from './serverState.js';
 import { caKeychainStatus, installCaToKeychain } from './cert.js';
+import { RELEASES_LATEST_URL } from './updateCheck.js';
 
 function previewKey(key: string): string {
   if (!key) return '';
@@ -26,30 +27,41 @@ async function buildConfigView() {
   };
 }
 
+/** AgentStatus payload shape — built in two IPC handlers (getStatus and
+ *  installCa). Extracted so adding a new axis (7.5: updateState) only
+ *  touches one place. */
+async function buildAgentStatus() {
+  const server = getServerState();
+  const ls = await autoLaunchStatus();
+  return {
+    version: app.getVersion(),
+    state: server.state,
+    serverPort: server.port,
+    serverError: server.errorMessage,
+    portHolderPid: server.portHolderPid,
+    certState: server.certState,
+    certError: server.certError,
+    updateState: server.updateState,
+    updateLatestVersion: server.updateLatestVersion,
+    updateDownloadUrl: server.updateDownloadUrl,
+    execPath: process.execPath,
+    plistExec: ls.execPath,
+    autoLaunchBootstrapped: ls.bootstrapped,
+  };
+}
+
 export function registerIpc(opts: {
   onQuit: () => void;
   onRestart: () => void;
   onRetryServer: () => Promise<void> | void;
 }) {
   ipcMain.handle('agent:getStatus', async () => {
-    const [ls, server] = await Promise.all([autoLaunchStatus(), Promise.resolve(getServerState())]);
-    // Front-facing `state` now reflects the API server, not the process. The
+    // Front-facing `state` reflects the API server, not the process. The
     // process is always alive when this IPC responds — what the user cares
     // about in Settings is "is the local API listening for web-UI calls?".
-    // `serverError` / `portHolderPid` drive the Port-busy copy + Retry button.
-    // `certState` / `certError` drive the Local HTTPS card on a separate axis.
-    return {
-      version: app.getVersion(),
-      state: server.state,
-      serverPort: server.port,
-      serverError: server.errorMessage,
-      portHolderPid: server.portHolderPid,
-      certState: server.certState,
-      certError: server.certError,
-      execPath: process.execPath,
-      plistExec: ls.execPath,
-      autoLaunchBootstrapped: ls.bootstrapped,
-    };
+    // Multi-axis state: server + cert + update each surface in their own
+    // Settings card; helper builds the full snapshot in one call.
+    return buildAgentStatus();
   });
 
   ipcMain.handle('agent:getConfig', async () => buildConfigView());
@@ -104,20 +116,15 @@ export function registerIpc(opts: {
     }
     // Return latest full status so the renderer can re-render both cards in
     // one round-trip without a follow-up getStatus poll.
-    const server = getServerState();
-    const ls = await autoLaunchStatus();
-    return {
-      version: app.getVersion(),
-      state: server.state,
-      serverPort: server.port,
-      serverError: server.errorMessage,
-      portHolderPid: server.portHolderPid,
-      certState: server.certState,
-      certError: server.certError,
-      execPath: process.execPath,
-      plistExec: ls.execPath,
-      autoLaunchBootstrapped: ls.bootstrapped,
-    };
+    return buildAgentStatus();
+  });
+
+  ipcMain.handle('agent:openLatestRelease', async () => {
+    // 7.5: opens the rolling /releases/latest URL in the user's default
+    // browser. URL is hardcoded server-side (renderer doesn't pass anything)
+    // so this bridge can't be used to open arbitrary URLs.
+    await log('info', `update: opening ${RELEASES_LATEST_URL} in default browser`);
+    await shell.openExternal(RELEASES_LATEST_URL);
   });
 
   ipcMain.handle('agent:quit', async () => {
