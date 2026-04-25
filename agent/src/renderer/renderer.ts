@@ -80,12 +80,12 @@ const CERT_COPY: Record<CertState, { tag: string; body: string }> = {
   'not-installed': {
     tag: 'Setup needed · 需要安装',
     body:
-      'Browsers need a trusted local certificate to reach WorkPal Agent. macOS will ask for your password.' +
-      '<br />浏览器需要本地受信任证书才能访问 WorkPal Agent，macOS 会提示输入管理员密码。',
+      'Browsers need a trusted local certificate to reach WorkPal Agent. macOS will pop a confirmation prompt.' +
+      '<br />浏览器需要本地受信任证书才能访问 WorkPal Agent，macOS 会弹出确认窗口。',
   },
   installing: {
     tag: 'Installing… · 安装中…',
-    body: 'Approve the macOS prompt to continue.<br />请在 macOS 弹窗中点击允许以继续。',
+    body: 'Approve the macOS confirmation prompt to continue.<br />请在 macOS 弹窗中点击允许以继续。',
   },
   installed: {
     tag: 'Installed · 已安装',

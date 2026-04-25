@@ -1,6 +1,7 @@
 import { app } from 'electron';
 import { promises as fs } from 'node:fs';
 import * as path from 'node:path';
+import * as os from 'node:os';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import forge from 'node-forge';
@@ -12,9 +13,18 @@ const execFileP = promisify(execFile);
  *
  * Why a local CA instead of a self-signed leaf:
  *   A self-signed leaf needs per-browser trust (each browser pops its own
- *   warning the first time). A user-installed root CA in macOS System
- *   Keychain trusts everything signed by it across every browser + curl —
- *   one sudo prompt, done forever.
+ *   warning the first time). A user-installed root CA trusts everything
+ *   signed by it across every browser + curl — one confirmation prompt,
+ *   done forever.
+ *
+ * Why login keychain (user-domain trust) and not System Keychain:
+ *   Live-test (Bug B) found `osascript ... with administrator privileges`
+ *   from the menu-bar (LSUIElement) Electron context fails with "no user
+ *   interaction was possible" on first launch — the System Keychain admin
+ *   path doesn't reliably surface a UI from a background-equivalent context.
+ *   User-domain trust via `~/Library/Keychains/login.keychain-db` only
+ *   needs SecurityAgent (Touch ID friendly, no admin password), and
+ *   browsers honour user-domain trusted roots for free.
  *
  * Why node-forge over `selfsigned` or `openssl`/`security` subprocess:
  *   - `selfsigned` is a thin wrapper on node-forge optimised for one-cert
@@ -28,8 +38,8 @@ const execFileP = promisify(execFile);
  * Why RSA-2048 and not ECDSA P-256:
  *   node-forge's ECDSA cert-signing path is incomplete; the production-grade
  *   path is RSA. 2048-bit key → ~1–3s keygen on first launch (acceptable —
- *   we're already going to gate behind a sudo prompt) and security holds to
- *   2030+. Bundle adds ~1.2 MB.
+ *   we're already going to gate behind a confirmation prompt) and security
+ *   holds to 2030+. Bundle adds ~1.2 MB.
  *
  * Validity windows:
  *   CA:  10 years (RFC 5280-typical for roots; user-installed roots aren't
@@ -47,7 +57,7 @@ const ORG_NAME = 'WorkPal Agent';
 const CA_VALIDITY_DAYS = 3650;
 const SERVER_VALIDITY_DAYS = 397;
 const RENEWAL_THRESHOLD_DAYS = 30;
-const SYSTEM_KEYCHAIN = '/Library/Keychains/System.keychain';
+const LOGIN_KEYCHAIN = path.join(os.homedir(), 'Library/Keychains/login.keychain-db');
 
 export interface CertBundle {
   caPem: string;
@@ -70,9 +80,12 @@ export type CaKeychainStatus = 'matching' | 'mismatch' | 'absent';
 
 function certDir(): string {
   // app.getPath('userData') on macOS = ~/Library/Application Support/<bundle name>
-  // Packaged: 'WorkPal Agent' (display name from Info.plist).
-  // Dev: 'Electron'. Both are user-writable; bundle dir is read-only when
-  // packaged so cert files MUST live here, not next to main.js.
+  // Packaged: 'workpal-agent' (npm package name; productName in Info.plist
+  // is 'WorkPal Agent' but app.getName() returns the npm name unless we
+  // set "productName" in package.json — we don't, to avoid orphaning the
+  // existing 7.1/7.2 Electron cache directory). Dev resolves to the same
+  // 'workpal-agent' for the same reason. User-writable in both modes; the
+  // bundle dir is read-only when packaged so cert files MUST live here.
   return path.join(app.getPath('userData'), 'cert');
 }
 
@@ -267,9 +280,10 @@ export async function bootstrapCerts(): Promise<BootstrapResult> {
     return { bundle: baseBundle };
   }
 
-  // Renewal path. Reuses the existing CA — no new sudo prompt needed because
-  // the CA cert in Keychain is unchanged. Per clarify #1: success is silent
-  // (no UI), failure flips certState to 'error' so the user knows.
+  // Renewal path. Reuses the existing CA — no new trust prompt needed
+  // because the CA cert in login keychain is unchanged. Per clarify #1:
+  // success is silent (no UI), failure flips certState to 'error' so the
+  // user knows.
   await log('info', `cert: server leaf expires in ${daysUntilExpiry.toFixed(1)}d — renewing (silent on success)`);
   try {
     const caCert = forge.pki.certificateFromPem(caPem);
@@ -305,16 +319,17 @@ async function onDiskCaSha1Hex(): Promise<string | null> {
   }
 }
 
-/** Three-way: 'matching' = same CA on disk and in Keychain; 'mismatch' =
- *  some "WorkPal Agent CA" exists in Keychain but its hash doesn't match
- *  what's on disk (orphan from a previous install — installing the current
- *  CA on top of it auto-heals); 'absent' = no entry by that name at all. */
+/** Three-way: 'matching' = same CA on disk and in login keychain;
+ *  'mismatch' = some "WorkPal Agent CA" exists in login keychain but its
+ *  hash doesn't match what's on disk (orphan from a previous install —
+ *  installing the current CA on top of it auto-heals); 'absent' = no entry
+ *  by that name at all. */
 export async function caKeychainStatus(): Promise<CaKeychainStatus> {
   let stdout: string;
   try {
     const result = await execFileP(
       'security',
-      ['find-certificate', '-Z', '-c', CA_COMMON_NAME, SYSTEM_KEYCHAIN],
+      ['find-certificate', '-Z', '-c', CA_COMMON_NAME, LOGIN_KEYCHAIN],
       { timeout: 5000 },
     );
     stdout = result.stdout;
@@ -330,46 +345,34 @@ export async function caKeychainStatus(): Promise<CaKeychainStatus> {
   return keychainHex === onDiskHex ? 'matching' : 'mismatch';
 }
 
-/** Drives the sudo flow. Per clarify #3 the /tmp file is removed in the
- *  `finally` block regardless of success / cancel / throw. Resolves cleanly
- *  on success; rejects with a bilingual message on user cancel or any
- *  osascript failure (callers turn that into the cert-error state). */
+/** Adds the on-disk CA into the user's login keychain as a trusted root.
+ *  No sudo, no osascript, no /tmp staging — `security add-trusted-cert`
+ *  takes the cert path directly and SecurityAgent surfaces its own auth
+ *  dialog (Touch ID friendly). Resolves cleanly on success; rejects with
+ *  a bilingual message on user cancel or any other failure (callers turn
+ *  that into the cert-error state).
+ *
+ *  Live-test (Bug B): the System Keychain path via osascript admin
+ *  privileges fails from the menu-bar (LSUIElement) Electron context with
+ *  "no user interaction was possible". User-domain trust sidesteps that
+ *  entire class of failure — login keychain is owned by the running user
+ *  and SecurityAgent honours UI requests from background-equivalent procs. */
 export async function installCaToKeychain(): Promise<void> {
-  // Read current bundle off disk (don't re-bootstrap — that would silently
-  // regenerate if files were deleted between boot and Install click).
-  const caPem = await fs.readFile(caCertPath(), 'utf8');
-
-  // /tmp is space-free + writable by anyone; we control the filename, so the
-  // shell command embedded in the AppleScript can't be word-split. process.pid
-  // + Date.now() avoids collisions between concurrent agent restarts.
-  const tmpPath = `/tmp/workpal-ca-${process.pid}-${Date.now()}.crt`;
-  await fs.writeFile(tmpPath, caPem, { mode: 0o644 });
-
   try {
-    const shellCmd = `security add-trusted-cert -d -r trustRoot -k ${SYSTEM_KEYCHAIN} ${tmpPath}`;
-    // AppleScript string with double-quoted literal. JSON.stringify gives
-    // valid AppleScript-string escaping for the shell command (the only
-    // special chars that could appear are \, ", and our path/cmd has neither).
-    const script =
-      `do shell script ${JSON.stringify(shellCmd)}` +
-      ` with administrator privileges` +
-      ` with prompt "WorkPal Agent wants to install a local certificate so your browsers can connect securely."`;
-
-    // execFile (not exec) → no shell interpolation, args passed verbatim.
-    await execFileP('osascript', ['-e', script], { timeout: 120_000 });
-    await log('info', 'cert: CA installed into System Keychain');
+    await execFileP(
+      'security',
+      ['add-trusted-cert', '-r', 'trustRoot', '-k', LOGIN_KEYCHAIN, caCertPath()],
+      { timeout: 60_000 },
+    );
+    await log('info', 'cert: CA installed into login keychain (user-domain trust)');
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    // osascript prints "User canceled." (note one 'l') to stderr when the
-    // user clicks Cancel on the auth dialog. Surface a friendlier copy for
-    // that one path; everything else gets the raw message.
+    // SecurityAgent uses the same "User canceled" (one 'l') wording as the
+    // old osascript admin dialog when the user dismisses, so the regex
+    // carries over unchanged.
     if (/User canceled/i.test(msg)) {
-      throw new Error('User cancelled the password prompt / 已取消管理员授权');
+      throw new Error('User cancelled the trust prompt / 已取消信任授权');
     }
     throw new Error(`Install failed / 安装失败: ${msg}`);
-  } finally {
-    await fs.unlink(tmpPath).catch(() => {
-      /* best-effort; the file is in /tmp and tiny */
-    });
   }
 }
