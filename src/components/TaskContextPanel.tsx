@@ -1,7 +1,7 @@
 import { File, MessageCircle, FilePlus2, FilePen, FileMinus2, GitMerge, Undo2, ShieldOff, CheckCircle2 } from 'lucide-react';
 import { SideCard, SidePanelHeader, TertiaryButton } from './shared';
 import type { ChangeEntry, ChangeKind } from '../types';
-import { IS_DEMO, IS_CLAUDE_CODE_AVAILABLE } from '../lib/demoMode';
+import { IS_DEMO, IS_AGENT_REACHABLE } from '../lib/demoMode';
 
 /* ── Types ───────────────────────────────────────────── */
 
@@ -375,13 +375,13 @@ export default function TaskContextPanel({
           not part of Phase 6 scope (principle #2 subtract).
 
           Deployment-aware tri-state (candidate #2):
-            • localhost (IS_CLAUDE_CODE_AVAILABLE): normal behavior
+            • localhost (IS_AGENT_REACHABLE): normal behavior
             • demo Vercel (IS_DEMO): visible but disabled + bilingual title
               tooltip — HRs see the capability, can't invoke it
-            • self-use Vercel (!IS_DEMO && !IS_CLAUDE_CODE_AVAILABLE):
+            • self-use Vercel (!IS_DEMO && !IS_AGENT_REACHABLE):
               footer hidden entirely — Beibei's external deployment can't
               run the SDK either, so don't dangle a dead button */}
-      {canCompleteSession && (IS_CLAUDE_CODE_AVAILABLE || IS_DEMO) && (
+      {canCompleteSession && (IS_AGENT_REACHABLE || IS_DEMO) && (
         <div
           className="shrink-0 px-3 pb-4 pt-2 border-t"
           style={{ borderColor: 'var(--color-stroke-outline)' }}

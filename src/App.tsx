@@ -20,7 +20,7 @@ import CompleteSessionModal, { type CompleteSessionPhase } from './components/Co
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
 import { DEMO_EXTRA_CHAT_IDS } from './data/demo/chats';
 import { DEMO_CHANGES_ALCOHOL } from './data/demo/changes';
-import { IS_DEMO, IS_CLAUDE_CODE_AVAILABLE } from './lib/demoMode';
+import { IS_DEMO, IS_AGENT_REACHABLE } from './lib/demoMode';
 import { postClaudePermissionDecision, postInitProject, postOpenFile, postOpenFolder, postReadFile, postReaperRun, postSessionComplete, postSessionMerge, postUndoChange, streamChat, streamClaudeChat } from './lib/api';
 import { shouldUseClaudeCode, shouldGenerateArtifact } from './lib/intentRouter';
 import { buildAttachmentContextBlock, buildImageDescriptionBlock } from './lib/attachments';
@@ -1195,7 +1195,7 @@ export default function App() {
     // Claude Agent SDK only runs on localhost dev. Skip the project-init
     // POST on both Vercel deployments (demo + self-use) — the endpoint
     // would return an error and clutter the console without any upside.
-    if (!IS_CLAUDE_CODE_AVAILABLE) return;
+    if (!IS_AGENT_REACHABLE) return;
     const project = projects.find(p => p.id === activeProjectId);
     if (!project) return;
     void postInitProject(slugify(project.name)).then(result => {
@@ -1219,7 +1219,7 @@ export default function App() {
     // Same reasoning as the project-init hook above: the reaper lives on the
     // Claude Code backend and can't run on Vercel serverless. Skip outside
     // localhost dev.
-    if (!IS_CLAUDE_CODE_AVAILABLE) return;
+    if (!IS_AGENT_REACHABLE) return;
     const payload = projects.map(p => {
       const activeSessionFolders = chats
         .filter(c => c.projectId === p.id && c.sessionFolder)

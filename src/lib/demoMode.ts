@@ -8,7 +8,7 @@
  *                            connectors, read-only memory, visible "Demo"
  *                            badge. Off locally and on `workpal-beibei`.
  *
- *   IS_CLAUDE_CODE_AVAILABLE runtime, computed from `location.hostname`.
+ *   IS_AGENT_REACHABLE runtime, computed from `location.hostname`.
  *                            Claude Agent SDK needs a persistent cwd + native
  *                            binary — neither Vercel deployment can host it,
  *                            only localhost dev. Hides the Claude Code code
@@ -22,7 +22,7 @@
 
 export const IS_DEMO = import.meta.env.VITE_WORKPAL_DEMO === 'true';
 
-export const IS_CLAUDE_CODE_AVAILABLE =
+export const IS_AGENT_REACHABLE =
   typeof window !== 'undefined' &&
   (window.location.hostname === 'localhost' ||
     window.location.hostname === '127.0.0.1');
