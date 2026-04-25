@@ -154,12 +154,44 @@ body {
   --status-fg: #c93838;
 }
 
+/* 7.3: cert states. Reuse the success/failed/idle palette so cards on the
+   same page read consistently.
+     unknown        → idle (transient, only seen <1s on boot)
+     not-installed  → idle (neutral — needs action but not an error yet)
+     installing     → idle (sudo dialog up)
+     installed      → success (matches Status running)
+     error          → failed (matches Status port-busy red) */
+.wp-status[data-state="unknown"],
+.wp-status[data-state="not-installed"],
+.wp-status[data-state="installing"] {
+  --status-bg: var(--bg-hover);
+  --status-fg: var(--text-muted);
+}
+
+.wp-status[data-state="installed"] {
+  --status-bg: rgba(2, 137, 1, 0.1);
+  --status-fg: #028901;
+}
+
+.wp-status[data-state="error"] {
+  --status-bg: rgba(220, 38, 38, 0.12);
+  --status-fg: #c93838;
+}
+
 @media (prefers-color-scheme: dark) {
   .wp-status[data-state="running"] {
     --status-bg: #028901;
     --status-fg: #ffffff;
   }
   .wp-status[data-state="port-busy"] {
+    --status-bg: #dc2626;
+    --status-fg: #ffffff;
+  }
+  .wp-status[data-state="installed"] {
+    --status-bg: #028901;
+    --status-fg: #ffffff;
+  }
+  .wp-status[data-state="error"] {
     --status-bg: #dc2626;
     --status-fg: #ffffff;
   }
@@ -383,4 +415,16 @@ body {
 .wp-btn--tight {
   padding: 6px 14px;
   align-self: flex-start;
+}
+
+/* 7.3: Local HTTPS card. Section title sits inline-with the StatusTag in a
+   wp-row so the card header reads "Title  ────────  [tag]". The body
+   paragraph and button stack below at the card's normal vertical rhythm. */
+.wp-section-title--inline {
+  margin-bottom: 0;
+}
+
+.wp-hint--cert {
+  margin: 10px 0 12px;
+  line-height: 1.6;
 }

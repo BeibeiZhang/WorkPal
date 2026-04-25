@@ -135,7 +135,7 @@
 **What "done" looks like for 7.3**:
 - `agent/src/main/cert.ts` (new) — generates a local CA on first launch (RSA-4096 or ECDSA P-256), installs into **macOS System Keychain** (`security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain` — requires sudo prompt **once**), issues a server cert from that CA for `127.0.0.1` + `localhost` SANs
 - `agent/src/main/server.ts` switches from `http.createServer` → `https.createServer` with `key` + `cert` from cert.ts. **Port stays 3001.** Same Express app handlers — only the listener wraps differently.
-- CA + server cert + private key persist under `app.getPath('userData')` (macOS: `~/Library/Application Support/WorkPal Agent/`). **NOT inside the agent bundle** — bundle is read-only in packaged mode (note from 7.2 lessons-for-7.3).
+- CA + server cert + private key persist under `app.getPath('userData')` (macOS: `~/Library/Application Support/workpal-agent/` — Electron's `app.getName()` reads the npm name, not the productName from Info.plist). **NOT inside the agent bundle** — bundle is read-only in packaged mode (note from 7.2 lessons-for-7.3).
 - Settings window: new card showing CA status (`Installed` / `Not installed` / `Error: <reason>`). When not installed, button "Install local CA" triggers the sudo flow. After 7.3 ships, this card replaces the "Status: Running on :3001" tag's role for diagnostics around HTTPS readiness.
 
 **Open for impl change-list (these need answers in your first reply, not code yet)**:

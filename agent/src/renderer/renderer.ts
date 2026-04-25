@@ -1,4 +1,5 @@
 type ServerState = 'running' | 'idle' | 'port-busy';
+type CertState = 'unknown' | 'not-installed' | 'installing' | 'installed' | 'error';
 
 interface AgentStatus {
   version: string;
@@ -6,6 +7,8 @@ interface AgentStatus {
   serverPort: number | null;
   serverError: string | null;
   portHolderPid: number | null;
+  certState: CertState;
+  certError: string | null;
   execPath: string;
   plistExec: string | null;
   autoLaunchBootstrapped: boolean;
@@ -28,6 +31,7 @@ interface AgentApi {
   setAutoLaunch(enabled: boolean): Promise<ConfigView>;
   retryServer(): Promise<AgentStatus>;
   lookupPortHolder(): Promise<PortHolderLookup>;
+  installCa(): Promise<AgentStatus>;
   quit(): Promise<void>;
   restart(): Promise<void>;
 }
@@ -64,6 +68,75 @@ function labelForState(state: ServerState, port: number | null): string {
   return 'Starting…';
 }
 
+/* 7.3: bilingual copy table for the Local HTTPS card. Body strings carry an
+ * <br> between English and Chinese — the renderer uses .innerHTML for the
+ * body cell only (no user input flows in here), keeping the two languages
+ * line-stacked the same way the rest of the agent's UI does it. */
+const CERT_COPY: Record<CertState, { tag: string; body: string }> = {
+  unknown: {
+    tag: 'Checking…',
+    body: 'Checking certificate state…<br />正在检查证书状态…',
+  },
+  'not-installed': {
+    tag: 'Setup needed · 需要安装',
+    body:
+      'Browsers need a trusted local certificate to reach WorkPal Agent. macOS will pop a confirmation prompt.' +
+      '<br />浏览器需要本地受信任证书才能访问 WorkPal Agent，macOS 会弹出确认窗口。',
+  },
+  installing: {
+    tag: 'Installing… · 安装中…',
+    body: 'Approve the macOS confirmation prompt to continue.<br />请在 macOS 弹窗中点击允许以继续。',
+  },
+  installed: {
+    tag: 'Installed · 已安装',
+    body:
+      'Local certificate is trusted. The agent serves HTTPS to your browsers.' +
+      '<br />本地证书已受信任，Agent 已可通过 HTTPS 与浏览器通信。',
+  },
+  error: {
+    // body cell is filled from s.certError (already bilingual + reinstall hint)
+    tag: 'Failed · 安装失败',
+    body: '',
+  },
+};
+
+function applyCertCard(s: AgentStatus): void {
+  const tag = $('cert-status');
+  const tagText = $('cert-status-text');
+  const body = $('cert-body');
+  const btn = $<HTMLButtonElement>('install-ca');
+
+  tag.dataset.state = s.certState;
+  const copy = CERT_COPY[s.certState];
+  tagText.textContent = copy.tag;
+  if (s.certState === 'error' && s.certError) {
+    // Already bilingual + reinstall hint per setCertError() in serverState.
+    body.textContent = s.certError;
+  } else {
+    body.innerHTML = copy.body;
+  }
+
+  // Per Beibei: no Reinstall affordance on installed state — uninstall.sh
+  // owns the destructive path. Button is shown only when an action makes
+  // sense: not-installed (start install) or error (retry install).
+  if (s.certState === 'not-installed') {
+    btn.hidden = false;
+    btn.disabled = false;
+    btn.textContent = 'Install local certificate · 安装本地证书';
+  } else if (s.certState === 'error') {
+    btn.hidden = false;
+    btn.disabled = false;
+    btn.textContent = 'Retry · 重试';
+  } else if (s.certState === 'installing') {
+    btn.hidden = false;
+    btn.disabled = true;
+    btn.textContent = 'Installing… · 安装中…';
+  } else {
+    // installed / unknown — no action button.
+    btn.hidden = true;
+  }
+}
+
 function applyStatus(s: AgentStatus): void {
   $('version').textContent = `v${s.version}`;
   const wrap = $('status');
@@ -85,6 +158,8 @@ function applyStatus(s: AgentStatus): void {
   } else {
     errBlock.hidden = true;
   }
+
+  applyCertCard(s);
 }
 
 async function renderStatus(): Promise<void> {
@@ -178,6 +253,30 @@ function bindHandlers(): void {
     } finally {
       btn.disabled = false;
       btn.textContent = 'Retry';
+    }
+  });
+
+  $('install-ca').addEventListener('click', async () => {
+    const btn = $<HTMLButtonElement>('install-ca');
+    if (btn.disabled) return;
+    // Optimistic UI flip — the IPC handler will set 'installing' inside the
+    // main process too, but the local flip avoids the multi-second sudo
+    // dialog feeling like a frozen button. installCa() never throws across
+    // the IPC boundary; it returns the updated AgentStatus either way.
+    btn.disabled = true;
+    btn.textContent = 'Installing… · 安装中…';
+    try {
+      const next = await window.agent.installCa();
+      applyStatus(next);
+      if (next.certState === 'installed') {
+        showToast('Certificate installed · 证书已安装');
+      } else if (next.certState === 'error') {
+        showToast('Install failed · 安装失败');
+      }
+    } catch (err) {
+      // Defensive — IPC handler shouldn't throw (it converts to certError),
+      // but if Electron itself drops the connection we surface a toast.
+      showToast(`IPC failed: ${(err as Error).message}`);
     }
   });
 

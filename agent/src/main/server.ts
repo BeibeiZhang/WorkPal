@@ -1,4 +1,5 @@
-import type { Server } from 'node:http';
+import * as https from 'node:https';
+import type { Server as HttpsServer } from 'node:https';
 import express, { type Request, type Response, type NextFunction } from 'express';
 import cors from 'cors';
 import { readConfig } from './config.js';
@@ -25,7 +26,19 @@ process.env.SUPABASE_ANON_KEY ??= SUPABASE_ANON_KEY;
 export const API_PORT = 3001;
 export const API_HOST = '127.0.0.1';
 
-let httpServer: Server | null = null;
+let httpsServer: HttpsServer | null = null;
+
+/* 7.3: cert material for the HTTPS listener. Cached at module level so the
+ * Retry button (Settings → port-busy card) can re-listen without re-reading
+ * cert files from disk. main.ts calls setCertMaterial() at boot before the
+ * first startApiServer(); the boot path is the only source of fresh certs
+ * (renewal happens inside bootstrapCerts() which main.ts owns). */
+interface CertMaterial { key: string; cert: string }
+let certMaterial: CertMaterial | null = null;
+
+export function setCertMaterial(m: CertMaterial): void {
+  certMaterial = m;
+}
 
 /** Middleware that fails fast when a route needs ANTHROPIC_API_KEY but the
  *  user hasn't set one yet. The shared routes don't distinguish — they just
@@ -56,14 +69,40 @@ async function requireAnthropicKey(req: Request, res: Response, next: NextFuncti
  *  either case — Settings UI shows the appropriate state.
  *
  *  Idempotent over repeated calls that succeed. A successful run leaves
- *  httpServer non-null; a failing run leaves it null and updates state. */
+ *  httpsServer non-null; a failing run leaves it null and updates state.
+ *
+ *  7.3: Hard-flipped from http → https. Same port (3001), same Express app,
+ *  same routes. Cert material is set by main.ts via setCertMaterial() before
+ *  this is first called; missing material is a programming error (we throw,
+ *  not port-busy, because there's no listener-state recovery path for it). */
 export async function startApiServer(): Promise<void> {
-  if (httpServer) {
+  if (httpsServer) {
     await log('info', 'server: already running, skip startApiServer');
+    return;
+  }
+  if (!certMaterial) {
+    // Caller contract violation — main.ts must call setCertMaterial first.
+    // Surface as port-busy with a developer-facing message so a packaged
+    // build at least keeps the process alive and shows something useful.
+    setServerPortBusy(API_PORT, 'Cert material not initialised — bootstrap order bug.');
+    await log('error', 'server: startApiServer called before setCertMaterial');
     return;
   }
 
   const app = express();
+  // 7.3 live-test (Bug C): Chrome 130+ enforces Private Network Access. A
+  // public origin (workpal-beibei.vercel.app) fetching a private IP
+  // (127.0.0.1) sends an OPTIONS preflight with `Access-Control-Request-
+  // Private-Network: true`; if the response doesn't carry
+  // `Access-Control-Allow-Private-Network: true`, Chrome silently hangs the
+  // fetch until abort. The cors middleware doesn't know about PNA, so set
+  // it ourselves on every response — non-PNA browsers ignore the header.
+  // Must run BEFORE `cors` so the header is on the OPTIONS response that
+  // cors sends for the preflight, not just on the eventual /api/* response.
+  app.use((_req, res, next) => {
+    res.setHeader('Access-Control-Allow-Private-Network', 'true');
+    next();
+  });
   app.use(cors({ origin: true, credentials: true }));
   // Match server/src/index.ts limit. Chat attachments arrive as base64 data
   // URLs; default 100kb limit is trivially blown by a single screenshot.
@@ -86,14 +125,22 @@ export async function startApiServer(): Promise<void> {
   app.use('/api', session);
   app.use('/api', reaper);
 
-  // Explicit port-busy promise so the caller (main.ts) can await startup and
-  // still handle both outcomes without a try/catch on listen's async-callback
-  // shape. We wrap .listen's error event + the 'listening' event.
+  // Wrap Express in https.Server (https.createServer takes the same request
+  // listener interface as http.createServer; Express's app() qualifies).
+  // Cert material is the locally-issued leaf — if Keychain trust isn't yet
+  // installed, browsers warn but the listener still binds and serves.
+  const server = https.createServer(
+    { key: certMaterial.key, cert: certMaterial.cert },
+    app,
+  );
+
+  // Explicit promise so the caller (main.ts) can await startup and still
+  // handle both outcomes without a try/catch on the async-callback shape.
   return new Promise((resolve) => {
-    const server = app.listen(API_PORT, API_HOST, () => {
-      httpServer = server;
+    server.listen(API_PORT, API_HOST, () => {
+      httpsServer = server;
       setServerRunning(API_PORT);
-      void log('info', `server: listening on http://${API_HOST}:${API_PORT}`);
+      void log('info', `server: listening on https://${API_HOST}:${API_PORT}`);
       resolve();
     });
 
@@ -106,24 +153,25 @@ export async function startApiServer(): Promise<void> {
         void log('error', `server: EADDRINUSE on ${API_PORT}; keeping agent alive`);
         // Kick off an lsof lookup so the Settings UI can show the PID on the
         // next poll without the user having to trigger it — purely
-        // best-effort, ignored if lsof errors.
+        // best-effort, ignored if lsof errors. TCP-LISTEN layer is
+        // protocol-agnostic so the lookup works the same as it did for HTTP.
         void findPortHolder();
       } else {
         setServerPortBusy(API_PORT, `Listen failed: ${err.message}`);
         void log('error', `server: listen failed: ${err.message}`);
       }
-      httpServer = null;
+      httpsServer = null;
       resolve();
     });
   });
 }
 
-/** Close the HTTP listener. Best-effort — fired from `before-quit` where the
- *  process is about to exit anyway, so we don't surface callback errors. */
+/** Close the HTTPS listener. Best-effort — fired from `before-quit` where
+ *  the process is about to exit anyway, so we don't surface callback errors. */
 export async function stopApiServer(): Promise<void> {
-  if (!httpServer) return;
-  const server = httpServer;
-  httpServer = null;
+  if (!httpsServer) return;
+  const server = httpsServer;
+  httpsServer = null;
   return new Promise((resolve) => {
     server.close(() => {
       setServerIdle();
@@ -137,9 +185,9 @@ export async function stopApiServer(): Promise<void> {
 
 /** Retry listening after a port-busy state. Called by the Settings Retry
  *  button. Does a fresh startApiServer — which internally re-runs cors + JSON
- *  + mounts routes — because a fresh Express instance is cheaper than holding
- *  references to a dead one. `httpServer` is null here (port-busy path set
- *  it back to null), so startApiServer will run its main body. */
+ *  + mounts routes — because a fresh Express instance is cheaper than
+ *  holding references to a dead one. `httpsServer` is null here (port-busy
+ *  path set it back to null), so startApiServer will run its main body. */
 export async function retryApiServer(): Promise<void> {
   await log('info', 'server: retry requested');
   await startApiServer();

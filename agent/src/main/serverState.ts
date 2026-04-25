@@ -1,6 +1,6 @@
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
-import type { ServerState } from './preload.cjs';
+import type { ServerState, CertState } from './preload.cjs';
 
 const execP = promisify(exec);
 
@@ -12,6 +12,12 @@ const execP = promisify(exec);
  * ipc.ts polls getServerState() inside the agent:getStatus handler; server.ts
  * flips the fields through setState() on listen success, listen error, and
  * the retry path.
+ *
+ * 7.3: certState lives here too as an INDEPENDENT axis (per Beibei clarify
+ * #2 — don't union into `state`). Server-listen state and CA-trust state
+ * change for unrelated reasons (port collisions vs sudo cancel) and the
+ * renderer surfaces them in two separate cards, so they need to be set/read
+ * independently.
  */
 
 interface State {
@@ -24,6 +30,15 @@ interface State {
    *  asks (agent:lookupPortHolder) — lsof is a subprocess so don't spawn it
    *  on every status poll. */
   portHolderPid: number | null;
+  /** Local-CA trust status. 'unknown' until cert bootstrap runs; then one of
+   *  installed/not-installed. Flips to 'installing' while osascript awaits
+   *  the user's password, and 'error' on cancel / install failure / boot-time
+   *  renewal failure. Independent of `state` above. */
+  certState: CertState;
+  /** Bilingual copy shown beside the Local HTTPS tag in cert-error. Always
+   *  ends with a "建议重装 / reinstall recommended" hint per clarify #4 so
+   *  the user has a clear next step instead of staring at bare "Failed". */
+  certError: string | null;
 }
 
 let current: State = {
@@ -31,6 +46,8 @@ let current: State = {
   port: null,
   errorMessage: null,
   portHolderPid: null,
+  certState: 'unknown',
+  certError: null,
 };
 
 export function getServerState(): State {
@@ -38,15 +55,28 @@ export function getServerState(): State {
 }
 
 export function setServerRunning(port: number): void {
-  current = { state: 'running', port, errorMessage: null, portHolderPid: null };
+  current = {
+    ...current,
+    state: 'running',
+    port,
+    errorMessage: null,
+    portHolderPid: null,
+  };
 }
 
 export function setServerIdle(): void {
-  current = { state: 'idle', port: null, errorMessage: null, portHolderPid: null };
+  current = {
+    ...current,
+    state: 'idle',
+    port: null,
+    errorMessage: null,
+    portHolderPid: null,
+  };
 }
 
 export function setServerPortBusy(port: number, message: string): void {
   current = {
+    ...current,
     state: 'port-busy',
     port,
     errorMessage: message,
@@ -54,6 +84,28 @@ export function setServerPortBusy(port: number, message: string): void {
     // doesn't flash "(no PID)" between lookups. Cleared by successful start.
     portHolderPid: current.portHolderPid,
   };
+}
+
+const REINSTALL_HINT = ' Try reinstalling WorkPal Agent. / 建议重装 WorkPal Agent。';
+
+export function setCertInstalled(): void {
+  current = { ...current, certState: 'installed', certError: null };
+}
+
+export function setCertNotInstalled(): void {
+  current = { ...current, certState: 'not-installed', certError: null };
+}
+
+export function setCertInstalling(): void {
+  current = { ...current, certState: 'installing', certError: null };
+}
+
+/** `reason` should already be bilingual (the install / renewal paths build
+ *  bilingual messages). We tack on the reinstall hint here so every error
+ *  the user sees ends with concrete next-step copy (clarify #4). */
+export function setCertError(reason: string): void {
+  const msg = reason.endsWith('。') || reason.endsWith('.') ? reason : reason + '.';
+  current = { ...current, certState: 'error', certError: msg + REINSTALL_HINT };
 }
 
 /** Shell out to `lsof` to find the process holding :3001 (or whichever port
