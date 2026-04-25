@@ -1,27 +1,50 @@
 import { app, BrowserWindow, Tray, Menu, nativeImage, nativeTheme, shell } from 'electron';
-import * as path from 'path';
-import { readConfig } from './config';
-import { reconcileAutoLaunch, autoLaunchStatus, plistPath } from './launchd';
-import { registerIpc } from './ipc';
-import { log } from './logger';
+import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { readConfig } from './config.js';
+import { reconcileAutoLaunch, autoLaunchStatus, plistPath } from './launchd.js';
+import { registerIpc } from './ipc.js';
+import { log } from './logger.js';
+import { startApiServer, stopApiServer, retryApiServer } from './server.js';
+import { harvestShellEnv } from './pathEnv.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const VERSION = app.getVersion();
 const IS_DEV = !app.isPackaged;
+
+// After 7.2: tsconfig rootDir expands from `src/main` to `src` so shared route
+// code compiles alongside main. Output layout:
+//   agent/dist-main/main/main.js            ← this file
+//   agent/dist-main/main/preload.cjs
+//   agent/dist-main/shared/routes/*.js
+//   agent/dist-renderer/index.html          (sibling of dist-main)
+//   agent/assets/*.png                      (sibling of dist-main)
+// Packaged .app follows the same relative layout inside app.asar, so
+// `path.resolve(__dirname, '..', '..')` reaches the project root in both.
+function appRoot(): string {
+  return path.resolve(__dirname, '..', '..');
+}
 
 let tray: Tray | null = null;
 let settingsWindow: BrowserWindow | null = null;
 let isQuitting = false;
 
 function rendererFile(): string {
-  return path.join(__dirname, '..', 'dist-renderer', 'index.html');
+  return path.join(appRoot(), 'dist-renderer', 'index.html');
 }
 
 function preloadFile(): string {
-  return path.join(__dirname, 'preload.js');
+  // `.cjs` because preload scripts must be CommonJS when sandbox:true — the
+  // sandboxed V8 context preload runs in doesn't support ESM. The rest of the
+  // agent main compiles to ESM (package.json `type: module`) so the Claude
+  // Agent SDK (pure ESM) can be imported without dynamic-import gymnastics.
+  return path.join(__dirname, 'preload.cjs');
 }
 
 function assetsDir(): string {
-  return path.join(__dirname, '..', 'assets');
+  return path.join(appRoot(), 'assets');
 }
 
 function buildTrayIcon(): Electron.NativeImage {
@@ -168,17 +191,32 @@ async function main(): Promise<void> {
     app.dock.hide();
   }
 
+  // 7.2: harvest PATH from user's login shell before anything spawns `git` /
+  // `claude-code-cli`. launchd-started GUI apps inherit a minimal PATH
+  // (/usr/bin:/bin:/usr/sbin:/sbin) that misses Homebrew's /opt/homebrew/bin
+  // and any shell-installed tooling. This is a well-known macOS-GUI trap; we
+  // fix it once at boot so every subsequent child_process.spawn sees the full
+  // PATH the user has in Terminal.
+  await harvestShellEnv();
+
   await app.whenReady();
 
   registerIpc({
     onQuit: () => quitApp(),
     onRestart: () => restartApp(),
+    onRetryServer: () => retryApiServer(),
   });
 
   createTray();
   await log('info', `tray: created (version ${VERSION})`);
 
   void bootstrapAutoLaunch();
+
+  // 7.2: start local HTTP API on 127.0.0.1:3001. Non-awaited — if EADDRINUSE
+  // (Beibei also runs `npm --prefix server run dev` on the same port), the
+  // server records the failure in serverState and keeps the agent alive so
+  // Settings can show a "Port busy" state with a Retry button.
+  void startApiServer();
 
   // First-launch onboarding: if no API key yet, show settings on first boot.
   const cfg = await readConfig();
@@ -195,6 +233,10 @@ async function main(): Promise<void> {
 
   app.on('before-quit', () => {
     isQuitting = true;
+    // Best-effort close of the Express listener so the port is free for the
+    // next launch. Fire-and-forget — `before-quit` is synchronous from
+    // Electron's perspective, but stopApiServer resolves fast in practice.
+    void stopApiServer();
   });
 }
 

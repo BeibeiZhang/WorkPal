@@ -1,6 +1,11 @@
+type ServerState = 'running' | 'idle' | 'port-busy';
+
 interface AgentStatus {
   version: string;
-  state: 'running' | 'idle';
+  state: ServerState;
+  serverPort: number | null;
+  serverError: string | null;
+  portHolderPid: number | null;
   execPath: string;
   plistExec: string | null;
   autoLaunchBootstrapped: boolean;
@@ -12,11 +17,17 @@ interface ConfigView {
   autoLaunch: boolean;
 }
 
+interface PortHolderLookup {
+  pid: number | null;
+}
+
 interface AgentApi {
   getStatus(): Promise<AgentStatus>;
   getConfig(): Promise<ConfigView>;
   setApiKey(key: string): Promise<ConfigView>;
   setAutoLaunch(enabled: boolean): Promise<ConfigView>;
+  retryServer(): Promise<AgentStatus>;
+  lookupPortHolder(): Promise<PortHolderLookup>;
   quit(): Promise<void>;
   restart(): Promise<void>;
 }
@@ -47,13 +58,52 @@ function showToast(msg: string): void {
   }, 1600);
 }
 
-async function renderStatus(): Promise<void> {
-  const s = await window.agent.getStatus();
+function labelForState(state: ServerState, port: number | null): string {
+  if (state === 'running') return `Running · :${port ?? '?'}`;
+  if (state === 'port-busy') return `Port ${port ?? '?'} busy`;
+  return 'Starting…';
+}
+
+function applyStatus(s: AgentStatus): void {
   $('version').textContent = `v${s.version}`;
-  const txt = $('status-text');
   const wrap = $('status');
   wrap.dataset.state = s.state;
-  txt.textContent = s.state === 'running' ? 'Running' : 'Idle';
+  $('status-text').textContent = labelForState(s.state, s.serverPort);
+
+  const errBlock = $('server-error');
+  const errCopy = $('server-error-text');
+  const errPid = $('server-error-pid');
+  if (s.state === 'port-busy') {
+    errBlock.hidden = false;
+    errCopy.textContent = s.serverError ?? 'Server failed to start.';
+    if (s.portHolderPid && s.portHolderPid > 0) {
+      errPid.hidden = false;
+      errPid.textContent = `Held by PID ${s.portHolderPid}`;
+    } else {
+      errPid.hidden = true;
+    }
+  } else {
+    errBlock.hidden = true;
+  }
+}
+
+async function renderStatus(): Promise<void> {
+  const s = await window.agent.getStatus();
+  applyStatus(s);
+  // First time we render a port-busy state without a PID, kick off a lookup.
+  // Running the lookup in parallel with the initial render keeps the PID line
+  // from flickering in on a second render cycle.
+  if (s.state === 'port-busy' && !s.portHolderPid) {
+    void (async () => {
+      try {
+        await window.agent.lookupPortHolder();
+        const next = await window.agent.getStatus();
+        applyStatus(next);
+      } catch {
+        // lookup best-effort — silent on failure
+      }
+    })();
+  }
 }
 
 async function renderConfig(): Promise<ConfigView> {
@@ -111,6 +161,26 @@ function bindHandlers(): void {
     }
   });
 
+  $('retry-server').addEventListener('click', async () => {
+    const btn = $<HTMLButtonElement>('retry-server');
+    btn.disabled = true;
+    btn.textContent = 'Retrying…';
+    try {
+      const next = await window.agent.retryServer();
+      applyStatus(next);
+      if (next.state === 'running') {
+        showToast('Server started');
+      } else {
+        showToast('Still blocked — check the PID shown');
+      }
+    } catch (err) {
+      showToast(`Retry failed: ${(err as Error).message}`);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Retry';
+    }
+  });
+
   $('restart').addEventListener('click', () => {
     void window.agent.restart();
   });
@@ -123,6 +193,12 @@ function bindHandlers(): void {
 document.addEventListener('DOMContentLoaded', () => {
   bindHandlers();
   void refresh();
+  // Poll every 2s so the status flips to Running as soon as `startApiServer`
+  // finishes on the main side (it's non-awaited, so the Settings window can
+  // open with state=idle for a beat). Cheap — IPC roundtrip.
+  setInterval(() => {
+    void renderStatus();
+  }, 2000);
 });
 
 export {};

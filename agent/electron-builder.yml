@@ -23,3 +23,14 @@ files:
   - assets/**/*
   - package.json
   - "!**/*.map"
+# asar disabled. Even with asarUnpack pulling out the SDK main package,
+# spawn still ENOTDIR'd because Electron's asar layer is a userland fuse —
+# import.meta.url inside sdk.mjs (still loaded *through* the asar VFS even
+# when the file is also unpacked) bakes `/app.asar/...` into the resolved
+# binary path, and spawn() is a syscall that bypasses Electron's path
+# rewriting and hits the kernel directly. Kernel sees app.asar as a file,
+# not a dir → ENOTDIR.
+# Disabling asar entirely costs ~marginal startup time + same bundle size,
+# but eliminates the corner case for good. WorkPal Agent is a single-user
+# desktop tool; we don't need the asar packaging optimization.
+asar: false
