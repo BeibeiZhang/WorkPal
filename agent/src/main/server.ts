@@ -90,6 +90,19 @@ export async function startApiServer(): Promise<void> {
   }
 
   const app = express();
+  // 7.3 live-test (Bug C): Chrome 130+ enforces Private Network Access. A
+  // public origin (workpal-beibei.vercel.app) fetching a private IP
+  // (127.0.0.1) sends an OPTIONS preflight with `Access-Control-Request-
+  // Private-Network: true`; if the response doesn't carry
+  // `Access-Control-Allow-Private-Network: true`, Chrome silently hangs the
+  // fetch until abort. The cors middleware doesn't know about PNA, so set
+  // it ourselves on every response — non-PNA browsers ignore the header.
+  // Must run BEFORE `cors` so the header is on the OPTIONS response that
+  // cors sends for the preflight, not just on the eventual /api/* response.
+  app.use((_req, res, next) => {
+    res.setHeader('Access-Control-Allow-Private-Network', 'true');
+    next();
+  });
   app.use(cors({ origin: true, credentials: true }));
   // Match server/src/index.ts limit. Chat attachments arrive as base64 data
   // URLs; default 100kb limit is trivially blown by a single screenshot.
