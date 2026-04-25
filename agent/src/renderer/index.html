@@ -58,6 +58,30 @@
           <button class="wp-btn wp-btn--secondary" id="save-api-key">Save</button>
         </div>
       </section>
+
+      <!-- 7.3: Local HTTPS card. Independent axis from the Status card above
+           (CA trust is unrelated to TCP listener health). Four states driven
+           by AgentStatus.certState:
+             not-installed → button surfaced, sudo on click
+             installing    → button disabled, copy explains the macOS dialog
+             installed     → success tag, no action (uninstall.sh handles removal)
+             error         → failed tag + bilingual reason + reinstall hint -->
+      <section class="wp-card">
+        <div class="wp-row">
+          <span class="wp-section-title wp-section-title--inline">Local HTTPS · 本地 HTTPS</span>
+          <span class="wp-status" id="cert-status" data-state="unknown">
+            <span class="wp-dot"></span>
+            <span id="cert-status-text">—</span>
+          </span>
+        </div>
+        <p class="wp-hint wp-hint--cert" id="cert-body">
+          Browsers need a trusted local certificate to reach WorkPal Agent. macOS will ask for your
+          password.<br />浏览器需要本地受信任证书才能访问 WorkPal Agent，macOS 会提示输入管理员密码。
+        </p>
+        <button class="wp-btn wp-btn--secondary wp-btn--tight" id="install-ca" type="button" hidden>
+          Install local certificate · 安装本地证书
+        </button>
+      </section>
     </main>
 
     <footer class="wp-footer">

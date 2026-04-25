@@ -2,7 +2,14 @@ import { app, ipcMain } from 'electron';
 import { readConfig, updateConfig } from './config.js';
 import { autoLaunchStatus, reconcileAutoLaunch } from './launchd.js';
 import { log } from './logger.js';
-import { getServerState, findPortHolder } from './serverState.js';
+import {
+  getServerState,
+  findPortHolder,
+  setCertInstalled,
+  setCertInstalling,
+  setCertError,
+} from './serverState.js';
+import { caKeychainStatus, installCaToKeychain } from './cert.js';
 
 function previewKey(key: string): string {
   if (!key) return '';
@@ -30,12 +37,15 @@ export function registerIpc(opts: {
     // process is always alive when this IPC responds — what the user cares
     // about in Settings is "is the local API listening for web-UI calls?".
     // `serverError` / `portHolderPid` drive the Port-busy copy + Retry button.
+    // `certState` / `certError` drive the Local HTTPS card on a separate axis.
     return {
       version: app.getVersion(),
       state: server.state,
       serverPort: server.port,
       serverError: server.errorMessage,
       portHolderPid: server.portHolderPid,
+      certState: server.certState,
+      certError: server.certError,
       execPath: process.execPath,
       plistExec: ls.execPath,
       autoLaunchBootstrapped: ls.bootstrapped,
@@ -68,6 +78,46 @@ export function registerIpc(opts: {
     // every getStatus poll would be wasteful (it spawns a subprocess).
     const pid = await findPortHolder();
     return { pid };
+  });
+
+  ipcMain.handle('agent:installCa', async () => {
+    setCertInstalling();
+    await log('info', 'cert: install requested via IPC — opening sudo prompt');
+    try {
+      await installCaToKeychain();
+      // Re-detect to make absolutely sure the trust took: hash-compare the
+      // on-disk CA against what's now in Keychain. If `security` says the
+      // hash doesn't match (race or stale entry blocking the new one), we
+      // surface that as an error rather than declaring success.
+      const status = await caKeychainStatus();
+      if (status === 'matching') {
+        setCertInstalled();
+      } else {
+        setCertError(
+          `Install completed but Keychain hash didn't verify (${status}). / 安装已完成但 Keychain 校验未通过 (${status})。`,
+        );
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      await log('error', `cert: install failed — ${msg}`);
+      setCertError(msg);
+    }
+    // Return latest full status so the renderer can re-render both cards in
+    // one round-trip without a follow-up getStatus poll.
+    const server = getServerState();
+    const ls = await autoLaunchStatus();
+    return {
+      version: app.getVersion(),
+      state: server.state,
+      serverPort: server.port,
+      serverError: server.errorMessage,
+      portHolderPid: server.portHolderPid,
+      certState: server.certState,
+      certError: server.certError,
+      execPath: process.execPath,
+      plistExec: ls.execPath,
+      autoLaunchBootstrapped: ls.bootstrapped,
+    };
   });
 
   ipcMain.handle('agent:quit', async () => {

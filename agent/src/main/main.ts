@@ -5,8 +5,14 @@ import { readConfig } from './config.js';
 import { reconcileAutoLaunch, autoLaunchStatus, plistPath } from './launchd.js';
 import { registerIpc } from './ipc.js';
 import { log } from './logger.js';
-import { startApiServer, stopApiServer, retryApiServer } from './server.js';
+import { startApiServer, stopApiServer, retryApiServer, setCertMaterial } from './server.js';
 import { harvestShellEnv } from './pathEnv.js';
+import { bootstrapCerts, caKeychainStatus } from './cert.js';
+import {
+  setCertInstalled,
+  setCertNotInstalled,
+  setCertError,
+} from './serverState.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -56,8 +62,11 @@ function buildTrayIcon(): Electron.NativeImage {
 
 function createSettingsWindow(): BrowserWindow {
   const win = new BrowserWindow({
+    // 7.3: bumped 420 → 560 for the new Local HTTPS card. Three full-width
+    // cards (Status / API key / Local HTTPS) + footer fit at 560 with no
+    // scrollbar; tunable up if Beibei wants more breathing room in live test.
     width: 480,
-    height: 420,
+    height: 560,
     resizable: false,
     minimizable: false,
     maximizable: false,
@@ -212,16 +221,61 @@ async function main(): Promise<void> {
 
   void bootstrapAutoLaunch();
 
-  // 7.2: start local HTTP API on 127.0.0.1:3001. Non-awaited — if EADDRINUSE
-  // (Beibei also runs `npm --prefix server run dev` on the same port), the
-  // server records the failure in serverState and keeps the agent alive so
-  // Settings can show a "Port busy" state with a Retry button.
-  void startApiServer();
+  // 7.3: bootstrap CA + server leaf BEFORE startApiServer (HTTPS listener
+  // can't bind without cert material). bootstrapCerts() always returns a
+  // usable bundle — fresh-generated on first launch, reused on subsequent,
+  // renewed in place if leaf is <30d. Renewal failure leaves the old
+  // (still-valid) bundle in place and surfaces certError; HTTPS keeps
+  // working until the leaf actually expires.
+  let certBootstrapped = false;
+  try {
+    const result = await bootstrapCerts();
+    setCertMaterial({ key: result.bundle.serverKeyPem, cert: result.bundle.serverCertPem });
+    certBootstrapped = true;
+    if (result.renewalError) {
+      // Per clarify #1: renewal-success is silent, only failure surfaces.
+      setCertError(`Cert renewal failed / 证书续期失败: ${result.renewalError}`);
+    } else {
+      // Detect Keychain trust independently (orphan / first-launch / installed).
+      const status = await caKeychainStatus();
+      if (status === 'matching') {
+        setCertInstalled();
+      } else {
+        // Both 'absent' and 'mismatch' funnel to the same "click Install"
+        // UX — installing the on-disk CA into Keychain auto-heals either
+        // case (a stale orphan entry just gets shadowed by the new one).
+        setCertNotInstalled();
+        await log('info', `cert: keychain status=${status} — surfacing install card`);
+      }
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    await log('error', `cert: bootstrap failed — ${msg}`);
+    setCertError(`Cert bootstrap failed / 证书初始化失败: ${msg}`);
+    // Without cert material, the HTTPS listener cannot start. Skip
+    // startApiServer — Settings will show cert-error and the user has the
+    // reinstall hint to act on. Agent stays alive so the user can quit cleanly.
+  }
 
-  // First-launch onboarding: if no API key yet, show settings on first boot.
+  if (certBootstrapped) {
+    // 7.2: start local HTTPS API on 127.0.0.1:3001. Non-awaited — if
+    // EADDRINUSE (Beibei also runs `npm --prefix server run dev` on the same
+    // port), the server records the failure in serverState and keeps the
+    // agent alive so Settings can show a "Port busy" state with a Retry button.
+    void startApiServer();
+  }
+
+  // First-launch onboarding: surface Settings on either missing API key OR
+  // missing CA trust. Both are first-launch blockers — the user needs to
+  // act before the web UI works end-to-end. Hide-after-set is handled by
+  // the Settings close-handler (window-close-hides-not-quits).
   const cfg = await readConfig();
-  if (!cfg.anthropicApiKey) {
-    await log('info', 'onboarding: no API key — surfacing settings window');
+  const certNeedsInstall = !certBootstrapped || (await caKeychainStatus()) !== 'matching';
+  if (!cfg.anthropicApiKey || certNeedsInstall) {
+    await log(
+      'info',
+      `onboarding: surfacing settings (apiKey=${cfg.anthropicApiKey ? 'set' : 'missing'}, certNeedsInstall=${certNeedsInstall})`,
+    );
     showSettings();
   }
 

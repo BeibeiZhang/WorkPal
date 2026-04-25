@@ -6,6 +6,17 @@ import { contextBridge, ipcRenderer } from 'electron';
  *   port-busy  — bind failed (EADDRINUSE). Agent process itself is fine. */
 export type ServerState = 'running' | 'idle' | 'port-busy';
 
+/** 7.3: local-CA trust state, independent from ServerState (per Beibei
+ *   clarify #2 — separate axis, separate Settings card).
+ *   unknown        — pre-bootstrap; only seen during the first ~ms of boot.
+ *   not-installed  — CA absent from System Keychain (first launch, or orphan
+ *                    after a userData wipe). User clicks Install to trigger sudo.
+ *   installing     — osascript dialog is up; awaiting password.
+ *   installed      — CA present in Keychain AND its hash matches on-disk CA.
+ *   error          — install cancelled / failed, or boot-time renewal failed.
+ *                    `certError` carries the bilingual reason + reinstall hint. */
+export type CertState = 'unknown' | 'not-installed' | 'installing' | 'installed' | 'error';
+
 export interface AgentStatus {
   version: string;
   state: ServerState;
@@ -17,6 +28,10 @@ export interface AgentStatus {
   /** PID of the process currently holding :3001, if we've looked it up.
    *  Populated lazily via agent:lookupPortHolder — don't block getStatus on it. */
   portHolderPid: number | null;
+  /** Local-CA trust state (independent of `state`). */
+  certState: CertState;
+  /** Bilingual error copy when certState === 'error'. Null otherwise. */
+  certError: string | null;
   execPath: string;
   plistExec: string | null;
   autoLaunchBootstrapped: boolean;
@@ -39,6 +54,11 @@ export interface AgentApi {
   setAutoLaunch(enabled: boolean): Promise<ConfigView>;
   retryServer(): Promise<AgentStatus>;
   lookupPortHolder(): Promise<PortHolderLookup>;
+  /** Trigger the sudo flow to add the local CA into the System Keychain.
+   *  Resolves with the latest AgentStatus (certState = 'installed' or
+   *  'error'). Never throws across the IPC boundary — failures land in
+   *  certError. */
+  installCa(): Promise<AgentStatus>;
   quit(): Promise<void>;
   restart(): Promise<void>;
 }
@@ -50,6 +70,7 @@ const api: AgentApi = {
   setAutoLaunch: (enabled) => ipcRenderer.invoke('agent:setAutoLaunch', enabled),
   retryServer: () => ipcRenderer.invoke('agent:retryServer'),
   lookupPortHolder: () => ipcRenderer.invoke('agent:lookupPortHolder'),
+  installCa: () => ipcRenderer.invoke('agent:installCa'),
   quit: () => ipcRenderer.invoke('agent:quit'),
   restart: () => ipcRenderer.invoke('agent:restart'),
 };
