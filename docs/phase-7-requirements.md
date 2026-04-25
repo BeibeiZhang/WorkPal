@@ -25,8 +25,8 @@
 | Step | Deliverable | Est | Status |
 |---|---|---|---|
 | **7.1** | Agent shell: Electron app, menu-bar icon + Settings window (`ANTHROPIC_API_KEY` input, status, Quit/Restart), launchd auto-start, `.dmg` output. **No API content yet.** | 3–4 d | ✅ Shipped 2026-04-24 (PR [#128](https://github.com/BeibeiZhang/WorkPal/pull/128), commit `8702171`) |
-| **7.2** | Port local-only routes (`claudeChat` / `project` / `session` / `reaper`, + any others impl audits as local-touching) from `server/src/routes/*` into Agent's bundled Node runtime. Agent reads `ANTHROPIC_API_KEY` from config + injects into Claude SDK spawn env. Served over plain HTTP on 127.0.0.1:3001; HTTPS arrives in 7.3. Cloud-data routes (memory / chats / projects / artifacts / connectors / usage) stay on Vercel serverless — NOT in agent. | 2 d | ⏳ In review |
-| **7.3** | First launch: generate a local CA, install it into macOS System Keychain (one sudo prompt), then issue a server cert off the CA for `127.0.0.1:3001`. Subsequent launches reuse the existing CA. No per-browser trust warnings. | 2–3 d | ⏳ Pending |
+| **7.2** | Port local-only routes (`claudeChat` / `project` / `session` / `reaper`, + any others impl audits as local-touching) from `server/src/routes/*` into Agent's bundled Node runtime. Agent reads `ANTHROPIC_API_KEY` from config + injects into Claude SDK spawn env. Served over plain HTTP on 127.0.0.1:3001; HTTPS arrives in 7.3. Cloud-data routes (memory / chats / projects / artifacts / connectors / usage) stay on Vercel serverless — NOT in agent. | 2 d | ✅ Shipped 2026-04-25 (PR [#129](https://github.com/BeibeiZhang/WorkPal/pull/129), commit `40d3ac8`) |
+| **7.3** | First launch: generate a local CA, install it into macOS System Keychain (one sudo prompt), then issue a server cert off the CA for `127.0.0.1:3001`. Subsequent launches reuse the existing CA. No per-browser trust warnings. | 2–3 d | ⏳ Next |
 | **7.4** | Frontend: replace hostname-based `IS_CLAUDE_CODE_AVAILABLE` with live `/ping` detection against agent. Build an "Install WorkPal Agent" onboarding view for when agent is unreachable. Re-point `fetch('/api/claude-chat')` etc. to agent URL. | 2 d | ⏳ Pending |
 | **7.5** | GitHub Releases as CDN. `.dmg` build CI. Optional auto-update (agent polls latest release on boot). | 1–2 d | ⏳ Pending |
 
@@ -91,7 +91,7 @@
 
 ---
 
-## Context from 7.2 (impl audit + shipped 2026-04-24, in review)
+## Context from 7.2 (shipped 2026-04-25)
 
 **Route audit (final):**
 | Route | Local fs / git / SDK | Move to agent | Notes |
@@ -121,11 +121,56 @@
 - **#11** `animations.ts` — DELETE endpoint only makes sense from a local dev server (removes a repo-checkout file); Vercel-deploy users get a no-op. Decide whether to drop the endpoint entirely, move to a build-time CLI, or port to agent (if agent ever handles repo-admin workflows).
 - **#12** `agentVideoStatus.ts` — writes JSON to `server/data/`; already ephemeral on Vercel. Either promote storage to Supabase (per-user) or drop the server round-trip and make it localStorage-only (revert pre-PR behavior).
 
+**ENOTDIR saga (3 commits to land 7.2 — process note for 7.3 + future spawning work):**
+1. Initial commit: SDK spawn `claude` binary → `spawn ENOTDIR` in packaged `.app`
+2. Hypothesis 1 (incorrect): `app.asar` virtualization blocks the binary path → fix attempt: `asarUnpack: ["node_modules/@anthropic-ai/claude-agent-sdk/**", "node_modules/@anthropic-ai/**/*.node"]`. Verified `sdk.mjs` physically present in `app.asar.unpacked/`. **Did not fix.**
+3. Hypothesis 2 (correct): Even with files unpacked, **`import.meta.url` from inside `sdk.mjs` still resolves through Electron's asar virtual mount**, so SDK computes the binary path with `app.asar/` segment in it. The kernel's `posix_spawn()` doesn't go through Electron's redirection layer → asar segment is a file, not directory → ENOTDIR. **Fix: `asar: false` in `electron-builder.yml`.** No more virtual mount, all files plain on disk. Trade-off: slightly slower module loading + .app size unchanged (~160 MB). Live-test confirmed via planning curl: `Write` tool → file landed → auto-commit → SSE `claude_done` chunk with cost.
+
+**Take-away for 7.3 + 7.4:** any SDK / library that uses `import.meta.url` to find adjacent native binaries inside Electron will trip the same trap. Defaulting to `asar: false` avoids the entire class. Revisit only if `.app` size becomes a real constraint.
+
 ---
 
-## First-message template (currently 7.1)
+## Context for 7.3 (next step) — local CA / mkcert-pattern HTTPS
 
-See the separate Cowork prompt block passed by planning.
+**What "done" looks like for 7.3**:
+- `agent/src/main/cert.ts` (new) — generates a local CA on first launch (RSA-4096 or ECDSA P-256), installs into **macOS System Keychain** (`security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain` — requires sudo prompt **once**), issues a server cert from that CA for `127.0.0.1` + `localhost` SANs
+- `agent/src/main/server.ts` switches from `http.createServer` → `https.createServer` with `key` + `cert` from cert.ts. **Port stays 3001.** Same Express app handlers — only the listener wraps differently.
+- CA + server cert + private key persist under `app.getPath('userData')` (macOS: `~/Library/Application Support/WorkPal Agent/`). **NOT inside the agent bundle** — bundle is read-only in packaged mode (note from 7.2 lessons-for-7.3).
+- Settings window: new card showing CA status (`Installed` / `Not installed` / `Error: <reason>`). When not installed, button "Install local CA" triggers the sudo flow. After 7.3 ships, this card replaces the "Status: Running on :3001" tag's role for diagnostics around HTTPS readiness.
+
+**Open for impl change-list (these need answers in your first reply, not code yet)**:
+1. **CA library choice** — `node-forge` (pure JS, slow keygen but no native deps) vs `selfsigned` (slim wrapper around node-forge) vs running Apple's `security` CLI as a child process (no JS lib, but separate binary). Pick one + cite trade-off.
+2. **CA install timing** — `(a)` proactively at first launch (sudo prompt before user even asks) / `(b)` lazily on first HTTPS request (server boots HTTP + auto-promotes once CA installed) / `(c)` only via Settings button click. Which gives the cleanest UX given that 7.4 will rewire the frontend to HTTPS?
+3. **HTTPS-only or HTTP+HTTPS during 7.3** — do we keep HTTP listener on 3001 (for backwards-compat with anyone curling) and add an HTTPS listener on a different port, or hard-flip 3001 to HTTPS-only? Frontend in 7.4 will fetch HTTPS regardless. Recommend hard-flip + simpler code; want to verify.
+4. **Cert validity windows** — propose CA: 10 years, server cert: 1 year + auto-renew on each agent launch if <30 days remaining? Or longer server cert (5y) and skip renewal logic? Pick one.
+5. **Settings UI shape** — same card style as Status tag, or a new full-width card with "Install local CA" button + uninstall affordance? Mock the bilingual copy strings.
+6. **Sudo prompt UX** — `osascript -e 'do shell script "..." with administrator privileges'` (Apple's standard auth dialog) is the only non-Terminal-requiring path. Confirm using that, or propose alternative.
+
+**Hard constraints**:
+- CA install must be **idempotent**. Already-installed CA detection: `security find-certificate -c "WorkPal Agent CA" /Library/Keychains/System.keychain` returns 0.
+- CA uninstall path: provide a documented `agent/scripts/uninstall.sh` extension that also removes the CA from Keychain (`security delete-certificate -c "WorkPal Agent CA"`). Not a Settings-window button (destructive + rare).
+- HTTPS server **must reuse the same Express app** registered in 7.2 — no route re-registration. Wrap the existing app, don't fork.
+- 503 / port-busy state machine from 7.2 still applies. Test that the `findPortHolder` lsof path still works on HTTPS listener (it should — TCP-layer LISTEN is the same).
+
+**What's explicitly NOT in 7.3**:
+- Frontend rewire (7.4) — frontend keeps fetching HTTP from `localhost:2006` until 7.4
+- Auto-update (7.5)
+- Apple Developer signing / notarization (still v2 territory)
+- Cert revocation list / OCSP stapling (overkill for a single-machine local CA)
+
+**Patterns to reuse from 7.2**:
+- Status state machine in `agent/src/main/serverState.ts` — extend with `'cert-missing'` / `'cert-installed'` axis so the Settings card has one source of truth
+- Bilingual error copy in `requireAnthropicKey` middleware — same pattern for sudo failures or CA generation errors
+
+**Live-test points planning will verify (heads-up to impl)**:
+1. First-launch sudo prompt fires + CA lands in System Keychain (verify via `security find-certificate`)
+2. Subsequent launches detect installed CA + skip re-install (idempotency)
+3. Server cert serves valid HTTPS — `curl https://127.0.0.1:3001/health` returns OK with no `-k` flag
+4. Mac Chrome / Safari open `https://127.0.0.1:3001/health` directly, **no security warning**
+5. Mixed-content from `https://workpal-beibei.vercel.app` fetching `https://127.0.0.1:3001/api/*` works (this unblocks 7.4)
+6. CA / cert files persist under `~/Library/Application Support/WorkPal Agent/` and survive `.app` reinstall (DON'T re-prompt sudo on .app upgrade)
+7. Reinstall path: `rm -rf "/Applications/WorkPal Agent.app"` + new install → CA already in Keychain → no sudo prompt + HTTPS just works
+8. Uninstall script removes both `.app` + plist + CA from Keychain (no orphans)
 
 ---
 
