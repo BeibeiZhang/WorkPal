@@ -5,6 +5,7 @@ import type { Project } from './components/Sidebar';
 import ChatPanel from './components/ChatPanel';
 import DetailPanel from './components/DetailPanel';
 import Onboarding from './components/Onboarding';
+import OnboardingSurface from './components/OnboardingSurface';
 import TaskContextPanel from './components/TaskContextPanel';
 import ProjectPage from './components/ProjectPage';
 import ConnectorsPage from './components/ConnectorsPage';
@@ -3158,6 +3159,15 @@ export default function App() {
             sidebarOpen={sidebarOpen || !isMobile}
             onToggleSidebar={() => setSidebarOpen(o => !o)}
           />
+        ) : !IS_DEMO && agentState === 'unreachable' ? (
+          // Phase 7.4: agent isn't there. Sidebar + cloud-only views (memory,
+          // connectors, etc.) keep working from the surrounding tree; only the
+          // chat surface — the one that actually depends on the agent — flips
+          // to the install card. The probe in src/lib/agent.ts re-fires on
+          // window.focus and on any agent-route fetch failure, so once the
+          // user installs and starts the agent, this swap reverses without
+          // a refresh.
+          <OnboardingSurface />
         ) : (() => {
           // Exactly one side panel is active at a time. Artifact preview and
           // DetailPanel (card report) both render the 504px DetailPanel shell
