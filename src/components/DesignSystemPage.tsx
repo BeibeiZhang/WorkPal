@@ -955,7 +955,7 @@ const SEARCH_INDEX: SearchEntry[] = [
   { tab: 'layouts', section: 'Layout Templates', name: 'SidePanelHeader', description: 'Shared header row for side panels — close button and typography unified' },
   { tab: 'layouts', section: 'Layout Templates', name: 'SideCard', description: 'Collapsible card for right-column panels (Instructions / Scheduled / Files / Context)' },
   // Components — shared primitives
-  { tab: 'components', section: 'Components · Shared Primitives', name: 'PrimaryButton · SecondaryButton · TertiaryButton', description: 'Three-tier button system. Only ONE Primary per view.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'PrimaryButton · SecondaryButton · TertiaryButton', description: 'Three-tier button system, all h-[48px]. Only ONE Primary per view.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'GhostPillButton', description: 'Pill-shaped bordered secondary action — h-10 rounded-full with optional leading icon.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'HeaderIconButton', description: 'Square 40×40 rounded-xl icon-only button for page headers (close/toggle).' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'NavItem', description: 'Sidebar main-nav list-item — icon + label + optional trailing, .gradient-ring when active.' },
@@ -2037,8 +2037,8 @@ function ComponentsTab() {
   const entries: LibEntry[] = [
     {
       name: 'PrimaryButton · SecondaryButton · TertiaryButton',
-      description: 'Three-tier button system. Only ONE Primary per view. States: default, disabled, fullWidth.',
-      usedIn: ['MessageCard (confirm / cancel)', 'InsightCard (actions)', 'Onboarding', 'Overview'],
+      description: 'Three-tier button system, all h-[48px] · rounded-[4px] · type-detail-emphasized. Only ONE Primary per view. States: default, disabled, fullWidth.',
+      usedIn: ['LoginScreen (Sign in)', 'PasswordModal', 'NewProjectDialog', 'MessageCard (confirm / cancel)', 'CompleteSessionModal', 'PermissionPrompt', 'VoiceMode', 'OverviewPage', 'MemoryPage', 'ConnectorsPage', 'TaskContextPanel'],
       preview: (
         <div className="flex flex-wrap gap-3 items-center">
           <PrimaryButton>Primary</PrimaryButton>
@@ -2110,7 +2110,7 @@ function ComponentsTab() {
     {
       name: 'StatusTag',
       description: 'Semantic status pill. 7 variants. States: with/without icon, size md/sm.',
-      usedIn: ['MessageCard', 'ConnectorsPage', 'Overview status rows'],
+      usedIn: ['MessageCard', 'ConnectorsPage'],
       preview: (
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap gap-2">
@@ -2246,7 +2246,7 @@ function ComponentsTab() {
     {
       name: 'ProgressBar',
       description: 'Determinate progress bar. States: with/without label.',
-      usedIn: ['Overview', 'TaskProgressCard'],
+      usedIn: ['TaskProgressCard', 'MessageCard'],
       preview: (
         <div className="flex flex-col gap-3">
           <ProgressBar value={62} showLabel />
@@ -2299,7 +2299,7 @@ function ComponentsTab() {
     {
       name: 'InsightCard',
       description: 'Callout card with sparkle icon, body text, and action buttons.',
-      usedIn: ['Overview insights block'],
+      usedIn: ['(currently unused — was on Overview before refactor)'],
       preview: (
         <InsightCard body="Your focus time dropped 40% this week. Want me to protect morning blocks?" actions={[{ label: 'Yes, protect my mornings', secondary: true }, { label: 'Show data' }]} />
       ),
@@ -2326,7 +2326,7 @@ function ComponentsTab() {
     {
       name: 'HealthDimensionRow',
       description: 'Lucide icon + label/desc + auto-colored status pill. Color/icon derive from value/target ratio.',
-      usedIn: ['Overview health dimensions'],
+      usedIn: ['(currently unused — was on Overview before refactor)'],
       preview: (
         <div className="flex flex-col gap-2">
           <HealthDimensionRow icon={Brain} label="Focus Time" desc="9–11am blocked & protected" value={2} target={2} unit="h" />
@@ -2338,7 +2338,7 @@ function ComponentsTab() {
     {
       name: 'SolutionRow',
       description: 'Row with emoji, title + description, and right-aligned category tag.',
-      usedIn: ['Overview suggested solutions'],
+      usedIn: ['(currently unused — was on Overview before refactor)'],
       preview: (
         <div>
           <SolutionRow icon="🎧" title="AI趋势速报" desc="每天3分钟音频" tag="针对：AI" />

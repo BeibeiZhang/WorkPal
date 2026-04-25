@@ -205,7 +205,7 @@ export default function TaskContextPanel({
                         <div className={`type-h2 text-text-primary truncate ${change.undone ? 'line-through' : ''}`}>
                           {change.label}
                         </div>
-                        <div className="type-footnote text-text-secondary">
+                        <div className="type-caption text-text-secondary">
                           {relativeTime(change.timestamp)}
                           {change.undone && ' · Undone'}
                         </div>

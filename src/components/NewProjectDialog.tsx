@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
-import { PrimaryButton, TertiaryButton } from './shared';
+import { HeaderIconButton, PrimaryButton, TertiaryButton } from './shared';
 
 interface NewProjectDialogProps {
   open: boolean;
@@ -73,12 +73,9 @@ export default function NewProjectDialog({
         style={{ background: 'var(--color-bg-page)' }}
       >
         {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center rounded-full hover:bg-bg-hover transition-colors"
-        >
-          <X size={18} className="text-text-primary" />
-        </button>
+        <HeaderIconButton onClick={onClose} ariaLabel="Close" className="absolute top-6 right-6">
+          <X size={18} />
+        </HeaderIconButton>
 
         {/* Header */}
         <h2 className="type-h1--emphasized text-text-primary mb-2">
