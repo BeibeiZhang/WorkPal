@@ -1,7 +1,8 @@
 import { File, MessageCircle, FilePlus2, FilePen, FileMinus2, GitMerge, Undo2, ShieldOff, CheckCircle2 } from 'lucide-react';
 import { SideCard, SidePanelHeader, TertiaryButton } from './shared';
 import type { ChangeEntry, ChangeKind } from '../types';
-import { IS_DEMO, IS_CLAUDE_CODE_AVAILABLE } from '../lib/demoMode';
+import { IS_DEMO } from '../lib/demoMode';
+import { useAgentState } from '../lib/agent';
 
 /* ── Types ───────────────────────────────────────────── */
 
@@ -155,6 +156,7 @@ export default function TaskContextPanel({
   const folderList = folder ?? (useDemoDefaults ? DEMO_FOLDER : []);
   const contextList = context ?? (useDemoDefaults ? DEMO_CONTEXT : []);
   const toolsList = toolsActive ?? (useDemoDefaults ? DEMO_TOOLS : []);
+  const agentState = useAgentState();
   return (
     <div
       className="flex flex-col h-full shrink-0 max-w-full"
@@ -374,14 +376,18 @@ export default function TaskContextPanel({
           button — rolling back after a successful merge is intentionally
           not part of Phase 6 scope (principle #2 subtract).
 
-          Deployment-aware tri-state (candidate #2):
-            • localhost (IS_CLAUDE_CODE_AVAILABLE): normal behavior
+          Deployment-aware tri-state (candidate #2 + Phase 7.4):
+            • agent reachable (probe → 200): normal behavior — covers
+              localhost dev AND a vercel-beibei deployment with a running
+              local agent
             • demo Vercel (IS_DEMO): visible but disabled + bilingual title
               tooltip — HRs see the capability, can't invoke it
-            • self-use Vercel (!IS_DEMO && !IS_CLAUDE_CODE_AVAILABLE):
-              footer hidden entirely — Beibei's external deployment can't
-              run the SDK either, so don't dangle a dead button */}
-      {canCompleteSession && (IS_CLAUDE_CODE_AVAILABLE || IS_DEMO) && (
+            • agent unreachable (!IS_DEMO && agentState !== 'reachable'):
+              footer hidden — the merge endpoint lives on the local agent;
+              no point rendering a button that would throw AgentUnreachable.
+              While agentState === 'unknown' (boot probe in flight), treat
+              same as unreachable so the button doesn't flash in. */}
+      {canCompleteSession && (agentState === 'reachable' || IS_DEMO) && (
         <div
           className="shrink-0 px-3 pb-4 pt-2 border-t"
           style={{ borderColor: 'var(--color-stroke-outline)' }}

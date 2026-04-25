@@ -1,8 +1,8 @@
 /**
  * Static Changes-panel entries shown on the demo's `alcohol-delivery` chat.
  * Gives HRs a concrete look at the auto-commit / undo UX without needing a
- * live Claude Code backend (Vercel serverless can't host the SDK anyway —
- * see src/lib/demoMode.ts IS_CLAUDE_CODE_AVAILABLE).
+ * live Claude Code backend (the demo Vercel deployment never reaches a
+ * local agent — see `src/lib/agent.ts useAgentState`).
  *
  * No commit hashes — these entries aren't backed by real git state, so the
  * panel falls back to its Phase 5 "every non-halt row shows Undo" behavior

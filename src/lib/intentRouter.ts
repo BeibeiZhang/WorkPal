@@ -2,7 +2,8 @@
 // Keyword heuristic, no classifier call. Covers English + Chinese (Beibei
 // mixes both). Tweak the list here; keep it deterministic and cheap.
 
-import { IS_CLAUDE_CODE_AVAILABLE, IS_DEMO } from './demoMode';
+import { IS_DEMO } from './demoMode';
+import { isAgentCurrentlyReachable } from './agent';
 
 const CLAUDE_CODE_KEYWORDS = [
   // English
@@ -14,11 +15,12 @@ const CLAUDE_CODE_KEYWORDS = [
 ];
 
 export function shouldUseClaudeCode(text: string): boolean {
-  // Claude Agent SDK needs a persistent cwd + native binary — neither Vercel
-  // deployment can host it, only localhost dev. Short-circuit everywhere
-  // else so code/file intents fall back to the OpenAI chat path instead of
-  // trying to hit an endpoint that would 500.
-  if (!IS_CLAUDE_CODE_AVAILABLE) return false;
+  // The Phase 7.3+ local agent owns Claude Code execution. If the probe
+  // hasn't settled to reachable, route code/file intents through the OpenAI
+  // chat path so the user gets *something* instead of a hung POST against
+  // a non-existent localhost listener. The unreachable case also surfaces
+  // the install onboarding card at the App level.
+  if (!isAgentCurrentlyReachable()) return false;
   const lower = text.toLowerCase();
   return CLAUDE_CODE_KEYWORDS.some(kw => lower.includes(kw.toLowerCase()));
 }

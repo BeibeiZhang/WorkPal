@@ -82,7 +82,7 @@ export function registerIpc(opts: {
 
   ipcMain.handle('agent:installCa', async () => {
     setCertInstalling();
-    await log('info', 'cert: install requested via IPC — opening sudo prompt');
+    await log('info', 'cert: install requested via IPC — opening install prompt');
     try {
       await installCaToKeychain();
       // Re-detect to make absolutely sure the trust took: hash-compare the
