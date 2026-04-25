@@ -9,6 +9,7 @@ import { startApiServer, stopApiServer, retryApiServer, setCertMaterial } from '
 import { harvestShellEnv } from './pathEnv.js';
 import { bootstrapCerts, caKeychainStatus } from './cert.js';
 import {
+  getServerState,
   setCertInstalled,
   setCertNotInstalled,
   setCertError,
@@ -265,16 +266,21 @@ async function main(): Promise<void> {
     void startApiServer();
   }
 
-  // First-launch onboarding: surface Settings on either missing API key OR
-  // missing CA trust. Both are first-launch blockers — the user needs to
-  // act before the web UI works end-to-end. Hide-after-set is handled by
-  // the Settings close-handler (window-close-hides-not-quits).
+  // First-launch onboarding: surface Settings whenever the user has
+  // something to act on — missing API key OR cert in any non-installed
+  // state. Reading certState (set above by the bootstrap try/catch) is the
+  // canonical signal: it covers fresh / silent-renewal / renewal-fail /
+  // bootstrap-throw uniformly, including the case where the CA is still
+  // trusted in Keychain but boot-time renewal failed (HTTPS keeps working
+  // for ~30 days, but we want the user to see the cert-error card now —
+  // not the day it actually breaks). Replaces an earlier `caKeychainStatus()`
+  // re-probe that missed this case.
   const cfg = await readConfig();
-  const certNeedsInstall = !certBootstrapped || (await caKeychainStatus()) !== 'matching';
+  const certNeedsInstall = getServerState().certState !== 'installed';
   if (!cfg.anthropicApiKey || certNeedsInstall) {
     await log(
       'info',
-      `onboarding: surfacing settings (apiKey=${cfg.anthropicApiKey ? 'set' : 'missing'}, certNeedsInstall=${certNeedsInstall})`,
+      `onboarding: surfacing settings (apiKey=${cfg.anthropicApiKey ? 'set' : 'missing'}, certState=${getServerState().certState})`,
     );
     showSettings();
   }
