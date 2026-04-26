@@ -135,14 +135,16 @@ Deliberately parked. Re-evaluate when UI surface stabilizes. Unchanged from 2026
 
 ---
 
-## 5. `in-flight` — Deployment shape: C (Web + local agent) picked, Phase 7 kicked off 2026-04-24
+## 5. `shipped` — Deployment shape: C (Web + local agent) — Phase 7 complete + v0.1.1 launched
+
+**Shipped**: 2026-04-25 — Phase 7 delivered in 5 sub-phases (7.1 → 7.5) over ~2 calendar days. Full per-step ship details live in [`docs/phase-7-requirements.md`](./phase-7-requirements.md) and the Phase 7 row in [`docs/phase-history.md`](./phase-history.md). Result: `https://workpal-beibei.vercel.app/overview` is the primary cross-device entry; `WorkPal Agent.app` (~160 MB dual-arch DMG) ships from `/Applications/` on Beibei's main Mac, OnboardingSurface guides install on any other Mac, GitHub Releases auto-update via boot-time check.
 
 **Three shapes on the table** (locked in `memory/project_architecture_direction.md`):
 - **A. localhost-only** — `npm run dev` + browser. Current. No sharable link, dev-only.
 - **B. Tauri / Electron desktop app** — download `.dmg`, double-click. Works offline; no terminal; can't send a URL link; users re-install on each machine. User UX very low-friction once installed.
 - **C. Web + local agent** — Vercel-hosted frontend, user installs an agent (packaged as a `.dmg` like Dropbox / Docker Desktop — **does NOT require the user to open a terminal**, just double-click install and menu-bar icon appears). User gets a shareable URL once set up; agent does file/git ops that browsers can't.
 
-**Current state**: **C is picked, Phase 7 in flight (2026-04-24).** Beibei signaled directly into Phase 7 without A/B ordering debate — "认定 C 是最终形态，不等验证". Full Phase 7 scope + locked decisions live in [`docs/phase-7-requirements.md`](./phase-7-requirements.md). Phase 7.1 (Electron agent shell) is the first step, prompt pending Cowork session.
+**Final state**: shipped via Phase 7 (see top **Shipped** block).
 
 **Original deferral reasoning** (kept for record): observation-driven decision was the plan until #2 demo deployment accumulated HR reactions + #7 + #8 made `workpal-beibei.vercel.app` cross-device usable. In practice Beibei skipped the observation phase once #7 + #8 proved the cross-device foundation worked; "I open the web page and edit local files" remains the core value prop and is the only shape that delivers it.
 
@@ -270,9 +272,11 @@ Deliberately parked. Re-evaluate when UI surface stabilizes. Unchanged from 2026
 
 ---
 
-## 11. `candidate` — `animations.ts` DELETE endpoint cleanup (Phase 7.2 surfaced)
+## 11. `shipped` — `animations.ts` DELETE endpoint cleanup (Phase 7.2 surfaced)
 
-[`server/src/routes/animations.ts`](../server/src/routes/animations.ts) DELETE handler removes a repo-checkout file under `public/animations/*.mp4`. Only meaningful when running the dev server from a checked-out repo; on Vercel deploy it's a no-op against the static build's read-only filesystem (already a half-broken endpoint pre-7.2). Phase 7.2 audit decided to leave it on `server/` rather than port to agent (it's repo-management dev-only, not local-fs-on-user's-Mac territory). Three cleanup options:
+**Shipped**: 2026-04-26 (bundled with §12 + §14 into PR [#136](https://github.com/BeibeiZhang/WorkPal/pull/136), merge commit `7d13e26`). Picked option **A** — dropped the route entirely. Grep confirmed zero frontend callers of `/api/animations` (only a docstring reference remained in [`src/agentVideos.ts`](../src/agentVideos.ts)). Deleted [`server/src/routes/animations.ts`](../server/src/routes/animations.ts) (-79 lines) + import / mount in [`server/src/index.ts`](../server/src/index.ts). The `'deleted'` enum value in `src/agentVideos.ts` was kept defensively with an inline comment (`// historical value: kept for back-compat with existing localStorage entries`) so any leftover entries from the now-removed endpoint don't get silently coerced and resurrect into the rotation pool.
+
+[`server/src/routes/animations.ts`](../server/src/routes/animations.ts) DELETE handler removes a repo-checkout file under `public/animations/*.mp4`. Only meaningful when running the dev server from a checked-out repo; on Vercel deploy it's a no-op against the static build's read-only filesystem (already a half-broken endpoint pre-7.2). Phase 7.2 audit decided to leave it on `server/` rather than port to agent (it's repo-management dev-only, not local-fs-on-user's-Mac territory). Three cleanup options considered:
 
 - **A. Drop the endpoint entirely**. Lose the dev-server convenience of "click delete in admin UI to wipe a video"; that flow is rare. ~10 lines.
 - **B. Convert to a build-time CLI** at `scripts/clean-animation.ts`. Keeps the convenience, removes the broken endpoint. ~30 lines.
@@ -282,9 +286,11 @@ Risk: low. No user-facing surface today (admin tools page only). Pick (A) by def
 
 ---
 
-## 12. `candidate` — `agentVideoStatus.ts` ephemeral storage (Phase 7.2 surfaced)
+## 12. `shipped` — `agentVideoStatus.ts` ephemeral storage (Phase 7.2 surfaced)
 
-[`server/src/routes/agentVideoStatus.ts`](../server/src/routes/agentVideoStatus.ts) reads/writes `server/data/agent-video-status.json`. **Already broken on Vercel** (serverless ephemeral fs — every request potentially hits a fresh container with empty `server/data/`). Phase 7.2 audit decided to leave it on `server/` because no one's actively using it (the symptom would be silent state loss; we'd notice via product feedback if it mattered). Two cleanup paths:
+**Shipped**: 2026-04-26 (bundled with §11 + §14 into PR [#136](https://github.com/BeibeiZhang/WorkPal/pull/136), merge commit `7d13e26`). Picked an **A-variant**: drop the server route, but couldn't drop the caller — grep showed the toggle UI is admin-only (`DesignSystemPage` AgentVideosTab) but the read consumer is product-facing ([`ChatPanel:114`](../src/components/ChatPanel.tsx#L114) drives the welcome video rotation pool), so converted the frontend to localStorage-only with cross-tab `storage` event sync instead. Deleted [`server/src/routes/agentVideoStatus.ts`](../server/src/routes/agentVideoStatus.ts) (-81 lines) + import / mount in [`server/src/index.ts`](../server/src/index.ts); collapsed [`src/agentVideos.ts`](../src/agentVideos.ts) (-73 / +19 lines) — dropped `fetchServerMap` / `patchServerStatus` / `API_PATH` / `void refresh()` boot fetch / `onFocus` listener; kept `loadCachedMap` / `cacheMap` / `CHANGE_EVENT` / `'storage'` cross-tab sync. Top-of-file docstring rewritten with a Supabase-promotion breadcrumb pointing to `chatStore` / `projectStore` (`api/_lib/chat-store.ts` pattern) for the day cross-device sync is wanted.
+
+[`server/src/routes/agentVideoStatus.ts`](../server/src/routes/agentVideoStatus.ts) reads/writes `server/data/agent-video-status.json`. **Already broken on Vercel** (serverless ephemeral fs — every request potentially hits a fresh container with empty `server/data/`). Phase 7.2 audit decided to leave it on `server/` because no one's actively using it (the symptom would be silent state loss; we'd notice via product feedback if it mattered). Two cleanup paths considered:
 
 - **A. Drop the endpoint + caller**. Find the frontend caller (likely also dev-only admin), wire it to localStorage instead, delete server route. Pure removal of a stale code path.
 - **B. Promote to Supabase** (per-user agent-video-status row). Worth doing only if Beibei wants this state to persist across devices. Higher cost, real product question first.
@@ -318,9 +324,11 @@ After clearing the quarantine attribute, double-click opens normally (no further
 
 ---
 
-## 14. `candidate` — OnboardingSurface command rendering: literal backticks → `<code>` + monospace (post-#13 polish)
+## 14. `shipped` — OnboardingSurface command rendering: literal backticks → `<code>` + monospace (post-#13 polish)
 
-**Surfaced**: candidate #13 PR [#135](https://github.com/BeibeiZhang/WorkPal/pull/135) review (2026-04-25). The new OnboardingSurface step 2 includes a Terminal command (`sudo xattr -dr com.apple.quarantine "/Applications/WorkPal Agent.app"`) wrapped in markdown-style backticks. Rendering path is `<p>{step.en}</p>` — **plain text, no markdown parsing** — so users see **literal backtick characters** around the command instead of a code block. Functionally OK (the command is identifiable + copy-able), but visually rough; the README equivalent renders correctly because GitHub Markdown does parse fenced code.
+**Shipped**: 2026-04-26 (bundled with §11 + §12 into PR [#136](https://github.com/BeibeiZhang/WorkPal/pull/136), merge commit `7d13e26`). Picked option **B** — inline ~10-line regex helper, no markdown lib. Helper splits on `` /(`[^`]+`)/ `` and wraps captured segments in `<code className="font-mono bg-bg-message px-1 py-0.5 rounded">`. Impl added a `part.length >= 2` guard beyond the original spec so a stray single backtick can't be mis-detected as both `startsWith('`') && endsWith('`')`. Same wrapping for both EN + 中文 lines; computed-CSS verified `font-family: ui-monospace, SFMono-Regular, Menlo, ...` + `background-color: rgba(20, 39, 64, 0.05)` on both, with Chinese prose context staying in SF Pro (sans-serif fallback intact — only the command segment is monospace). Planning skipped independent live-test after impl provided computed CSS + screenshot evidence (principle #12 — ROI of ceremonial re-run was zero for pure rendering polish).
+
+**Surfaced**: candidate #13 PR [#135](https://github.com/BeibeiZhang/WorkPal/pull/135) review (2026-04-25). The OnboardingSurface step 2 included a Terminal command (`sudo xattr -dr com.apple.quarantine "/Applications/WorkPal Agent.app"`) wrapped in markdown-style backticks. Rendering path was `<p>{step.en}</p>` — **plain text, no markdown parsing** — so users saw **literal backtick characters** around the command instead of a code block. Functionally OK (the command was identifiable + copy-able), but visually rough; the README equivalent renders correctly because GitHub Markdown does parse fenced code.
 
 **Scope** (~30 lines):
 - Lift `STEPS[]` entry shape in [`src/components/OnboardingSurface.tsx`](../src/components/OnboardingSurface.tsx) from `{en: string, zh: string}` to `{en: ReactNode, zh: ReactNode}`, OR pass through a tiny inline-markdown-to-JSX helper that handles two patterns only: `` `code` `` and `**bold**`.

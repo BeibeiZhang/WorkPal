@@ -217,7 +217,7 @@ Phase 5 一路踩下的坑和形成的宗旨，**沉淀在 `docs/principles.md`*
 
 ---
 
-## 当前状态（2026-04-25）
+## 当前状态（2026-04-26）
 
 **Phase 7 完整收官 + v0.1.1 真正 launched**：
 - WorkPal Agent v0.1.1 from `/Applications/WorkPal Agent.app`，launchd 开机自启
@@ -228,7 +228,11 @@ Phase 5 一路踩下的坑和形成的宗旨，**沉淀在 `docs/principles.md`*
   - Demo URL（workpal.vercel.app）：mocked，不调本地
 - Update 路径：boot-check → GitHub `/releases/latest` → 5th Settings card → 用户下 .dmg → 装
 
-**下一步**：根据 `docs/post-phase-6-candidates.md` 优先级开新工作。当前 backlog 14 条 candidate（10 已 shipped，4 在排队）。Phase 7 主线没未完成项；如果新工作不大不需要新 Phase doc，只需 candidate.md 加新行。
+**最近 ship**：
+- **PR [#136](https://github.com/BeibeiZhang/WorkPal/pull/136)** (2026-04-26) — `chore: post-Phase-7 cleanups (#11 + #12 + #14)`，3 条小 candidate 一次打包：animations DELETE 端点删除 / agent-video-status 服务路由换 localStorage / OnboardingSurface 反引号升 `<code>`。5 文件，+41 −239。Clean ship，0 rework。
+- **PR [#137](https://github.com/BeibeiZhang/WorkPal/pull/137)** (2026-04-26) — `Overview: unify expand-panel spacing to 8px`，纯 UI polish fast-lane，未走 candidate 流程。
+
+**下一步**：根据 [`docs/post-phase-6-candidates.md`](./post-phase-6-candidates.md) 优先级开新工作。当前 backlog 14 条 candidate（10 已 shipped，4 在排队 —— #3 Artifact / #4 Bilingual scaffold / #6 CN→EN translate / #13 Option C 签名）。Phase 7 主线没未完成项；如果新工作不大不需要新 Phase doc，只需 candidate.md 加新行。
 
 ---
 
