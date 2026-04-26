@@ -270,6 +270,52 @@ Deliberately parked. Re-evaluate when UI surface stabilizes. Unchanged from 2026
 
 ---
 
+## 11. `candidate` — `animations.ts` DELETE endpoint cleanup (Phase 7.2 surfaced)
+
+[`server/src/routes/animations.ts`](../server/src/routes/animations.ts) DELETE handler removes a repo-checkout file under `public/animations/*.mp4`. Only meaningful when running the dev server from a checked-out repo; on Vercel deploy it's a no-op against the static build's read-only filesystem (already a half-broken endpoint pre-7.2). Phase 7.2 audit decided to leave it on `server/` rather than port to agent (it's repo-management dev-only, not local-fs-on-user's-Mac territory). Three cleanup options:
+
+- **A. Drop the endpoint entirely**. Lose the dev-server convenience of "click delete in admin UI to wipe a video"; that flow is rare. ~10 lines.
+- **B. Convert to a build-time CLI** at `scripts/clean-animation.ts`. Keeps the convenience, removes the broken endpoint. ~30 lines.
+- **C. Port to agent** if Beibei wants the agent to handle repo-admin chores generally. Out of scope for current work; revisit only if agent grows broader scope.
+
+Risk: low. No user-facing surface today (admin tools page only). Pick (A) by default unless we discover dev usage.
+
+---
+
+## 12. `candidate` — `agentVideoStatus.ts` ephemeral storage (Phase 7.2 surfaced)
+
+[`server/src/routes/agentVideoStatus.ts`](../server/src/routes/agentVideoStatus.ts) reads/writes `server/data/agent-video-status.json`. **Already broken on Vercel** (serverless ephemeral fs — every request potentially hits a fresh container with empty `server/data/`). Phase 7.2 audit decided to leave it on `server/` because no one's actively using it (the symptom would be silent state loss; we'd notice via product feedback if it mattered). Two cleanup paths:
+
+- **A. Drop the endpoint + caller**. Find the frontend caller (likely also dev-only admin), wire it to localStorage instead, delete server route. Pure removal of a stale code path.
+- **B. Promote to Supabase** (per-user agent-video-status row). Worth doing only if Beibei wants this state to persist across devices. Higher cost, real product question first.
+
+Risk: low. Track until we know whether B is justified by use, then default to (A).
+
+---
+
+## 13. `candidate` — Sequoia "is damaged" Gatekeeper hits unsigned `.app` from browser download (Phase 7.5 surfaced)
+
+**Symptom** (real, observed 2026-04-25 during 7.5 v0.1.1 install live-test): on macOS Sequoia (and likely Sonoma late updates), double-clicking an unsigned `.app` that was just downloaded via Chrome / Safari shows the **harsher** dialog "*"WorkPal Agent" 已损坏，无法打开。 你应该将它移到废纸篓。*" / "*"WorkPal Agent" is damaged and can't be opened.*" — **NOT** the milder "Unidentified developer" dialog that the existing OnboardingSurface step 2 + agent README "right-click → Open" instructions assume. The right-click → Open trick is **silently ineffective** in this code path; the dialog has no Open button, only Cancel + Move to Trash.
+
+**Root cause**: macOS sets `com.apple.quarantine` xattr on browser-downloaded files. Sequoia's stricter Gatekeeper validates the .app's signature; for an unsigned bundle the validation fails, and Sequoia chose to surface the failure as "damaged" rather than as the legacy "unidentified developer" path. The code-path divergence between Sequoia and earlier macOS for unsigned + quarantined files is the core bug.
+
+**Workaround verified working**:
+```bash
+sudo xattr -dr com.apple.quarantine "/Applications/WorkPal Agent.app"
+```
+
+After clearing the quarantine attribute, double-click opens normally (no further Gatekeeper dialog at all on subsequent runs).
+
+**Three fix options for the next planning round**:
+
+- **A. Documentation-only update** (cheapest). [`src/components/OnboardingSurface.tsx`](../src/components/OnboardingSurface.tsx) step 2 currently reads "Right-click WorkPal Agent → Open (first-launch Gatekeeper bypass)" / "右键 WorkPal Agent → 打开（首次启动绕过 Gatekeeper）". Update to two-tier instruction: "Right-click → Open. **If you see "is damaged"**, run `sudo xattr -dr com.apple.quarantine \"/Applications/WorkPal Agent.app\"` in Terminal first." Same change into [`agent/README.md`](../agent/README.md) installation section. ~10 lines. Doesn't fix the underlying friction — users still need a Terminal command — but at least the path is documented.
+- **B. Pre-clear quarantine via DMG postinstall script** (medium polish). The .dmg can include a `.command` file or postinstall hook that runs `xattr -dr com.apple.quarantine` on the freshly-dropped `.app` automatically. Limits: still requires user to allow the postinstall, and `xattr` writes inside `/Applications` may need sudo on Sequoia. Worth testing whether the drag-to-/Applications path keeps quarantine — if it strips quarantine in the drag step, this option is moot.
+- **C. Apple Developer enrollment + notarize in CI** (full fix). Phase 7 kickoff locked decision was "skip signing for v1". The Sequoia "is damaged" friction is the strongest argument for revisiting. Signed + notarized `.app` skips the entire dialog. Cost: $99/yr Apple Developer enrollment + Apple ID + app-specific password as GitHub Actions secrets + ~5min added to release.yml CI runtime per release. Already flagged in [`docs/phase-7-requirements.md`](./phase-7-requirements.md) "Lessons for post-Phase-7 work" as a v2 follow-up; this live-test confirms it'd be a real UX win, not just polish.
+
+**Risk classification**: medium. Beibei's own install flow is documented (the `xattr` workaround works on her machine); future users hitting `/releases/latest` would experience this same friction without guidance. Pick (A) first as a fast docs unblock; revisit (C) when Beibei wants to enroll in Apple Developer for the long-term fix.
+
+---
+
 ## How to revisit / add candidates
 
 When a candidate ships → remove or mark `shipped`.
