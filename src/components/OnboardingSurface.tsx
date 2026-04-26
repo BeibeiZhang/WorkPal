@@ -13,10 +13,30 @@
 // "WorkPal Agent" is intentionally kept in English on the Chinese line —
 // product-name decision (Q4 of the 7.4 planning round).
 
+import type { ReactNode } from 'react';
 import { Download } from 'lucide-react';
 import { PrimaryButton } from './shared';
 
 const RELEASES_URL = 'https://github.com/BeibeiZhang/WorkPal/releases/latest';
+
+/** Render a step line with `` `code` `` segments wrapped in <code>.
+ *  Inline split-on-backticks keeps the helper tiny (no markdown lib) and
+ *  handles the only two patterns the copy uses today: prose and inline code.
+ *  The same wrapping applies to both EN and 中文 lines. */
+function renderWithCode(text: string): ReactNode[] {
+  return text.split(/(`[^`]+`)/).map((part, i) =>
+    part.startsWith('`') && part.endsWith('`') && part.length >= 2
+      ? (
+        <code
+          key={i}
+          className="font-mono bg-bg-message px-1 py-0.5 rounded"
+        >
+          {part.slice(1, -1)}
+        </code>
+      )
+      : <span key={i}>{part}</span>,
+  );
+}
 
 const STEPS: ReadonlyArray<{ en: string; zh: string }> = [
   {
@@ -83,8 +103,8 @@ export default function OnboardingSurface() {
                 {i + 1}
               </span>
               <div className="flex flex-col gap-1 min-w-0">
-                <p className="type-detail text-text-primary">{step.en}</p>
-                <p className="type-detail text-text-secondary">{step.zh}</p>
+                <p className="type-detail text-text-primary">{renderWithCode(step.en)}</p>
+                <p className="type-detail text-text-secondary">{renderWithCode(step.zh)}</p>
               </div>
             </li>
           ))}

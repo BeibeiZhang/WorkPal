@@ -6,13 +6,12 @@ export type AgentVideoMode = 'light' | 'dark';
 /* Status model
  *   active   — in rotation, can play in WelcomeState
  *   inactive — soft pause: file still on disk, skipped from rotation
- *   deleted  — the .mp4 was physically removed from public/animations/
- *              via DELETE /api/animations/:filename. Hidden from the DS
- *              list AND filtered out of the rotation pool. We persist the
- *              status (rather than just "the file is gone") so that the
- *              AGENTS array — which is hardcoded data — knows to skip the
- *              entry on subsequent loads without 404'ing on the missing
- *              <video src>. */
+ *   deleted  — historical value: kept for back-compat with existing
+ *              localStorage entries written by the now-removed
+ *              DELETE /api/animations/:filename endpoint. No current
+ *              UI surface writes this value; the filter logic stays
+ *              defensive so a leftover 'deleted' entry doesn't resurrect
+ *              into the rotation pool. */
 export type VideoStatus = 'active' | 'inactive' | 'deleted';
 
 export type AgentVideo = {
@@ -64,7 +63,6 @@ export const AGENTS: Agent[] = [
 
 const STORAGE_KEY    = 'workpal-agent-video-status';
 const CHANGE_EVENT   = 'workpal-agent-video-status-change';
-const API_PATH       = '/api/agent-video-status';
 type StatusMap       = Record<string, VideoStatus>;
 
 /** Map legacy status values written by an earlier 3-state UI ('paused' was
@@ -85,10 +83,13 @@ function normalizeMap(input: Record<string, unknown>): StatusMap {
   return out;
 }
 
-/* The server is the source of truth, but we keep a localStorage mirror so the
- * UI can render instantly on mount (before the fetch resolves) and so toggles
- * still work offline. The server file lives at server/data/agent-video-status.json
- * and is shared across every browser/device that hits the same backend. */
+/* localStorage is the source of truth — per-browser, with a `storage` event
+ * to keep tabs in the same browser in sync. The previous server-backed route
+ * was removed in post-Phase-7 cleanup (candidate #12); the toggle UI is admin-
+ * only (DesignSystemPage), so per-browser is fine in practice.
+ *
+ * If cross-device sync is ever needed, promote to Supabase following the
+ * `chatStore` / `projectStore` pattern (see api/_lib/chat-store.ts). */
 function loadCachedMap(): StatusMap {
   if (typeof window === 'undefined') return {};
   try {
@@ -109,68 +110,26 @@ function cacheMap(map: StatusMap) {
   }
 }
 
-async function fetchServerMap(): Promise<StatusMap | null> {
-  try {
-    const res = await fetch(API_PATH);
-    if (!res.ok) return null;
-    const body = await res.json() as { map?: Record<string, unknown> };
-    if (!body?.map || typeof body.map !== 'object') return null;
-    return normalizeMap(body.map);
-  } catch {
-    return null;
-  }
-}
-
-async function patchServerStatus(src: string, status: VideoStatus): Promise<StatusMap | null> {
-  try {
-    const res = await fetch(API_PATH, {
-      method:  'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body:    JSON.stringify({ src, status }),
-    });
-    if (!res.ok) return null;
-    const body = await res.json() as { map?: Record<string, unknown> };
-    if (!body?.map) return null;
-    return normalizeMap(body.map);
-  } catch {
-    return null;
-  }
-}
-
 /** Hook returns current status map plus imperative setters. Every component
  *  that calls it re-renders on change, regardless of which component triggered
  *  it, so DesignSystemPage and ChatPanel stay in sync in the same tab.
  *
- *  Cross-browser sync happens via the server: every read pulls the latest
- *  from /api/agent-video-status, and we re-fetch on window focus so flipping
- *  a toggle in Chrome shows up in Safari the next time you alt-tab back. */
+ *  Cross-tab sync uses the native `storage` event (fires on other tabs of the
+ *  same origin). Cross-browser / cross-device sync is intentionally not
+ *  supported — see top-of-file note. */
 export function useAgentVideoStatus() {
   const [map, setMap] = useState<StatusMap>(() => loadCachedMap());
 
   useEffect(() => {
-    let cancelled = false;
-    const refresh = async () => {
-      const fresh = await fetchServerMap();
-      if (!cancelled && fresh) {
-        cacheMap(fresh);
-        setMap(fresh);
-      }
-    };
-    void refresh();
-
     const reload    = () => setMap(loadCachedMap());
-    const onFocus   = () => { void refresh(); };
     const onStorage = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY) reload();
     };
     window.addEventListener(CHANGE_EVENT, reload);
     window.addEventListener('storage', onStorage);
-    window.addEventListener('focus', onFocus);
     return () => {
-      cancelled = true;
       window.removeEventListener(CHANGE_EVENT, reload);
       window.removeEventListener('storage', onStorage);
-      window.removeEventListener('focus', onFocus);
     };
   }, []);
 
@@ -180,23 +139,10 @@ export function useAgentVideoStatus() {
   );
 
   const setStatus = useCallback((src: string, status: VideoStatus) => {
-    // Optimistic local update so the UI reacts immediately even when the
-    // server is slow or unreachable. Cache + state both flip first.
-    const optimistic: StatusMap = { ...loadCachedMap(), [src]: status };
-    cacheMap(optimistic);
-    setMap(optimistic);
+    const next: StatusMap = { ...loadCachedMap(), [src]: status };
+    cacheMap(next);
+    setMap(next);
     window.dispatchEvent(new Event(CHANGE_EVENT));
-
-    // Then push to the server. On success we adopt the authoritative map —
-    // it may include entries from other browsers we hadn't seen locally.
-    void (async () => {
-      const fresh = await patchServerStatus(src, status);
-      if (fresh) {
-        cacheMap(fresh);
-        setMap(fresh);
-        window.dispatchEvent(new Event(CHANGE_EVENT));
-      }
-    })();
   }, []);
 
   return { getStatus, setStatus };
