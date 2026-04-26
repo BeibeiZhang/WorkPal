@@ -4,9 +4,10 @@ import { Chat, Message, ActionChip, Attachment, ImageResult, VideoResult, WebRes
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import VoiceMode from './VoiceMode';
-import { HeaderBar, HeaderIconButton, UtilityChip } from './shared';
+import { AgentRequiredHint, HeaderBar, HeaderIconButton, UtilityChip } from './shared';
 import { AGENTS, useAgentVideoStatus } from '../agentVideos';
 import { useAuth } from '../lib/useAuth';
+import { useIsMobile } from '../lib/useIsMobile';
 
 /** Chip showing the session's folder path.
  *  - Click → reveal the folder in Finder (POSTs to /api/claude-chat/open-folder
@@ -18,6 +19,8 @@ import { useAuth } from '../lib/useAuth';
  *  static preview without wiring a real handler. */
 function FolderChip({ path, onOpen }: { path: string; onOpen?: (path: string) => void | Promise<unknown> }) {
   const [copied, setCopied] = useState(false);
+  const [showHint, setShowHint] = useState(false);
+  const isMobile = useIsMobile();
   const handleClick = async (e: MouseEvent) => {
     if (e.shiftKey) {
       try {
@@ -29,6 +32,15 @@ function FolderChip({ path, onOpen }: { path: string; onOpen?: (path: string) =>
       }
       return;
     }
+    // Candidate #15 — on mobile, "Open in Finder" is meaningless (the agent
+    // and the Mac filesystem aren't reachable from the phone). Surface the
+    // bilingual hint inline instead of dispatching a fetch that would fail.
+    // 5s auto-dismiss matches the TaskContextPanel undo-error pattern.
+    if (isMobile) {
+      setShowHint(true);
+      window.setTimeout(() => setShowHint(false), 5000);
+      return;
+    }
     if (onOpen) {
       try {
         await onOpen(path);
@@ -38,17 +50,22 @@ function FolderChip({ path, onOpen }: { path: string; onOpen?: (path: string) =>
     }
   };
   return (
-    <UtilityChip
-      onClick={handleClick}
-      ariaLabel={copied ? 'Folder path copied' : `Open folder in Finder: ${path}. Shift-click to copy path.`}
-      title={`${path} — click to open in Finder, shift+click to copy`}
-      maxWidth={320}
-      icon={copied
-        ? <Check size={14} className="shrink-0 text-[#028901]" />
-        : <FolderClosed size={14} className="shrink-0" />}
-    >
-      {path}
-    </UtilityChip>
+    <div className="flex flex-col items-start gap-1.5 min-w-0">
+      <div className={isMobile ? 'opacity-50 cursor-not-allowed' : ''}>
+        <UtilityChip
+          onClick={handleClick}
+          ariaLabel={copied ? 'Folder path copied' : `Open folder in Finder: ${path}. Shift-click to copy path.`}
+          title={`${path} — click to open in Finder, shift+click to copy`}
+          maxWidth={320}
+          icon={copied
+            ? <Check size={14} className="shrink-0 text-[#028901]" />
+            : <FolderClosed size={14} className="shrink-0" />}
+        >
+          {path}
+        </UtilityChip>
+      </div>
+      {showHint && <AgentRequiredHint variant="tip" />}
+    </div>
   );
 }
 

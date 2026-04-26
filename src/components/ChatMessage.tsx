@@ -2,7 +2,8 @@ import { useState, useCallback } from 'react';
 import { FileText, Download, Play } from 'lucide-react';
 import { Message, Attachment, ImageResult, VideoResult, WebResult, CardData, ArtifactRef } from '../types';
 import MessageCard from './MessageCard';
-import { ArtifactCard } from './shared';
+import { AgentRequiredHint, ArtifactCard } from './shared';
+import { useIsMobile } from '../lib/useIsMobile';
 import { renderMarkdownBlocks } from '../lib/markdown';
 import { iconCopy, iconShare, iconThumbsUp, iconRefresh } from '../assets';
 
@@ -376,6 +377,41 @@ function TypingIndicator() {
   );
 }
 
+/** Candidate #15 — wraps an ArtifactCard with the mobile guard. Hosted
+ *  artifacts (`href` set) are cloud-served and skip the guard entirely
+ *  (no agent involved). Path-only artifacts (the Claude-Code Write/Edit
+ *  case) get a visually-disabled card on mobile; clicking shows a tip
+ *  instead of dispatching to the unreachable agent. 5s auto-dismiss
+ *  matches the FolderChip / undo-error pattern. */
+function GuardedArtifactCard({
+  artifact,
+  onArtifactClick,
+}: {
+  artifact: ArtifactRef;
+  onArtifactClick?: (artifact: ArtifactRef) => void;
+}) {
+  const isMobile = useIsMobile();
+  const [showHint, setShowHint] = useState(false);
+  const isAgentBound = !artifact.href;
+  if (isMobile && isAgentBound) {
+    return (
+      <div className="flex flex-col items-start gap-1.5">
+        <div className="opacity-50 cursor-not-allowed">
+          <ArtifactCard
+            artifact={artifact}
+            onClick={() => {
+              setShowHint(true);
+              window.setTimeout(() => setShowHint(false), 5000);
+            }}
+          />
+        </div>
+        {showHint && <AgentRequiredHint variant="tip" />}
+      </div>
+    );
+  }
+  return <ArtifactCard artifact={artifact} onClick={onArtifactClick} />;
+}
+
 export default function ChatMessage({ message, isLastAssistant, onCardAction, onArtifactClick }: ChatMessageProps) {
   if (message.role === 'user') {
     const hasAttachments = !!message.attachments && message.attachments.length > 0;
@@ -388,6 +424,18 @@ export default function ChatMessage({ message, isLastAssistant, onCardAction, on
             <p className="type-h2 text-text-primary">{message.content}</p>
           </div>
         )}
+      </div>
+    );
+  }
+
+  if (message.agentRequiredHint) {
+    // Candidate #15 — assistant-side hint card. handleSend pushes this in
+    // place of dispatching to OpenAI when intent routing detects a code/file
+    // request on a mobile viewport. Skips bubble chrome / feedback bar /
+    // artifact rendering since the hint is the entire message.
+    return (
+      <div className="mb-4 message-appear">
+        <AgentRequiredHint variant="card" />
       </div>
     );
   }
@@ -435,10 +483,10 @@ export default function ChatMessage({ message, isLastAssistant, onCardAction, on
             if (!primary) return null;
             return (
               <div className="mt-2 mb-1 flex flex-col gap-2">
-                <ArtifactCard
+                <GuardedArtifactCard
                   key={`${primary.path ?? primary.href ?? primary.name}`}
                   artifact={primary}
-                  onClick={onArtifactClick}
+                  onArtifactClick={onArtifactClick}
                 />
               </div>
             );

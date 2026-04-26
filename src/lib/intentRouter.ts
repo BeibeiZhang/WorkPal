@@ -14,15 +14,31 @@ const CLAUDE_CODE_KEYWORDS = [
   '删除', '重构', '生成', '保存', '代码', '文件',
 ];
 
-export function shouldUseClaudeCode(text: string): boolean {
-  // The Phase 7.3+ local agent owns Claude Code execution. If the probe
-  // hasn't settled to reachable, route code/file intents through the OpenAI
-  // chat path so the user gets *something* instead of a hung POST against
-  // a non-existent localhost listener. The unreachable case also surfaces
-  // the install onboarding card at the App level.
-  if (!isAgentCurrentlyReachable()) return false;
+function matchesClaudeCodeKeyword(text: string): boolean {
   const lower = text.toLowerCase();
   return CLAUDE_CODE_KEYWORDS.some(kw => lower.includes(kw.toLowerCase()));
+}
+
+/** Candidate #15 — mobile-aware 3-state intent. Caller passes `isMobile`
+ *  rather than this module sniffing it, so the source of truth stays in the
+ *  shared `useIsMobile` hook (matchMedia, not userAgent). Decision tree:
+ *    - demo URL                               → 'fallback-cloud' (mocked)
+ *    - no code-keyword match                  → 'fallback-cloud'
+ *    - keyword match + agent reachable        → 'use-claude'
+ *    - keyword match + unreachable + mobile   → 'mac-only-on-mobile'
+ *      (mobile users get an inline AgentRequiredHint instead of a silent
+ *       OpenAI fallback that would pretend to do file work)
+ *    - keyword match + unreachable + Mac      → 'fallback-cloud'
+ *      (Mac with agent restarting / probe-in-flight — keep today's quiet
+ *       degrade since the OnboardingSurface still covers truly-uninstalled) */
+export type AgentRouteIntent = 'use-claude' | 'fallback-cloud' | 'mac-only-on-mobile';
+
+export function getAgentRouteIntent(text: string, isMobile: boolean): AgentRouteIntent {
+  if (IS_DEMO) return 'fallback-cloud';
+  if (!matchesClaudeCodeKeyword(text)) return 'fallback-cloud';
+  if (isAgentCurrentlyReachable()) return 'use-claude';
+  if (isMobile) return 'mac-only-on-mobile';
+  return 'fallback-cloud';
 }
 
 // Candidate #3 — artifact intent routing. Requires BOTH an artifact noun AND

@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
+import { useIsMobile, MOBILE_BREAKPOINT } from './lib/useIsMobile';
 import { useLocation, useNavigate, useMatch } from 'react-router-dom';
 import Sidebar, { MiniSidebar } from './components/Sidebar';
 import type { Project } from './components/Sidebar';
@@ -24,7 +25,7 @@ import { DEMO_CHANGES_ALCOHOL } from './data/demo/changes';
 import { IS_DEMO } from './lib/demoMode';
 import { useAgentState, initAgentProbe } from './lib/agent';
 import { postClaudePermissionDecision, postInitProject, postOpenFile, postOpenFolder, postReadFile, postReaperRun, postSessionComplete, postSessionMerge, postUndoChange, streamChat, streamClaudeChat } from './lib/api';
-import { shouldUseClaudeCode, shouldGenerateArtifact } from './lib/intentRouter';
+import { getAgentRouteIntent, shouldGenerateArtifact } from './lib/intentRouter';
 import { buildAttachmentContextBlock, buildImageDescriptionBlock } from './lib/attachments';
 import { artifactFromClaudePath, outputTypeFromPath, generateArtifactRequest, artifactItemCount } from './lib/artifacts';
 import {
@@ -472,7 +473,9 @@ function nestFolderUnderProject(sessionFolder: string | undefined, projectName: 
 //       Below 484: even the mini rail can't sit beside the center column.
 //       → Mini rail hides; toggling the sidebar opens it as an overlay.
 //       → Right panel can only ever appear as an overlay.
-const MOBILE_BREAKPOINT = 484;          // below: no inline nav rail; sidebar overlays when toggled
+// MOBILE_BREAKPOINT lives in src/lib/useIsMobile.ts so non-React modules
+// (intentRouter, fetchAgent wrapper) can share the threshold without a
+// circular import on App. Re-imported above.
 const COMPACT_NAV_BREAKPOINT = 700;     // below: force MiniSidebar rail (full sidebar overlays)
 const THREE_MODULE_FIT = 960;           // below: right panel auto-closes on resize (overlays if reopened)
 const SIDEBAR_WIDTH = 280;              // full sidebar minimum width (used for fit calc)
@@ -480,7 +483,6 @@ const MINI_SIDEBAR_WIDTH = 64;
 const CONTEXT_PANEL_MIN = 260;
 const MAIN_CONTENT_MIN = 420;
 const subscribe = (cb: () => void) => { window.addEventListener('resize', cb); return () => window.removeEventListener('resize', cb); };
-const getIsMobile = () => window.innerWidth < MOBILE_BREAKPOINT;
 const getIsCompactNav = () => window.innerWidth < COMPACT_NAV_BREAKPOINT;
 const getCanFitAllThree = () => window.innerWidth >= THREE_MODULE_FIT;
 /** Point-in-time check used on send to decide between opening the panel
@@ -596,7 +598,7 @@ export default function App() {
   const [memories, setMemories] = useState<MemoryEntry[]>(loadMemoriesCache);
   const { ensurePassword, passwordModal } = useMemoryAuth();
   const { signOut } = useAuth();
-  const isMobile = useSyncExternalStore(subscribe, getIsMobile);
+  const isMobile = useIsMobile();
   const isCompactNav = useSyncExternalStore(subscribe, getIsCompactNav);
   const canFitAllThree = useSyncExternalStore(subscribe, getCanFitAllThree);
   // Phase 7.4: live agent reachability. 'unknown' on first paint while the
@@ -2294,15 +2296,37 @@ export default function App() {
       // before the Claude Code path because "写...周刊" contains "写" which
       // would otherwise route to the SDK.
       streamArtifactFromAPI(chatId, text);
-    } else if (!attachments?.length && shouldUseClaudeCode(text)) {
-      // 5.4b keyword router — code/file intents go to Claude Agent SDK. Skip
-      // when attachments are present since the Claude path doesn't wire them
-      // yet; OpenAI still handles those.
-      streamFromClaudeAPI(chatId, text, sessionFolderForSend);
+    } else if (!attachments?.length) {
+      // 5.4b keyword router → candidate #15 mobile-aware 3-state intent.
+      // Attachments still bypass to OpenAI since the Claude path doesn't
+      // wire them yet.
+      const intent = getAgentRouteIntent(text, isMobile);
+      if (intent === 'use-claude') {
+        streamFromClaudeAPI(chatId, text, sessionFolderForSend);
+      } else if (intent === 'mac-only-on-mobile') {
+        // Mobile + code/file intent + agent unreachable: render an inline
+        // assistant message that surfaces an AgentRequiredHint card instead
+        // of silently dispatching to OpenAI (which would pretend to do
+        // file work it can't actually perform from a phone).
+        const hintMessage: Message = {
+          id: nextId(),
+          role: 'assistant',
+          content: '',
+          timestamp: new Date(),
+          agentRequiredHint: true,
+        };
+        setChats(prev => prev.map(c =>
+          c.id === chatId
+            ? { ...c, messages: [...c.messages, hintMessage] }
+            : c
+        ));
+      } else {
+        streamFromAPI(chatId, text, attachments);
+      }
     } else {
       streamFromAPI(chatId, text, attachments);
     }
-  }, [activeChatId, activeChat, showTypingThenRespond, streamFromAPI, streamFromClaudeAPI, streamArtifactFromAPI, runAlcoholDeliveryFlow, voiceModeActive, navigate, chatMatch]);
+  }, [activeChatId, activeChat, showTypingThenRespond, streamFromAPI, streamFromClaudeAPI, streamArtifactFromAPI, runAlcoholDeliveryFlow, voiceModeActive, navigate, chatMatch, isMobile]);
 
   const handleChipClick = useCallback((chip: ActionChip) => {
     // Treat chip click as a user message
@@ -3159,7 +3183,7 @@ export default function App() {
             sidebarOpen={sidebarOpen || !isMobile}
             onToggleSidebar={() => setSidebarOpen(o => !o)}
           />
-        ) : !IS_DEMO && agentState === 'unreachable' ? (
+        ) : !IS_DEMO && !isMobile && agentState === 'unreachable' ? (
           // Phase 7.4: agent isn't there. Sidebar + cloud-only views (memory,
           // connectors, etc.) keep working from the surrounding tree; only the
           // chat surface — the one that actually depends on the agent — flips
@@ -3167,6 +3191,11 @@ export default function App() {
           // window.focus and on any agent-route fetch failure, so once the
           // user installs and starts the agent, this swap reverses without
           // a refresh.
+          // Candidate #15: mobile is excluded — the .dmg can't be installed
+          // on a phone, so showing this card would block chat for no reason.
+          // Mobile users fall through to normal ChatPanel; cloud chat works,
+          // and code/file intents render an inline AgentRequiredHint via the
+          // intent-router branch in handleSend.
           <OnboardingSurface />
         ) : (() => {
           // Exactly one side panel is active at a time. Artifact preview and

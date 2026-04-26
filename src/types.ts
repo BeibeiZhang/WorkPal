@@ -195,6 +195,11 @@ export interface Message {
    *  Write/Edit tool_use; #3 will also push hosted artifacts). Rendered as
    *  clickable ArtifactCards under the text. */
   artifacts?: ArtifactRef[];
+  /** Candidate #15 — when true, ChatMessage renders an `AgentRequiredHint`
+   *  card in place of the bubble body. Set by handleSend when intent routing
+   *  detects a code/file request on a mobile viewport so the user sees an
+   *  honest "needs Mac" notice instead of a silent OpenAI fallback. */
+  agentRequiredHint?: boolean;
 }
 
 export interface Chat {

@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { File, MessageCircle, FilePlus2, FilePen, FileMinus2, GitMerge, Undo2, ShieldOff, CheckCircle2 } from 'lucide-react';
-import { SideCard, SidePanelHeader, TertiaryButton } from './shared';
+import { AgentRequiredHint, SideCard, SidePanelHeader, TertiaryButton } from './shared';
 import type { ChangeEntry, ChangeKind } from '../types';
 import { IS_DEMO } from '../lib/demoMode';
 import { useAgentState } from '../lib/agent';
+import { useIsMobile } from '../lib/useIsMobile';
 
 /* ── Types ───────────────────────────────────────────── */
 
@@ -74,6 +76,78 @@ function relativeTime(from: Date): string {
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h ago`;
   return `${Math.floor(h / 24)}d ago`;
+}
+
+/** Single Change row in the Changes side-card. Extracted so the hover-only
+ *  Undo button can hold per-row state for the candidate-#15 mobile tip
+ *  without leaking it to siblings. On mobile the Undo button is shown in
+ *  an opacity-50 disabled state instead of the desktop hover-revealed
+ *  affordance, since hover doesn't fire and the user still benefits from
+ *  seeing that the action exists (and learning it needs Mac via the tip). */
+function ChangeRow({
+  change,
+  Icon,
+  showUndo,
+  onUndo,
+}: {
+  change: ChangeEntry;
+  Icon: typeof File;
+  showUndo: boolean;
+  onUndo: () => void;
+}) {
+  const isMobile = useIsMobile();
+  const [showHint, setShowHint] = useState(false);
+  const handleClick = () => {
+    if (isMobile) {
+      setShowHint(true);
+      window.setTimeout(() => setShowHint(false), 5000);
+      return;
+    }
+    onUndo();
+  };
+  return (
+    <div className="flex flex-col">
+      <div
+        className={`group flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-bg-hover transition-colors ${change.undone ? 'opacity-50' : ''}`}
+      >
+        <Icon size={16} className="shrink-0 text-text-primary" />
+        <div className="flex-1 min-w-0">
+          <div className={`type-h2 text-text-primary truncate ${change.undone ? 'line-through' : ''}`}>
+            {change.label}
+          </div>
+          <div className="type-caption text-text-secondary">
+            {relativeTime(change.timestamp)}
+            {change.undone && ' · Undone'}
+          </div>
+        </div>
+        {showUndo && (
+          <button
+            type="button"
+            onClick={handleClick}
+            aria-label={`Undo ${change.label}`}
+            className={`shrink-0 w-7 h-7 flex items-center justify-center rounded-full hover:bg-bg-page transition-opacity text-text-primary ${
+              isMobile
+                ? 'opacity-50 cursor-not-allowed'
+                : 'opacity-0 group-hover:opacity-100 focus:opacity-100'
+            }`}
+            title="Undo"
+          >
+            <Undo2 size={14} />
+          </button>
+        )}
+      </div>
+      {change.undoError && (
+        <div className="px-3 pb-1 type-caption" style={{ color: '#B42318' }}>
+          Undo failed: {change.undoError}
+        </div>
+      )}
+      {showHint && (
+        <div className="px-3 pb-1">
+          <AgentRequiredHint variant="tip" />
+        </div>
+      )}
+    </div>
+  );
 }
 
 /* ── Defaults (demo only) ─────────────────────────────── */
@@ -198,38 +272,13 @@ export default function TaskContextPanel({
                 const showUndo = !!onUndoChange && !change.undone && change.kind !== 'halt'
                   && (anyCommitted ? idx === undoableIdx : true);
                 return (
-                  <div key={change.id} className="flex flex-col">
-                    <div
-                      className={`group flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-bg-hover transition-colors ${change.undone ? 'opacity-50' : ''}`}
-                    >
-                      <Icon size={16} className="shrink-0 text-text-primary" />
-                      <div className="flex-1 min-w-0">
-                        <div className={`type-h2 text-text-primary truncate ${change.undone ? 'line-through' : ''}`}>
-                          {change.label}
-                        </div>
-                        <div className="type-caption text-text-secondary">
-                          {relativeTime(change.timestamp)}
-                          {change.undone && ' · Undone'}
-                        </div>
-                      </div>
-                      {showUndo && (
-                        <button
-                          type="button"
-                          onClick={() => onUndoChange!(change.id)}
-                          aria-label={`Undo ${change.label}`}
-                          className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-bg-page transition-opacity text-text-primary"
-                          title="Undo"
-                        >
-                          <Undo2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                    {change.undoError && (
-                      <div className="px-3 pb-1 type-caption" style={{ color: '#B42318' }}>
-                        Undo failed: {change.undoError}
-                      </div>
-                    )}
-                  </div>
+                  <ChangeRow
+                    key={change.id}
+                    change={change}
+                    Icon={Icon}
+                    showUndo={showUndo}
+                    onUndo={() => onUndoChange!(change.id)}
+                  />
                 );
               })}
             </div>
