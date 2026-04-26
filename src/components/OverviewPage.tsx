@@ -623,7 +623,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                 headline number isn't knocked off center. */}
             <button
               onClick={() => setSpendDetailsOpen(!spendDetailsOpen)}
-              className="relative w-full rounded-2xl p-6 pb-[10px] bg-input-bg mb-3 transition-colors"
+              className="relative w-full rounded-2xl p-6 pb-[10px] bg-input-bg transition-colors"
             >
               <MetricCard
                 title={spendRange === 1 ? 'Past 24 hours' : `Past ${spendRange} days`}
@@ -642,7 +642,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
             </button>
 
             {spendDetailsOpen && (
-              <div className="bg-bg-page rounded-2xl p-5 mt-[4px] mb-3 dark:bg-[rgba(226,243,255,0.05)]">
+              <div className="bg-bg-page rounded-2xl p-5 mt-2 mb-3 dark:bg-[rgba(226,243,255,0.05)]">
                 {/* By provider */}
                 {spend && spend.total_cost_usd > 0 && spend.by_provider.some(p => p.cost_usd > 0) && (
                   <>
@@ -732,7 +732,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
               </button>
 
               {healthExpanded && (
-                <div className="bg-bg-page rounded-2xl p-5 mt-[4px] dark:bg-[rgba(226,243,255,0.05)]">
+                <div className="bg-bg-page rounded-2xl p-5 mt-2 dark:bg-[rgba(226,243,255,0.05)]">
                   <div className="type-detail text-text-primary mb-3">
                     Your usage vs plan quotas (normalized to /month)
                   </div>
