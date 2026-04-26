@@ -17,7 +17,15 @@ Menu-bar companion app for [WorkPal](https://workpal-beibei.vercel.app). Provide
 
 1. Download `WorkPal Agent-<version>.dmg` from GitHub Releases.
 2. Open the DMG, drag **WorkPal Agent** to `/Applications`.
-3. First launch: **right-click the app → Open** (required to bypass Gatekeeper for unsigned apps). After that, normal double-click works. If you just double-click the first time, macOS will block it; the right-click → Open path is the only option for v0.1 until we sign in a later phase.
+3. **First launch — Gatekeeper bypass.** Right-click **WorkPal Agent** → **Open**. After that, normal double-click works.
+
+   If macOS shows **"WorkPal Agent" is damaged and can't be opened** instead, that's a known Sequoia / Sonoma+ behaviour for unsigned `.app` bundles downloaded via a browser — the bundle isn't actually damaged; Gatekeeper surfaces the unsigned-signature failure through the harsher dialog rather than the legacy "Unidentified developer" prompt. Run this once in Terminal to strip the quarantine attribute, then right-click → Open again:
+
+   ```bash
+   sudo xattr -dr com.apple.quarantine "/Applications/WorkPal Agent.app"
+   ```
+
+   首次启动：右键 **WorkPal Agent** → **打开**。如果看到 **"WorkPal Agent" 已损坏，无法打开**，这是 Sequoia / Sonoma+ 对未签名 + 浏览器下载 `.app` 的已知行为（app 没真坏，Gatekeeper 把未签名校验失败显示成了"已损坏"对话框，跳过了旧版的"无法验证开发者"路径）。先在 Terminal 跑上面那条 `xattr` 命令清除 quarantine 属性，再右键 → 打开即可。
 4. The agent appears as a small chat-bubble icon in the menu bar. Click it to open Settings and paste your `ANTHROPIC_API_KEY`.
 
 The app will register itself to auto-start at next login. Toggle **Auto-start at login** off in Settings to disable.

@@ -24,8 +24,8 @@ const STEPS: ReadonlyArray<{ en: string; zh: string }> = [
     zh: '打开 .dmg，把 WorkPal Agent 拖进 Applications。',
   },
   {
-    en: 'Right-click WorkPal Agent → Open (first-launch Gatekeeper bypass).',
-    zh: '右键 WorkPal Agent → 打开（首次启动绕过 Gatekeeper）。',
+    en: 'Right-click WorkPal Agent → Open. If you see "is damaged", first run `sudo xattr -dr com.apple.quarantine "/Applications/WorkPal Agent.app"` in Terminal.',
+    zh: '右键 WorkPal Agent → 打开。如果看到"已损坏"，请先在 Terminal 跑 `sudo xattr -dr com.apple.quarantine "/Applications/WorkPal Agent.app"`。',
   },
   {
     en: "Click the menu-bar icon → enter your Anthropic API key → install the local CA when prompted.",
