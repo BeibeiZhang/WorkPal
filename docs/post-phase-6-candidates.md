@@ -342,6 +342,58 @@ After clearing the quarantine attribute, double-click opens normally (no further
 
 ---
 
+## 15. `decided-next` — Mobile graceful degrade for agent features
+
+**Surfaced**: 2026-04-26 conversation. iPhone visiting `workpal-beibei.vercel.app` triggers `agentState='unreachable'` (127.0.0.1 on iPhone is the phone itself, not Beibei's Mac), which currently slams the entire chat panel with `OnboardingSurface` carrying a `.dmg` download CTA — a **wrong indicator** for a phone where the .dmg can't be installed. Audit below maps every agent touchpoint and proposes a unified strategy: mobile = "chat + browse" mode; agent UI becomes an inline `AgentRequiredHint` instead of a hard wall.
+
+**Audit — already graceful (no change needed)**:
+- `shouldUseClaudeCode` falls back to OpenAI when `!isAgentCurrentlyReachable()` ([`src/lib/intentRouter.ts:23`](../src/lib/intentRouter.ts#L23))
+- `postInitProject` effect early-returns when agent unreachable ([`src/App.tsx:1215`](../src/App.tsx#L1215))
+- `postReaperRun` effect early-returns when agent unreachable ([`src/App.tsx:1243`](../src/App.tsx#L1243))
+- `Complete Session` button hidden unless `agentState === 'reachable' || IS_DEMO` ([`src/components/TaskContextPanel.tsx:390`](../src/components/TaskContextPanel.tsx#L390))
+- Demo URL: untouched, fully mocked
+
+**Audit — needs change**:
+- **[`src/App.tsx:3162`](../src/App.tsx#L3162)** — `!IS_DEMO && agentState === 'unreachable'` mounts OnboardingSurface, slamming the chat region. **On mobile this kills chat entirely** (OpenAI fallback never gets a chance to render).
+- **[`src/lib/intentRouter.ts`](../src/lib/intentRouter.ts)** — silent OpenAI fallback for `shouldUseClaudeCode` is fine on Mac (probe in flight / agent restarting), but on mobile a user typing "改一下 src/App.tsx" gets a text-only OpenAI reply that pretends to do work. Mobile arm should not fall back; render `AgentRequiredHint` inline so the user knows the request needs a Mac.
+- **[`src/lib/api.ts:424`](../src/lib/api.ts#L424) / [`:442`](../src/lib/api.ts#L442) (`openFolder`, `openFile`)** — UI button click → fetchAgent → fails. Mobile users see an opaque error toast. Should disable button + show `AgentRequiredHint` on click.
+- **[`src/lib/api.ts:184`](../src/lib/api.ts#L184) (`undoLastFileChange`)** — depends on `streamClaudeChat` having run; with the chat fix above, this path is virtually unreachable on mobile. Defense-in-depth catch in the fetchAgent wrapper anyway.
+- **[`src/lib/api.ts:459`](../src/lib/api.ts#L459) (`readFile`)** — internal dep, no independent UI touchpoint. Same defense-in-depth.
+
+**Strategy (locked)**:
+
+1. **New shared component `AgentRequiredHint`** (~30 lines) in [`src/components/shared.tsx`](../src/components/shared.tsx) per the design-system-shared-first rule:
+   - Bilingual one-card + inline-tip variants
+   - Copy: "此功能需要在 Mac 上运行 WorkPal Agent。请用电脑打开 workpal-beibei.vercel.app 使用。 / This needs WorkPal Agent on your Mac. Open the page on your computer to use it."
+   - Visual: `panel-border` + `bg-bg-message` tokens; lucide `Smartphone`/`Monitor` icon. "WorkPal Agent" untranslated (Q4 of 7.4).
+
+2. **[`src/App.tsx:3162`](../src/App.tsx#L3162)** — OnboardingSurface mount condition gains `&& !isMobile`. Mobile + agent unreachable → chat panel renders normally (cloud chat works). Mac + agent unreachable → OnboardingSurface still shows (Mac can install).
+
+3. **[`src/lib/intentRouter.ts`](../src/lib/intentRouter.ts)** — extend the routing signal so the mobile-unreachable case is distinguishable from Mac-probe-in-flight. Either: `shouldUseClaudeCode` returns a 3-state union (`'use'` / `'fallback-cloud'` / `'mac-only-on-mobile'`), or a sibling `getAgentRouteIntent()`. handleSend in App.tsx watches for the mobile-only signal and posts an inline assistant message rendering `AgentRequiredHint` content (instead of dispatching to OpenAI which would silently pretend).
+
+4. **`openFolder` / `openFile` callsites** — grep to find UI buttons (likely [`MessageCard`](../src/components/MessageCard.tsx) / changes panel). Add a mobile-aware disabled state + `AgentRequiredHint` tooltip-on-click. Don't remove the buttons; users may scroll the same message on Mac later and the affordance still belongs there.
+
+5. **`fetchAgent` wrapper defense** — at the wrapper boundary in [`src/lib/agent.ts`](../src/lib/agent.ts): if `isMobile`, throw `AgentRequiredOnMobileError` before calling `fetch`. Callers catch and surface `AgentRequiredHint`. This is a belt-and-suspenders guard — every UI path above should also gate, but if someone misses one the wrapper catches it.
+
+**Out of scope**:
+- Remote-control-from-phone (Tailscale / Cloudflare Tunnel / relay server) — Phase 8 territory, not a candidate fast-lane
+- Voice chat / voice search — those are cloud (OpenAI) routes already, no agent touch
+- Memory / chats / projects-list / connectors / dashboard — all cloud, untouched
+
+**Mobile detection**: reuse the existing `isMobile` from [`src/App.tsx:599`](../src/App.tsx#L599) (`useSyncExternalStore` + `matchMedia`). Either thread via prop or export a `useIsMobile` hook. **Do not sniff `userAgent`** — the matchMedia path already in use is correct + keeps SSR-friendly.
+
+**Risk**: low. No backend changes. Pure frontend graceful-degrade. Demo URL untouched. Mac UX untouched (only mobile branches added).
+
+**Effort**: ~2-3 hours.
+
+**Test plan** (planning will live-test):
+- Mac Chrome with agent reachable: behavior identical to today
+- Mac Chrome with agent stopped: OnboardingSurface still shows (the install-on-Mac flow)
+- iPhone Safari (or Chrome devtools mobile emulation @ 375px width): chat panel renders normally; typing "帮我改 src/App.tsx" produces inline `AgentRequiredHint` instead of an OpenAI fallback; "Open in Finder"-style buttons disabled with tooltip; chat history / memory / projects / connectors views unaffected
+- Demo URL on mobile: untouched (DemoBadge + chat work as before)
+
+---
+
 ## How to revisit / add candidates
 
 When a candidate ships → remove or mark `shipped`.
