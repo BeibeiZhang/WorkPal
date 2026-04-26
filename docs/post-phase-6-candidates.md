@@ -314,6 +314,24 @@ After clearing the quarantine attribute, double-click opens normally (no further
 
 **Risk classification**: medium. Beibei's own install flow is documented (the `xattr` workaround works on her machine); future users hitting `/releases/latest` would experience this same friction without guidance. Pick (A) first as a fast docs unblock; revisit (C) when Beibei wants to enroll in Apple Developer for the long-term fix.
 
+**Status update 2026-04-25**: Option A shipped via PR [#135](https://github.com/BeibeiZhang/WorkPal/pull/135) (`docs(install): Sequoia "is damaged" xattr workaround`). Option C remains a deferred candidate inside this entry — revisit when Beibei wants the "double-click and run" experience for self or external users (priced at $99/yr Apple Developer + ~half-day CI signing/notarize wiring). Beibei's screenshot of System Settings → Privacy & Security confirmed empirically: **no "Open Anyway" button appears** for the Sequoia "is damaged" path on her macOS version, so a GUI-only bypass is not a fourth option — it's Terminal-or-sign, no middle ground. (Apple deliberately removed the easy-bypass for the unsigned + browser-downloaded combination.)
+
+---
+
+## 14. `candidate` — OnboardingSurface command rendering: literal backticks → `<code>` + monospace (post-#13 polish)
+
+**Surfaced**: candidate #13 PR [#135](https://github.com/BeibeiZhang/WorkPal/pull/135) review (2026-04-25). The new OnboardingSurface step 2 includes a Terminal command (`sudo xattr -dr com.apple.quarantine "/Applications/WorkPal Agent.app"`) wrapped in markdown-style backticks. Rendering path is `<p>{step.en}</p>` — **plain text, no markdown parsing** — so users see **literal backtick characters** around the command instead of a code block. Functionally OK (the command is identifiable + copy-able), but visually rough; the README equivalent renders correctly because GitHub Markdown does parse fenced code.
+
+**Scope** (~30 lines):
+- Lift `STEPS[]` entry shape in [`src/components/OnboardingSurface.tsx`](../src/components/OnboardingSurface.tsx) from `{en: string, zh: string}` to `{en: ReactNode, zh: ReactNode}`, OR pass through a tiny inline-markdown-to-JSX helper that handles two patterns only: `` `code` `` and `**bold**`.
+- Wrap the command segment in `<code className="font-mono text-text-primary bg-bg-message px-1 py-0.5 rounded">...</code>` so it pops as a code block — monospace, selectable, visually distinct from prose.
+- Don't introduce a markdown library — keep the helper inline (~10 lines of regex split). Bundle bloat is the wrong cost for two inline patterns.
+- Bilingual unchanged — same `` `code` ``→`<code>` treatment in both `en` and `zh` lines, preserving the "WorkPal Agent" untranslated decision (Q4 of 7.4).
+
+**Why not in #13 PR**: scope discipline. #13 Option A's target was strictly "docs copy update only". Component shape change is a separate concern — bundling would muddy the review and risk introducing a render bug into a docs-only PR.
+
+**Risk classification**: low. Pure rendering polish, no behavior change. Can ship as a small drive-by alongside any future OnboardingSurface change, or solo whenever Beibei feels the literal-backticks look bothers her enough to fix.
+
 ---
 
 ## How to revisit / add candidates
