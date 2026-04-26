@@ -11,8 +11,6 @@ import memoryRouter from './routes/memory.js';
 import chatsRouter from './routes/chats.js';
 import projectsRouter from './routes/projects.js';
 import connectorsRouter from './routes/connectors.js';
-import animationsRouter from './routes/animations.js';
-import agentVideoStatusRouter from './routes/agentVideoStatus.js';
 import artifactsRouter from './routes/artifacts.js';
 import usageRouter from './routes/usage.js';
 
@@ -36,8 +34,6 @@ app.use('/api', memoryRouter);
 app.use('/api', chatsRouter);
 app.use('/api', projectsRouter);
 app.use('/api', connectorsRouter);
-app.use('/api', animationsRouter);
-app.use('/api', agentVideoStatusRouter);
 app.use('/api', artifactsRouter);
 app.use('/api', usageRouter);
 
