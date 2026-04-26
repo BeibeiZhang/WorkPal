@@ -16,6 +16,7 @@
 
 import { useEffect, useState } from 'react';
 import { IS_DEMO } from './demoMode';
+import { isMobileNow } from './useIsMobile';
 
 export const AGENT_BASE_URL = 'https://127.0.0.1:3001';
 
@@ -33,6 +34,23 @@ export class AgentUnreachableError extends Error {
     super('Agent unreachable');
     this.name = 'AgentUnreachableError';
     this.cause = cause;
+  }
+}
+
+/** Candidate #15 — wrapper-level mobile guard. Every UI path that reaches
+ *  the agent should already be gated by `isMobileNow()` / `useIsMobile()`
+ *  upstream; this is the belt-and-suspenders fallback for any caller that
+ *  forgets. Extends `AgentUnreachableError` so existing SSE catches in
+ *  `streamClaudeChat` (and any other consumer that already handles the
+ *  unreachable case) absorb it via instanceof and degrade gracefully —
+ *  surfacing a generic agent-not-reachable hint is strictly better than an
+ *  unhandled throw. Distinguishable by name / instanceof for callers that
+ *  want to render the more specific mobile copy. */
+export class AgentRequiredOnMobileError extends AgentUnreachableError {
+  constructor() {
+    super();
+    this.name = 'AgentRequiredOnMobileError';
+    this.message = 'Agent not available on mobile';
   }
 }
 
@@ -139,6 +157,15 @@ export function useAgentState(): AgentState {
 export async function fetchAgent(path: string, init?: RequestInit): Promise<Response> {
   if (!path.startsWith('/')) {
     throw new Error(`fetchAgent: path must start with "/", got: ${path}`);
+  }
+  if (isMobileNow()) {
+    // On a phone, 127.0.0.1:3001 is the phone itself — guaranteed to fail
+    // (or worse, hit some other listener). Throw before issuing the fetch
+    // so any UI path that missed its mobile-aware gate degrades via the
+    // existing AgentUnreachableError hierarchy instead of a confusing
+    // network error. The primary defense lives at the UI buttons; this is
+    // the safety net.
+    throw new AgentRequiredOnMobileError();
   }
   try {
     return await fetch(`${AGENT_BASE_URL}${path}`, init);

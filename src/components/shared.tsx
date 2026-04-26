@@ -4,7 +4,7 @@
  * Single source of truth — used by both app pages and the Design System page.
  * Update a component here → it updates everywhere in the app.
  */
-import { AlertTriangle, ArrowLeft, ArrowUpRight, BadgeCheck, Check, ChevronDown, ChevronRight, Clock, FileCode2, FileImage, FileText, Info, Mail, MonitorPlay, PanelLeft, PanelRight, Presentation, Ticket, Play, Plus, Search, Send, Smile, SquarePen, Timer, User, Sparkles, X, XCircle, type LucideIcon } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowUpRight, BadgeCheck, Check, ChevronDown, ChevronRight, Clock, FileCode2, FileImage, FileText, Info, Mail, MonitorPlay, PanelLeft, PanelRight, Presentation, Smartphone, Ticket, Play, Plus, Search, Send, Smile, SquarePen, Timer, User, Sparkles, X, XCircle, type LucideIcon } from 'lucide-react';
 import { type MouseEvent as ReactMouseEvent, type ReactNode, useEffect, useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { IS_DEMO } from '../lib/demoMode';
@@ -2041,6 +2041,53 @@ export function EmptyState({
       {description && (
         <div className="type-detail text-text-secondary max-w-[280px]">{description}</div>
       )}
+    </div>
+  );
+}
+
+/* ─── AgentRequiredHint ───
+ * Candidate #15 — bilingual notice shown on mobile when the user reaches a
+ * surface that depends on the local WorkPal Agent (which only runs on Mac).
+ * Two variants:
+ *   - 'card': full-width inline assistant message in the chat stream, used
+ *     when intent routing detects a code/file request on mobile and skips
+ *     the silent OpenAI fallback that would pretend to do file work.
+ *   - 'tip':  compact pill rendered next to a disabled button (FolderChip,
+ *     ArtifactCard, Undo) after the user clicks it. Auto-dismissed by the
+ *     caller via setTimeout — this component is presentational only.
+ * "WorkPal Agent" stays in English on the Chinese line per the Phase 7.4
+ * Q4 product-name decision.
+ */
+export function AgentRequiredHint({ variant = 'card' }: { variant?: 'card' | 'tip' }) {
+  const en = 'This needs WorkPal Agent on your Mac. Open the page on your computer to use it.';
+  const zh = '此功能需要在 Mac 上运行 WorkPal Agent。请用电脑打开 workpal-beibei.vercel.app 使用。';
+  if (variant === 'tip') {
+    return (
+      <div
+        role="status"
+        className="inline-flex items-start gap-2 rounded-lg bg-bg-message px-3 py-2 max-w-full"
+      >
+        <Smartphone size={14} strokeWidth={1.5} className="icon-theme shrink-0 mt-0.5 text-text-secondary" />
+        <div className="flex flex-col gap-0.5 min-w-0">
+          <p className="type-caption text-text-primary">{en}</p>
+          <p className="type-caption text-text-secondary">{zh}</p>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div
+      role="status"
+      className="panel-border rounded-[12px] p-4 flex items-start gap-3 max-w-[480px]"
+      style={{ background: 'var(--color-bg-page)' }}
+    >
+      <div className="w-8 h-8 shrink-0 flex items-center justify-center rounded-full bg-bg-message text-text-secondary">
+        <Smartphone size={16} strokeWidth={1.5} className="icon-theme" />
+      </div>
+      <div className="flex flex-col gap-1 min-w-0">
+        <p className="type-detail-emphasized text-text-primary">{en}</p>
+        <p className="type-detail text-text-secondary">{zh}</p>
+      </div>
     </div>
   );
 }

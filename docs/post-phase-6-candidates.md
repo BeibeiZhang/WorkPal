@@ -358,7 +358,7 @@ After clearing the quarantine attribute, double-click opens normally (no further
 - **[`src/lib/intentRouter.ts`](../src/lib/intentRouter.ts)** — silent OpenAI fallback for `shouldUseClaudeCode` is fine on Mac (probe in flight / agent restarting), but on mobile a user typing "改一下 src/App.tsx" gets a text-only OpenAI reply that pretends to do work. Mobile arm should not fall back; render `AgentRequiredHint` inline so the user knows the request needs a Mac.
 - **[`src/lib/api.ts:424`](../src/lib/api.ts#L424) / [`:442`](../src/lib/api.ts#L442) (`openFolder`, `openFile`)** — UI button click → fetchAgent → fails. Mobile users see an opaque error toast. Should disable button + show `AgentRequiredHint` on click.
 - **[`src/lib/api.ts:184`](../src/lib/api.ts#L184) (`undoLastFileChange`)** — depends on `streamClaudeChat` having run; with the chat fix above, this path is virtually unreachable on mobile. Defense-in-depth catch in the fetchAgent wrapper anyway.
-- **[`src/lib/api.ts:459`](../src/lib/api.ts#L459) (`readFile`)** — internal dep, no independent UI touchpoint. Same defense-in-depth.
+- **[`src/lib/api.ts:459`](../src/lib/api.ts#L459) (`readFile`)** — UI touchpoint: ArtifactCard click → `onArtifactClick` → `postReadFile` → DetailPanel preview ([`App.tsx:3325`](../src/App.tsx#L3325)). Mobile arm should disable the card + show `AgentRequiredHint` on click; the `postOpenFile` fallback path is also gated by the same UI guard. (Audit corrected post-impl: original §15 missed this.)
 
 **Strategy (locked)**:
 
