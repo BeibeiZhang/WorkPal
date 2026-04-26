@@ -58,7 +58,7 @@ strong, b {
 
   /* Typography scale — 12 canonical styles. Edit here to update app-wide. */
   --font-display-xl-size: 60px;
-  --font-display-xl-lh: 60px;
+  --font-display-xl-lh: 65px;
   --font-display-xl-weight: 700;
   --font-display-xl-tracking: -0.5px;
 
@@ -264,7 +264,7 @@ html, body, #root {
 .gradient-btn:not(:disabled):hover {
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.12),
-    0px 12px 11.7px 0px rgba(20, 39, 64, 0.26);
+    0px 12px 20.1px 0px rgba(20, 39, 64, 0.22);
 }
 .gradient-btn:not(:disabled):active {
   box-shadow:
