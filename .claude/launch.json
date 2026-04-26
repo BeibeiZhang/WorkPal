@@ -150,12 +150,6 @@
       "runtimeExecutable": "/usr/local/bin/node",
       "runtimeArgs": ["/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/node_modules/vite/bin/vite.js", "/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/.claude/worktrees/mystifying-bouman-961136", "--port", "2008", "--strictPort"],
       "port": 2008
-    },
-    {
-      "name": "WorkPal Dev Determined-Hopper",
-      "runtimeExecutable": "/usr/local/bin/node",
-      "runtimeArgs": ["/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/node_modules/vite/bin/vite.js", "/Users/beibeizhang/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Code/.claude/worktrees/determined-hopper-f930a3", "--port", "3035", "--strictPort"],
-      "port": 3035
     }
   ]
 }
