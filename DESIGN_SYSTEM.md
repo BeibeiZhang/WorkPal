@@ -68,7 +68,7 @@ Every CSS variable with its resolved light / dark value. If you need a token, fi
 --brand-grad-end              #CA9D8C
 
 # Typography
---font-display-xl-size/lh/weight/tracking  60px / 60px / 700 / -0.5px
+--font-display-xl-size/lh/weight/tracking  60px / 65px / 700 / -0.5px
 --font-display-size/lh/weight/tracking     40px / 48px / 700 / -0.5px
 --font-h1-size/lh/weight/tracking          22px / normal / 700 / 0px
 --font-body-size/lh/weight/tracking        16px / 32px / 400 (emph 700) / 0px
@@ -139,7 +139,7 @@ CSS vars: --brand-grad-start, --brand-grad-mid, --brand-grad-end
 
 | Class | Size / LH / Weight / Tracking | Use |
 |---|---|---|
-| `.type-display-xl` | 60 / 60 / 700 / −0.5 | Oversized numeric — MetricCard values |
+| `.type-display-xl` | 60 / 65 / 700 / −0.5 | Oversized numeric — MetricCard values |
 | `.type-display` | 40 / 48 / 700 / −0.5 | Page H1 (only one per page) |
 | `.type-h1` | 22 / normal / 500 / 0 | Brand wordmark, hero greetings (display-weight regular H1) |
 | `.type-h1--emphasized` | 22 / normal / 700 / 0 | Section headers — top-level regions inside a page |
