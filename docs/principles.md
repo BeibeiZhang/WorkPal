@@ -38,10 +38,18 @@
 ### 7. Safe by default (默认安全)
 路径越狱防护、权限门、auto-commit 撤销、破坏性操作门槛。**永远不信任客户端路径输入**。用户数据不能有风险。
 
-### 8. Bilingual from day 1 (双语原生)
-所有用户相关的启发式（关键词匹配、提示语、错误消息）**同时覆盖英文 + 中文**。Beibei 混用，用户也混用 —— 不要只英文。
+### 8. English-first UI, AI replies follow user (UI 英文优先，AI 回答跟随用户)
+**软件的静态 UI 文案** —— 按钮、tooltip、empty state、modal copy、错误提示、navigation、settings 描述、所有 "软件自己写的字" —— **默认 English-only**。中文翻译作为后续可选层，等 i18n 真有需求按 candidate #4 加 `react-i18next`。同时显示 EN + 中文（`Reference folders / 参考文件夹` 那种）视觉累赘 + 维护税重，不做。
 
-**Demo exception**:`my-workpal.vercel.app` 体验版面向单一中文读者群体（HR），双语并列反而视觉冗余。该模式下（被 `IS_DEMO` gate 或在 `src/data/demo/*` 里的）所有 user-visible 文案改为纯英文以提升简洁度；关键词匹配等 intent-routing 启发式**仍然双语**（那是识别逻辑，不是展示）。Non-demo（localhost dev + `workpal-beibei.vercel.app` 自用部署)仍严格遵循本条原则。
+**不在本条管辖**：
+- **AI assistant 回复内容** —— LLM 根据 user input 语言自己调（用户中文问 → AI 中文答，英文问英文答）。这是 dynamic 行为，不是 "软件写的字"。
+- **用户自己输入的内容** —— chat 消息 / memory 条目 / project description / 文件名 由用户决定语言。
+
+**识别层 ≠ 展示层** —— 关键词启发式 / intent routing（`shouldUseClaudeCode` / `shouldGenerateArtifact` 等）**仍然 bilingual day 1**。Beibei 中英混输，识别要双语，UI 展示英文。这是处理用户输入，不是软件展示文案。
+
+**Demo URL = 主站统一**: `my-workpal.vercel.app` 跟 `workpal-beibei.vercel.app` UI 文案完全一致英文。HR 受众也读英文，没有中文 demo 例外。
+
+**反例外（极少数 Chinese-only）**: 如果某天有产品名 / 品牌运营文案 / 特定段需要中文，Beibei 明确 ask 时 record + apply。当下没有这种 case。
 
 ### 9. Frontend-generated paths flow through (前端生成的 path 一路下传)
 UI 显示什么路径，backend 就 mkdir 那个路径、git init 那个路径、permission scope 用那个路径。**四处永远一致**。
