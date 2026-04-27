@@ -2046,8 +2046,8 @@ export function EmptyState({
 }
 
 /* ─── AgentRequiredHint ───
- * Candidate #15 — bilingual notice shown on mobile when the user reaches a
- * surface that depends on the local WorkPal Agent (which only runs on Mac).
+ * Candidate #15 — notice shown on mobile when the user reaches a surface
+ * that depends on the local WorkPal Agent (which only runs on Mac).
  * Two variants:
  *   - 'card': full-width inline assistant message in the chat stream, used
  *     when intent routing detects a code/file request on mobile and skips
@@ -2055,12 +2055,9 @@ export function EmptyState({
  *   - 'tip':  compact pill rendered next to a disabled button (FolderChip,
  *     ArtifactCard, Undo) after the user clicks it. Auto-dismissed by the
  *     caller via setTimeout — this component is presentational only.
- * "WorkPal Agent" stays in English on the Chinese line per the Phase 7.4
- * Q4 product-name decision.
  */
 export function AgentRequiredHint({ variant = 'card' }: { variant?: 'card' | 'tip' }) {
   const en = 'This needs WorkPal Agent on your Mac. Open the page on your computer to use it.';
-  const zh = '此功能需要在 Mac 上运行 WorkPal Agent。请用电脑打开 workpal-beibei.vercel.app 使用。';
   if (variant === 'tip') {
     return (
       <div
@@ -2068,9 +2065,8 @@ export function AgentRequiredHint({ variant = 'card' }: { variant?: 'card' | 'ti
         className="inline-flex items-start gap-2 rounded-lg bg-bg-message px-3 py-2 max-w-full"
       >
         <Smartphone size={14} strokeWidth={1.5} className="icon-theme shrink-0 mt-0.5 text-text-secondary" />
-        <div className="flex flex-col gap-0.5 min-w-0">
+        <div className="min-w-0">
           <p className="type-caption text-text-primary">{en}</p>
-          <p className="type-caption text-text-secondary">{zh}</p>
         </div>
       </div>
     );
@@ -2084,9 +2080,8 @@ export function AgentRequiredHint({ variant = 'card' }: { variant?: 'card' | 'ti
       <div className="w-8 h-8 shrink-0 flex items-center justify-center rounded-full bg-bg-message text-text-secondary">
         <Smartphone size={16} strokeWidth={1.5} className="icon-theme" />
       </div>
-      <div className="flex flex-col gap-1 min-w-0">
+      <div className="min-w-0">
         <p className="type-detail-emphasized text-text-primary">{en}</p>
-        <p className="type-detail text-text-secondary">{zh}</p>
       </div>
     </div>
   );
