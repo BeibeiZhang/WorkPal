@@ -394,6 +394,74 @@ After clearing the quarantine attribute, double-click opens normally (no further
 
 ---
 
+## 16. `decided-next` — Complete Session = "save to project knowledge" UX clarity
+
+**Surfaced**: 2026-04-27 conversation. Beibei asked "do my output files become a project knowledge base?" — answer is **yes** (Phase 6 already auto-merges session outputs back to project main on Complete Session, so the next session naturally reads them via cwd). But this affordance is **invisible** in the UI: nothing in the Complete Session button tooltip or surrounding copy tells the user "this stores your work into project knowledge for future sessions to read." Result: outputs orphan in session branches because users don't realize they need to click to "save" them.
+
+**Strategy (locked)**:
+
+1. **Complete Session button tooltip / supplementary line** ([`src/components/TaskContextPanel.tsx`](../src/components/TaskContextPanel.tsx)) — gain bilingual tooltip: "Adds this session's outputs to project knowledge so future sessions can read them. / 把这次产出存进 project 知识库，以后 session 都能看。"
+
+2. **Post-merge confirmation copy** — the existing success toast / banner gains the bilingual "saved to project knowledge / 已存入 project 知识库" framing so the user gets a closing confirmation that matches the tooltip's promise.
+
+3. **Optional one-line note in `Onboarding`** if there's still a relevant slot (only if it doesn't bloat first-touch).
+
+**Out of scope**: no behavior change, no backend touch, no SDK touch — pure copy / tooltip / toast wording.
+
+**Effort**: ~30 min — 1 hour.
+
+**Risk**: low. Pure UX copy.
+
+**Test plan**:
+- Hover Complete Session button on Mac → bilingual tooltip shows the "knowledge base" framing
+- Click Complete Session → success toast carries the same bilingual framing
+- Demo URL: footer hidden per §2 (already covered, no test needed)
+- Mobile: button hidden per §15 (already covered)
+
+---
+
+## 17. `decided-next` — Project reference folders (external knowledge sources)
+
+**Surfaced**: 2026-04-27 conversation. Beibei wants Codex-style "point AI at a folder before it answers" — e.g., she has `~/Documents/我的设计资料/` and wants the agent to read that folder when answering questions in a project, even though it's outside the project's git repo. Currently impossible: SDK call sets `cwd` to the session worktree only ([`server/src/lib/claudeCode.ts:39`](../server/src/lib/claudeCode.ts#L39)); no `additionalDirectories` passed; no UI to add reference paths.
+
+**Strategy (locked)**:
+
+1. **Project metadata** — extend the project record with `referenceDirectories: string[]`. Persist via existing project store (Supabase `projects` table — JSONB metadata column already exists). Optional field, defaults to `[]`, no SQL migration needed.
+
+2. **Project settings UI** — add a "Reference folders / 参考文件夹" section in the project context panel (or a new project settings modal — impl picks). Lists current paths + "Add folder / 添加文件夹" button. Picker: HTML `<input webkitdirectory>` v1, or agent IPC for a real native picker if the HTML one feels rough — impl picks. Each row: path display + "Remove" icon. Bilingual (principle #8).
+
+3. **Path safety (server-side validate)** — added paths must be: absolute / exist / NOT inside another project's worktree (avoid cross-project leakage) / NOT a system directory (`/`, `/etc`, `/Users`, etc.). Reject with friendly bilingual error.
+
+4. **SDK wiring** — pass paths via `additionalDirectories` in [`server/src/lib/claudeCode.ts`](../server/src/lib/claudeCode.ts). **Verify the exact option name** against `@anthropic-ai/claude-agent-sdk` type definitions before wiring. AI gains Read/Glob/Grep access to those folders during the session, identical to its access to cwd.
+
+5. **Chat header chip** — small "📁 N reference folders / N 个参考文件夹" chip near the existing FolderChip, click → opens settings to manage. Helps the user remember at a glance what AI has access to in this session.
+
+6. **Mobile interaction (per §15 ship)** — Reference folder UI is an agent feature, so on mobile:
+   - **Read-only display**: list shows attached folders so user knows what AI sees on Mac, but
+   - **Add / Remove buttons disabled** with `AgentRequiredHint` tooltip pattern from §15
+   - Match the same "browse but can't agent-edit" mobile shape
+
+**Out of scope (v1)**:
+- No "watch folder for live changes" — paths read at SDK call time, no live sync
+- No "selective indexing" — SDK Read tool reads on demand, no upfront embedding
+- No "include external git history" — only file content, not commits / branches
+- No mobile add UI (read-only chip only)
+
+**Effort**: 2-3 hours (UI + persistence + SDK wiring + path safety).
+
+**Risk**: medium. Touches project metadata, SDK call site, file system permissions, mobile graceful-degrade. Live-test required.
+
+**Test plan**:
+- Add an external folder via UI on Mac → chip updates to "1 reference folder"
+- New session in same project → ask AI "list files in my reference folder" → AI uses Glob/Read against the added path
+- Reload page → folder still attached (Supabase persistence)
+- Try adding `/etc` or `/Users` → rejected with bilingual error
+- Try adding another project's worktree → rejected with bilingual error
+- iPhone @ 375px: chip shows attached folders read-only; "Add folder" button → disabled state + AgentRequiredHint tooltip (per §15 mobile pattern)
+- Demo URL: chip hidden or static (no real fs access); no add/remove
+
+---
+
 ## How to revisit / add candidates
 
 When a candidate ships → remove or mark `shipped`.
