@@ -228,8 +228,8 @@ export default function CompleteSessionModal({
             <div className="flex-1">
               <p className="type-detail text-text-primary mb-2">
                 {phase.alreadyUpToDate
-                  ? 'No changes — project was already up to date with this session.'
-                  : "Session merged into the project base."}
+                  ? 'No changes — project knowledge already up to date with this session. / 项目知识库已是最新，无需保存。'
+                  : 'Saved to project knowledge — future sessions in this project can read these outputs. / 已存入 project 知识库 —— 这个 project 后续 session 都能读到这些产出。'}
               </p>
               <p className="type-detail leading-[20px] text-text-secondary">
                 The worktree remains for reference and will be cleaned up

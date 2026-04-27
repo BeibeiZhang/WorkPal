@@ -7,6 +7,10 @@ export interface ProjectRecord {
   description?: string;
   files: unknown[];
   outputs: unknown[];
+  /** Per-project external knowledge folders. Passed to the Claude Agent SDK
+   *  as `additionalDirectories` at chat time. Validated against
+   *  referenceDirs.ts on save and re-validated on use. */
+  referenceDirectories?: string[];
   updatedAt: string;
 }
 
@@ -16,6 +20,7 @@ interface DbRow {
   description: string | null;
   files: unknown[];
   outputs: unknown[];
+  reference_directories: unknown;
   updated_at: string;
 }
 
@@ -38,6 +43,9 @@ function fromRow(r: DbRow): ProjectRecord {
     description: r.description ?? undefined,
     files: r.files ?? [],
     outputs: r.outputs ?? [],
+    referenceDirectories: Array.isArray(r.reference_directories)
+      ? (r.reference_directories.filter((p): p is string => typeof p === 'string'))
+      : [],
     updatedAt: r.updated_at,
   };
 }
@@ -49,6 +57,7 @@ function toDbInsert(p: ProjectRecord) {
     description: p.description ?? null,
     files: p.files,
     outputs: p.outputs,
+    reference_directories: p.referenceDirectories ?? [],
     updated_at: p.updatedAt,
   };
 }

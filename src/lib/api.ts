@@ -105,6 +105,10 @@ export async function* streamClaudeChat(opts: {
    *  the server strips Bash/Read/Glob/Grep from the SDK so the model defaults
    *  to web search instead of roaming the filesystem to guess at file paths. */
   hasAttachedFiles?: boolean;
+  /** §17: per-project external knowledge folders (absolute paths). Server
+   *  re-validates each before passing them to the SDK as
+   *  `additionalDirectories`. */
+  referenceDirectories?: string[];
   messages: ChatMessage[];
 }): AsyncGenerator<StreamChunk> {
   let res: Response;

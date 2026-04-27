@@ -28,6 +28,11 @@ export interface ClaudeCodeRequest {
    *  session folder doesn't trigger one modal per file edit. `default` keeps
    *  the canUseTool bridge for every tool. */
   permissionMode?: PermissionMode;
+  /** §17: per-project external knowledge folders. Forwarded as the SDK's
+   *  `additionalDirectories` so Read/Glob/Grep can reach files outside the
+   *  session worktree. Caller must validate paths before passing them in
+   *  (see referenceDirs.validateReferenceDirectories). */
+  additionalDirectories?: string[];
 }
 
 export async function* runClaudeCode(
@@ -49,6 +54,9 @@ export async function* runClaudeCode(
         : {}),
       ...(req.appendSystemPrompt ? { appendSystemPrompt: req.appendSystemPrompt } : {}),
       ...(req.permissionMode ? { permissionMode: req.permissionMode } : {}),
+      ...(req.additionalDirectories && req.additionalDirectories.length
+        ? { additionalDirectories: req.additionalDirectories }
+        : {}),
     },
   });
 }

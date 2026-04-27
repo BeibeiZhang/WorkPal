@@ -24,6 +24,8 @@ interface ProjectRecord {
   description?: string;
   files: Attachment[];
   outputs: OutputItem[];
+  /** §17: external knowledge folders, validated server-side. */
+  referenceDirectories?: string[];
   updatedAt: string;
 }
 
@@ -34,6 +36,7 @@ function projectToRecord(project: Project, updatedAt: string): ProjectRecord {
     description: project.description,
     files: project.files ?? [],
     outputs: project.outputs ?? [],
+    referenceDirectories: project.referenceDirectories ?? [],
     updatedAt,
   };
 }
@@ -45,6 +48,7 @@ function recordToProject(record: ProjectRecord): Project {
     description: record.description,
     files: record.files ?? [],
     outputs: record.outputs ?? [],
+    referenceDirectories: record.referenceDirectories ?? [],
   };
 }
 
@@ -122,8 +126,29 @@ export class ProjectAuthError extends Error {
   }
 }
 
+/** §17: server returns 400 with a bilingual `error` field when reference
+ *  directory validation fails. Surfacing the literal server message lets
+ *  the UI show "System directory not allowed / 系统目录不允许" inline rather
+ *  than a generic "Project API 400". */
+export class ProjectValidationError extends Error {
+  constructor(msg: string) {
+    super(msg);
+    this.name = 'ProjectValidationError';
+  }
+}
+
 async function handleResponse<T>(res: Response): Promise<T> {
   if (res.status === 401) throw new ProjectAuthError();
+  if (res.status === 400) {
+    let detail = '';
+    try {
+      const body = await res.json() as { error?: unknown };
+      if (typeof body?.error === 'string') detail = body.error;
+    } catch {
+      /* body wasn't JSON; fall through to generic */
+    }
+    throw new ProjectValidationError(detail || 'Project API 400');
+  }
   if (!res.ok) throw new Error(`Project API ${res.status}`);
   return res.json() as Promise<T>;
 }

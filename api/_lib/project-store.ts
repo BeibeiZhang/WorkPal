@@ -8,6 +8,10 @@ export interface ProjectRecord {
   description?: string;
   files: unknown[];       // Attachment[] — base64 data URLs inline
   outputs: unknown[];     // OutputItem[]
+  /** Per-project external knowledge folders (absolute paths). Vercel stores
+   *  as-is; the local agent re-validates each path against the user's actual
+   *  filesystem before passing them to the SDK. */
+  referenceDirectories?: string[];
   updatedAt: string;
 }
 
@@ -17,6 +21,7 @@ interface DbRow {
   description: string | null;
   files: unknown[];
   outputs: unknown[];
+  reference_directories: unknown;
   updated_at: string;
 }
 
@@ -39,6 +44,9 @@ function fromRow(r: DbRow): ProjectRecord {
     description: r.description ?? undefined,
     files: r.files ?? [],
     outputs: r.outputs ?? [],
+    referenceDirectories: Array.isArray(r.reference_directories)
+      ? (r.reference_directories.filter((p): p is string => typeof p === 'string'))
+      : [],
     updatedAt: r.updated_at,
   };
 }
@@ -50,6 +58,7 @@ function toDbInsert(p: ProjectRecord) {
     description: p.description ?? null,
     files: p.files,
     outputs: p.outputs,
+    reference_directories: p.referenceDirectories ?? [],
     updated_at: p.updatedAt,
   };
 }
