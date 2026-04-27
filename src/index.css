@@ -483,12 +483,14 @@ html, body, #root {
   pointer-events: none;
 }
 
-/* Gradient-border hover — brand-gradient 1px border on hover, interior stays
-   transparent so the shell gradient reads through (no solid patch in dark mode).
-   Uses the same masked ::before pattern as .input-gradient-border.
-   - chip:    all modes
-   - input:   all modes
-   - toolbar: dark mode only */
+/* Gradient-border hover — brand-gradient 1px ring on hover, drawn over the
+   element's border edge so the element keeps its visual size (the ring sits
+   on the border-box edge, not inset 1px from it).
+   Uses a masked ::before with negative inset to compensate for absolute
+   positioning being relative to the padding-box.
+   - chip:    all modes (1px border)
+   - input:   all modes (2px transparent border)
+   - toolbar: dark mode only (1px border) */
 .chip-gradient-hover,
 .input-gradient-hover,
 .dark .toolbar-gradient-hover {
@@ -504,7 +506,6 @@ html, body, #root {
 .dark .toolbar-gradient-hover:not(:disabled):hover::before {
   content: '';
   position: absolute;
-  inset: 0;
   border-radius: inherit;
   padding: 1px;
   background: linear-gradient(74deg, #7652B9 0%, #B46470 52%, #CA9D8C 100%);
@@ -517,6 +518,13 @@ html, body, #root {
     linear-gradient(#000 0 0);
   mask-composite: exclude;
   pointer-events: none;
+}
+.chip-gradient-hover:not(:disabled):hover::before,
+.dark .toolbar-gradient-hover:not(:disabled):hover::before {
+  inset: -1px;
+}
+.input-gradient-hover:not(:disabled):hover::before {
+  inset: -2px;
 }
 
 /* Gradient border for ChatInput's active state that keeps the brand gradient
