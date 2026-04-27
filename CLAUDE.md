@@ -30,6 +30,7 @@ These bypass the design system and create silent drift. They are **always wrong*
 
 - ❌ **Hex / rgba colors in className**: `text-[#B42318]`, `bg-[#7652B9]`, `border-[rgba(...)]`
 - ❌ **Inline style colors**: `style={{ color: '#B42318' }}`, `style={{ background: 'rgba(...)' }}`
+- ❌ **Tailwind alpha modifiers on color classes**: `text-text-primary/60`, `bg-bg-message/40`, `border-stroke-outline/30`. **Silently fails** — design tokens are stored as `rgba(...)` literals (see `src/index.css`), not RGB triplets, so Tailwind's alpha-modifier syntax finds no rule to apply and the element falls back to inherited / browser-default color (often making secondary text look as dark as primary). The fix is **never** the modifier — pick the closest existing token (`text-text-secondary` is rgba .6, `text-text-tertiary` is rgba .4, already registered). If you need a finer step, add a new token in `src/index.css` (light + dark blocks) and register in `tailwind.config.js`.
 - ❌ **Hardcoded font sizes / line heights**: `text-[14px]`, `text-base`, `text-sm`, `leading-[20px]`, `tracking-[0.2px]`, `font-bold`, `font-medium` (per `feedback_typography_tokens` — every text surface uses `.type-*` class)
 - ❌ **Component code inline in a page** when the same shape will recur — write it in `shared.tsx` first
 
