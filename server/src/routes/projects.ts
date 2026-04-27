@@ -7,8 +7,28 @@ import {
   bulkUpsertProjects,
   type ProjectRecord,
 } from '../lib/projectStore.js';
+import { validateReferenceDirectories } from '../lib/referenceDirs.js';
 
 const router = Router();
+
+/** Validate `referenceDirectories` if present. Returns the resolved array
+ *  on success (use this instead of the raw input so we persist canonical
+ *  absolute paths). On failure, sends a 400 with the bilingual error and
+ *  returns null so the caller can short-circuit. */
+function validateRefDirsOrSend400(
+  incoming: ProjectRecord,
+  res: Response,
+): string[] | null {
+  const result = validateReferenceDirectories(incoming.referenceDirectories, 'strict');
+  if (!result.ok) {
+    res.status(400).json({
+      error: result.error,
+      badPath: result.badPath,
+    });
+    return null;
+  }
+  return result.resolved;
+}
 
 function requirePassword(req: Request, res: Response, next: NextFunction) {
   const expected = process.env.MEMORY_PASSWORD;
@@ -60,10 +80,13 @@ router.post('/projects', requirePassword, async (req, res) => {
       res.status(400).json({ error: 'Missing required fields' });
       return;
     }
+    const refDirs = validateRefDirsOrSend400(project, res);
+    if (refDirs === null) return;
     const saved = await upsertProject({
       ...project,
       files: project.files ?? [],
       outputs: project.outputs ?? [],
+      referenceDirectories: refDirs,
     });
     res.json({ project: saved });
   } catch (err) {
@@ -91,11 +114,14 @@ router.put('/projects/:id', requirePassword, async (req, res) => {
   try {
     const id = String(req.params.id);
     const incoming = req.body as ProjectRecord;
+    const refDirs = validateRefDirsOrSend400(incoming, res);
+    if (refDirs === null) return;
     const saved = await upsertProject({
       ...incoming,
       id,
       files: incoming.files ?? [],
       outputs: incoming.outputs ?? [],
+      referenceDirectories: refDirs,
     });
     res.json({ project: saved });
   } catch (err) {

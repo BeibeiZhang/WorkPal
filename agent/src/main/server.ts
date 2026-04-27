@@ -125,6 +125,12 @@ export async function startApiServer(): Promise<void> {
   app.use('/api', session);
   app.use('/api', reaper);
 
+  // §17 native folder picker. Electron-only — the dev server (server/src/)
+  // has no electron import, so this endpoint returns 404 there and the
+  // client falls back to a typed text input.
+  const pickFolder = (await import('./pickFolder.js')).default;
+  app.use('/api', pickFolder);
+
   // Wrap Express in https.Server (https.createServer takes the same request
   // listener interface as http.createServer; Express's app() qualifies).
   // Cert material is the locally-issued leaf — if Keychain trust isn't yet

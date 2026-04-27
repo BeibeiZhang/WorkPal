@@ -4,12 +4,13 @@ import ChatInput from './ChatInput';
 import {
   ChevronDown, ChevronRight, Star, MoreVertical, PanelRight,
   FileCode2, MessageCircle, Pen, File, Plus, X,
-  FolderOpen, Inbox,
+  FolderOpen, FolderClosed, Inbox,
 } from 'lucide-react';
-import { AddRowButton, EmptyState, FilterChip, PageLayout, SearchBox, SideCard, SidePanelHeader, SplitView, outputIconFor } from './shared';
+import { AddRowButton, AgentRequiredHint, EmptyState, FilterChip, PageLayout, SearchBox, SideCard, SidePanelHeader, SplitView, outputIconFor } from './shared';
 import type { Chat, Attachment, OutputItem, OutputType } from '../types';
 import { filesToAttachments, formatFileSize } from '../lib/attachments';
 import { IS_DEMO } from '../lib/demoMode';
+import { useIsMobile } from '../lib/useIsMobile';
 import { listArtifacts, type Artifact, type ArtifactKind } from '../lib/artifacts';
 
 interface ProjectPageProps {
@@ -21,8 +22,183 @@ interface ProjectPageProps {
    *  every AI request in any chat scoped here. */
   onAddFiles?: (projectId: string, files: Attachment[]) => void;
   onRemoveFile?: (projectId: string, fileId: string) => void;
+  /** §17: attach an external folder. Server validates the path; UI surfaces
+   *  the bilingual error inline on rejection. Returns ok / error from the
+   *  PUT round-trip so the caller can clear the input on success only. */
+  onAddReferenceDirectory?: (projectId: string, path: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  /** §17: detach a reference folder. Local-only mutation; the auto-flush
+   *  will PUT the shorter array within 1.5s. */
+  onRemoveReferenceDirectory?: (projectId: string, path: string) => void;
   sidebarOpen: boolean;
   onToggleSidebar?: () => void;
+}
+
+/** §17: Reference folders SideCard contents. Lifted out of ProjectPage's
+ *  render so the picker / text-input fallback / mobile graceful-degrade /
+ *  bilingual error state stay encapsulated. Mounts inside the existing
+ *  side panel between Files and Context. */
+function ReferenceFoldersSection({
+  project,
+  onAddReferenceDirectory,
+  onRemoveReferenceDirectory,
+}: {
+  project: Project;
+  onAddReferenceDirectory?: (projectId: string, path: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  onRemoveReferenceDirectory?: (projectId: string, path: string) => void;
+}) {
+  const isMobile = useIsMobile();
+  const dirs = project.referenceDirectories ?? [];
+  const [showHint, setShowHint] = useState(false);
+  // Manual text input fallback used in dev mode (no Electron native picker).
+  const [showInput, setShowInput] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  // Auto-clear inline error after a few seconds so it doesn't linger across
+  // unrelated interactions (matches the file upload pattern above).
+  useEffect(() => {
+    if (!error) return;
+    const t = window.setTimeout(() => setError(null), 5000);
+    return () => window.clearTimeout(t);
+  }, [error]);
+
+  const triggerHint = () => {
+    setShowHint(true);
+    window.setTimeout(() => setShowHint(false), 5000);
+  };
+
+  const submitPath = async (path: string) => {
+    if (!onAddReferenceDirectory) return;
+    const trimmed = path.trim();
+    if (!trimmed) return;
+    setBusy(true);
+    const result = await onAddReferenceDirectory(project.id, trimmed);
+    setBusy(false);
+    if (result.ok) {
+      setInputValue('');
+      setShowInput(false);
+      setError(null);
+    } else {
+      setError(result.error);
+    }
+  };
+
+  const handleAddClick = async () => {
+    if (isMobile) {
+      triggerHint();
+      return;
+    }
+    if (IS_DEMO) {
+      setError('Reference folders are read-only in demo mode / Demo 模式不支持参考文件夹');
+      return;
+    }
+    // Try the Electron native picker first. In dev mode (no Electron) this
+    // returns 404 — fall back to revealing the manual text input row.
+    try {
+      const res = await fetch('/api/pick-folder', { method: 'POST' });
+      if (res.status === 404) {
+        setShowInput(v => !v);
+        return;
+      }
+      if (!res.ok) {
+        setError(`Picker error (${res.status}) / 选择器错误`);
+        return;
+      }
+      const body = (await res.json()) as { ok: boolean; path?: string; reason?: string };
+      if (!body.ok) {
+        if (body.reason === 'cancelled') return; // user cancelled, no error
+        setError('Picker failed / 选择器调用失败');
+        return;
+      }
+      if (body.path) await submitPath(body.path);
+    } catch {
+      // fetch threw before status — likely no agent reachable. Fall back to
+      // the manual text input so the user still has a path forward.
+      setShowInput(v => !v);
+    }
+  };
+
+  const handleRemove = (path: string) => {
+    if (isMobile) {
+      triggerHint();
+      return;
+    }
+    if (IS_DEMO) return;
+    onRemoveReferenceDirectory?.(project.id, path);
+  };
+
+  return (
+    <div className="flex flex-col gap-1">
+      {dirs.length === 0 && !showInput && (
+        <p className="px-3 py-1 type-detail text-text-secondary/60 italic">
+          No reference folders attached. AI sees only this project's worktree. / 没有参考文件夹，AI 只能看到 project 自身。
+        </p>
+      )}
+      {dirs.map(path => (
+        <div
+          key={path}
+          className="group flex items-center gap-2.5 w-full px-3 py-2 rounded-lg hover:bg-bg-hover transition-colors"
+        >
+          <FolderClosed size={16} className="text-text-primary shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="type-detail text-text-primary truncate" title={path}>{path}</div>
+          </div>
+          {onRemoveReferenceDirectory && (
+            <button
+              onClick={() => handleRemove(path)}
+              aria-label={`Remove ${path}`}
+              className={`w-5 h-5 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-bg-page transition-opacity ${isMobile ? 'cursor-not-allowed' : ''}`}
+            >
+              <X size={12} className="text-text-secondary" />
+            </button>
+          )}
+        </div>
+      ))}
+      {showInput && !isMobile && (
+        <div className="flex flex-col gap-1.5 px-3 py-2">
+          <input
+            type="text"
+            value={inputValue}
+            onChange={e => setInputValue(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                void submitPath(inputValue);
+              } else if (e.key === 'Escape') {
+                setShowInput(false);
+                setInputValue('');
+                setError(null);
+              }
+            }}
+            disabled={busy}
+            autoFocus
+            placeholder="/Users/you/Documents/reference"
+            className="type-detail px-2.5 py-1.5 rounded-md bg-bg-hover text-text-primary border border-stroke-outline focus:outline-none focus:ring-1 focus:ring-text-primary/20"
+          />
+          <p className="type-detail text-text-secondary/60">
+            Paste an absolute path. / 粘贴绝对路径
+          </p>
+        </div>
+      )}
+      <div className={isMobile ? 'opacity-50 cursor-not-allowed' : ''}>
+        <AddRowButton
+          onClick={handleAddClick}
+          icon={<Plus size={16} />}
+        >
+          {showInput && !isMobile ? 'Cancel / 取消' : 'Add folder / 添加文件夹'}
+        </AddRowButton>
+      </div>
+      {showHint && (
+        <div className="px-3 pb-1">
+          <AgentRequiredHint variant="tip" />
+        </div>
+      )}
+      {error && (
+        <div className="px-3 py-1 type-detail text-[#B42318]" role="alert">{error}</div>
+      )}
+    </div>
+  );
 }
 
 /** Format a timestamp as a coarse "x hour ago" label (matches the demo copy). */
@@ -161,7 +337,7 @@ const EMPTY_CONTENT: ProjectContent = {
   defaultSelectedOutputId: '',
 };
 
-export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, onAddFiles, onRemoveFile, sidebarOpen, onToggleSidebar }: ProjectPageProps) {
+export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, onAddFiles, onRemoveFile, onAddReferenceDirectory, onRemoveReferenceDirectory, sidebarOpen, onToggleSidebar }: ProjectPageProps) {
   const content = PROJECT_CONTENT[project.id] ?? EMPTY_CONTENT;
   // Three output sources feed the grid:
   //   1. seedOutputs  — PROJECT_CONTENT mock (proj-1 showcase). Demo only.
@@ -354,6 +530,18 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                   <div className="px-3 py-1 type-detail text-[#B42318]">{fileError}</div>
                 )}
               </div>
+            </SideCard>
+
+            {/* §17 Reference folders — external knowledge sources passed to
+                 the SDK as `additionalDirectories` during chats in this
+                 project. Read/Glob/Grep can reach them; mobile shows the
+                 list read-only with the AgentRequiredHint pattern. */}
+            <SideCard title="Reference folders / 参考文件夹" defaultOpen={false}>
+              <ReferenceFoldersSection
+                project={project}
+                onAddReferenceDirectory={onAddReferenceDirectory}
+                onRemoveReferenceDirectory={onRemoveReferenceDirectory}
+              />
             </SideCard>
 
             {/* Context */}

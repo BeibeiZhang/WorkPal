@@ -443,7 +443,9 @@ export default function TaskContextPanel({
           title={
             IS_DEMO
               ? 'Demo mode — session execution disabled / Demo 模式 —— 会话执行已禁用'
-              : undefined
+              : sessionCompleted
+              ? 'Already saved to project knowledge / 已存入 project 知识库'
+              : "Adds this session's outputs to project knowledge so future sessions can read them. / 把这次产出存进 project 知识库，以后 session 都能看。"
           }
         >
           <TertiaryButton

@@ -66,6 +66,7 @@ import {
   deleteProjectOnServer,
   bulkUploadProjects,
   ProjectAuthError,
+  ProjectValidationError,
 } from './lib/projectStore';
 import { useMemoryAuth } from './lib/useMemoryAuth';
 import { useAuth } from './lib/useAuth';
@@ -1783,6 +1784,7 @@ export default function App() {
         sessionFolder: overrideSessionFolder ?? chat?.sessionFolder,
         projectSlug,
         hasAttachedFiles,
+        referenceDirectories: project?.referenceDirectories,
         messages: history,
       })) {
         if (chunk.type === 'text') {
@@ -2882,6 +2884,80 @@ export default function App() {
     ));
   }, []);
 
+  /** §17: synchronously persist a new reference directory so the user gets
+   *  immediate feedback if the path fails server validation (system dir,
+   *  inside another project worktree, missing folder, etc.). On success the
+   *  state mutation triggers the standard scheduleProjectFlush, but we've
+   *  already proven the path is acceptable so the deferred PUT can't surprise
+   *  the user with an after-the-fact rejection. Returns the bilingual error
+   *  message on failure so the UI can render it inline. */
+  const handleAddReferenceDirectory = useCallback(
+    async (projectId: string, path: string): Promise<{ ok: true } | { ok: false; error: string }> => {
+      if (IS_DEMO) return { ok: false, error: 'Reference folders are read-only in demo mode / Demo 模式不支持参考文件夹' };
+      const project = projects.find(p => p.id === projectId);
+      if (!project) return { ok: false, error: 'Project not found / 找不到 project' };
+      const trimmed = path.trim();
+      if (!trimmed) return { ok: false, error: 'Path required / 路径不能为空' };
+      const existing = project.referenceDirectories ?? [];
+      if (existing.includes(trimmed)) {
+        return { ok: false, error: 'Folder already attached / 文件夹已添加' };
+      }
+      let password: string;
+      try {
+        password = await ensurePassword();
+      } catch {
+        return { ok: false, error: 'Password required / 需要密码' };
+      }
+      const updated: Project = {
+        ...project,
+        referenceDirectories: [...existing, trimmed],
+      };
+      const now = new Date().toISOString();
+      try {
+        const serverUpdatedAt = await upsertProjectOnServer(updated, now, password);
+        projectsUpdatedAtMapRef.current[projectId] = serverUpdatedAt;
+        saveProjectsUpdatedAtMap(projectsUpdatedAtMapRef.current);
+        // Server already accepted — mirror to local state. Mark NOT dirty
+        // since we just persisted; otherwise the auto-flush would PUT again
+        // 1.5s later with the same payload.
+        dirtyProjectsRef.current.delete(projectId);
+        prevProjectsRef.current = prevProjectsRef.current.map(p =>
+          p.id === projectId ? updated : p,
+        );
+        setProjects(prev => prev.map(p => (p.id === projectId ? updated : p)));
+        return { ok: true };
+      } catch (err) {
+        if (err instanceof ProjectAuthError) {
+          signOut();
+          return { ok: false, error: 'Session expired / 会话已过期' };
+        }
+        if (err instanceof ProjectValidationError) {
+          return { ok: false, error: err.message };
+        }
+        const message = err instanceof Error ? err.message : 'Save failed / 保存失败';
+        return { ok: false, error: message };
+      }
+    },
+    [projects, ensurePassword, signOut],
+  );
+
+  const handleRemoveReferenceDirectory = useCallback(
+    (projectId: string, path: string) => {
+      // Removal is local — the auto-flush (scheduleProjectFlush) PUTs to
+      // the server within 1.5s. No server validation can fail here
+      // (removing a path is always valid; the server just stores the
+      // shorter array).
+      setProjects(prev =>
+        prev.map(p =>
+          p.id === projectId
+            ? { ...p, referenceDirectories: (p.referenceDirectories ?? []).filter(d => d !== path) }
+            : p,
+        ),
+      );
+    },
+    [],
+  );
+
   // Memory CRUD. Every mutation goes through the backend (so phone + laptop
   // stay in sync) and is gated by the password the user set in MEMORY_PASSWORD.
   // The handlers resolve to a boolean so the calling form can stay open on
@@ -3138,6 +3214,8 @@ export default function App() {
             onOpenChat={handleChatSelect}
             onAddFiles={handleAddProjectFiles}
             onRemoveFile={handleRemoveProjectFile}
+            onAddReferenceDirectory={handleAddReferenceDirectory}
+            onRemoveReferenceDirectory={handleRemoveReferenceDirectory}
             sidebarOpen={sidebarOpen || !isMobile}
             onToggleSidebar={() => setSidebarOpen(o => !o)}
           />
@@ -3344,6 +3422,14 @@ export default function App() {
                 // ChatPanel passes this through to its FolderChip; the chip
                 // also keeps a shift+click shortcut for copy-to-clipboard.
                 onOpenFolder={postOpenFolder}
+                referenceFolderCount={
+                  activeChat?.projectId
+                    ? (projects.find(p => p.id === activeChat.projectId)?.referenceDirectories?.length ?? 0)
+                    : 0
+                }
+                onOpenReferenceFolders={() => {
+                  if (activeChat?.projectId) navigate(`/project/${activeChat.projectId}`);
+                }}
                 // 6.4: click on an inline artifact pill → fetch file content
                 // and open the DetailPanel as an inline preview. Falls back to
                 // `open` spawn if the read fails (e.g. binary/large file the

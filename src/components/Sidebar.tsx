@@ -348,6 +348,11 @@ export interface Project {
    *  the project page. Absent on freshly-created projects — they show an
    *  empty state until the first file is written. */
   outputs?: OutputItem[];
+  /** §17: external knowledge folders (absolute paths). Forwarded to the
+   *  Claude Agent SDK as `additionalDirectories` so Read/Glob/Grep cover
+   *  files outside the session worktree (e.g. ~/Documents/我的设计资料/).
+   *  Validated server-side at save AND re-validated at use. */
+  referenceDirectories?: string[];
 }
 
 interface SidebarProps {

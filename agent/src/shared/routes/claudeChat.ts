@@ -15,6 +15,7 @@ import {
 } from '../lib/git.js';
 import { initProjectIfNeeded, resolveProjectFolder } from '../lib/project.js';
 import { WORKPAL_ROOT } from '../lib/paths.js';
+import { validateReferenceDirectories } from '../lib/referenceDirs.js';
 import { logUsage } from '../lib/usageLog.js';
 
 const router = Router();
@@ -232,7 +233,7 @@ const ARTIFACT_PROMPT = [
 ].join('\n\n');
 
 router.post('/claude-chat', async (req, res) => {
-  const { prompt, sessionId, sessionFolder, projectSlug, hasAttachedFiles } = req.body as {
+  const { prompt, sessionId, sessionFolder, projectSlug, hasAttachedFiles, referenceDirectories } = req.body as {
     prompt?: string;
     sessionId?: string;
     sessionFolder?: string;
@@ -242,6 +243,10 @@ router.post('/claude-chat', async (req, res) => {
      *  more attachments or an explicit @path mention. Drives whether we
      *  disable the local-exploration tool set for this request. */
     hasAttachedFiles?: boolean;
+    /** §17: per-project external knowledge folders. Re-validated at use
+     *  time so a stale path (folder deleted since save) gets dropped from
+     *  the SDK call instead of failing the chat. */
+    referenceDirectories?: string[];
   };
 
   if (!prompt || typeof prompt !== 'string') {
@@ -490,6 +495,20 @@ router.post('/claude-chat', async (req, res) => {
   // the dashboard can break spend down by actual model (Opus vs Sonnet etc.).
   let lastModel: string | null = null;
 
+  // §17: re-validate reference directories before passing them to the SDK.
+  // Filter mode (not strict) — a path that was valid at save time but is
+  // missing now (folder deleted, USB unplugged, etc.) should silently drop
+  // out rather than fail the chat. Surviving paths flow into the SDK as
+  // `additionalDirectories`. Empty / undefined → no-op.
+  const refDirsCheck = validateReferenceDirectories(referenceDirectories, 'filter');
+  if (refDirsCheck.dropped.length > 0) {
+    console.warn(
+      '[claude-chat] dropped invalid referenceDirectories:',
+      refDirsCheck.dropped,
+    );
+  }
+  const validatedRefDirs = refDirsCheck.resolved;
+
   try {
     // 6.4 regression: let the SDK operate with its default toolset. All
     // permission UX is handled by canUseTool's auto-allow rules below —
@@ -500,6 +519,7 @@ router.post('/claude-chat', async (req, res) => {
       sessionId,
       canUseTool,
       appendSystemPrompt: ARTIFACT_PROMPT,
+      ...(validatedRefDirs.length ? { additionalDirectories: validatedRefDirs } : {}),
     })) {
       switch (msg.type) {
         case 'system':

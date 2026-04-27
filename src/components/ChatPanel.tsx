@@ -69,6 +69,26 @@ function FolderChip({ path, onOpen }: { path: string; onOpen?: (path: string) =>
   );
 }
 
+/** §17 chip showing how many reference folders the current project has
+ *  attached. Click → onClick (opens the project page so the user can manage
+ *  them). Mobile keeps the chip visible (read-only signal of what AI sees on
+ *  Mac); the actual Add/Remove gating lives inside ProjectPage's
+ *  ReferenceFoldersSection. No mobile gating here because the chip is just
+ *  navigation — clicking it on mobile lands on the ProjectPage which already
+ *  surfaces AgentRequiredHint for the Add/Remove buttons. */
+function ReferenceFoldersChip({ count, onClick }: { count: number; onClick?: () => void }) {
+  return (
+    <UtilityChip
+      onClick={onClick}
+      ariaLabel={`${count} reference folder${count === 1 ? '' : 's'} attached. Click to manage.`}
+      title={`${count} reference folder${count === 1 ? '' : 's'} attached / 已附加 ${count} 个参考文件夹`}
+      icon={<FolderClosed size={14} className="shrink-0" />}
+    >
+      {`${count} ref${count === 1 ? '' : 's'}`}
+    </UtilityChip>
+  );
+}
+
 interface ChatPanelProps {
   chat: Chat | null;
   onSend: (message: string, attachments?: Attachment[]) => void;
@@ -116,6 +136,12 @@ interface ChatPanelProps {
    *  file write). App wires this to POST the open-file endpoint so the OS
    *  opens the file in its default app (HTML → default browser). */
   onArtifactClick?: (artifact: ArtifactRef) => void | Promise<unknown>;
+  /** §17: number of reference folders attached to the current chat's
+   *  project. When > 0, ChatPanel renders a small chip next to FolderChip
+   *  so the user remembers what extra context the SDK can reach. Click →
+   *  onOpenReferenceFolders. Hidden when 0 to keep the header tidy. */
+  referenceFolderCount?: number;
+  onOpenReferenceFolders?: () => void;
 }
 
 const WELCOME_CHIPS = ['Create performance goals', 'Analyze doc(s)', 'Visualize data'];
@@ -275,6 +301,8 @@ export default function ChatPanel({
   onVoicePendingTextConsumed,
   onOpenFolder,
   onArtifactClick,
+  referenceFolderCount,
+  onOpenReferenceFolders,
 }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -302,7 +330,16 @@ export default function ChatPanel({
       <HeaderBar
         sidebarOpen={sidebarOpen}
         onToggleSidebar={onToggleSidebar}
-        headerLeft={chat?.sessionFolder && chat?.folderMaterialized ? <FolderChip path={chat.sessionFolder} onOpen={onOpenFolder} /> : undefined}
+        headerLeft={
+          chat?.sessionFolder && chat?.folderMaterialized ? (
+            <div className="flex items-center gap-2 min-w-0">
+              <FolderChip path={chat.sessionFolder} onOpen={onOpenFolder} />
+              {referenceFolderCount && referenceFolderCount > 0 ? (
+                <ReferenceFoldersChip count={referenceFolderCount} onClick={onOpenReferenceFolders} />
+              ) : null}
+            </div>
+          ) : undefined
+        }
         headerRight={contextToggleButton}
         onNewChat={onNewChat}
       />
