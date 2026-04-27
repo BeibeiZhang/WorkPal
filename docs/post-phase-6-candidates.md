@@ -490,6 +490,51 @@ After clearing the quarantine attribute, double-click opens normally (no further
 
 ---
 
+## 18. `decided-next` — UI bilingual → English-only sweep (post-principle #8 flip)
+
+**Surfaced**: 2026-04-27, after [`docs/principles.md`](./principles.md) principle #8 flipped from "bilingual day 1" to "English-first UI" (commit `f66a5be`). All previously-shipped "EN / 中文" double-line UI copy needs to retrofit to English-only. Pure copy edit, zero behavior / logic / type change. Beibei's framing: "EN / 中文 同时显示视觉累赘 + 维护税重" — examples in screenshot included `Reference folders / 参考文件夹`, `Cancel / 取消`, `Paste an absolute path. / 粘贴绝对路径`.
+
+**Strategy (locked)**:
+
+1. **Grep enumerate** all bilingual UI strings:
+   - `grep -rn '/ [一-鿿]' src/ agent/src/main/ server/src/`
+   - Two-`<p>` siblings pattern (`OnboardingSurface` step lines): grep for `text-text-secondary` paragraphs that follow a `text-text-primary` paragraph and contain CJK.
+2. **Drop the `/ 中文` half** on each match. Keep the English half.
+3. **Visual check** on Mac desktop + iPhone 375px after each component cluster — make sure layout doesn't break when EN-only is shorter than EN+ZH (line counts shrink in some cards).
+4. **Don't touch**: AI prompt strings (LLM inputs), intent router keywords, user-entered content, AgentRequiredHint (already English-only via PR #142).
+
+**Surfaces likely affected** (not exhaustive — let grep be authoritative):
+- `src/components/ProjectPage.tsx` — Reference folders SideCard title, empty state, Cancel/Add labels, hint text, error toasts
+- `src/components/TaskContextPanel.tsx` — Complete Session tri-state tooltip (line 443)
+- `src/components/CompleteSessionModal.tsx` — success body copy, alreadyUpToDate copy (lines 228-233)
+- `src/components/OnboardingSurface.tsx` — STEPS array `zh` field drops; revert to single-line `en` per step
+- `src/components/ChatPanel.tsx` — ReferenceFoldersChip hover title
+- `src/App.tsx` — `handleAddReferenceDirectory` inline error strings
+- `server/src/lib/referenceDirs.ts` (and agent mirror) — validator error messages
+- `src/components/DemoBadge.tsx` + demo modal — labels & explainer
+- `src/lib/useAuth.tsx` / LoginScreen / PasswordModal copy
+- Memory page demo banner, Connectors page demo "Connected (Demo)" labels
+
+**Out of scope**:
+- **AI system prompts** (e.g., `ARTIFACT_PROMPT` in `server/src/routes/claudeChat.ts`) — these are LLM inputs, not UI display.
+- **Intent router keywords** (`CLAUDE_CODE_KEYWORDS` Chinese entries in `intentRouter.ts`) — bilingual day 1 still applies per principle #8 "识别层 ≠ 展示层".
+- **User-entered content** (chats / memory entries / project descriptions / filenames).
+- **`AgentRequiredHint`** — already English-only via PR #142.
+- **Comments / code identifiers / commit messages** — these are dev-facing, not user-facing UI.
+
+**Effort**: ~30 min — 1 hour. Pure mechanical edit. Mostly delete + simplify; one `OnboardingSurface` STEPS reshape (drop `zh` field).
+
+**Risk**: low. Pure copy. Visual regression risk only — some cards will be visibly shorter once Chinese drops.
+
+**Test plan**:
+- Mac Chrome desktop: ProjectPage Reference folders / Complete Session tooltip / CompleteSessionModal / OnboardingSurface (force agent unreachable on Mac to surface it) all show English only, no `/` separator left in user copy.
+- iPhone @ 375px: same surfaces clean.
+- Demo URL @ 375px: identical English UI to main site.
+- Sanity: AI assistant chat with a Chinese prompt ("帮我写个 hello world") still responds in Chinese — confirms LLM auto-language handling is untouched.
+- Sanity: typing "改一下 src/App.tsx" still triggers intentRouter to claude-code path (not artifact / cloud) — confirms keyword bilingual identification still works.
+
+---
+
 ## How to revisit / add candidates
 
 When a candidate ships → remove or mark `shipped`.
