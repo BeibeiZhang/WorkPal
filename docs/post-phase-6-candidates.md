@@ -398,9 +398,11 @@ After clearing the quarantine attribute, double-click opens normally (no further
 
 ---
 
-## 16. `decided-next` — Complete Session = "save to project knowledge" UX clarity
+## 16. `shipped` — Complete Session = "save to project knowledge" UX clarity
 
-**Surfaced**: 2026-04-27 conversation. Beibei asked "do my output files become a project knowledge base?" — answer is **yes** (Phase 6 already auto-merges session outputs back to project main on Complete Session, so the next session naturally reads them via cwd). But this affordance is **invisible** in the UI: nothing in the Complete Session button tooltip or surrounding copy tells the user "this stores your work into project knowledge for future sessions to read." Result: outputs orphan in session branches because users don't realize they need to click to "save" them.
+**Shipped**: 2026-04-27 (bundled with §17 into PR [#143](https://github.com/BeibeiZhang/WorkPal/pull/143), merge commit `851ca41`). Two strings updated. **[`TaskContextPanel.tsx:443`](../src/components/TaskContextPanel.tsx)** Complete Session button gains a tri-state bilingual tooltip — demo (existing copy) / completed ("Already saved to project knowledge / 已存入 project 知识库") / default ("Adds this session's outputs to project knowledge so future sessions can read them. / 把这次产出存进 project 知识库，以后 session 都能看。"). **[`CompleteSessionModal.tsx:228`](../src/components/CompleteSessionModal.tsx)** success copy reframed bilingually — "Saved to project knowledge — future sessions in this project can read these outputs. / 已存入 project 知识库 —— 这个 project 后续 session 都能读到这些产出。" `alreadyUpToDate` branch matched. Zero behavior change.
+
+**Surfaced**: 2026-04-27 conversation. Beibei asked "do my output files become a project knowledge base?" — answer is **yes** (Phase 6 already auto-merges session outputs back to project main on Complete Session, so the next session naturally reads them via cwd). But this affordance was **invisible** in the UI: nothing in the Complete Session button tooltip or surrounding copy told the user "this stores your work into project knowledge for future sessions to read." Result: outputs would orphan in session branches because users didn't realize they needed to click to "save" them.
 
 **Strategy (locked)**:
 
@@ -424,9 +426,31 @@ After clearing the quarantine attribute, double-click opens normally (no further
 
 ---
 
-## 17. `decided-next` — Project reference folders (external knowledge sources)
+## 17. `shipped` — Project reference folders (external knowledge sources)
 
-**Surfaced**: 2026-04-27 conversation. Beibei wants Codex-style "point AI at a folder before it answers" — e.g., she has `~/Documents/我的设计资料/` and wants the agent to read that folder when answering questions in a project, even though it's outside the project's git repo. Currently impossible: SDK call sets `cwd` to the session worktree only ([`server/src/lib/claudeCode.ts:39`](../server/src/lib/claudeCode.ts#L39)); no `additionalDirectories` passed; no UI to add reference paths.
+**Shipped**: 2026-04-27 (bundled with §16 into PR [#143](https://github.com/BeibeiZhang/WorkPal/pull/143), merge commit `851ca41`, 22 files +846 −11). Full feature ship:
+- **DB**: new dedicated `reference_directories jsonb default '[]'::jsonb` column ([`supabase/migrations/0005_project_reference_dirs.sql`](../supabase/migrations/0005_project_reference_dirs.sql)) — **migration applied to production Supabase by impl via MCP tool during implementation** (idempotent + safe; future plan stages should explicitly mark "who applies migration where").
+- **Validator**: new [`server/src/lib/referenceDirs.ts`](../server/src/lib/referenceDirs.ts) (sync'd to agent via `SHARED_LIB` whitelist update). 6 checks (non-empty / absolute / no `..` traversal / SYSTEM_BLOCKLIST / not in WORKPAL_ROOT / exists+isDirectory). TS function overload exposes `strict` mode (save: first-error short-circuits with `badPath`) and `filter` mode (use: invalid paths drop silently with `dropped` audit array). Dedupes via `resolved.includes`; persists canonical `pathResolve` output.
+- **SDK**: `additionalDirectories?: string[]` plumbed through `ClaudeCodeRequest` ([`claudeCode.ts:30`](../server/src/lib/claudeCode.ts#L30)) using existing conditional-spread pattern. `claudeChat.ts:495` re-validates in filter mode before passing to `runClaudeCode`. Verified at SDK type def `sdk.d.ts:1097`.
+- **Picker**: Electron-only [`agent/src/main/pickFolder.ts`](../agent/src/main/pickFolder.ts) wires `dialog.showOpenDialog({ properties: ['openDirectory'] })` with focused-window-then-modeless fallback. Lives in `agent/src/main/` (NOT `shared/routes/`) since `electron` can't be imported in the dev `server/` Express. Mounted in `agent/src/main/server.ts:128` via dynamic import.
+- **UI**: new "Reference folders / 参考文件夹" SideCard in [`ProjectPage.tsx:534`](../src/components/ProjectPage.tsx) between Files and Context, mirrors Files shape. ChatPanel header chip `N ref(s)` ([`ChatPanel.tsx:72`](../src/components/ChatPanel.tsx)) next to FolderChip when count > 0. App.tsx `handleAddReferenceDirectory` is **synchronous server validation** (PUT before local state) so user gets immediate inline bilingual errors; `handleRemoveReferenceDirectory` is local-only (auto-flush via existing `scheduleProjectFlush`).
+- **Mobile graceful-degrade**: 1:1 reuse of PR #138 `useIsMobile` + `AgentRequiredHint` pattern — no rewrite. Add/Remove buttons trigger 5s tip on mobile click; SideCard list visible read-only.
+- **`ProjectValidationError` class** (new in [`projectStore.ts:127`](../src/lib/projectStore.ts#L127)) — `handleResponse` catches 400 + reads bilingual `body.error` so UI surfaces the actual server message ("System directory not allowed / 系统目录不允许") inline rather than a generic "Project API 400".
+- **Picker fallback chain**: 404 (dev) → reveal text input row / fetch throw (no agent reachable) → reveal text input row / picker `{ ok: false, reason: 'cancelled' }` → noop / 5xx → bilingual error toast. Three failure modes all gracefully covered.
+
+**Beibei's 3 product picks** during change-list review:
+1. **DB schema = dedicated `reference_directories jsonb`** (not generic metadata bag) for type cleanliness; matches existing files/outputs columns.
+2. **Picker = agent IPC + Electron `dialog.showOpenDialog`** — impl initially missed that the agent IS Electron 33 (Phase 7), recovered after re-reading memory. Avoids new deps.
+3. **Folder picker fallback** — text input always available (dev mode + agent unreachable + future browser-only environments), so the feature degrades gracefully.
+
+**Self-test (impl, all ✅)**: `/etc`, `~/WorkPal/...`, traversal `..`, missing folders all rejected with bilingual errors visible inline; valid path round-trip via Supabase persisted across reload; mobile graceful-degrade with AgentRequiredHint screenshot; dev-mode picker → text input fallback verified end-to-end.
+
+**Not yet covered — deferred to v0.1.2 install verification**:
+- Real Electron `dialog.showOpenDialog` in LSUIElement menu-bar context (Phase 7.3 SecurityAgent admin-domain failure was a near neighbor; dialog APIs don't need admin so likely fine, but unverified).
+- Real SDK chat using `additionalDirectories` against an attached folder (Read/Glob/Grep coverage).
+- These verifications happen after Beibei pulls v0.1.2 dmg and installs.
+
+**Surfaced**: 2026-04-27 conversation. Beibei wanted Codex-style "point AI at a folder before it answers" — e.g., she has `~/Documents/我的设计资料/` and wants the agent to read that folder when answering questions in a project, even though it's outside the project's git repo. Was impossible pre-§17: SDK call set `cwd` to the session worktree only; no `additionalDirectories` passed; no UI to add reference paths.
 
 **Strategy (locked)**:
 

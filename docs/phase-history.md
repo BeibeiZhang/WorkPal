@@ -234,8 +234,11 @@ Phase 5 一路踩下的坑和形成的宗旨，**沉淀在 `docs/principles.md`*
 - **PR [#138](https://github.com/BeibeiZhang/WorkPal/pull/138)** (2026-04-26) — `feat: mobile graceful degrade for agent features (#15)`，10 文件 +333 −68。新 `useIsMobile` hook + `AgentRequiredHint` 共享组件 + 5 个 agent 触点 mobile 分支。Clean ship，planning 独立 live-test 4 场景过。
 - **PR [#141](https://github.com/BeibeiZhang/WorkPal/pull/141)** (2026-04-27) — Overview API Spend range 改 iOS wheel picker，纯 UI polish fast-lane。
 - **PR [#142](https://github.com/BeibeiZhang/WorkPal/pull/142)** (2026-04-27) — §15 follow-up：AgentRequiredHint 改 English-only（Beibei 决策，targeted bilingual exception）+ 修 hover ring 视觉（`inset: -1px` / `-2px` 让 chip / input hover 不再"缩水"）。
+- **PR [#143](https://github.com/BeibeiZhang/WorkPal/pull/143)** (2026-04-27) — `feat: project knowledge framing + reference folders (#16 + #17)`，22 文件 +846 −11。§16 = Complete Session 按钮 + 成功 modal 三态双语 tooltip / 文案让"知识库"框架显眼（0 行为变化）。§17 = 真功能：新 `reference_directories jsonb` 列（migration 0005，已 apply prod）+ `referenceDirs.ts` validator 双 mode + SDK `additionalDirectories` 透传 + Electron `dialog.showOpenDialog` picker（dev 模式 404 → text input fallback）+ ProjectPage SideCard + ChatPanel header chip + 复用 §15 mobile graceful-degrade pattern。Self-test 8 场景过；剩"真 Electron picker LSUIElement 行为"+"真 SDK chat 拿 refDirs"待 v0.1.2 装新 dmg 验。
 
-**下一步**：根据 [`docs/post-phase-6-candidates.md`](./post-phase-6-candidates.md) 优先级开新工作。当前 backlog 17 条（11 已 shipped，6 在排队）。pending 6 条：**#3** Artifact 生成（decided-next，5-7 天，最大产品扩面）/ **#4** Bilingual scaffold（parked）/ **#6** CN→EN translate fix（1-2h）/ **#13 Option C** 签名 + notarize（$99/yr）/ **#16** Complete Session 知识库 UX 文案（decided-next，30min - 1h）/ **#17** Project reference folders（decided-next，2-3h）。Phase 7 主线没未完成项。
+**下一步**：根据 [`docs/post-phase-6-candidates.md`](./post-phase-6-candidates.md) 优先级开新工作。当前 backlog 17 条（13 已 shipped，4 在排队）。pending 4 条：**#3** Artifact 生成（decided-next，5-7 天，最大产品扩面）/ **#4** Bilingual scaffold（parked）/ **#6** CN→EN translate fix（1-2h）/ **#13 Option C** 签名 + notarize（$99/yr）。Phase 7 主线没未完成项。
+
+**等装 v0.1.2**: PR #143 ship 后 CI 自动出 v0.1.2 dmg。Beibei 装好后验两件事：(1) 真 Electron `dialog.showOpenDialog` 在 LSUIElement menu-bar context 下能弹（Phase 7.3 SecurityAgent 近邻坑，dialog 不需 admin domain 大概率 OK）；(2) 真 SDK chat 拿 `additionalDirectories` 跑 Read/Glob/Grep 命中外部目录。两件如果都过，§17 完整闭环；如果 picker 弹不出，client 已写好 fallback 到 text input。
 
 ---
 
