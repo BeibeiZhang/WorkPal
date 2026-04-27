@@ -490,9 +490,21 @@ After clearing the quarantine attribute, double-click opens normally (no further
 
 ---
 
-## 18. `decided-next` — UI bilingual → English-only sweep (post-principle #8 flip)
+## 18. `decided-next` — UI bilingual → English-only sweep + §17 picker hotfix
 
-**Surfaced**: 2026-04-27, after [`docs/principles.md`](./principles.md) principle #8 flipped from "bilingual day 1" to "English-first UI" (commit `f66a5be`). All previously-shipped "EN / 中文" double-line UI copy needs to retrofit to English-only. Pure copy edit, zero behavior / logic / type change. Beibei's framing: "EN / 中文 同时显示视觉累赘 + 维护税重" — examples in screenshot included `Reference folders / 参考文件夹`, `Cancel / 取消`, `Paste an absolute path. / 粘贴绝对路径`.
+**Surfaced**: 2026-04-27, after [`docs/principles.md`](./principles.md) principle #8 flipped from "bilingual day 1" to "English-first UI" (commit `f66a5be`). All previously-shipped "EN / 中文" double-line UI copy needs to retrofit to English-only. Pure copy edit, zero behavior / logic / type change. Beibei's framing: "EN / 中文 同时显示视觉累赘 + 维护税重" — examples in screenshot included `Reference folders / 参考文件夹`, `Cancel / 取消`, `Paste an absolute path. / 粘贴绝对路径`. Bundled with a small §17 hotfix below since §17 picker is broken in production (dev-mode passed self-test but vercel.app deploy doesn't reach the agent endpoint).
+
+**§17 picker hotfix (production bug, bundle in same PR)**:
+
+[`src/components/ProjectPage.tsx:99`](../src/components/ProjectPage.tsx#L99) uses bare `fetch('/api/pick-folder', ...)` — a relative path. In `workpal-beibei.vercel.app` context this resolves to `vercel.app/api/pick-folder` (no such endpoint on Vercel) → **always 404** → always falls back to text input row. The native picker `dialog.showOpenDialog` is wired correctly in `agent/src/main/pickFolder.ts` and serves on `https://127.0.0.1:3001/api/pick-folder`, but the frontend never calls it. Dev-mode self-test passed because localhost happens to land on the right Express via Vite proxy; production cross-origin doesn't.
+
+Fix:
+- Change `fetch('/api/pick-folder', { method: 'POST' })` → `fetchAgent('/api/pick-folder', { method: 'POST' })`
+- Add import: `import { fetchAgent, AgentUnreachableError } from '../lib/agent';`
+- Existing `catch { setShowInput(v => !v) }` still works for `AgentUnreachableError` (no agent reachable from this device at all) and for 404 (agent up but old version without pickFolder mount). Defensive: log AgentUnreachableError once via console.warn so future debugging has a trail.
+- Mobile check above `fetchAgent` call already short-circuits via `triggerHint()`, so AgentRequiredOnMobileError won't bubble in practice — no extra mobile handling needed.
+
+Ship verification: install v0.1.2 agent + open `workpal-beibei.vercel.app` → ProjectPage → Reference folders → Add folder → real macOS native folder picker pops (NOT text input).
 
 **Strategy (locked)**:
 
