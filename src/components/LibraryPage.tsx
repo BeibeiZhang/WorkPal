@@ -229,7 +229,7 @@ function LibraryCard({ item }: { item: LibraryItem }) {
               className="flex flex-col gap-1 pb-2"
               style={{ borderBottom: '1px solid rgba(255,255,255,0.6)' }}
             >
-              <TypeIcon size={24} strokeWidth={1.6} style={{ color: '#fff' }} />
+              <TypeIcon size={24} strokeWidth={1.6} className="text-white" />
               <p
                 className="type-detail-emphasized text-white"
                 style={{
@@ -275,7 +275,7 @@ function LibraryCard({ item }: { item: LibraryItem }) {
                 boxShadow: '0px 2px 6px 0px rgba(1,20,80,0.3)',
               }}
             >
-              <Play size={22} fill="#142740" stroke="#142740" />
+              <Play size={22} fill="var(--color-fixed-dark-text)" stroke="var(--color-fixed-dark-text)" />
             </div>
           </div>
         )}
@@ -283,16 +283,16 @@ function LibraryCard({ item }: { item: LibraryItem }) {
         {/* Hover-only quick actions — top-right */}
         <div className="absolute top-2.5 right-2.5 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
-            className="w-8 h-8 flex items-center justify-center rounded-full backdrop-blur-md transition-colors hover:bg-white"
-            style={{ background: 'rgba(255,255,255,0.92)', color: '#142740' }}
+            className="w-8 h-8 flex items-center justify-center rounded-full backdrop-blur-md transition-colors hover:bg-white text-text-fixed-dark"
+            style={{ background: 'rgba(255,255,255,0.92)' }}
             onClick={(e) => e.stopPropagation()}
             title="Download"
           >
             <Download size={14} />
           </button>
           <button
-            className="w-8 h-8 flex items-center justify-center rounded-full backdrop-blur-md transition-colors hover:bg-white"
-            style={{ background: 'rgba(255,255,255,0.92)', color: '#142740' }}
+            className="w-8 h-8 flex items-center justify-center rounded-full backdrop-blur-md transition-colors hover:bg-white text-text-fixed-dark"
+            style={{ background: 'rgba(255,255,255,0.92)' }}
             onClick={(e) => e.stopPropagation()}
             title="More"
           >

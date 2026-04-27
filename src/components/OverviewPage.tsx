@@ -631,7 +631,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                           off the card (matches Figma node 6648:24786 — strong
                           y=23 offset shadow). Inset shadow on the top edge
                           gives the subtle "depth" inside the wheel. */}
-                      <div className="absolute inset-0 rounded-[4px] bg-bg-page border border-[#bebebe] shadow-[0_23px_9.55px_rgba(0,0,0,0.25),inset_0_4px_20px_rgba(0,0,0,0.04)] dark:border-stroke-outline dark:bg-[rgba(226,243,255,0.05)] pointer-events-none" />
+                      <div className="absolute inset-0 rounded-[4px] bg-bg-page border border-stroke-outline shadow-[0_23px_9.55px_rgba(0,0,0,0.25),inset_0_4px_20px_rgba(0,0,0,0.04)] dark:bg-[rgba(226,243,255,0.05)] pointer-events-none" />
                       {/* Fixed center highlight — border-only frame (no bg)
                           marks where the selected item lands at y=64. The
                           frame is the visible "selected" indicator; non-

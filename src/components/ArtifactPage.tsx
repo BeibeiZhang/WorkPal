@@ -77,7 +77,7 @@ export default function ArtifactPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-bg-page">
-        <Loader2 className="w-8 h-8 animate-spin text-text-primary/40" />
+        <Loader2 className="w-8 h-8 animate-spin text-text-tertiary" />
       </div>
     );
   }
@@ -87,7 +87,7 @@ export default function ArtifactPage() {
       <div className="min-h-screen flex items-center justify-center bg-bg-page">
         <div className="text-center max-w-sm px-6">
           <h1 className="type-display text-text-primary mb-2">Not found</h1>
-          <p className="type-body text-text-primary/60">
+          <p className="type-body text-text-secondary">
             This artifact doesn’t exist or isn’t ready yet.
           </p>
         </div>
@@ -99,7 +99,7 @@ export default function ArtifactPage() {
     <div className="min-h-screen bg-bg-page text-text-primary">
       {/* Top bar — brand + EN/中 toggle, no WorkPal nav shell */}
       <header className="max-w-[960px] mx-auto px-6 pt-8 pb-4 flex items-center justify-between">
-        <p className="type-detail-emphasized text-text-primary/50 tracking-wide uppercase">
+        <p className="type-detail-emphasized text-text-secondary tracking-wide uppercase">
           WorkPal · Artifact
         </p>
         <div className="flex items-center gap-0.5 p-0.5 rounded-full border border-stroke-outline">
@@ -110,7 +110,7 @@ export default function ArtifactPage() {
               className={`px-3 py-1 type-detail-emphasized rounded-full transition-colors ${
                 lang === l
                   ? 'bg-text-primary text-white'
-                  : 'text-text-primary/60 hover:text-text-primary'
+                  : 'text-text-secondary hover:text-text-primary'
               }`}
             >
               {l === 'en' ? 'EN' : '中'}
@@ -134,7 +134,7 @@ export default function ArtifactPage() {
         <h1 className="type-display mb-4">
           {content.title}
         </h1>
-        <p className="type-body text-text-primary/70 max-w-[720px]">
+        <p className="type-body text-text-secondary max-w-[720px]">
           {content.summary}
         </p>
       </section>
@@ -146,7 +146,7 @@ export default function ArtifactPage() {
         ))}
       </main>
 
-      <footer className="max-w-[960px] mx-auto px-6 py-10 text-center type-detail text-text-primary/40">
+      <footer className="max-w-[960px] mx-auto px-6 py-10 text-center type-detail text-text-tertiary">
         Generated {new Date(artifact.createdAt).toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-US', {
           year: 'numeric', month: 'long', day: 'numeric',
         })} · WorkPal
@@ -194,7 +194,7 @@ function ArtifactItemCard({ item }: { item: ItemShape }) {
         <h3 className="type-h2-emphasized line-clamp-2">
           {item.title || 'Untitled'}
         </h3>
-        <div className="flex flex-col gap-1.5 type-detail text-text-primary/70">
+        <div className="flex flex-col gap-1.5 type-detail text-text-secondary">
           {item.location && (
             <InfoLine icon={<MapPin className="w-4 h-4" />}>{item.location}</InfoLine>
           )}
@@ -206,7 +206,7 @@ function ArtifactItemCard({ item }: { item: ItemShape }) {
           )}
         </div>
         {item.url && (
-          <p className="type-detail text-text-primary/50 inline-flex items-center gap-1 mt-1">
+          <p className="type-detail text-text-secondary inline-flex items-center gap-1 mt-1">
             <ExternalLink className="w-3 h-3" /> {safeHost(item.url)}
           </p>
         )}
@@ -218,7 +218,7 @@ function ArtifactItemCard({ item }: { item: ItemShape }) {
 function InfoLine({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-text-primary/50">{icon}</span>
+      <span className="text-text-secondary">{icon}</span>
       <span className="truncate">{children}</span>
     </div>
   );

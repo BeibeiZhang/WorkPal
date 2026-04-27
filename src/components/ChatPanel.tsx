@@ -58,7 +58,7 @@ function FolderChip({ path, onOpen }: { path: string; onOpen?: (path: string) =>
           title={`${path} — click to open in Finder, shift+click to copy`}
           maxWidth={320}
           icon={copied
-            ? <Check size={14} className="shrink-0 text-[#028901]" />
+            ? <Check size={14} className="shrink-0 text-accent-green" />
             : <FolderClosed size={14} className="shrink-0" />}
         >
           {path}
@@ -81,7 +81,7 @@ function ReferenceFoldersChip({ count, onClick }: { count: number; onClick?: () 
     <UtilityChip
       onClick={onClick}
       ariaLabel={`${count} reference folder${count === 1 ? '' : 's'} attached. Click to manage.`}
-      title={`${count} reference folder${count === 1 ? '' : 's'} attached / 已附加 ${count} 个参考文件夹`}
+      title={`${count} reference folder${count === 1 ? '' : 's'} attached`}
       icon={<FolderClosed size={14} className="shrink-0" />}
     >
       {`${count} ref${count === 1 ? '' : 's'}`}
@@ -204,10 +204,7 @@ function WelcomeState({ isDark, selectedAvatarId, onAvatarChange }: { isDark?: b
               onClick={() => handleSelect(agent)}
               className="w-[100px] h-[100px] rounded-full shrink-0 cursor-pointer relative group"
             >
-              <div
-                className="absolute inset-0 rounded-full overflow-hidden transition-all group-hover:bg-[rgba(49,113,255,0.1)] group-active:border group-active:border-[#3171ff]"
-                style={{ background: 'var(--color-bg-hover)' }}
-              >
+              <div className="absolute inset-0 rounded-full overflow-hidden transition-all bg-bg-hover group-hover:bg-accent-blue-faint group-active:border group-active:border-accent-blue">
                 <img src={agent.avatar} alt={agent.name} className="w-full h-full object-cover" />
               </div>
             </button>
@@ -218,12 +215,9 @@ function WelcomeState({ isDark, selectedAvatarId, onAvatarChange }: { isDark?: b
           onClick={() => setPickerOpen(true)}
           className="w-[150px] h-[150px] rounded-full shrink-0 cursor-pointer relative group active:w-[152px] active:h-[152px]"
         >
-          <div
-            className="absolute inset-0 rounded-full overflow-hidden transition-colors group-active:border group-active:border-[#3171ff]"
-            style={{ background: 'var(--color-bg-hover)' }}
-          >
+          <div className="absolute inset-0 rounded-full overflow-hidden transition-colors bg-bg-hover group-active:border group-active:border-accent-blue">
             {/* Blue tint overlay on hover */}
-            <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10" style={{ background: 'rgba(49,113,255,0.1)' }} />
+            <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-accent-blue-faint" />
             {(() => {
               const pool = isDark ? darkPool : lightPool;
               const idx = isDark ? darkIdx : lightIdx;

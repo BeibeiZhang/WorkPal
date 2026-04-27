@@ -100,7 +100,7 @@ export function setServerPortBusy(port: number, message: string): void {
   };
 }
 
-const REINSTALL_HINT = ' Try reinstalling WorkPal Agent. / 建议重装 WorkPal Agent。';
+const REINSTALL_HINT = ' Try reinstalling WorkPal Agent.';
 
 export function setCertInstalled(): void {
   current = { ...current, certState: 'installed', certError: null };

@@ -87,8 +87,7 @@ export default function PermissionPrompt({ request, onAllow, onAlwaysAllow, onCa
 
         {showTarget && (
           <div
-            className="px-3 py-2 rounded-lg font-mono type-caption text-text-primary break-all mb-4"
-            style={{ background: 'var(--color-bg-hover)' }}
+            className="px-3 py-2 rounded-lg font-mono type-caption text-text-primary break-all mb-4 bg-bg-hover"
           >
             {request.target}
           </div>

@@ -53,14 +53,30 @@ Every CSS variable with its resolved light / dark value. If you need a token, fi
 --color-progress-bar          —                    / #3171FF
 
 # Semantic accents (mode-invariant)
---color-accent-blue           #3171FF
---color-accent-green          #028901
---color-accent-green-bg       rgba(2,137,1,0.1)
---color-accent-red            #C93838
---color-accent-amber          #A87725
---color-accent-orange         #B8541A
---color-accent-violet         #6B54E6
---color-accent-neutral        #6B7280
+--color-accent-blue            #3171FF
+--color-accent-blue-faint      rgba(49,113,255,0.1)
+--color-accent-blue-faint-hover rgba(49,113,255,0.15)
+--color-accent-green           #028901
+--color-accent-green-bg        rgba(2,137,1,0.1)
+--color-accent-red             #C93838
+--color-accent-amber           #A87725
+--color-accent-orange          #B8541A
+--color-accent-violet          #6B54E6
+--color-accent-neutral         #6B7280
+
+# Form / inline error red (distinct from --color-accent-red status indicator)
+--color-error                  #B42318              / #F97066
+
+# Inverted tooltip surface (dark in both modes)
+--color-tooltip-bg             #1a1a1a
+
+# Loading overlay over media previews (mode-flipped to invert dim direction)
+--color-overlay-loading        rgba(0,0,0,0.4)      / rgba(255,255,255,0.4)
+
+# Foreground locked to light-mode primary, regardless of theme.
+# For colored cover surfaces (Library tile peach, ComingSoon pink) where
+# theme-aware text-text-primary would flip to white-on-peach unreadable.
+--color-fixed-dark-text        #142740
 
 # Brand gradient stops
 --brand-grad-start            #7652B9
@@ -108,15 +124,22 @@ Every CSS variable with its resolved light / dark value. If you need a token, fi
 | `--color-stroke-toggle` | `#E6E8EA` | `rgba(115,178,255,0.2)` | Inputs, toggles |
 | `--color-selected-bg` | `rgba(49,113,255,0.1)` | `#3171FF` | Active chip/filter |
 | `--color-selected-text` | `#3171FF` | `#FFFFFF` | Active chip/filter label |
-| `--color-accent-blue` | `#3171FF` | — | Links, @mentions, progress, focus |
-| `--color-accent-green` / `-green-bg` | `#028901` / `rgba(2,137,1,0.1)` | — | StatusTag success only |
-| `--color-accent-red` | `#C93838` | — | StatusTag failed, danger |
+| `--color-accent-blue` | `#3171FF` | — | Links, @mentions, progress, focus, selected outputs |
+| `--color-accent-blue-faint` / `-faint-hover` | `rgba(49,113,255,0.1/0.15)` | — | Active state bg (e.g. TTS playing button) |
+| `--color-accent-green` / `-green-bg` | `#028901` / `rgba(2,137,1,0.1)` | — | StatusTag success, success messages, +insertions |
+| `--color-accent-red` | `#C93838` | — | StatusTag failed (status indicator) |
 | `--color-accent-amber` | `#A87725` | — | StatusTag in-review |
 | `--color-accent-orange` | `#B8541A` | — | StatusTag pending |
 | `--color-accent-violet` | `#6B54E6` | — | StatusTag submitted, Maya's insight |
 | `--color-accent-neutral` | `#6B7280` | — | StatusTag expired |
+| `--color-error` | `#B42318` | `#F97066` | Form validation, inline error text, -deletions, error backgrounds |
+| `--color-tooltip-bg` | `#1a1a1a` | — | Inverted tooltip / docs sample bg |
+| `--color-overlay-loading` | `rgba(0,0,0,0.4)` | `rgba(255,255,255,0.4)` | Translucent dim over media previews while loading |
+| `--color-fixed-dark-text` | `#142740` | — | Force dark text on always-light overlays (Library peach, ComingSoon pink) |
 
-**Tailwind shortcuts:** `text-text-primary`, `text-text-secondary`, `bg-bg-page`, `bg-bg-hover`, `border-stroke-outline`.
+**Tailwind shortcuts:** `text-text-primary`, `text-text-secondary`, `text-text-tertiary`, `text-text-fixed-dark`, `bg-bg-page`, `bg-bg-hover`, `border-stroke-outline`, `text-error`, `bg-error`, `border-error`, `text-accent-blue`, `bg-accent-blue`, `bg-accent-blue-faint`, `bg-accent-blue-faint-hover`, `text-accent-green`, `bg-tooltip`, `bg-overlay-loading`.
+
+**Anti-pattern — silent failure:** Tailwind alpha modifiers on these CSS-var-backed color classes (e.g. `text-text-primary/60`, `bg-bg-hover/40`) **silently fail** because the underlying tokens are stored as `rgba(...)` literals (or hex), not RGB triplets — Tailwind emits no rule and the element falls back to inherit. Always pick the closest existing token (`text-text-secondary` rgba .6 / `text-text-tertiary` rgba .4) or add a new explicit token.
 
 ### 1.2 Brand gradient (scarce — 1–2% page budget)
 

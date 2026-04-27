@@ -112,8 +112,7 @@ async function validateCompleteInputs(body: {
     return {
       ok: false,
       status: 404,
-      error:
-        'Project has no git repo yet — open the project once to initialize. / 项目尚未初始化 git —— 先打开项目一次完成初始化。',
+      error: 'Project has no git repo yet — open the project once to initialize.',
     };
   }
 
@@ -141,7 +140,7 @@ router.post('/session/complete', async (req, res) => {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`[session/complete] initProjectIfNeeded failed: ${message}`);
     res.status(500).json({
-      error: `Failed to prepare project repo: ${message} / 准备 project 仓库失败: ${message}`,
+      error: `Failed to prepare project repo: ${message}`,
     });
     return;
   }
@@ -156,7 +155,7 @@ router.post('/session/complete', async (req, res) => {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`[session/complete] diff failed: ${message}`);
     res.status(500).json({
-      error: `Failed to compute session diff: ${message} / 计算 session diff 失败: ${message}`,
+      error: `Failed to compute session diff: ${message}`,
     });
   }
 });
@@ -193,8 +192,7 @@ router.post('/session/merge', async (req, res) => {
     res.status(409).json({
       ok: false,
       reason: 'not-ff',
-      error:
-        'Session cannot be fast-forwarded — another completed session has advanced the project since this session started. / 此会话无法快进合并 —— 本会话创建后,已有其他会话合并进项目。',
+      error: 'Session cannot be fast-forwarded — another completed session has advanced the project since this session started.',
       gitMessage: result.message,
     });
     return;
@@ -206,7 +204,7 @@ router.post('/session/merge', async (req, res) => {
   res.status(500).json({
     ok: false,
     reason: 'other',
-    error: `Merge failed: ${result.message} / 合并失败: ${result.message}`,
+    error: `Merge failed: ${result.message}`,
   });
 });
 

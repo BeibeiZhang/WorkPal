@@ -861,7 +861,7 @@ router.post('/claude-chat/open-file', async (req, res) => {
     // confusing "The item can't be found" system dialog).
     await access(pathCheck.resolved);
   } catch {
-    res.status(404).json({ error: 'file not found / 文件不存在' });
+    res.status(404).json({ error: 'file not found' });
     return;
   }
   try {
@@ -898,11 +898,11 @@ router.post('/claude-chat/read-file', async (req, res) => {
     const { readFile, stat } = await import('node:fs/promises');
     const stats = await stat(pathCheck.resolved);
     if (!stats.isFile()) {
-      res.status(400).json({ error: 'path is not a file / 路径不是文件' });
+      res.status(400).json({ error: 'path is not a file' });
       return;
     }
     if (stats.size > 10 * 1024 * 1024) {
-      res.status(413).json({ error: 'file too large for inline preview (>10 MB) / 文件过大无法预览' });
+      res.status(413).json({ error: 'file too large for inline preview (>10 MB)' });
       return;
     }
     const content = await readFile(pathCheck.resolved, 'utf8');
@@ -910,7 +910,7 @@ router.post('/claude-chat/read-file', async (req, res) => {
   } catch (err) {
     const e = err as NodeJS.ErrnoException;
     if (e.code === 'ENOENT') {
-      res.status(404).json({ error: 'file not found / 文件不存在' });
+      res.status(404).json({ error: 'file not found' });
       return;
     }
     const message = err instanceof Error ? err.message : String(err);

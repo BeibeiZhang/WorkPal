@@ -2893,20 +2893,20 @@ export default function App() {
    *  message on failure so the UI can render it inline. */
   const handleAddReferenceDirectory = useCallback(
     async (projectId: string, path: string): Promise<{ ok: true } | { ok: false; error: string }> => {
-      if (IS_DEMO) return { ok: false, error: 'Reference folders are read-only in demo mode / Demo 模式不支持参考文件夹' };
+      if (IS_DEMO) return { ok: false, error: 'Reference folders are read-only in demo mode' };
       const project = projects.find(p => p.id === projectId);
-      if (!project) return { ok: false, error: 'Project not found / 找不到 project' };
+      if (!project) return { ok: false, error: 'Project not found' };
       const trimmed = path.trim();
-      if (!trimmed) return { ok: false, error: 'Path required / 路径不能为空' };
+      if (!trimmed) return { ok: false, error: 'Path required' };
       const existing = project.referenceDirectories ?? [];
       if (existing.includes(trimmed)) {
-        return { ok: false, error: 'Folder already attached / 文件夹已添加' };
+        return { ok: false, error: 'Folder already attached' };
       }
       let password: string;
       try {
         password = await ensurePassword();
       } catch {
-        return { ok: false, error: 'Password required / 需要密码' };
+        return { ok: false, error: 'Password required' };
       }
       const updated: Project = {
         ...project,
@@ -2929,12 +2929,12 @@ export default function App() {
       } catch (err) {
         if (err instanceof ProjectAuthError) {
           signOut();
-          return { ok: false, error: 'Session expired / 会话已过期' };
+          return { ok: false, error: 'Session expired' };
         }
         if (err instanceof ProjectValidationError) {
           return { ok: false, error: err.message };
         }
-        const message = err instanceof Error ? err.message : 'Save failed / 保存失败';
+        const message = err instanceof Error ? err.message : 'Save failed';
         return { ok: false, error: message };
       }
     },

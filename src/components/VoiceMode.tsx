@@ -216,10 +216,10 @@ export default function VoiceMode({ onClose, onMessage, onImages, onVideos, onWe
           </svg>
         )}
         {state === 'connecting' && (
-          <div className="w-3 h-3 border-2 border-text-primary/20 border-t-text-primary rounded-full animate-spin" />
+          <div className="w-3 h-3 border-2 border-stroke-outline border-t-text-primary rounded-full animate-spin" />
         )}
         {state === 'error' && (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C93838" strokeWidth="2.5">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-red)" strokeWidth="2.5">
             <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         )}

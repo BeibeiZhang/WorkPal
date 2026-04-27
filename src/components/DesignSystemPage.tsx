@@ -643,7 +643,7 @@ const TYPE_OUTLIERS: {
     classes: 'text-[11px] leading-tight',
     maps: '11 / 1.25 / 400',
     sample: 'Copy to clipboard',
-    sampleStyle: { fontSize: 11, lineHeight: 1.25, background: '#1a1a1a', color: '#fff', padding: '4px 8px', borderRadius: 6, display: 'inline-block' },
+    sampleStyle: { fontSize: 11, lineHeight: 1.25, background: 'var(--color-tooltip-bg)', color: '#fff', padding: '4px 8px', borderRadius: 6, display: 'inline-block' },
     usedIn: ['shared — Tooltip hover bubble'],
     note: 'Footnote (11/1) variant with a 1.25 leading cushion. Always on a dark 1a1a1a bubble.',
   },
@@ -1651,7 +1651,7 @@ function LayoutsTab() {
 
       <LayoutCard name="PageLayout" pagesUsing={['OverviewPage', 'LibraryPage', 'ConnectorsPage', 'DesignSystemPage', 'Onboarding', 'ProjectPage', 'ComingSoonPage']}>
         <p className="type-caption text-text-primary mb-3">
-          Canonical page shell. Toggle bar + H1 + optional filters + scrollable body. Edit the spec in <code className="type-caption font-mono px-1 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>shared.tsx</code> once — every page updates.
+          Canonical page shell. Toggle bar + H1 + optional filters + scrollable body. Edit the spec in <code className="type-caption font-mono px-1 rounded text-accent-blue" style={{ background: 'var(--color-bg-hover)' }}>shared.tsx</code> once — every page updates.
         </p>
         <div className="rounded-lg border border-stroke-outline overflow-hidden" style={{ background: 'var(--color-bg-hover)' }}>
           <div className="p-5">
@@ -2925,7 +2925,7 @@ function ReviewTab() {
           <li>When building a feature, I always check the <strong>Component Library</strong> first.</li>
           <li>Whenever possible, I reuse an existing shared component.</li>
           <li>If nothing fits, I build a new component and <strong>add it here</strong> so you can review.</li>
-          <li>You <strong>Approve</strong> (promote to <code className="font-mono type-caption px-1 rounded" style={{ background: 'var(--color-bg-hover)', color: '#3171ff' }}>shared.tsx</code> permanently) or <strong>Reject</strong> (I remove it and switch back to the closest existing component).</li>
+          <li>You <strong>Approve</strong> (promote to <code className="font-mono type-caption px-1 rounded text-accent-blue" style={{ background: 'var(--color-bg-hover)' }}>shared.tsx</code> permanently) or <strong>Reject</strong> (I remove it and switch back to the closest existing component).</li>
         </ol>
       </div>
 

@@ -638,7 +638,7 @@ export function Tooltip({ label, children }: { label: string; children: ReactNod
   return (
     <div className="relative group">
       {children}
-      <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded-md bg-[#1a1a1a] text-white text-[11px] leading-tight whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50">
+      <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded-md bg-tooltip text-white type-footnote whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50">
         {label}
       </div>
     </div>
@@ -1289,7 +1289,7 @@ export function TextField({
         />
       </div>
       {error && (
-        <p className="mt-1.5 type-caption text-[#B42318]" role="alert">
+        <p className="mt-1.5 type-caption text-error" role="alert">
           {error}
         </p>
       )}

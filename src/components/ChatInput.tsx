@@ -311,7 +311,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
                 type="button"
                 onClick={() => removeAttachment(att.id)}
                 aria-label={`Remove ${att.name}`}
-                className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center bg-bg-page/90 border border-stroke-outline text-text-primary opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity cursor-pointer"
+                className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center bg-bg-page border border-stroke-outline text-text-primary opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity cursor-pointer"
               >
                 <X size={12} />
               </button>
@@ -321,7 +321,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
       )}
 
       {attachError && (
-        <div className="type-caption text-[#B42318]" role="status">
+        <div className="type-caption text-error" role="status">
           {attachError}
         </div>
       )}

@@ -43,6 +43,8 @@ strong, b {
 
   /* Status / semantic accents — used for tags, badges, callouts */
   --color-accent-blue: #3171ff;
+  --color-accent-blue-faint: rgba(49,113,255,0.1);
+  --color-accent-blue-faint-hover: rgba(49,113,255,0.15);
   --color-accent-green: #028901;
   --color-accent-green-bg: rgba(2,137,1,0.1);
   --color-accent-red: #C93838;
@@ -50,6 +52,27 @@ strong, b {
   --color-accent-orange: #B8541A;
   --color-accent-violet: #6B54E6;
   --color-accent-neutral: #6B7280;
+
+  /* Form validation / inline error red. Distinct from --color-accent-red
+     (#C93838, status indicator) — error red is deeper crimson tuned for
+     inline validation messages and small icons against light fills. */
+  --color-error: #B42318;
+
+  /* Inverted tooltip surface — dark in both modes so the floating tooltip
+     reads as a high-contrast layer regardless of theme. */
+  --color-tooltip-bg: #1a1a1a;
+
+  /* Translucent loading overlay used over media previews while content
+     fetches. Light mode: dim toward black; dark override below uses
+     light-toward-white for the same dim effect on the dark canvas. */
+  --color-overlay-loading: rgba(0,0,0,0.4);
+
+  /* Foreground locked to the light-mode primary regardless of theme. Used
+     on colored cover surfaces (Library tile peach, ComingSoon pink) where
+     the bg stays light in both modes — letting the theme-aware
+     `text-text-primary` flip to white would render white-on-peach
+     unreadable. Same value in light + dark. */
+  --color-fixed-dark-text: #142740;
 
   /* Brand gradient stops — single source of truth */
   --brand-grad-start: #7652B9;
@@ -155,6 +178,13 @@ strong, b {
   /* Dark mode chat input inner fill: 20% black. */
   --color-input-bg: rgba(0, 0, 0, 0.2);
   --color-progress-bar: #3171ff;
+
+  /* Lighter red for dark canvas — Tailwind red-400 family. The light-mode
+     #B42318 is too dark against #001424 (~4:1, borderline for body text). */
+  --color-error: #F97066;
+
+  /* Invert overlay direction for dark mode — dim toward white. */
+  --color-overlay-loading: rgba(255,255,255,0.4);
 }
 
 html, body, #root {

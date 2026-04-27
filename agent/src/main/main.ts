@@ -243,7 +243,7 @@ async function main(): Promise<void> {
     certBootstrapped = true;
     if (result.renewalError) {
       // Per clarify #1: renewal-success is silent, only failure surfaces.
-      setCertError(`Cert renewal failed / 证书续期失败: ${result.renewalError}`);
+      setCertError(`Cert renewal failed: ${result.renewalError}`);
     } else {
       // Detect Keychain trust independently (orphan / first-launch / installed).
       const status = await caKeychainStatus();
@@ -260,7 +260,7 @@ async function main(): Promise<void> {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     await log('error', `cert: bootstrap failed — ${msg}`);
-    setCertError(`Cert bootstrap failed / 证书初始化失败: ${msg}`);
+    setCertError(`Cert bootstrap failed: ${msg}`);
     // Without cert material, the HTTPS listener cannot start. Skip
     // startApiServer — Settings will show cert-error and the user has the
     // reinstall hint to act on. Agent stays alive so the user can quit cleanly.

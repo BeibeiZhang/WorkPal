@@ -126,10 +126,10 @@ export class ProjectAuthError extends Error {
   }
 }
 
-/** §17: server returns 400 with a bilingual `error` field when reference
- *  directory validation fails. Surfacing the literal server message lets
- *  the UI show "System directory not allowed / 系统目录不允许" inline rather
- *  than a generic "Project API 400". */
+/** §17: server returns 400 with an `error` field when reference directory
+ *  validation fails. Surfacing the literal server message lets the UI show
+ *  "System directory not allowed" inline rather than a generic
+ *  "Project API 400". */
 export class ProjectValidationError extends Error {
   constructor(msg: string) {
     super(msg);

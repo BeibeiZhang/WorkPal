@@ -50,8 +50,7 @@ async function requireAnthropicKey(req: Request, res: Response, next: NextFuncti
   const key = cfg.anthropicApiKey.trim();
   if (!key) {
     res.status(503).json({
-      error:
-        'ANTHROPIC_API_KEY not set — open WorkPal Agent → Settings and paste a key / 未设置 ANTHROPIC_API_KEY,请打开 WorkPal Agent 设置并填写',
+      error: 'ANTHROPIC_API_KEY not set — open WorkPal Agent → Settings and paste a key',
     });
     return;
   }
