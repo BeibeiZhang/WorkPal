@@ -448,7 +448,7 @@ const TYPE_SCALE: {
     appearances: [
       'DesignSystemPage section headers (<h2 id=…>)',
       'Agent showcase headers',
-      'OverviewPage — Life Health Index, Needs Your Eyes, Agents at Work, Scheduled, Your Positive Impact This Week',
+      'OverviewPage — hero greeting ("Good morning, Beibei…"), Life Health Index, Needs Your Eyes, Agents at Work, Scheduled, Your Positive Impact This Week',
       'PermissionPrompt modal title',
       'CompleteSessionModal title',
       'NewProjectDialog title — "New Project" / "Promote to Project"',
@@ -503,7 +503,6 @@ const TYPE_SCALE: {
     sample: 'Alcohol Delivery Issues',
     usage: 'Default bold 16px title — card titles, sidebar/page section headers, side-panel card titles',
     appearances: [
-      'OverviewPage — hero greeting ("Good morning, Beibei…")',
       'SideCard titles — Instructions, Scheduled, Files, Context (ProjectPage)',
       'SidePanelHeader — DetailPanel, TaskContextPanel',
       'MessageCard titles — Meeting, Ticket, Research, Schedule, Agent',
@@ -962,7 +961,7 @@ const SEARCH_INDEX: SearchEntry[] = [
   { tab: 'components', section: 'Components · Shared Primitives', name: 'AddRowButton', description: 'Inline "add a new row" button — full-width rounded-lg row with leading Plus, secondary → primary text on hover.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'StatusTag', description: 'Semantic status pill — 7 variants (pending, in-progress, submitted, in-review, success, failed, expired).' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'Tag', description: 'Neutral display pill (filled or outline).' },
-  { tab: 'components', section: 'Components · Shared Primitives', name: 'TimePill', description: 'Neutral pill with user icon + time.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'TimePill', description: 'Blue pill with user icon + time.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'FilterChip', description: 'Master filter chip — active, count, with icon (type-detail / gap-2).' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'Chip', description: 'Inline-content chip — icon, active, removable, draggable (type-h2 / gap-1).' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'UtilityChip', description: 'Mono utility pill for paths / IDs — solid hover, h-8 (font-mono / type-caption).' },
@@ -2150,7 +2149,7 @@ function ComponentsTab() {
     },
     {
       name: 'TimePill',
-      description: 'Neutral pill with user icon + time. Used for review-time estimates.',
+      description: 'Blue pill with user icon + time. Used for review-time estimates.',
       usedIn: ['ReviewItemCard', 'Overview Needs Review rows'],
       preview: (
         <div className="flex flex-wrap gap-2">

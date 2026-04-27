@@ -907,11 +907,11 @@ export function CategoryBreakdown({
 }
 
 /* ─── 5. TimePill ───
- * Thin alias — renders StatusTag (neutral, sm) with a User icon.
+ * Thin alias — renders StatusTag (in-progress, sm) with a User icon.
  * Exists purely for readability at call sites ("time estimate" semantics).
  */
 export function TimePill({ time, tooltip }: { time: string; tooltip?: string }) {
-  return <StatusTag variant="success" label={time} size="sm" icon={User} tooltip={tooltip} />;
+  return <StatusTag variant="in-progress" label={time} size="sm" icon={User} tooltip={tooltip} />;
 }
 
 /* ─── 6. StepIndicator ─── */

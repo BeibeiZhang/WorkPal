@@ -361,7 +361,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                 />
               </div>
               <div className="min-w-0 flex-1 p-6 md:p-8 flex flex-col justify-center">
-                <h2 className="type-h2-emphasized text-text-primary mb-2.5">
+                <h2 className="type-h1--emphasized text-text-primary mb-2.5">
                   Good morning, Beibei! Today feels like a steady day ☀️
                 </h2>
                 <p className="type-detail text-text-primary">
