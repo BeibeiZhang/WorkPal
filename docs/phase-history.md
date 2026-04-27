@@ -217,22 +217,25 @@ Phase 5 一路踩下的坑和形成的宗旨，**沉淀在 `docs/principles.md`*
 
 ---
 
-## 当前状态（2026-04-26）
+## 当前状态（2026-04-27）
 
 **Phase 7 完整收官 + v0.1.1 真正 launched**：
 - WorkPal Agent v0.1.1 from `/Applications/WorkPal Agent.app`，launchd 开机自启
 - 用户主入口：**`https://workpal-beibei.vercel.app/overview`**
   - 这台 Mac（agent 跑着）：全功能（聊天 + 编辑本地文件 + git）
   - 其他 Mac：OnboardingSurface 引导装 agent
-  - iPhone：cloud-only（chats / memory / projects）
+  - **iPhone**：cloud-only（chats / memory / projects）+ §15 mobile graceful degrade（chat panel 正常用 OpenAI；agent 类请求弹 AgentRequiredHint，不假装能改文件）
   - Demo URL（workpal.vercel.app）：mocked，不调本地
 - Update 路径：boot-check → GitHub `/releases/latest` → 5th Settings card → 用户下 .dmg → 装
 
 **最近 ship**：
 - **PR [#136](https://github.com/BeibeiZhang/WorkPal/pull/136)** (2026-04-26) — `chore: post-Phase-7 cleanups (#11 + #12 + #14)`，3 条小 candidate 一次打包：animations DELETE 端点删除 / agent-video-status 服务路由换 localStorage / OnboardingSurface 反引号升 `<code>`。5 文件，+41 −239。Clean ship，0 rework。
 - **PR [#137](https://github.com/BeibeiZhang/WorkPal/pull/137)** (2026-04-26) — `Overview: unify expand-panel spacing to 8px`，纯 UI polish fast-lane，未走 candidate 流程。
+- **PR [#138](https://github.com/BeibeiZhang/WorkPal/pull/138)** (2026-04-26) — `feat: mobile graceful degrade for agent features (#15)`，10 文件 +333 −68。新 `useIsMobile` hook + `AgentRequiredHint` 共享组件 + 5 个 agent 触点 mobile 分支。Clean ship，planning 独立 live-test 4 场景过。
+- **PR [#141](https://github.com/BeibeiZhang/WorkPal/pull/141)** (2026-04-27) — Overview API Spend range 改 iOS wheel picker，纯 UI polish fast-lane。
+- **PR [#142](https://github.com/BeibeiZhang/WorkPal/pull/142)** (2026-04-27) — §15 follow-up：AgentRequiredHint 改 English-only（Beibei 决策，targeted bilingual exception）+ 修 hover ring 视觉（`inset: -1px` / `-2px` 让 chip / input hover 不再"缩水"）。
 
-**下一步**：根据 [`docs/post-phase-6-candidates.md`](./post-phase-6-candidates.md) 优先级开新工作。当前 backlog 14 条 candidate（10 已 shipped，4 在排队 —— #3 Artifact / #4 Bilingual scaffold / #6 CN→EN translate / #13 Option C 签名）。Phase 7 主线没未完成项；如果新工作不大不需要新 Phase doc，只需 candidate.md 加新行。
+**下一步**：根据 [`docs/post-phase-6-candidates.md`](./post-phase-6-candidates.md) 优先级开新工作。当前 backlog 17 条（11 已 shipped，6 在排队）。pending 6 条：**#3** Artifact 生成（decided-next，5-7 天，最大产品扩面）/ **#4** Bilingual scaffold（parked）/ **#6** CN→EN translate fix（1-2h）/ **#13 Option C** 签名 + notarize（$99/yr）/ **#16** Complete Session 知识库 UX 文案（decided-next，30min - 1h）/ **#17** Project reference folders（decided-next，2-3h）。Phase 7 主线没未完成项。
 
 ---
 
