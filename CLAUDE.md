@@ -24,6 +24,25 @@ Key rules:
 - All icons in dark mode use `.icon-theme` class for auto-inversion
 - **Shared-first:** Always build reusable UI in `src/components/shared.tsx` first, then import into app pages. This ensures the Design System page monitors all shared components and updates propagate everywhere automatically.
 
+### Violations (NEVER do this)
+
+These bypass the design system and create silent drift. They are **always wrong**, even when no exact token / primitive seems to fit:
+
+- ❌ **Hex / rgba colors in className**: `text-[#B42318]`, `bg-[#7652B9]`, `border-[rgba(...)]`
+- ❌ **Inline style colors**: `style={{ color: '#B42318' }}`, `style={{ background: 'rgba(...)' }}`
+- ❌ **Hardcoded font sizes / line heights**: `text-[14px]`, `text-base`, `text-sm`, `leading-[20px]`, `tracking-[0.2px]`, `font-bold`, `font-medium` (per `feedback_typography_tokens` — every text surface uses `.type-*` class)
+- ❌ **Component code inline in a page** when the same shape will recur — write it in `shared.tsx` first
+
+### Missing token / primitive? Extend, don't bypass
+
+Design system is **living scaffolding, not a ceiling**. When you can't find what you need:
+
+- **Need a color that's not in tokens** → add a CSS variable to `src/index.css` (light + dark blocks) + register it in `tailwind.config.js` `colors:` map → use the new class everywhere. *Example: error red `#B42318` was hardcoded across 3 files because no `--color-error` token existed; the right move was always to add the token, not to ad-hoc hex.*
+- **Need a type scale that's not in `.type-*`** → add a `.type-foo` class in `src/index.css` → use it everywhere.
+- **Need a UI primitive that doesn't exist in `shared.tsx`** → build it in `shared.tsx` (with the existing card sectioning patterns), then import. Design System page will pick it up automatically.
+
+A good UI PR often touches `src/index.css` + `tailwind.config.js` + `shared.tsx` *more* than the page being built — that's the design system absorbing what you needed. Never write a one-off hex / px / inline-style to "save time" — the next person hits the same gap, and the system never converges.
+
 ## Dev
 ```bash
 npm run dev   # starts on port 5173
