@@ -65,10 +65,10 @@
              not-installed → button surfaced, sudo on click
              installing    → button disabled, copy explains the macOS dialog
              installed     → success tag, no action (uninstall.sh handles removal)
-             error         → failed tag + bilingual reason + reinstall hint -->
+             error         → failed tag + reason + reinstall hint -->
       <section class="wp-card">
         <div class="wp-row">
-          <span class="wp-section-title wp-section-title--inline">Local HTTPS · 本地 HTTPS</span>
+          <span class="wp-section-title wp-section-title--inline">Local HTTPS</span>
           <span class="wp-status" id="cert-status" data-state="unknown">
             <span class="wp-dot"></span>
             <span id="cert-status-text">—</span>
@@ -76,10 +76,10 @@
         </div>
         <p class="wp-hint wp-hint--cert" id="cert-body">
           Browsers need a trusted local certificate to reach WorkPal Agent. macOS will pop a
-          confirmation prompt.<br />浏览器需要本地受信任证书才能访问 WorkPal Agent，macOS 会弹出确认窗口。
+          confirmation prompt.
         </p>
         <button class="wp-btn wp-btn--secondary wp-btn--tight" id="install-ca" type="button" hidden>
-          Install local certificate · 安装本地证书
+          Install local certificate
         </button>
       </section>
 
@@ -91,17 +91,17 @@
            self-replace because the .app is unsigned). -->
       <section class="wp-card" id="update-card" hidden>
         <div class="wp-row">
-          <span class="wp-section-title wp-section-title--inline">Update available · 有新版本</span>
+          <span class="wp-section-title wp-section-title--inline">Update available</span>
           <span class="wp-status" data-state="update-available">
             <span class="wp-dot"></span>
             <span id="update-version-tag">—</span>
           </span>
         </div>
         <p class="wp-hint wp-hint--cert" id="update-body">
-          A newer version of WorkPal Agent is on GitHub. Download and reinstall to update.<br />WorkPal Agent 有新版本，请下载后重新安装。
+          A newer version of WorkPal Agent is on GitHub. Download and reinstall to update.
         </p>
         <button class="wp-btn wp-btn--secondary wp-btn--tight" id="open-release" type="button">
-          Download · 下载
+          Download
         </button>
       </section>
     </main>

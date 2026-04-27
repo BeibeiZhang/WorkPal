@@ -137,7 +137,7 @@ function ChangeRow({
         )}
       </div>
       {change.undoError && (
-        <div className="px-3 pb-1 type-caption" style={{ color: '#B42318' }}>
+        <div className="px-3 pb-1 type-caption text-error">
           Undo failed: {change.undoError}
         </div>
       )}
@@ -177,9 +177,7 @@ const DEMO_TOOLS: FileEntry[] = [
 
 function CompletedIcon() {
   return (
-    <div className="w-[22px] h-[22px] rounded-full flex items-center justify-center shrink-0"
-      style={{ background: '#3171ff' }}
-    >
+    <div className="w-[22px] h-[22px] rounded-full flex items-center justify-center shrink-0 bg-accent-blue">
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
         <path d="M2.5 6L5 8.5L9.5 3.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
@@ -189,11 +187,8 @@ function CompletedIcon() {
 
 function ActiveIcon({ number }: { number: number }) {
   return (
-    <div
-      className="w-[22px] h-[22px] rounded-full flex items-center justify-center shrink-0 border-[1.5px]"
-      style={{ borderColor: '#3171ff' }}
-    >
-      <span className="type-footnote font-medium" style={{ color: '#3171ff' }}>{number}</span>
+    <div className="w-[22px] h-[22px] rounded-full flex items-center justify-center shrink-0 border-[1.5px] border-accent-blue">
+      <span className="type-footnote font-medium text-accent-blue">{number}</span>
     </div>
   );
 }
@@ -321,11 +316,8 @@ export default function TaskContextPanel({
                     )}
                     {/* Step label */}
                     <span
-                      className="flex-1 min-w-0 type-detail leading-[22px] pt-px"
+                      className={`flex-1 min-w-0 type-detail pt-px ${isCompleted ? 'text-text-secondary' : 'text-text-primary'}`}
                       style={{
-                        color: isCompleted
-                          ? 'var(--color-text-secondary)'
-                          : 'var(--color-text-primary)',
                         textDecoration: isCompleted ? 'line-through' : 'none',
                       }}
                     >
@@ -438,14 +430,13 @@ export default function TaskContextPanel({
               same as unreachable so the button doesn't flash in. */}
       {canCompleteSession && (agentState === 'reachable' || IS_DEMO) && (
         <div
-          className="shrink-0 px-3 pb-4 pt-2 border-t"
-          style={{ borderColor: 'var(--color-stroke-outline)' }}
+          className="shrink-0 px-3 pb-4 pt-2 border-t border-stroke-outline"
           title={
             IS_DEMO
-              ? 'Demo mode — session execution disabled / Demo 模式 —— 会话执行已禁用'
+              ? 'Demo mode — session execution disabled'
               : sessionCompleted
-              ? 'Already saved to project knowledge / 已存入 project 知识库'
-              : "Adds this session's outputs to project knowledge so future sessions can read them. / 把这次产出存进 project 知识库，以后 session 都能看。"
+              ? 'Already saved to project knowledge'
+              : "Adds this session's outputs to project knowledge so future sessions can read them."
           }
         >
           <TertiaryButton
@@ -458,7 +449,7 @@ export default function TaskContextPanel({
           >
             <span className="flex items-center gap-2">
               {sessionCompleted ? (
-                <CheckCircle2 size={14} style={{ color: '#028901' }} />
+                <CheckCircle2 size={14} className="text-accent-green" />
               ) : (
                 <GitMerge size={14} />
               )}

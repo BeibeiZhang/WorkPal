@@ -371,8 +371,8 @@ export async function installCaToKeychain(): Promise<void> {
     // old osascript admin dialog when the user dismisses, so the regex
     // carries over unchanged.
     if (/User canceled/i.test(msg)) {
-      throw new Error('User cancelled the trust prompt / 已取消信任授权');
+      throw new Error('User cancelled the trust prompt');
     }
-    throw new Error(`Install failed / 安装失败: ${msg}`);
+    throw new Error(`Install failed: ${msg}`);
   }
 }

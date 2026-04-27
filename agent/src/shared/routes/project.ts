@@ -27,7 +27,7 @@ router.post('/project/init', async (req, res) => {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`[project/init] mkdir failed for ${projectPath}:`, message);
     res.status(500).json({
-      error: `Failed to create project folder: ${message} / 创建 project 目录失败: ${message}`,
+      error: `Failed to create project folder: ${message}`,
     });
     return;
   }
@@ -40,7 +40,7 @@ router.post('/project/init', async (req, res) => {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`[project/init] git init failed for ${projectPath}:`, message);
     res.status(500).json({
-      error: `Failed to initialize project repo: ${message} / 初始化 project 仓库失败: ${message}`,
+      error: `Failed to initialize project repo: ${message}`,
     });
   }
 });

@@ -12,6 +12,7 @@ import { filesToAttachments, formatFileSize } from '../lib/attachments';
 import { IS_DEMO } from '../lib/demoMode';
 import { useIsMobile } from '../lib/useIsMobile';
 import { listArtifacts, type Artifact, type ArtifactKind } from '../lib/artifacts';
+import { fetchAgent, AgentUnreachableError } from '../lib/agent';
 
 interface ProjectPageProps {
   project: Project;
@@ -90,31 +91,39 @@ function ReferenceFoldersSection({
       return;
     }
     if (IS_DEMO) {
-      setError('Reference folders are read-only in demo mode / Demo 模式不支持参考文件夹');
+      setError('Reference folders are read-only in demo mode');
       return;
     }
-    // Try the Electron native picker first. In dev mode (no Electron) this
-    // returns 404 — fall back to revealing the manual text input row.
+    // Try the Electron native picker first. The picker route lives on the
+    // local agent (https://127.0.0.1:3001), not the Vercel cloud — fetchAgent
+    // routes there. In dev mode without an agent this returns 404; on any
+    // network failure (no agent installed, agent not running) the caller
+    // catches AgentUnreachableError. Both paths fall back to the manual text
+    // input row.
     try {
-      const res = await fetch('/api/pick-folder', { method: 'POST' });
+      const res = await fetchAgent('/api/pick-folder', { method: 'POST' });
       if (res.status === 404) {
         setShowInput(v => !v);
         return;
       }
       if (!res.ok) {
-        setError(`Picker error (${res.status}) / 选择器错误`);
+        setError(`Picker error (${res.status})`);
         return;
       }
       const body = (await res.json()) as { ok: boolean; path?: string; reason?: string };
       if (!body.ok) {
         if (body.reason === 'cancelled') return; // user cancelled, no error
-        setError('Picker failed / 选择器调用失败');
+        setError('Picker failed');
         return;
       }
       if (body.path) await submitPath(body.path);
-    } catch {
-      // fetch threw before status — likely no agent reachable. Fall back to
-      // the manual text input so the user still has a path forward.
+    } catch (err) {
+      if (err instanceof AgentUnreachableError) {
+        console.warn('[picker] agent unreachable, falling back to text input');
+        setShowInput(v => !v);
+        return;
+      }
+      console.warn('[picker] unexpected picker error, falling back to text input', err);
       setShowInput(v => !v);
     }
   };
@@ -131,8 +140,8 @@ function ReferenceFoldersSection({
   return (
     <div className="flex flex-col gap-1">
       {dirs.length === 0 && !showInput && (
-        <p className="px-3 py-1 type-detail text-text-secondary/60 italic">
-          No reference folders attached. AI sees only this project's worktree. / 没有参考文件夹，AI 只能看到 project 自身。
+        <p className="px-3 py-1 type-detail text-text-tertiary italic">
+          No reference folders attached. AI sees only this project's worktree.
         </p>
       )}
       {dirs.map(path => (
@@ -174,10 +183,10 @@ function ReferenceFoldersSection({
             disabled={busy}
             autoFocus
             placeholder="/Users/you/Documents/reference"
-            className="type-detail px-2.5 py-1.5 rounded-md bg-bg-hover text-text-primary border border-stroke-outline focus:outline-none focus:ring-1 focus:ring-text-primary/20"
+            className="type-detail px-2.5 py-1.5 rounded-md bg-bg-hover text-text-primary border border-stroke-outline focus:outline-none focus:ring-1 focus:ring-stroke-outline"
           />
-          <p className="type-detail text-text-secondary/60">
-            Paste an absolute path. / 粘贴绝对路径
+          <p className="type-detail text-text-tertiary">
+            Paste an absolute path.
           </p>
         </div>
       )}
@@ -186,7 +195,7 @@ function ReferenceFoldersSection({
           onClick={handleAddClick}
           icon={<Plus size={16} />}
         >
-          {showInput && !isMobile ? 'Cancel / 取消' : 'Add folder / 添加文件夹'}
+          {showInput && !isMobile ? 'Cancel' : 'Add folder'}
         </AddRowButton>
       </div>
       {showHint && (
@@ -195,7 +204,7 @@ function ReferenceFoldersSection({
         </div>
       )}
       {error && (
-        <div className="px-3 py-1 type-detail text-[#B42318]" role="alert">{error}</div>
+        <div className="px-3 py-1 type-detail text-error" role="alert">{error}</div>
       )}
     </div>
   );
@@ -469,7 +478,7 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                 <p className="type-detail text-text-primary">
                   Project Objective:{' '}
                   {content.objective || (
-                    <span className="text-text-secondary/60 italic">No objective yet</span>
+                    <span className="text-text-tertiary italic">No objective yet</span>
                   )}
                 </p>
               </div>
@@ -477,7 +486,7 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
 
             {/* Scheduled */}
             <SideCard title="Scheduled" hasAdd defaultOpen={false}>
-              <p className="type-detail text-text-secondary/60 italic">Set up recurring tasks for this project.</p>
+              <p className="type-detail text-text-tertiary italic">Set up recurring tasks for this project.</p>
             </SideCard>
 
             {/* Files — real project-scoped uploads. Each file's text is
@@ -527,7 +536,7 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                   onChange={handleFileInput}
                 />
                 {fileError && (
-                  <div className="px-3 py-1 type-detail text-[#B42318]">{fileError}</div>
+                  <div className="px-3 py-1 type-detail text-error">{fileError}</div>
                 )}
               </div>
             </SideCard>
@@ -536,7 +545,7 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                  the SDK as `additionalDirectories` during chats in this
                  project. Read/Glob/Grep can reach them; mobile shows the
                  list read-only with the AgentRequiredHint pattern. */}
-            <SideCard title="Reference folders / 参考文件夹" defaultOpen={false}>
+            <SideCard title="Reference folders" defaultOpen={false}>
               <ReferenceFoldersSection
                 project={project}
                 onAddReferenceDirectory={onAddReferenceDirectory}
@@ -659,16 +668,16 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                               onClick={handleClick}
                               className={`flex flex-col items-center gap-2 min-w-[120px] w-[120px] p-2 rounded-lg border transition-colors ${
                                 isSelected
-                                  ? 'border-[#3171ff]'
+                                  ? 'border-accent-blue'
                                   : 'border-transparent hover:bg-bg-hover'
                               }`}
                             >
                               <Icon
                                 size={32}
-                                className={isSelected ? 'text-[#3171ff]' : 'text-text-secondary/40 dark:text-white'}
+                                className={isSelected ? 'text-accent-blue' : 'text-text-tertiary dark:text-white'}
                                 strokeWidth={1.2}
                               />
-                              <span className={`type-detail text-center leading-[1.2] line-clamp-2 w-full ${isSelected ? 'text-[#3171ff]' : 'text-text-primary'}`}>
+                              <span className={`type-detail text-center leading-[1.2] line-clamp-2 w-full ${isSelected ? 'text-accent-blue' : 'text-text-primary'}`}>
                                 {o.name}
                               </span>
                             </button>

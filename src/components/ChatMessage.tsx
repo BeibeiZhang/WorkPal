@@ -199,7 +199,7 @@ function VideoResultsGrid({ videos }: { videos: VideoResult[] }) {
           href={v.url}
           target="_blank"
           rel="noreferrer"
-          className="group/vid flex gap-3 rounded-xl overflow-hidden border border-stroke-outline bg-bg-hover hover:bg-bg-hover/70 transition-colors no-underline p-2"
+          className="group/vid flex gap-3 rounded-xl overflow-hidden border border-stroke-outline bg-bg-hover hover:bg-bg-message transition-colors no-underline p-2"
           title={v.title}
         >
           <div className="relative shrink-0 w-[160px] aspect-video rounded-lg overflow-hidden bg-stroke-outline">
@@ -301,7 +301,7 @@ interface ChatMessageProps {
 
 function SpeakerIcon({ playing }: { playing: boolean }) {
   return (
-    <svg viewBox="0 0 24 24" fill={playing ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`w-[25px] h-[25px] md:w-5 md:h-5 ${playing ? 'text-[#3171FF]' : 'opacity-40 hover:opacity-70'}`}>
+    <svg viewBox="0 0 24 24" fill={playing ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`w-[25px] h-[25px] md:w-5 md:h-5 ${playing ? 'text-accent-blue' : 'opacity-40 hover:opacity-70'}`}>
       <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
       <path d="M15.54 8.46a5 5 0 0 1 0 7.07" fill="none" className={playing ? 'speaker-wave-inner' : ''} />
       <path d="M19.07 4.93a10 10 0 0 1 0 14.14" fill="none" className={playing ? 'speaker-wave-outer' : ''} />
@@ -342,7 +342,7 @@ function FeedbackBar({ text }: { text: string }) {
       <button
         title={isSpeaking ? 'Stop reading' : 'Read aloud'}
         onClick={toggleSpeak}
-        className={`w-10 h-10 md:w-7 md:h-7 flex items-center justify-center rounded-lg transition-colors ${isSpeaking ? 'bg-[#3171FF]/10 hover:bg-[#3171FF]/15' : 'hover:bg-bg-hover'}`}
+        className={`w-10 h-10 md:w-7 md:h-7 flex items-center justify-center rounded-lg transition-colors ${isSpeaking ? 'bg-accent-blue-faint hover:bg-accent-blue-faint-hover' : 'hover:bg-bg-hover'}`}
       >
         <SpeakerIcon playing={isSpeaking} />
       </button>

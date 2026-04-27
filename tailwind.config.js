@@ -17,6 +17,7 @@ export default {
           primary: 'var(--color-text-primary)',
           secondary: 'var(--color-text-secondary)',
           tertiary: 'var(--color-text-tertiary)',
+          'fixed-dark': 'var(--color-fixed-dark-text)',
         },
         bg: {
           page: 'var(--color-bg-page)',
@@ -29,6 +30,22 @@ export default {
         },
         stroke: {
           outline: 'var(--color-stroke-outline)',
+        },
+        error: 'var(--color-error)',
+        accent: {
+          blue: 'var(--color-accent-blue)',
+          'blue-faint': 'var(--color-accent-blue-faint)',
+          'blue-faint-hover': 'var(--color-accent-blue-faint-hover)',
+          green: 'var(--color-accent-green)',
+          red: 'var(--color-accent-red)',
+          amber: 'var(--color-accent-amber)',
+          orange: 'var(--color-accent-orange)',
+          violet: 'var(--color-accent-violet)',
+          neutral: 'var(--color-accent-neutral)',
+        },
+        tooltip: 'var(--color-tooltip-bg)',
+        overlay: {
+          loading: 'var(--color-overlay-loading)',
         },
       },
       fontFamily: {

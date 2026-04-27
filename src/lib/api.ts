@@ -126,7 +126,7 @@ export async function* streamClaudeChat(opts: {
     if (err instanceof AgentUnreachableError) {
       yield {
         type: 'error',
-        content: 'Local agent unreachable. Install the WorkPal Agent to enable code edits. / 本地代理不可达，安装 WorkPal Agent 以启用代码编辑。',
+        content: 'Local agent unreachable. Install the WorkPal Agent to enable code edits.',
       };
       return;
     }

@@ -24,8 +24,7 @@ export default function ComingSoonPage({ view, sidebarOpen, onToggleSidebar }: C
         {!sidebarOpen && (
           <button
             onClick={onToggleSidebar}
-            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/20 transition-colors shrink-0"
-            style={{ color: '#142740' }}
+            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/20 transition-colors shrink-0 text-text-fixed-dark"
           >
             <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
               <rect width="22" height="2" rx="1" fill="currentColor" />

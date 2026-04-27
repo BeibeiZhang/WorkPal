@@ -105,9 +105,7 @@ export function registerIpc(opts: {
       if (status === 'matching') {
         setCertInstalled();
       } else {
-        setCertError(
-          `Install completed but Keychain hash didn't verify (${status}). / 安装已完成但 Keychain 校验未通过 (${status})。`,
-        );
+        setCertError(`Install completed but Keychain hash didn't verify (${status}).`);
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

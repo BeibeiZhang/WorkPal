@@ -88,10 +88,10 @@ function InfoRow({ icon, children, textClass = 'text-text-primary' }: {
 function RichText({ text, assignee, due }: { text: string; assignee?: string; due?: string }) {
   return (
     <span className="type-h2 text-text-primary">
-      {assignee && <span className="text-[#3171ff]">@{assignee}</span>}
+      {assignee && <span className="text-accent-blue">@{assignee}</span>}
       {assignee && ' '}
       {text}
-      {due && <> &ndash; <span className="text-[#3171ff]">{due}</span></>}
+      {due && <> &ndash; <span className="text-accent-blue">{due}</span></>}
     </span>
   );
 }
@@ -368,7 +368,7 @@ function ResearchCardView({ card, onAction }: { card: ResearchCard; onAction?: (
 /* ── Gradient progress bar (animated) ── */
 function GradientProgressBar() {
   return (
-    <div className="w-full h-[3px] rounded-full overflow-hidden bg-[#E8E8E8]">
+    <div className="w-full h-[3px] rounded-full overflow-hidden bg-stroke-outline">
       <div
         className="h-full rounded-full animate-progress-bar"
         style={{
@@ -466,7 +466,7 @@ function ScheduleCardView({ card, onAction }: { card: ScheduleCard; onAction?: (
             <InfoRow icon={iconPin}>{card.location}</InfoRow>
           )}
           {card.attendees.length > 0 && (
-            <InfoRow icon={iconUsers} textClass="text-[#3171ff]">
+            <InfoRow icon={iconUsers} textClass="text-accent-blue">
               {card.attendees.map((a, i) => (
                 <span key={i}>{i > 0 ? '  ' : ''}@{a}</span>
               ))}
@@ -498,7 +498,7 @@ function ScheduleCardView({ card, onAction }: { card: ScheduleCard; onAction?: (
           {card.location && (
             <InfoRow icon={iconPin}>{card.location}</InfoRow>
           )}
-          <InfoRow icon={iconUsers} textClass="text-[#3171ff]">
+          <InfoRow icon={iconUsers} textClass="text-accent-blue">
             {card.attendees.map((a, i) => {
               const parts = a.split(' ');
               const display = parts.length > 1
@@ -537,11 +537,11 @@ function ScheduleCardView({ card, onAction }: { card: ScheduleCard; onAction?: (
                 {/* Radio indicator */}
                 <div className="w-11 h-11 flex items-center justify-center shrink-0">
                   {opt.selected ? (
-                    <div className="w-5 h-5 rounded-full border-2 border-[#3171ff] flex items-center justify-center">
-                      <div className="w-3 h-3 rounded-full bg-[#3171ff]" />
+                    <div className="w-5 h-5 rounded-full border-2 border-accent-blue flex items-center justify-center">
+                      <div className="w-3 h-3 rounded-full bg-accent-blue" />
                     </div>
                   ) : (
-                    <div className="w-5 h-5 rounded-full border-2 border-[#c4c4c4]" />
+                    <div className="w-5 h-5 rounded-full border-2 border-stroke-outline" />
                   )}
                 </div>
               </div>
@@ -673,11 +673,11 @@ function ArtifactCardView({ card }: { card: ArtifactCard }) {
             onError={(e) => { e.currentTarget.style.display = 'none'; }}
           />
         ) : (
-          <Globe className="w-10 h-10 text-text-primary/30" />
+          <Globe className="w-10 h-10 text-text-tertiary" />
         )}
         {card.status === 'generating' && (
-          <div className="absolute inset-0 flex items-center justify-center bg-bg-hover/60">
-            <Loader2 className="w-6 h-6 animate-spin text-text-primary/60" />
+          <div className="absolute inset-0 flex items-center justify-center bg-overlay-loading">
+            <Loader2 className="w-6 h-6 animate-spin text-text-secondary" />
           </div>
         )}
       </div>
@@ -688,8 +688,8 @@ function ArtifactCardView({ card }: { card: ArtifactCard }) {
             <p className="type-h2-emphasized text-text-primary truncate">
               {card.title || 'Generating artifact…'}
             </p>
-            <p className="type-detail text-text-primary/60">
-              正在生成 · Generating… Tavily + OpenAI · ~15-30s
+            <p className="type-detail text-text-secondary">
+              Generating… Tavily + OpenAI · ~15-30s
             </p>
           </>
         )}
@@ -700,7 +700,7 @@ function ArtifactCardView({ card }: { card: ArtifactCard }) {
               {card.title}
             </p>
             {typeof card.itemCount === 'number' && card.itemCount > 0 && (
-              <p className="type-detail text-text-primary/60">
+              <p className="type-detail text-text-secondary">
                 {card.itemCount} items · {card.templateId === 'bay-area-weekend' ? 'this weekend' : card.templateId}
               </p>
             )}
@@ -720,7 +720,7 @@ function ArtifactCardView({ card }: { card: ArtifactCard }) {
                 <p className="type-h2-emphasized text-text-primary">
                   Couldn’t generate
                 </p>
-                <p className="type-detail text-text-primary/60 break-words">
+                <p className="type-detail text-text-secondary break-words">
                   {card.error || 'Unknown error — try again in a moment.'}
                 </p>
               </div>

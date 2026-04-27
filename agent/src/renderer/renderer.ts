@@ -73,34 +73,29 @@ function labelForState(state: ServerState, port: number | null): string {
   return 'Starting…';
 }
 
-/* 7.3: bilingual copy table for the Local HTTPS card. Body strings carry an
- * <br> between English and Chinese — the renderer uses .innerHTML for the
- * body cell only (no user input flows in here), keeping the two languages
- * line-stacked the same way the rest of the agent's UI does it. */
+/* 7.3: copy table for the Local HTTPS card. Body strings allow simple HTML
+ * (the renderer uses .innerHTML for the body cell only — no user input
+ * flows through). */
 const CERT_COPY: Record<CertState, { tag: string; body: string }> = {
   unknown: {
     tag: 'Checking…',
-    body: 'Checking certificate state…<br />正在检查证书状态…',
+    body: 'Checking certificate state…',
   },
   'not-installed': {
-    tag: 'Setup needed · 需要安装',
-    body:
-      'Browsers need a trusted local certificate to reach WorkPal Agent. macOS will pop a confirmation prompt.' +
-      '<br />浏览器需要本地受信任证书才能访问 WorkPal Agent，macOS 会弹出确认窗口。',
+    tag: 'Setup needed',
+    body: 'Browsers need a trusted local certificate to reach WorkPal Agent. macOS will pop a confirmation prompt.',
   },
   installing: {
-    tag: 'Installing… · 安装中…',
-    body: 'Approve the macOS confirmation prompt to continue.<br />请在 macOS 弹窗中点击允许以继续。',
+    tag: 'Installing…',
+    body: 'Approve the macOS confirmation prompt to continue.',
   },
   installed: {
-    tag: 'Installed · 已安装',
-    body:
-      'Local certificate is trusted. The agent serves HTTPS to your browsers.' +
-      '<br />本地证书已受信任，Agent 已可通过 HTTPS 与浏览器通信。',
+    tag: 'Installed',
+    body: 'Local certificate is trusted. The agent serves HTTPS to your browsers.',
   },
   error: {
-    // body cell is filled from s.certError (already bilingual + reinstall hint)
-    tag: 'Failed · 安装失败',
+    // body cell is filled from s.certError (carries the reinstall hint)
+    tag: 'Failed',
     body: '',
   },
 };
@@ -115,7 +110,7 @@ function applyCertCard(s: AgentStatus): void {
   const copy = CERT_COPY[s.certState];
   tagText.textContent = copy.tag;
   if (s.certState === 'error' && s.certError) {
-    // Already bilingual + reinstall hint per setCertError() in serverState.
+    // Carries the reinstall hint per setCertError() in serverState.
     body.textContent = s.certError;
   } else {
     body.innerHTML = copy.body;
@@ -127,15 +122,15 @@ function applyCertCard(s: AgentStatus): void {
   if (s.certState === 'not-installed') {
     btn.hidden = false;
     btn.disabled = false;
-    btn.textContent = 'Install local certificate · 安装本地证书';
+    btn.textContent = 'Install local certificate';
   } else if (s.certState === 'error') {
     btn.hidden = false;
     btn.disabled = false;
-    btn.textContent = 'Retry · 重试';
+    btn.textContent = 'Retry';
   } else if (s.certState === 'installing') {
     btn.hidden = false;
     btn.disabled = true;
-    btn.textContent = 'Installing… · 安装中…';
+    btn.textContent = 'Installing…';
   } else {
     // installed / unknown — no action button.
     btn.hidden = true;
@@ -286,14 +281,14 @@ function bindHandlers(): void {
     // dialog feeling like a frozen button. installCa() never throws across
     // the IPC boundary; it returns the updated AgentStatus either way.
     btn.disabled = true;
-    btn.textContent = 'Installing… · 安装中…';
+    btn.textContent = 'Installing…';
     try {
       const next = await window.agent.installCa();
       applyStatus(next);
       if (next.certState === 'installed') {
-        showToast('Certificate installed · 证书已安装');
+        showToast('Certificate installed');
       } else if (next.certState === 'error') {
-        showToast('Install failed · 安装失败');
+        showToast('Install failed');
       }
     } catch (err) {
       // Defensive — IPC handler shouldn't throw (it converts to certError),

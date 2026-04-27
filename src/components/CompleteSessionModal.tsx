@@ -38,9 +38,9 @@ const STATUS_ICON = {
 } as const;
 
 const STATUS_COLOR = {
-  A: '#028901', // green — matches ChangeEntry 'create'
-  M: '#3171ff', // blue — matches ChangeEntry 'edit'
-  D: '#B42318', // red — matches ChangeEntry 'delete'
+  A: 'var(--color-accent-green)',
+  M: 'var(--color-accent-blue)',
+  D: 'var(--color-error)',
 } as const;
 
 const STATUS_LABEL = {
@@ -177,16 +177,10 @@ export default function CompleteSessionModal({
                       <span className="flex-1 min-w-0 type-detail text-text-primary truncate">
                         {basename(f.path)}
                       </span>
-                      <span
-                        className="shrink-0 font-mono type-caption"
-                        style={{ color: '#028901' }}
-                      >
+                      <span className="shrink-0 font-mono type-caption text-accent-green">
                         +{formatCount(f.insertions)}
                       </span>
-                      <span
-                        className="shrink-0 font-mono type-caption"
-                        style={{ color: '#B42318' }}
-                      >
+                      <span className="shrink-0 font-mono type-caption text-error">
                         -{formatCount(f.deletions)}
                       </span>
                     </div>
@@ -202,10 +196,6 @@ export default function CompleteSessionModal({
           <p className="type-detail text-text-primary mb-4">
             Nothing to merge — this session made no net changes to the
             project.
-            <br />
-            <span className="text-text-secondary">
-              本会话没有净改动。
-            </span>
           </p>
         )}
 
@@ -220,22 +210,16 @@ export default function CompleteSessionModal({
         {/* ── success ─────────────────────────────────── */}
         {phase.kind === 'success' && (
           <div className="flex items-start gap-3 py-3">
-            <CheckCircle2
-              size={22}
-              className="shrink-0 mt-[2px]"
-              style={{ color: '#028901' }}
-            />
+            <CheckCircle2 size={22} className="shrink-0 mt-[2px] text-accent-green" />
             <div className="flex-1">
               <p className="type-detail text-text-primary mb-2">
                 {phase.alreadyUpToDate
-                  ? 'No changes — project knowledge already up to date with this session. / 项目知识库已是最新，无需保存。'
-                  : 'Saved to project knowledge — future sessions in this project can read these outputs. / 已存入 project 知识库 —— 这个 project 后续 session 都能读到这些产出。'}
+                  ? 'No changes — project knowledge already up to date with this session.'
+                  : 'Saved to project knowledge — future sessions in this project can read these outputs.'}
               </p>
               <p className="type-detail leading-[20px] text-text-secondary">
                 The worktree remains for reference and will be cleaned up
                 automatically.
-                <br />
-                工作树保留作参考,将被自动清理。
               </p>
             </div>
           </div>
@@ -249,14 +233,9 @@ export default function CompleteSessionModal({
             </p>
             <p className="type-detail leading-[20px] text-text-secondary mb-2">
               Resolve in terminal:
-              <br />
-              请在终端解决:
             </p>
             <div className="relative">
-              <pre
-                className="pl-3 pr-12 py-2 rounded-lg font-mono type-caption text-text-primary whitespace-pre-wrap break-all select-all"
-                style={{ background: 'var(--color-bg-hover)' }}
-              >
+              <pre className="pl-3 pr-12 py-2 rounded-lg font-mono type-caption text-text-primary whitespace-pre-wrap break-all select-all bg-bg-hover">
                 {phase.cliCommand}
               </pre>
               <button
@@ -271,16 +250,13 @@ export default function CompleteSessionModal({
             {/* Reserved row for flash/fallback so layout doesn't shift. */}
             <div className="min-h-[16px] mt-1 mb-4 text-right">
               {copyState === 'copied' && (
-                <span
-                  className="type-footnote font-medium"
-                  style={{ color: '#028901' }}
-                >
-                  Copied! / 已复制
+                <span className="type-footnote font-medium text-accent-green">
+                  Copied!
                 </span>
               )}
               {copyState === 'failed' && (
                 <span className="type-footnote text-text-secondary">
-                  Copy failed — select and ⌘C / 复制失败 — 请选中后 ⌘C
+                  Copy failed — select and ⌘C
                 </span>
               )}
             </div>

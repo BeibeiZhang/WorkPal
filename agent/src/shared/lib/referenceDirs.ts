@@ -48,13 +48,13 @@ export type ValidateResult =
  *  don't carry through whatever the user originally pasted). */
 export function validateReferenceDirectory(input: unknown): ValidateResult {
   if (typeof input !== 'string' || input.length === 0) {
-    return { ok: false, error: 'Path required / 路径不能为空' };
+    return { ok: false, error: 'Path required' };
   }
 
   if (!isAbsolute(input)) {
     return {
       ok: false,
-      error: 'Path must be absolute / 必须是绝对路径',
+      error: 'Path must be absolute',
     };
   }
 
@@ -64,7 +64,7 @@ export function validateReferenceDirectory(input: unknown): ValidateResult {
   if (input.split(sep).some((seg) => seg === '..')) {
     return {
       ok: false,
-      error: 'Path traversal not allowed / 不允许路径穿越',
+      error: 'Path traversal not allowed',
     };
   }
 
@@ -73,7 +73,7 @@ export function validateReferenceDirectory(input: unknown): ValidateResult {
   if (SYSTEM_BLOCKLIST.has(resolved)) {
     return {
       ok: false,
-      error: 'System directory not allowed / 系统目录不允许',
+      error: 'System directory not allowed',
     };
   }
 
@@ -84,14 +84,14 @@ export function validateReferenceDirectory(input: unknown): ValidateResult {
   if (resolved === WORKPAL_ROOT || resolved.startsWith(WORKPAL_ROOT + sep)) {
     return {
       ok: false,
-      error: "Cannot reference another project's folder / 不能指向另一个 project 的目录",
+      error: "Cannot reference another project's folder",
     };
   }
 
   if (!existsSync(resolved)) {
     return {
       ok: false,
-      error: 'Folder not found / 文件夹不存在',
+      error: 'Folder not found',
     };
   }
 
@@ -99,12 +99,12 @@ export function validateReferenceDirectory(input: unknown): ValidateResult {
   try {
     stat = statSync(resolved);
   } catch {
-    return { ok: false, error: 'Folder not found / 文件夹不存在' };
+    return { ok: false, error: 'Folder not found' };
   }
   if (!stat.isDirectory()) {
     return {
       ok: false,
-      error: 'Path must be a folder / 必须是文件夹',
+      error: 'Path must be a folder',
     };
   }
 

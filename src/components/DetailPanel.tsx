@@ -331,10 +331,9 @@ export default function DetailPanel({
                   preset list so users see what's happening without scrolling. */}
               {editState.kind === 'error' && (
                 <div
-                  className="flex items-center justify-between gap-3 px-4 py-3 rounded-lg type-detail"
+                  className="flex items-center justify-between gap-3 px-4 py-3 rounded-lg type-detail text-error"
                   style={{
                     background: 'rgba(220, 38, 38, 0.08)',
-                    color: '#B91C1C',
                   }}
                 >
                   <span className="flex-1 leading-snug">{editState.message}</span>
