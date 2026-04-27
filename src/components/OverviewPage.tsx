@@ -12,7 +12,7 @@ import {
   SectionTitle,
   Tag, SummaryFooter, PrimaryButton, GhostPillButton,
   MetricCard, TaskProgressCard, ReviewItemCard,
-  PageLayout, CategoryBreakdown, Switch,
+  PageLayout, CategoryBreakdown,
 } from './shared';
 import { fetchUnreadArtifacts, markArtifactViewed, artifactItemCount, type Artifact } from '../lib/artifacts';
 import { fetchUsage, formatUsd, type UsageSummary } from '../lib/usage';
@@ -603,43 +603,125 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
           <div className="mb-[48px]">
             <SectionTitle emoji="" title="API Spend" size={20} />
 
-            {/* Range segmented toggle — Switch primitive (design system) */}
-            <div className="mb-4">
-              <Switch<'1' | '7' | '30'>
-                value={String(spendRange) as '1' | '7' | '30'}
-                onChange={(v) => setSpendRange(Number(v) as 1 | 7 | 30)}
-                segments={[
-                  { value: '1', label: 'Past day' },
-                  { value: '7', label: 'Past 7 days' },
-                  { value: '30', label: 'Past 30 days' },
-                ]}
-                ariaLabel="API spend date range"
-              />
-            </div>
+            {/* Range picker + spend card. Left: a tall 1/7/30 "deck" that
+                deliberately overflows the card top + bottom (wheel-picker
+                feel) — the deck has its own white border + drop shadow so it
+                reads as a card sitting in front. Selected box pops to white;
+                others fade. Then a single capsule with stacked up/down
+                triangles cycles ranges. Vertical divider. Right: label +
+                $value + subtitle. Far right: chevron toggles details below. */}
+            {(() => {
+              const RANGES = [1, 7, 30] as const;
+              const idx = RANGES.indexOf(spendRange);
+              const rangeLabel = spendRange === 1 ? 'Past 24 Hours' : `Past ${spendRange} Days`;
+              return (
+                <div className="rounded-2xl bg-bg-message flex items-center gap-4 sm:gap-10 px-4 sm:px-10 py-5 overflow-visible">
+                  {/* Range deck — wheel picker. Click any number to scroll it
+                      to center; the selected number always lands on the
+                      fixed highlight. */}
+                  <div className="flex items-center shrink-0">
+                    {/* Deck — true wheel picker (Figma node 6648:24782).
+                        Selected item always sits at the center; the whole
+                        1/7/30 column translates so the selected slot lands on
+                        the fixed highlight. Items above/below fade into the
+                        deck color via the curtain overlay. Dimensions: w-71
+                        h-164, boxes h-9 (36px) with gap-2 (8px), step = 44px. */}
+                    <div className="relative w-[71px] h-[164px] rounded-[4px]">
+                      {/* Deck bg + frame. Outer drop-shadow lifts the wheel
+                          off the card (matches Figma node 6648:24786 — strong
+                          y=23 offset shadow). Inset shadow on the top edge
+                          gives the subtle "depth" inside the wheel. */}
+                      <div className="absolute inset-0 rounded-[4px] bg-bg-page border border-[#bebebe] shadow-[0_23px_9.55px_rgba(0,0,0,0.25),inset_0_4px_20px_rgba(0,0,0,0.04)] dark:border-stroke-outline dark:bg-[rgba(226,243,255,0.05)] pointer-events-none" />
+                      {/* Fixed center highlight — border-only frame (no bg)
+                          marks where the selected item lands at y=64. The
+                          frame is the visible "selected" indicator; non-
+                          selected items fade via opacity. Border lives on the
+                          highlight (not on each item) so as the wheel scrolls
+                          we never get adjacent item-borders stacking. */}
+                      <div
+                        aria-hidden="true"
+                        className="absolute left-2 right-2 top-[64px] h-[36px] rounded-[4px] border border-[rgba(20,39,64,0.06)] dark:border-stroke-outline pointer-events-none"
+                      />
+                      {/* Scrolling column. translateY shifts the stack so the
+                          selected item lands at y=64. All items render at full
+                          opacity — the fading is done entirely by the curtain
+                          overlay below, which sits ON TOP of the items and
+                          partially covers 1 / 30 with the deck color.
+                          Explicit px on the box/gap/padding so the layout
+                          stays in sync with the deck's px-based dimensions
+                          regardless of the project's root font-size. */}
+                      <div className="absolute inset-0 px-[8px] py-[20px] overflow-hidden rounded-[4px]">
+                        <div
+                          className="flex flex-col gap-[8px] transition-transform duration-300 ease-out"
+                          style={{ transform: `translateY(${(1 - idx) * 44}px)` }}
+                        >
+                          {RANGES.map((r) => {
+                            const selected = r === spendRange;
+                            return (
+                              <button
+                                key={r}
+                                type="button"
+                                onClick={() => setSpendRange(r)}
+                                aria-pressed={selected}
+                                aria-label={`Past ${r === 1 ? '24 hours' : `${r} days`}`}
+                                className={`h-[36px] w-full flex items-center justify-center rounded-[4px] bg-transparent transition-opacity focus:outline-none focus-visible:outline-none ${selected ? '' : 'dark:opacity-20'}`}
+                              >
+                                <span className="type-h1--emphasized text-text-primary !leading-[36px]">{r}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      {/* Curtain overlay — deck-color div on TOP of the
+                          scrolling items. mask-image gradient controls how
+                          much it covers: opaque at the very top/bottom edges
+                          (full deck color, items invisible), ~60% opaque at
+                          the 1 and 30 positions (numbers show 40% through —
+                          the "half-fade" Figma asks for), transparent in the
+                          middle (selected slot stays untouched). Matches
+                          Figma "Exclude" cutout (node 6648:24813). */}
+                      <div
+                        aria-hidden="true"
+                        className="absolute inset-0 pointer-events-none rounded-[4px] bg-bg-page dark:bg-[rgba(226,243,255,0.05)]"
+                        style={{
+                          maskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.65) 23%, rgba(0,0,0,0) 39%, rgba(0,0,0,0) 61%, rgba(0,0,0,0.65) 77%, rgba(0,0,0,1) 100%)',
+                          WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.65) 23%, rgba(0,0,0,0) 39%, rgba(0,0,0,0) 61%, rgba(0,0,0,0.65) 77%, rgba(0,0,0,1) 100%)',
+                        }}
+                      />
+                    </div>
+                  </div>
 
-            {/* Total cost — clickable, with a chevron in the top-right that
-                toggles the By provider + By model breakdowns below. MetricCard
-                stays centered; the chevron is absolute-positioned so the
-                headline number isn't knocked off center. */}
-            <button
-              onClick={() => setSpendDetailsOpen(!spendDetailsOpen)}
-              className="relative w-full rounded-2xl p-6 pb-[10px] bg-input-bg transition-colors"
-            >
-              <MetricCard
-                title={spendRange === 1 ? 'Past 24 hours' : `Past ${spendRange} days`}
-                value={spend ? formatUsd(spend.total_cost_usd) : spendLoading ? '—' : 'Free'}
-                subtitle={spend
-                  ? `${spend.call_count} call${spend.call_count === 1 ? '' : 's'} · ${(spend.total_input_tokens + spend.total_output_tokens).toLocaleString()} tokens`
-                  : spendLoading
-                    ? 'Loading…'
-                    : 'No activity yet'}
-              />
-              <div className="absolute top-4 right-4">
-                {spendDetailsOpen
-                  ? <ChevronUp size={16} className="text-text-primary" />
-                  : <ChevronDown size={16} className="text-text-primary" />}
-              </div>
-            </button>
+                  {/* Vertical divider */}
+                  <div className="w-px self-stretch bg-stroke-outline shrink-0" />
+
+                  {/* Spend headline — clickable to expand details */}
+                  <button
+                    type="button"
+                    onClick={() => setSpendDetailsOpen(!spendDetailsOpen)}
+                    className="flex-1 min-w-0 flex items-start text-left"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="type-detail-emphasized text-text-primary mb-1 whitespace-nowrap">{rangeLabel}</div>
+                      <div className="type-display-xl text-text-primary leading-none mb-2 whitespace-nowrap">
+                        {spend ? formatUsd(spend.total_cost_usd) : spendLoading ? '—' : 'Free'}
+                      </div>
+                      <div className="type-detail text-text-primary">
+                        {spend
+                          ? `${spend.call_count} call${spend.call_count === 1 ? '' : 's'} · ${(spend.total_input_tokens + spend.total_output_tokens).toLocaleString()} tokens`
+                          : spendLoading
+                            ? 'Loading…'
+                            : 'No activity yet'}
+                      </div>
+                    </div>
+                    <div className="shrink-0 ml-2">
+                      {spendDetailsOpen
+                        ? <ChevronUp size={16} className="text-text-primary" />
+                        : <ChevronDown size={16} className="text-text-primary" />}
+                    </div>
+                  </button>
+                </div>
+              );
+            })()}
 
             {spendDetailsOpen && (
               <div className="bg-bg-page rounded-2xl p-5 mt-2 mb-3 dark:bg-[rgba(226,243,255,0.05)]">
