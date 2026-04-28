@@ -605,7 +605,17 @@ Ship verification: install v0.1.2 agent + open `workpal-beibei.vercel.app` → P
 
 ---
 
-## 21. `decided-next` — Project ref-folder defaults text chat to Claude (channel-aware routing)
+## 21. `shipped` — Project ref-folder defaults text chat to Claude (channel-aware routing)
+
+**Shipped**: 2026-04-28 (PR [#150](https://github.com/BeibeiZhang/WorkPal/pull/150), merge commit `1ba8762`, v0.1.5 dmg). Single-file change in [`src/lib/intentRouter.ts`](../src/lib/intentRouter.ts) — `getAgentRouteIntent` gains `referenceDirectories: string[]` 3rd param + new branch after `IS_DEMO` short-circuit / before keyword check (`length > 0 && isAgentCurrentlyReachable() → 'use-claude'`). Caller in [`src/App.tsx:2353`](../src/App.tsx) handleSend threads `project?.referenceDirectories ?? []` via local `chatForRoute`/`projectForRoute` lookup. **Live verified**: 2026-04-28 Beibei test on PR preview URL (after diagnosing browser PNA cold-start cert handshake delay): project with ref folder + natural-language prompt "把这个加到 Beibei Zhang resume 上" → progress panel shows `Glob` / `Read` / `Bash` (Claude SDK path active) instead of `search_gmail` (OpenAI fallback). §19 system prompt now injects on natural-language prompts as designed. **12/12 unit cases verified** ad-hoc in `/tmp/verify-pr150.ts` during planning review.
+
+**Two follow-ups surfaced during live test (both shipped same day)**:
+- **§22** — §19 prompt didn't forbid AI roaming `~/Documents` even with ref folder attached. AI ran `Bash: find ~ -name "*resume*"` because original prompt only said "Glob each folder first" without explicit "ONLY these paths" constraint
+- **§23** — Local Claude-code Output cards had no preview path. Click only toggled highlight ([`ProjectPage.tsx:658`](../src/components/ProjectPage.tsx:658) only handled hosted artifacts via `o.href`)
+
+**Process learning**: time-consuming testing diagnosis ("AI 还是去邮箱" symptom) traced to 5 confounded state variables (URL preview vs main / projectId standalone vs project / agent reachable / refDirs field actually present / §21 code itself). Surfaced **§24** (routing decision visible in Progress panel) + **§25** (debug overlay) + **§28** (test infra) as ROI-high test-efficiency improvements.
+
+**Original surfacing context follows**:
 
 **Surfaced**: 2026-04-27 conversation, Beibei testing v0.1.3 + §17 ref folder feature with natural-language prompts. Two prompts ("在我简历加上这个记录" / "把这段加到我简历上") both contain "加 / 加到 / 加上" — none in `CLAUDE_CODE_KEYWORDS` ([`src/lib/intentRouter.ts:13`](../src/lib/intentRouter.ts#L13)). Result: chat routes to OpenAI fallback (no tool access), AI hallucinates "I can't access your Gmail" context, never injects §19 system prompt (which only takes effect on Claude path). Growing the keyword list is cat-and-mouse long-tail; the structural fix is making project-with-ref-folder chats default to Claude.
 
@@ -670,6 +680,158 @@ export function getAgentRouteIntent(
 - Voice mode in project with ref folder → still OpenAI (verify network tab — no Claude SDK process spawn).
 - Demo URL → IS_DEMO precedence intact.
 - Mobile + project with ref folder + agent unreachable → falls through to existing mobile handling (AgentRequiredHint).
+
+---
+
+## 22. `shipped` — Tighten §19 reference folder prompt to forbid out-of-scope search
+
+**Shipped**: 2026-04-28 (PR [#151](https://github.com/BeibeiZhang/WorkPal/pull/151), merge commit `81c466e`, v0.1.5 dmg). String-only edit, 2 mirror files (+2 −2). Inserts hard-prohibition paragraph at top of `REFERENCE_FOLDERS_PROMPT(paths)` template literal — placed right after paths bullet list (impl reasoning: stronger ordering than appending after "don't write directly" segment). New text: *"These folders are your ONLY source of user content. Do NOT use Bash `find ~`, `ls /Users/...`, or any Glob outside these paths. If the content isn't in these folders, say so explicitly. Don't roam other directories."*
+
+**Files** (mirror pair, byte-identical via `scripts/sync-agent-shared.sh`, drift check passes):
+- `agent/src/shared/routes/claudeChat.ts:243` — `REFERENCE_FOLDERS_PROMPT`
+- `server/src/routes/claudeChat.ts:243` — mirror
+
+**Surfaced**: 2026-04-28 Beibei testing v0.1.4 dmg post §21 ship — AI ran `Bash: find ~ -name "*resume*"` and `ls -la ~/Documents` despite ref folder attached. Original §19 prompt only said "Glob each folder first" without forbidding outside searches. AI behavior reasonable given LLM defaults but doesn't match Beibei's "ref folder = ONLY scope" mental model.
+
+**Plan-quality highlights** (recorded in memory `feedback_plan_quality_bar.md`):
+1. Plan reasoned about prompt position (top vs bottom) explicitly — chose top so hard prohibition reads strongest right after paths list
+2. Pre-flagged backtick escape in template literal (`\`find ~\``) — avoided common pitfall
+3. Plan's out-of-scope explicitly proposed §27 (Tool-level Bash deny) as the "if §22 soft constraint fails, hard constraint backup" path — defensive engineering
+
+**Risk**: low — string-only edit, no logic change. **Effort**: ~30min. **Live test**: deferred to v0.1.5 dmg install (port :3001 conflict prevented impl dev backend).
+
+---
+
+## 23. `shipped` — Local-file Output card click → DetailPanel preview + Finder reveal escape
+
+**Shipped**: 2026-04-28 (PR [#152](https://github.com/BeibeiZhang/WorkPal/pull/152), merge commit `08c1b8a`, **v0.1.6 dmg** — note: not v0.1.5 because §23 merged 20:53Z after v0.1.5 release at 19:20Z; required separate bump). 7 files (+310 −90).
+
+**Implements**:
+- (a) Frontend click on local-file Output card → SplitView wraps ProjectPage with right-side DetailPanel inline preview (markdown / html / plaintext via existing [`renderMarkdownBlocks`](../src/lib/markdown.tsx))
+- (b) DetailPanel header gets Finder icon button → new `POST /api/claude-chat/reveal-in-finder` route (`spawn('open', ['-R', path])` — reveal-and-highlight semantics distinct from existing `open-folder` parent-only / `open-file` default-app)
+- (c) Binary file fallback (client-side `BINARY_EXT` regex preflight skips doomed read-file → DetailPanel `unsupported` mode placeholder + dual buttons "Reveal in Finder" / "Open with default app")
+- (d) Mobile graceful (silent no-op, Finder button hidden — §15 family pattern)
+- (e) State split: `chatPreviewArtifact` + `projectPreviewArtifact` independent useState, hoisted `handleArtifactPreview(artifact, which)` callback shared by chat ArtifactCard + ProjectPage routes via `which: 'chat' | 'project'` param, `renderPreviewPanel(state, overlay, onClose)` helper for DRY
+
+**Surfaced**: 2026-04-28 Beibei testing post §21 ship — Claude wrote `Beibei-Zhang-Resume-...` markdown to Career project Output, but click on card only toggled highlight. [`ProjectPage.tsx:658`](../src/components/ProjectPage.tsx:658) `handleClick` only opened hosted artifacts (#3) via `o.href`; local Claude-code outputs had no preview entry. Gap surfaced by §17/§19/§20 ref folder workflow.
+
+**4 decisions locked via AskUserQuestion** (planning):
+1. **DetailPanel placement** → SplitView wrap ProjectPage (consistency with chat ArtifactCard preview UX; canFitAllThree handles narrow-screen)
+2. **Finder action semantics** → new `POST /api/claude-chat/reveal-in-finder` route (`open -R` highlights file, distinct from existing `open-folder` / `open-file`)
+3. **Mobile** → silent no-op (toggle highlight only, Finder button hidden per §15 graceful degrade)
+4. **Binary fallback** → impl-designed client-side `BINARY_EXT` regex preflight + DetailPanel `unsupported` mode + **dual buttons** Reveal/Open (impl exceeded planning's spec — gives user 2 escapes covering different intents)
+
+**Plan-quality highlights** (recorded in memory `feedback_plan_quality_bar.md`):
+1. Impl's "Key Findings" section grep-verified spec assumptions before coding — discovered 80% infrastructure already exists (`POST /api/claude-chat/read-file` already has 10MB cap + WORKPAL_ROOT jail; [`renderMarkdownBlocks()`](../src/lib/markdown.tsx) already handles markdown). Effort 3-4h → ~3h actual; only new endpoint = reveal-in-finder
+2. Step 3 hoist `handleArtifactPreview` shared callback — chat ArtifactCard + ProjectPage Output route through same handler, `which` param decides target state, free regression check (chat .md preview now also gains Finder icon)
+3. Plan's reusable utilities list (8 items) all grep-verified existing — principle #4 reuse-not-rebuild strict adherence
+
+**Mid-flight nit incorporated by impl**: planning flagged shared `previewArtifact` state would bleed across chat ↔ ProjectPage routes (chat preview A → switch to ProjectPage → preview B → switch back → A replaced with B). Impl accepted, split into 2 independent useState hooks; final behavior: each route's preview survives navigation, no cross-contamination.
+
+**Files**:
+- `src/types.ts` — `OutputItem.path?: string`
+- `src/App.tsx` — state split + `handleArtifactPreview` useCallback hoist + `renderPreviewPanel` helper + SplitView wrap ProjectPage
+- `src/components/DetailPanel.tsx` — `filePath?` + `mode?: 'preview' | 'unsupported'` props
+- `src/components/ProjectPage.tsx` — `onOutputPreview` prop, `useIsMobile()` mobile guard
+- `src/lib/api.ts` — `postRevealInFinder()`
+- `server/src/routes/claudeChat.ts` + `agent/src/shared/routes/claudeChat.ts` — new reveal-in-finder route (mirror via sync script, drift check passes)
+
+**Migration**: legacy `Project.outputs` entries lack `path` field → fall through to `setSelectedOutputId` toggle behavior. New writes auto-include `path` from `committedPath`. Beibei's existing Career resume Output won't auto-gain preview (re-generate to acquire) — accepted trade-off vs migration complexity.
+
+**Live test**: planning skipped pre-merge live test per principle #12 risk-routed (medium risk, but PR diff thoroughly verified static — backend reveal-in-finder reuses `resolveSessionFolder` jail = zero new validation, frontend state mgmt verified diff-by-diff). Live test deferred to v0.1.6 dmg install (full happy path 5 + edge cases 6 + chat regression check). v0.1.6 release built 2026-04-28 evening.
+
+**Effort**: ~3h (vs spec 3-4h, 80% pre-existing). **Risk**: low-medium.
+
+---
+
+## 24. `candidate` — Show routing decision in Progress panel
+
+**Surfaced**: 2026-04-28 reflecting on time spent debugging §21 ship — root cause of confusion was that routing decision (Claude path vs OpenAI fallback) is invisible to user. "AI 还是去邮箱" symptom required cross-checking 5 state variables (URL preview vs main / projectId / agent reachable / refDirs field / §21 code) via screenshots back-and-forth.
+
+**Goal**: First entry of Progress panel shows routing decision string + reason:
+- `Routed to Claude · reason: project has 1 ref folder + agent reachable`
+- `Routed to OpenAI fallback · reason: no keyword match`
+- `Routed to fallback-cloud · reason: agent unreachable`
+
+**Effect**: every chat self-documents which path it took. Eliminates the "is §X really firing?" diagnosis loop without requiring DevTools / console commands.
+
+**Effort**: ~30min. **Risk**: low — append-only UI line, intent string from `getAgentRouteIntent` return value.
+
+---
+
+## 25. `candidate` — Debug overlay (⌘⇧D toggle)
+
+**Surfaced**: 2026-04-28 same diagnostic-pain reflection as §24. Sometimes 5+ state variables (URL / IS_DEMO / agentState / chat.projectId / refDirs / route last) need to be inspected simultaneously, and asking Beibei to F12 + run console one-liners is high friction.
+
+**Goal**: ⌘⇧D toggles a fixed-position debug overlay (top-right) showing live values:
+- `agent: reachable | unreachable | unknown`
+- `chat.projectId: <id> | (none)`
+- `project.refDirs: [/path1, /path2]`
+- `IS_DEMO: false`
+- `route last: use-claude | fallback-cloud`
+
+Hidden in `IS_DEMO` builds (no debug for HR audience).
+
+**Effort**: ~1h. **Risk**: low — read-only state inspection UI, Mac-only key chord.
+
+---
+
+## 26. `candidate` — Single-ref-folder mode: SDK cwd directly = ref folder
+
+**Surfaced**: 2026-04-28 Beibei reflection during §22 discussion: *"Claude Cowork 里指定一个文件夹，AI 自动找文件，为什么 WorkPal 不行？"*
+
+**Root cause** (architecture): WorkPal's design intentionally separates `cwd = session git worktree` (Phase 5.5 auto-commit + Phase 6.3 Complete Session merge dependencies) from `referenceDirectories` (read-only knowledge sources, Phase 7+). SDK passes ref folders as `additionalDirectories` (permission scope) but **doesn't make them default Glob scope** — AI defaults to cwd (lazy-init empty worktree) → finds nothing → roams `~`. §22 prompt polish is the soft fix within current architecture.
+
+**Proposal (architecture-level)**: when project has exactly 1 ref folder attached, SDK cwd directly = ref folder (skip session worktree). AI auto-scopes per Cowork mental model.
+
+**Trade-off**:
+- Pro: full "Cowork simplicity" — AI auto-finds without prompt instruction
+- Con: loses git protection (cwd = user's real folder; 5.5 auto-commit + 6.3 Complete Session merge don't apply on this code path; AI edits user files directly with no Undo)
+
+**Trigger condition**: only evaluate AFTER §22 (v0.1.6 dmg) live test — if AI still roams despite §22's "ONLY these folders" prompt, escalate to §26. 80% likely §22 prompt polish suffices. If still insufficient → consider §27 (hard tool-level deny) before §26 (architecture rewrite).
+
+**Effort**: medium-high (architecture change, ref-folder vs worktree semantics rewrite). **Risk**: high (breaks Phase 5.5 + 6.3 invariants on a key path; loses Undo / Complete Session merge UX for ref-folder-only projects).
+
+---
+
+## 27. `candidate` — Tool-level Bash deny outside ref folders (hard constraint)
+
+**Surfaced**: 2026-04-28 §22 impl plan flagged this in out-of-scope: *"Tool-level enforcement (Bash permission deny outside ref folders) — prompt-only is soft constraint, hard constraint requires another §"*. Defensive engineering: if §22's prompt-only soft constraint fails (LLM ignores instructions), tool-permission layer is the backup.
+
+**Goal**: SDK `canUseTool` callback for `Bash` denies any command operating outside `referenceDirectories` (when project has them). Effectively makes ref folder boundary a *hard* invariant rather than a *soft* prompt suggestion.
+
+**Strategy options**:
+- A. Parse Bash command → reject if it references `~/Documents`, `/Users/`, `find ~`, etc. outside ref folders. Brittle (regex-based, escape-prone)
+- B. Run Bash in a sandbox (chroot / namespace) limited to ref folders. Heavy
+- C. Whitelist Bash commands that take a `path` arg → validate path is in ref folders. Middle ground
+
+**Trigger condition**: only evaluate if v0.1.6 live test shows AI still violates §22 soft constraint. 80% likely §22 suffices; this is the backup plan.
+
+**Effort**: medium-high (depending on strategy). **Risk**: medium — wrong rejection breaks legitimate workflows (e.g., AI legitimately needs `cd /tmp` for some reason).
+
+---
+
+## 28. `candidate` — Test infra (vitest unit-only first, Playwright e2e later)
+
+**Surfaced**: 2026-04-28 Beibei reflection: *"我们花了很多时间在测试，现在有没有更好的办法？"* Routing-layer changes (§17 / §19 / §21 / §22) historically required Beibei manual-test in browser per PR. ROI is high to invest in automation.
+
+**Phase 1 — vitest unit (1-2h, recommended first)**:
+- `src/lib/intentRouter.test.ts` — 12 routing cases already verified ad-hoc in `/tmp/verify-pr150.ts` during §21 planning review; promote to repo
+- Add §22 prompt assertion case — verify SDK call payload includes `appendSystemPrompt` containing "ONLY these folders" string when `referenceDirectories.length > 0`
+- `package.json` adds `"test": "vitest"`, `.github/workflows/test.yml` runs per PR
+- **Coverage**: routing layer ~100%, UI 0%
+
+**Phase 2 — Playwright e2e (4-6h, deferred until needed)**:
+- Mock agent (Express HTTPS server :3001) + localStorage seed (skip Supabase)
+- Real DOM tests: §17 ref folder add → SDK call payload check, §23 click → DetailPanel render verification, §15 mobile graceful
+- **Coverage**: UI flow + routing
+- **Defer rationale**: today's pain mostly routing-layer that vitest covers; Playwright value emerges when first UI-layer regression escapes to production
+
+**E2E blind spots (won't be covered even by Playwright)**: production HTTPS cert handshake cold-start slowness (today's §21 boot probe issue lived in this gap), real Claude SDK / Anthropic API behavior (mock LLM doesn't validate prompt effectiveness), browser cache distinguishing main vs preview, cross-device Supabase sync.
+
+**Recommendation**: ship Phase 1 vitest unit first as standalone PR. ~80% of "did §X really fire?" debugging time covered. Phase 2 Playwright deferred.
+
+**Effort**: Phase 1 = ~1-2h. **Risk**: low — adding tests doesn't change production behavior.
 
 ---
 

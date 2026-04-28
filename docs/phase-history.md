@@ -219,17 +219,20 @@ Phase 5 一路踩下的坑和形成的宗旨，**沉淀在 `docs/principles.md`*
 
 ## 当前状态（2026-04-28）
 
-**Phase 7 完整收官 + v0.1.4 production launched + Reference folders 整链路完成**：
-- WorkPal Agent v0.1.4 from `/Applications/WorkPal Agent.app`，launchd 开机自启
+**Phase 7 完整收官 + v0.1.5/v0.1.6 production launched + Reference folders 整链路 + AI 真主动用 ref folder 闭环 + Output preview**：
+- WorkPal Agent **v0.1.5/v0.1.6** from `/Applications/WorkPal Agent.app`，launchd 开机自启（v0.1.5 = §22 prompt polish；v0.1.6 = §23 Output preview + reveal-in-finder）
 - 用户主入口：**`https://workpal-beibei.vercel.app/overview`**
-  - 这台 Mac（agent 跑着）：**全 English UI** + 全功能（聊天 + 编辑本地文件 + git + reference folders + native folder picker）
+  - 这台 Mac（agent 跑着）：**全 English UI** + 全功能（聊天 + 编辑本地文件 + git + reference folders + native folder picker + **§22 AI 锁定在 ref folder 内搜** + **§23 Output card 点击预览 + Finder 高亮**）
   - 其他 Mac：OnboardingSurface 引导装 agent
-  - **iPhone**：cloud-only + §15 mobile graceful degrade + Complete Session button mobile gate（visible-but-disabled + 5s tip）
-  - Demo URL（workpal.vercel.app）：mocked，但 chat **真接 OpenAI**（不是 mock）；Agent Video Status 跨域同步自 workpal-beibei
-- 用户体验链路：用户在 ProjectPage 挂外部 reference folder（native picker 选）→ 在该 project chat 里说"加点东西到我简历"等自然语言 → 待 §21 ship 后自动走 Claude → AI Glob ref folder + Read 候选 + Write 改后版本到 session/outputs/ → 用户点 Complete Session → 选并入 project main / reference folder（Copy semantic 保留 git protection）→ 下次 session 该 output 成为 reference folder 知识库一员
+  - **iPhone**：cloud-only + §15 mobile graceful degrade + Complete Session button mobile gate（visible-but-disabled + 5s tip）+ §23 Output card mobile silent no-op
+  - Demo URL（my-workpal.vercel.app）：mocked，但 chat **真接 OpenAI**（不是 mock）；Agent Video Status 跨域同步自 workpal-beibei
+- 用户体验链路（§21 ship 后真闭环）：用户在 ProjectPage 挂外部 reference folder（native picker 选）→ 在该 project chat 里说"加点东西到我简历"等**完全无关键词的自然语言** → §21 channel-aware routing 自动走 Claude（不靠关键字）→ §22 严格 prompt 让 AI Glob ref folder + Read 候选（不漫游 ~/Documents）→ Write 改后版本到 session/outputs/ → ProjectPage Output 区出现 card → §23 点击 card 右侧 DetailPanel 预览 markdown / Finder icon 一键 reveal 文件位置 → 用户点 Complete Session → 选并入 project main / reference folder（Copy semantic 保留 git protection）→ 下次 session 该 output 成为 reference folder 知识库一员
 - Update 路径：boot-check → GitHub `/releases/latest` → 5th Settings card → 用户下 .dmg → 装
 
 **最近 ship**（按时间倒序）：
+- **PR [#152](https://github.com/BeibeiZhang/WorkPal/pull/152)** (2026-04-28, **v0.1.6 dmg**) — `feat: local-file Output detail panel + Finder escape (#23)`。7 文件 +310 −90。点击 Output card → SplitView 右侧 DetailPanel inline 预览（markdown/html/plaintext）。Panel 头部 Finder icon → 新 `POST /api/claude-chat/reveal-in-finder` route (`open -R`) 弹 Finder 高亮文件。Binary 文件（pdf/docx/png 等）BINARY_EXT regex 客户端预判 → DetailPanel `unsupported` mode 双 button (Reveal in Finder / Open with default app)。Mobile silent no-op + Finder hidden。State 拆 chat/project 独立（防跨页面 preview 串台），shared `handleArtifactPreview` callback + `renderPreviewPanel` helper。Plan-quality 高：impl Key Findings 段 grep-verify 80% 已存在（`read-file` endpoint + `renderMarkdownBlocks` lib），只新加 reveal-in-finder route。
+- **PR [#151](https://github.com/BeibeiZhang/WorkPal/pull/151)** (2026-04-28, **v0.1.5 dmg**) — `feat: tighten §19 reference folder prompt to forbid out-of-scope search (#22)`。String-only edit (2 mirror files +2 −2)。在 `REFERENCE_FOLDERS_PROMPT` paths 列表后插 hard prohibition："These folders are your ONLY source of user content. Do NOT use Bash `find ~`, `ls /Users/...`, or any Glob outside these paths. If the content isn't in these folders, say so explicitly. Don't roam other directories."（plan reasoning: top 位置比 bottom 强）。Backtick escape 提前 flag 避坑。Out-of-scope 自提 §27 (Tool-level Bash deny) 作为软约束失败 backup。
+- **PR [#150](https://github.com/BeibeiZhang/WorkPal/pull/150)** (2026-04-28, **v0.1.5 dmg**) — `feat: project ref-folder defaults text chat to Claude (#21)`。Single-file change in `intentRouter.ts` + 1 caller wire (App.tsx handleSend)。`getAgentRouteIntent` 加第 3 参数 `referenceDirectories: string[]`，新 branch 在 IS_DEMO 之后 / keyword 之前：`length > 0 && isAgentCurrentlyReachable() → 'use-claude'`。Channel-aware routing 解决 keyword router miss 自然语言长尾问题（"加 / 加到 / 提一下" 不在 keyword 列表）。Live 验证：项目挂 ref folder + 自然语言 prompt → progress 面板 Glob/Read/Bash 而不是 search_gmail = §19 system prompt 真注入。
 - **PR [#147](https://github.com/BeibeiZhang/WorkPal/pull/147)** (2026-04-28) — Sync agent video status across deployments via Supabase。把 §12 ship 的 localStorage-only video status 升级成 Supabase-backed cross-deployment sync（workpal-beibei 控制 master，demo cross-origin 读）。Beibei 平行 fast-lane session，未走主 candidate 流程。
 - **PR [#146](https://github.com/BeibeiZhang/WorkPal/pull/146)** (2026-04-28) — `feat: AI proactively uses reference folders + merge session to reference folders (#19 + #20)`。§19 = system prompt 引导 AI 主动 Glob ref folder 不 hallucinate Gmail。§20 = Complete Session 加并入到 reference folder 选项（Copy semantic, atomic abort policy）+ 新 Checkbox 共享 primitive + AgentRequiredHint customMessage prop + 5 个新 design system token（accent-blue-faint pair / overlay-loading / fixed-dark-text / tooltip-bg / 已 in #144 的 error）+ Mobile §15 gap fix（visible-but-disabled tip）。Bundle 一个 PR。
 - **PR [#144](https://github.com/BeibeiZhang/WorkPal/pull/144)** (2026-04-27) — `chore: UI English sweep + picker hotfix + design system tokens (#18)`，38 文件 +286 −292。Bundle 6 件：§17 picker hotfix + §18 双语 sweep（79 strings × 19 files）+ `--color-error` token + accent.* Tailwind class extension + one-off hex tokenization + alpha-modifier silent-failure 24 处 cleanup。包含 principle #8 翻转中触发 + CLAUDE.md violations + extend-don't-bypass 段添加 + stale memory 清理。
@@ -239,20 +242,31 @@ Phase 5 一路踩下的坑和形成的宗旨，**沉淀在 `docs/principles.md`*
 - **PR [#138](https://github.com/BeibeiZhang/WorkPal/pull/138)** (2026-04-26) — §15 mobile graceful degrade。
 - **PR [#136/#137](https://github.com/BeibeiZhang/WorkPal/pull/136)** (2026-04-26) — post-Phase-7 cleanups（#11 / #12 / #14）+ Overview spacing。
 
-**Releases 节奏**：v0.1.1（Phase 7.5 ship）→ v0.1.2（PR #143 ship 后）→ v0.1.3（PR #144 ship 后）→ v0.1.4（PR #146 ship 后，agent SDK 改动随 dmg 出）。每个 agent-relevant PR 之后 Beibei 手动 bump `agent/package.json` + tag + push 流程稳定。
+**Releases 节奏**：v0.1.1（Phase 7.5 ship）→ v0.1.2（PR #143 ship 后）→ v0.1.3（PR #144 ship 后）→ v0.1.4（PR #146 ship 后）→ **v0.1.5**（PR #150 + #151 ship 后；§21 frontend 通过 Vercel deploy 立即生效，§22 agent prompt 随 dmg 出）→ **v0.1.6**（PR #152 ship 后；§23 Output preview + reveal-in-finder route 含在 agent dmg）。
+
+**v0.1.5 时序记录**（process learning）：v0.1.5 release 在 §22 merge 后 + §23 merge 前 build，**§23 没赶上 v0.1.5 dmg**。Beibei bump v0.1.6 包 §23。**Lesson**：multi-PR batch ship dmg 时，先 merge all PRs 再 bump，避免 release 跑在 PR mid-flight。
 
 **Principle #8 翻转**（commit `f66a5be`，PR #144 中触发）：从 "bilingual day 1" → "English-first UI"。理由：双语 `/ 中文` 视觉累赘 + 维护税重。Voice / AI replies / intent router keywords / user input 不动；只 UI 文案翻转。`feedback_targeted_english_only.md` 删除（principle 翻转后过期）。
 
 **CLAUDE.md violations + extend-don't-bypass**（commits `7c9b612` + `23a382f`）：明确禁止 hex / inline color / alpha modifier 等 ad-hoc 写法；找不到 token / primitive 必须扩 design system，绝不绕过。
 
-**下一步**：根据 [`docs/post-phase-6-candidates.md`](./post-phase-6-candidates.md) 优先级。**当前 backlog 21 条（16 已 shipped，5 在排队）**。pending 5 条：
-- **#21** channel-aware routing（decided-next，~30min，prompt 已发；阻塞 §19 mental model 真闭环）
-- **#3** Artifact 生成（decided-next，5-7 天，最大产品扩面）
-- **#4** Bilingual scaffold（parked，等 i18n 真有需要再启）
-- **#6** CN→EN translate fix（1-2h）
-- **#13 Option C** Apple Developer 签名 + notarize（$99/yr，长期 Sequoia "已损坏" friction 解）
+**下一步**：根据 [`docs/post-phase-6-candidates.md`](./post-phase-6-candidates.md) 优先级。**当前 backlog 28 条（19 已 shipped，9 在排队）**。pending 9 条：
+- **#3** Artifact 生成（decided-next，5-7 天，**最大产品扩面**，§22+§23 ship 后启动）
+- **#4** Bilingual scaffold（parked，principle #8 翻转后过期，等真出现非英文 reader 再启）
+- **#6** CN→EN translate fix（candidate, ~1-2h）
+- **#13 Option C** Apple Developer 签名 + notarize（candidate, $99/yr）
+- **#24** Routing decision 显示在 Progress 面板（candidate, ~30min, 测试效率改进）
+- **#25** Debug overlay ⌘⇧D toggle（candidate, ~1h, console 命令产品化）
+- **#26** Single-ref-folder cwd = ref folder（candidate, architecture-level, **trigger condition**: §22 ship 后 AI 仍漫游才启）
+- **#27** Tool-level Bash deny outside ref folders（candidate, hard constraint backup, **trigger condition**: §22 软约束失败才启）
+- **#28** Test infra (vitest unit-only first, Playwright e2e later)（candidate, ~1-2h Phase 1）
 
-**§21 紧迫性**：Beibei v0.1.4 装好后实测 reference folder workflow（"加点东西到简历"）发现 AI 答 Gmail——root cause 是 keyword router miss 自然语言 → OpenAI fallback → §19 system prompt 没机会注入。§21 (~30min impl) 是 §19 真生效的关键 fix。Channel-aware 设计（voice OpenAI / text+ref Claude / 其他保留 keyword）已 spec lock。
+**§21 + §22 + §23 一日三 ship**（2026-04-28）：所有 ref folder workflow 闭环 fix 同日落地。§21 解决 keyword router miss 自然语言 → 走 Claude 路径让 §19 system prompt 真注入；§22 强化 §19 prompt 禁 AI 漫游 ~/Documents；§23 解决 Claude 生成 Output 没 preview 路径。Plan-quality 三连高（§21 + §22 + §23 都体现：grep-verify 现状、reasoning 而非机械、自提 follow-up candidate），impl 沉淀 `feedback_plan_quality_bar.md` memory。
+
+**Process learnings 2026-04-28 ship cycle**:
+- **Multi-PR batch dmg release**：先 merge all PRs 再 bump dmg（v0.1.5 漏 §23 教训）。
+- **Static review 替代 medium-risk live test 的边界**：§23 是 medium-risk，但 backend reuse `resolveSessionFolder` jail（零新 validation）+ frontend state 拆分 diff verify 完整，merge 决策 OK。Live test 留 dmg 装好后 1 case 验。
+- **Live-test 时间花在 cross-state diagnosis**：§21 ship 当日"AI 还是去邮箱" 排查 5 个状态变量（URL preview vs main / projectId / agent reachable / refDirs / §21 code），单次 ~30min Beibei 时间。surfaced §24 (routing transparency) + §25 (debug overlay) + §28 (test infra) 三个 testing-efficiency candidate。
 
 ---
 
@@ -261,6 +275,6 @@ Phase 5 一路踩下的坑和形成的宗旨，**沉淀在 `docs/principles.md`*
 - **`docs/phase-5-requirements.md`** — Phase 5 living doc，每个 sub-step 的 scope / context / acceptance tests
 - **`docs/phase-6-requirements.md`** — Phase 6 living doc，worktree + merge-ff-only 全流程
 - **`docs/phase-7-requirements.md`** — Phase 7 living doc，5 个 sub-phase + locked decisions + Context from blocks
-- **`docs/post-phase-6-candidates.md`** — 14 个 candidate 的 living backlog（含 4 个未 ship）
+- **`docs/post-phase-6-candidates.md`** — **28 个 candidate** 的 living backlog（**19 已 shipped，9 pending**：#3 #4 #6 #13C #24 #25 #26 #27 #28）
 - **`docs/principles.md`** — 15 条开发宗旨（Phase 5 形成、6/7 验证）
 - **MEMORY.md** — planning/testing Claude 自动加载的 cross-session context
