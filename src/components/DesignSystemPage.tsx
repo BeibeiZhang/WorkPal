@@ -36,6 +36,7 @@ import PermissionPrompt from './PermissionPrompt';
 import type { PermissionKind, PermissionRequest } from '../types';
 import type { Chat, Message, CardData } from '../types';
 import { AGENTS, useAgentVideoStatus, type AgentVideo, type VideoStatus } from '../agentVideos';
+import { IS_DEMO } from '../lib/demoMode';
 
 interface DesignSystemPageProps {
   sidebarOpen: boolean;
@@ -2575,11 +2576,13 @@ function AgentVideoRow({
   mode,
   status,
   onSetStatus,
+  readOnly,
 }: {
   src: string;
   mode: 'light' | 'dark';
   status: VideoStatus;
   onSetStatus: (next: VideoStatus) => void;
+  readOnly?: boolean;
 }) {
   const fileName  = src.split('/').pop() ?? src;
   const previewBg = mode === 'dark' ? '#1B1B1B' : 'var(--color-bg-hover)';
@@ -2651,6 +2654,7 @@ function AgentVideoRow({
             { value: 'inactive', label: 'Inactive' },
           ]}
           ariaLabel={`Activation state for ${fileName}`}
+          disabled={readOnly}
         />
       </div>
     </div>
@@ -2688,9 +2692,14 @@ function AgentVideosTab() {
         <p className="type-caption text-text-primary mb-3">
           Each agent has a pool of idle videos that play in the welcome state of a new chat. One is picked at random per
           session (separately for light / dark mode). The toggle on each row flips between <strong>Active</strong>{' '}
-          (in rotation) and <strong>Inactive</strong> (skipped). State syncs across browsers via the server (with a
-          local cache for offline use) and applies in real time everywhere the avatar renders.
+          (in rotation) and <strong>Inactive</strong> (skipped). State syncs across browsers and across deployments via
+          Supabase, with a local cache for offline use, and applies in real time everywhere the avatar renders.
         </p>
+        {IS_DEMO && (
+          <p className="type-caption text-text-secondary mb-3">
+            Read-only on this demo deployment — the toggles mirror the curated pool from the main control surface.
+          </p>
+        )}
         <div className="flex flex-wrap gap-2">
           <StatusTag variant="success" label={`${totals.active} active`}    size="sm" showIcon={false} />
           <StatusTag variant="pending" label={`${totals.inactive} inactive`} size="sm" showIcon={false} />
@@ -2730,6 +2739,7 @@ function AgentVideosTab() {
                       mode="light"
                       status={getStatus(v.src)}
                       onSetStatus={next => setStatus(v.src, next)}
+                      readOnly={IS_DEMO}
                     />
                   ))}
                 </div>
@@ -2750,6 +2760,7 @@ function AgentVideosTab() {
                       mode="dark"
                       status={getStatus(v.src)}
                       onSetStatus={next => setStatus(v.src, next)}
+                      readOnly={IS_DEMO}
                     />
                   ))}
                 </div>
