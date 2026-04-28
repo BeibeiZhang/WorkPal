@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pencil } from 'lucide-react';
+import { Pencil, FolderOpen, FileQuestion } from 'lucide-react';
 import { iconShorter, iconExtend, iconFormal, iconTranslate } from '../assets';
 import { SidePanelHeader } from './shared';
-import { streamEditArticle, type EditPreset } from '../lib/api';
+import { streamEditArticle, postRevealInFinder, postOpenFile, type EditPreset } from '../lib/api';
 import { renderMarkdownBlocks } from '../lib/markdown';
+import { useIsMobile } from '../lib/useIsMobile';
 
 interface DetailPanelProps {
   title: string;
@@ -28,6 +29,15 @@ interface DetailPanelProps {
   /** Called during a left-edge drag with the clamped new width in px. Absent
    *  = panel is non-resizable (also true in `fullScreen` overlay mode). */
   onResize?: (newWidth: number) => void;
+  /** §23: absolute file path of the previewed artifact. When present, the
+   *  header gains a Finder-reveal button (hidden on mobile per graceful
+   *  degrade). Also used by `mode: 'unsupported'` placeholder body for the
+   *  Reveal / Open-with-default actions. */
+  filePath?: string;
+  /** §23: 'preview' (default) renders `content` in the chosen `renderAs`;
+   *  'unsupported' replaces the body with a "Cannot preview this file type"
+   *  placeholder + Reveal in Finder / Open with default app buttons. */
+  mode?: 'preview' | 'unsupported';
 }
 
 const RESIZE_MIN_PX = 400;
@@ -55,7 +65,11 @@ export default function DetailPanel({
   onSave,
   renderAs = 'markdown',
   onResize,
+  filePath,
+  mode = 'preview',
 }: DetailPanelProps) {
+  const isMobile = useIsMobile();
+  const showRevealButton = !!filePath && !isMobile;
   const panelRef = useRef<HTMLDivElement>(null);
   const startResize = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (fullScreen || !onResize) return;
@@ -269,13 +283,55 @@ export default function DetailPanel({
         title={hasUnsaved ? `${title} ●` : title}
         onClose={onClose}
         className="pl-10 pr-[32px]"
-      />
+      >
+        {showRevealButton && (
+          <button
+            onClick={() => { void postRevealInFinder(filePath!); }}
+            aria-label="Reveal in Finder"
+            title="Reveal in Finder"
+            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors shrink-0 text-text-primary"
+          >
+            <FolderOpen size={20} />
+          </button>
+        )}
+      </SidePanelHeader>
 
       <div
         ref={contentAreaRef}
-        className={`flex-1 overflow-y-auto relative ${renderAs === 'html' ? '' : 'pl-10 pr-[32px]'}`}
+        className={`flex-1 overflow-y-auto relative ${mode === 'unsupported' || renderAs !== 'html' ? 'pl-10 pr-[32px]' : ''}`}
       >
-        {renderAs === 'html' ? (
+        {mode === 'unsupported' ? (
+          // §23: client-side binary preflight (or read-file failure) lands
+          // here — the file exists but we can't render its bytes inline.
+          // Two-button escape: Reveal pops Finder, Open hands off to the
+          // registered default app.
+          <div className="flex flex-col items-center justify-center text-center pt-16 pb-24 gap-4">
+            <FileQuestion size={48} className="text-text-tertiary" strokeWidth={1.2} />
+            <p className="type-h2 text-text-primary">Cannot preview this file type</p>
+            <p className="type-detail text-text-secondary max-w-[320px]">
+              WorkPal can only preview text-based files inline. Use Finder or the default app to open this one.
+            </p>
+            {filePath && (
+              <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                {!isMobile && (
+                  <button
+                    onClick={() => { void postRevealInFinder(filePath); }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-full border border-stroke-outline hover:bg-bg-hover transition-colors type-detail-emphasized text-text-primary"
+                  >
+                    <FolderOpen size={16} />
+                    Reveal in Finder
+                  </button>
+                )}
+                <button
+                  onClick={() => { void postOpenFile(filePath); }}
+                  className="px-4 py-2 rounded-full border border-stroke-outline hover:bg-bg-hover transition-colors type-detail-emphasized text-text-primary"
+                >
+                  Open with default app
+                </button>
+              </div>
+            )}
+          </div>
+        ) : renderAs === 'html' ? (
           // 6.4: sandbox=" " (empty tokens) denies everything — no same-origin,
           // no scripts, no forms. Enough to show HTML layout + CSS for a
           // preview without letting a malicious artifact exfiltrate data or

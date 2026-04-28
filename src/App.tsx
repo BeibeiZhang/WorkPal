@@ -16,7 +16,7 @@ import LibraryPage from './components/LibraryPage';
 import MemoryPage from './components/MemoryPage';
 import NewProjectDialog from './components/NewProjectDialog';
 import { SplitView } from './components/shared';
-import { Chat, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleCard, ImageResult, VideoResult, WebResult, MemoryEntry, MemoryKind, CardData, ChangeEntry, ChangeKind, PermissionRequest, OutputItem } from './types';
+import { Chat, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleCard, ImageResult, VideoResult, WebResult, MemoryEntry, MemoryKind, CardData, ChangeEntry, ChangeKind, PermissionRequest, OutputItem, ArtifactRef } from './types';
 import PermissionPrompt from './components/PermissionPrompt';
 import CompleteSessionModal, { type CompleteSessionPhase } from './components/CompleteSessionModal';
 import { avatarBlackWoman, avatarAsianWoman, avatarWhiteMan } from './assets';
@@ -24,7 +24,7 @@ import { DEMO_EXTRA_CHAT_IDS } from './data/demo/chats';
 import { DEMO_CHANGES_ALCOHOL } from './data/demo/changes';
 import { IS_DEMO } from './lib/demoMode';
 import { useAgentState, initAgentProbe } from './lib/agent';
-import { postClaudePermissionDecision, postInitProject, postOpenFile, postOpenFolder, postReadFile, postReaperRun, postSessionComplete, postSessionMerge, postUndoChange, streamChat, streamClaudeChat } from './lib/api';
+import { postClaudePermissionDecision, postInitProject, postOpenFolder, postReadFile, postReaperRun, postSessionComplete, postSessionMerge, postUndoChange, streamChat, streamClaudeChat } from './lib/api';
 import { getAgentRouteIntent, shouldGenerateArtifact } from './lib/intentRouter';
 import { buildAttachmentContextBlock, buildImageDescriptionBlock } from './lib/attachments';
 import { artifactFromClaudePath, outputTypeFromPath, generateArtifactRequest, artifactItemCount } from './lib/artifacts';
@@ -623,22 +623,81 @@ export default function App() {
   // with `detailCard` (both cleared on DetailPanel close and on view-report
   // of a different message).
   const [detailMessageId, setDetailMessageId] = useState<string | null>(null);
-  // 6.4: inline preview of an AI-produced artifact (.md / .html / .txt).
-  // Populated when the user clicks an ArtifactCard in chat; the server
-  // reads the file, the DetailPanel opens with content. null = no preview.
-  const [previewArtifact, setPreviewArtifact] = useState<{
-    name: string;
-    content: string;
-    renderAs: 'markdown' | 'html' | 'plaintext';
-    path: string;
-  } | null>(null);
+  // 6.4 / §23: inline preview of an AI-produced artifact (.md / .html / .txt
+  // → kind 'preview'; binary or unreadable → kind 'unsupported'). Split into
+  // two pieces so the chat-route preview and the project-route preview don't
+  // bleed across each other when the user navigates between them. User flow
+  // we want to support: chat preview A is open → switch to ProjectPage (right
+  // slot empty) → click Output B → ProjectPage shows B → switch back to chat
+  // → A is still there. Same union shape, two independent slots.
+  type PreviewArtifactState =
+    | { kind: 'preview'; name: string; content: string; renderAs: 'markdown' | 'html' | 'plaintext'; path: string }
+    | { kind: 'unsupported'; name: string; path: string }
+    | null;
+  const [chatPreviewArtifact, setChatPreviewArtifact] = useState<PreviewArtifactState>(null);
+  const [projectPreviewArtifact, setProjectPreviewArtifact] = useState<PreviewArtifactState>(null);
   // User-resizable DetailPanel width. Resets to default on close so each open
   // starts at 504px — no cross-session persistence by design (see chat note).
   const DETAIL_DEFAULT_WIDTH = 504;
   const [detailPanelWidth, setDetailPanelWidth] = useState(DETAIL_DEFAULT_WIDTH);
   useEffect(() => {
-    if (!previewArtifact && !detailOpen) setDetailPanelWidth(DETAIL_DEFAULT_WIDTH);
-  }, [previewArtifact, detailOpen]);
+    if (!chatPreviewArtifact && !projectPreviewArtifact && !detailOpen) setDetailPanelWidth(DETAIL_DEFAULT_WIDTH);
+  }, [chatPreviewArtifact, projectPreviewArtifact, detailOpen]);
+  // §23: shared preview handler — chat ArtifactCard click and ProjectPage
+  // Output card click both route through here. `which` decides which preview
+  // slot the result lands in (state was split so the two routes don't bleed).
+  // Binary client-side preflight skips a doomed read-file POST and lands the
+  // user on the unsupported placeholder with Reveal/Open buttons; a read-file
+  // failure also falls through to the same placeholder so the user gets an
+  // explicit choice instead of a silent open-with-default-app.
+  const handleArtifactPreview = useCallback(async (artifact: ArtifactRef, which: 'chat' | 'project') => {
+    if (!artifact.path) return;
+    const setPreview = which === 'chat' ? setChatPreviewArtifact : setProjectPreviewArtifact;
+    const lower = artifact.name.toLowerCase();
+    const BINARY_EXT = /\.(pdf|docx?|xlsx?|pptx?|png|jpe?g|gif|webp|svg|mp4|mov|zip|tar|gz)$/i;
+    // Opening a preview takes over the side panel — close any other side
+    // surface (card detail / context) so only one is ever visible at a time.
+    setDetailCard(null);
+    setDetailMessageId(null);
+    setDetailOpen(false);
+    setContextPanelOpen(false);
+    if (BINARY_EXT.test(artifact.name)) {
+      setPreview({ kind: 'unsupported', name: artifact.name, path: artifact.path });
+      return;
+    }
+    const content = await postReadFile(artifact.path);
+    if (content === null) {
+      setPreview({ kind: 'unsupported', name: artifact.name, path: artifact.path });
+      return;
+    }
+    const renderAs: 'markdown' | 'html' | 'plaintext' =
+      lower.endsWith('.html') || lower.endsWith('.htm') ? 'html'
+      : lower.endsWith('.md') || lower.endsWith('.markdown') ? 'markdown'
+      : 'plaintext';
+    setPreview({ kind: 'preview', name: artifact.name, content, renderAs, path: artifact.path });
+  }, []);
+  // §23: render the DetailPanel shell for either preview slot. Body branches
+  // on `state.kind` — 'preview' uses the file's renderAs (markdown/html/
+  // plaintext); 'unsupported' shows the binary placeholder + Reveal/Open
+  // buttons. Always passes filePath so the header gets the Finder reveal
+  // button (DetailPanel hides it on mobile internally).
+  const renderPreviewPanel = (
+    state: NonNullable<PreviewArtifactState>,
+    overlay: boolean,
+    onClose: () => void,
+  ) => (
+    <DetailPanel
+      key={state.path}
+      title={state.name}
+      content={state.kind === 'preview' ? state.content : ''}
+      renderAs={state.kind === 'preview' ? state.renderAs : 'plaintext'}
+      mode={state.kind === 'preview' ? 'preview' : 'unsupported'}
+      filePath={state.path}
+      onClose={onClose}
+      fullScreen={overlay}
+      onResize={setDetailPanelWidth}
+    />
+  );
   // Voice mode overlay
   const [voiceModeActive, setVoiceModeActive] = useState(false);
   const [voicePendingText, setVoicePendingText] = useState<string | undefined>();
@@ -1957,6 +2016,7 @@ export default function App() {
                 id: `output-${chunk.toolUseId}`,
                 name,
                 type,
+                path: committedPath,
               };
               return { ...p, outputs: [...existing, entry] };
             }));
@@ -2772,7 +2832,10 @@ export default function App() {
     setActiveTools([]);
     // Detail panels are scoped to the previous chat's messages; close them on
     // switch so the new chat doesn't inherit a stale artifact preview or card.
-    setPreviewArtifact(null);
+    // §23: only the chat-route preview slot is scoped to the chat — the
+    // project-route preview slot survives chat navigation by design (per the
+    // mid-flight nit that split state to keep cross-route previews independent).
+    setChatPreviewArtifact(null);
     setDetailCard(null);
     setDetailMessageId(null);
     // my-workpal is the welcome chat at `/`, not a normal /chat/:id.
@@ -3266,18 +3329,41 @@ export default function App() {
 
         {/* Main Content */}
         {activeProjectId && projects.find(p => p.id === activeProjectId) ? (
-          <ProjectPage
-            project={projects.find(p => p.id === activeProjectId)!}
-            chats={chats}
-            onCreateChat={handleCreateChatInProject}
-            onOpenChat={handleChatSelect}
-            onAddFiles={handleAddProjectFiles}
-            onRemoveFile={handleRemoveProjectFile}
-            onAddReferenceDirectory={handleAddReferenceDirectory}
-            onRemoveReferenceDirectory={handleRemoveReferenceDirectory}
-            sidebarOpen={sidebarOpen || !isMobile}
-            onToggleSidebar={() => setSidebarOpen(o => !o)}
-          />
+          // §23: ProjectPage docks the §23 DetailPanel preview on its right
+          // edge via an outer SplitView. ProjectPage's existing internal
+          // SplitView (info panel: Files / Context / Instructions) keeps
+          // working — when the preview is open, the inner SplitView measures
+          // less width and falls back to its overlay mode automatically.
+          <SplitView
+            sideOpen={projectPreviewArtifact !== null}
+            sideWidth={detailPanelWidth}
+            onCloseSide={() => setProjectPreviewArtifact(null)}
+            bgClass="app-bg"
+            side={({ overlay }) => {
+              if (!projectPreviewArtifact) return null;
+              return renderPreviewPanel(projectPreviewArtifact, overlay, () => setProjectPreviewArtifact(null));
+            }}
+          >
+            <ProjectPage
+              project={projects.find(p => p.id === activeProjectId)!}
+              chats={chats}
+              onCreateChat={handleCreateChatInProject}
+              onOpenChat={handleChatSelect}
+              onAddFiles={handleAddProjectFiles}
+              onRemoveFile={handleRemoveProjectFile}
+              onAddReferenceDirectory={handleAddReferenceDirectory}
+              onRemoveReferenceDirectory={handleRemoveReferenceDirectory}
+              sidebarOpen={sidebarOpen || !isMobile}
+              onToggleSidebar={() => setSidebarOpen(o => !o)}
+              onOutputPreview={(output) => {
+                if (!output.path) return;
+                void handleArtifactPreview(
+                  { name: output.name, fileType: output.type, path: output.path, source: 'claude-code' },
+                  'project',
+                );
+              }}
+            />
+          </SplitView>
         ) : activeView === 'design-system' ? (
           <DesignSystemPage
             sidebarOpen={sidebarOpen || !isMobile}
@@ -3341,7 +3427,7 @@ export default function App() {
           // set, but onArtifactClick clears detailCard first so this is only
           // a defense-in-depth ordering.
           const sideKind: 'preview' | 'detail' | 'context' | null =
-            previewArtifact ? 'preview'
+            chatPreviewArtifact ? 'preview'
             : detailOpen ? 'detail'
             : (activeChat?.hasInspector && contextPanelOpen) ? 'context'
             : null;
@@ -3350,32 +3436,22 @@ export default function App() {
               sideOpen={sideKind !== null}
               sideWidth={sideKind === 'detail' || sideKind === 'preview' ? detailPanelWidth : 280}
               onCloseSide={sideKind === 'preview'
-                ? () => { setPreviewArtifact(null); setContextPanelOpen(true); }
+                ? () => { setChatPreviewArtifact(null); setContextPanelOpen(true); }
                 : sideKind === 'detail'
                 ? () => { setDetailOpen(false); setDetailCard(null); setDetailMessageId(null); setContextPanelOpen(true); }
                 : () => setContextPanelOpen(false)}
               bgClass="app-bg"
               side={({ overlay }) => {
-                if (sideKind === 'preview' && previewArtifact) {
-                  // 6.4: inline preview of an AI-produced file. Reuses
-                  // DetailPanel's shell (header + scroll area + close button)
-                  // so the motion / sizing matches the research / meeting
-                  // detail view. Not editable — artifacts are immutable from
-                  // the user's side; rewrites happen by asking the AI.
-                  return (
-                    <DetailPanel
-                      key={previewArtifact.path}
-                      title={previewArtifact.name}
-                      content={previewArtifact.content}
-                      renderAs={previewArtifact.renderAs}
-                      onClose={() => {
-                        setPreviewArtifact(null);
-                        setContextPanelOpen(true);
-                      }}
-                      fullScreen={overlay}
-                      onResize={setDetailPanelWidth}
-                    />
-                  );
+                if (sideKind === 'preview' && chatPreviewArtifact) {
+                  // 6.4 / §23: inline preview of an AI-produced file. Reuses
+                  // DetailPanel's shell so motion / sizing matches the
+                  // research / meeting detail view. Not editable — artifacts
+                  // are immutable from the user's side; rewrites happen by
+                  // asking the AI.
+                  return renderPreviewPanel(chatPreviewArtifact, overlay, () => {
+                    setChatPreviewArtifact(null);
+                    setContextPanelOpen(true);
+                  });
                 }
                 if (sideKind === 'detail') {
                   // Real tool-result cards (Research / Meeting) carry their own
@@ -3489,39 +3565,14 @@ export default function App() {
                 onOpenReferenceFolders={() => {
                   if (activeChat?.projectId) navigate(`/project/${activeChat.projectId}`);
                 }}
-                // 6.4: click on an inline artifact pill → fetch file content
-                // and open the DetailPanel as an inline preview. Falls back to
-                // `open` spawn if the read fails (e.g. binary/large file the
-                // 10MB cap rejects). Hosted artifacts (#3) carry their own
-                // `href` and skip this handler — the card renders as a link.
-                onArtifactClick={async (artifact) => {
-                  if (!artifact.path) return;
-                  const content = await postReadFile(artifact.path);
-                  if (content === null) {
-                    // Read failed — degrade to the old open-in-default-app
-                    // flow so the user still sees their file somehow.
-                    void postOpenFile(artifact.path);
-                    return;
-                  }
-                  const lower = artifact.name.toLowerCase();
-                  const renderAs: 'markdown' | 'html' | 'plaintext' =
-                    lower.endsWith('.html') || lower.endsWith('.htm') ? 'html'
-                    : lower.endsWith('.md') || lower.endsWith('.markdown') ? 'markdown'
-                    : 'plaintext';
-                  // Opening the artifact preview takes over the side panel —
-                  // close any existing card-detail / context view first so
-                  // only one side panel is ever visible.
-                  setDetailCard(null);
-                  setDetailMessageId(null);
-                  setDetailOpen(false);
-                  setContextPanelOpen(false);
-                  setPreviewArtifact({
-                    name: artifact.name,
-                    content,
-                    renderAs,
-                    path: artifact.path,
-                  });
-                }}
+                // 6.4 / §23: click on an inline artifact pill → fetch file
+                // content and open the DetailPanel as an inline preview.
+                // Hosted artifacts (#3) carry their own `href` and skip this
+                // handler — the card renders as a link. The shared
+                // handleArtifactPreview also routes the §23 ProjectPage
+                // Output card click; passing 'chat' targets the chat-route
+                // preview slot.
+                onArtifactClick={(artifact) => { void handleArtifactPreview(artifact, 'chat'); }}
                 onCardAction={(action, card, messageId) => {
                   if (action === 'view-report') {
                     setDetailCard(card ?? null);
@@ -3537,7 +3588,7 @@ export default function App() {
                 isDark={isDark}
                 selectedAvatarId={selectedAvatarId}
                 onAvatarChange={setSelectedAvatarId}
-                showContextToggle={!!activeChat?.hasInspector && !detailOpen && !previewArtifact}
+                showContextToggle={!!activeChat?.hasInspector && !detailOpen && !chatPreviewArtifact}
                 contextPanelOpen={contextPanelOpen}
                 onToggleContextPanel={() => setContextPanelOpen(o => !o)}
                 isAiResponding={isAiResponding}
