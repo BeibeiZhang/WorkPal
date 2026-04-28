@@ -783,6 +783,42 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                     </div>
                   </>
                 )}
+
+                {/* By source — which deployment recorded each row. Drives
+                    the "is workpal-beibei traffic from someone other than me?"
+                    diagnostic. Pre-migration rows have null source and bucket
+                    as 'unknown'. Hidden if no rows have source data at all. */}
+                {spend && spend.by_source.length > 0 && (
+                  <>
+                    <div className="h-px dashed-border-b my-5" />
+                    <div className="type-detail text-text-primary mb-3">By source (deployment)</div>
+                    <div className="flex flex-col">
+                      {spend.by_source.map((s) => {
+                        const label =
+                          s.source === 'localhost' ? 'Local dev (your computer)'
+                          : s.source === 'workpal-beibei' ? 'workpal-beibei.vercel.app (your prod)'
+                          : s.source === 'my-workpal' ? 'my-workpal.vercel.app (demo)'
+                          : 'Unknown / pre-2026-04-28';
+                        return (
+                          <div
+                            key={s.source}
+                            className="flex items-center justify-between py-2.5 dashed-border-b last:bg-none"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="type-detail text-text-primary truncate">{label}</div>
+                              <div className="type-detail text-text-secondary">
+                                {s.call_count} call{s.call_count === 1 ? '' : 's'}
+                              </div>
+                            </div>
+                            <div className="type-detail text-text-primary shrink-0">
+                              {formatUsd(s.cost_usd)}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>

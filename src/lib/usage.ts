@@ -2,6 +2,19 @@ import { IS_DEMO } from './demoMode';
 
 export type Provider = 'openai' | 'anthropic' | 'tavily';
 export type Capability = 'chat' | 'voice' | 'web_query' | 'agent' | 'other';
+export type Source = 'localhost' | 'workpal-beibei' | 'my-workpal' | 'unknown';
+
+/** Tag a usage row with which deployment recorded it. Read at log time from
+ *  window.location.hostname so each row carries its origin. Vercel preview
+ *  URLs (workpal-beibei-git-…vercel.app) still match `workpal-beibei`; custom
+ *  domains and anything unexpected fall through to 'unknown'. */
+export function detectSource(): Source {
+  const host = (typeof window !== 'undefined' && window.location?.hostname) || '';
+  if (host === 'localhost' || host === '127.0.0.1') return 'localhost';
+  if (host.startsWith('workpal-beibei')) return 'workpal-beibei';
+  if (host.startsWith('my-workpal')) return 'my-workpal';
+  return 'unknown';
+}
 
 export interface UsageSummary {
   range_days: number;
@@ -26,6 +39,7 @@ export interface UsageSummary {
     voice_minutes: number;
     images_count: number;
   }>;
+  by_source: Array<{ source: Source; cost_usd: number; call_count: number }>;
   by_day: Array<{ date: string; cost_usd: number }>;
 }
 
@@ -96,7 +110,7 @@ export async function logClientUsage(entry: {
     await fetch('/api/usage/log', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(entry),
+      body: JSON.stringify({ ...entry, source: detectSource() }),
     });
   } catch {
     // intentional: see doc above.
