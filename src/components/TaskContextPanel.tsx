@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { File, MessageCircle, FilePlus2, FilePen, FileMinus2, GitMerge, Undo2, ShieldOff, CheckCircle2 } from 'lucide-react';
-import { AgentRequiredHint, SideCard, SidePanelHeader, TertiaryButton } from './shared';
+import { AgentRequiredHint, SideCard, SidePanelBody, SidePanelHeader, TertiaryButton } from './shared';
 import type { ChangeEntry, ChangeKind } from '../types';
 import { IS_DEMO } from '../lib/demoMode';
 import { useAgentState } from '../lib/agent';
@@ -244,8 +244,8 @@ export default function TaskContextPanel({
     >
       {/* Header with collapse-back toggle */}
       <SidePanelHeader onClose={onClose} closeIcon="panel-right" closeLabel="Collapse panel" />
-      {/* Scrollable body */}
-      <div className="flex-1 overflow-y-auto min-h-0 px-3 pb-6 flex flex-col gap-4 scrollbar-autohide">
+      {/* Scrollable body — shared with ProjectPage right panel via SidePanelBody. */}
+      <SidePanelBody>
 
         {/* Changes — auto-commit log (Phase 4). Only renders when at least
              one change has happened; hidden otherwise so the panel stays
@@ -411,7 +411,7 @@ export default function TaskContextPanel({
             </div>
           )}
         </SideCard>
-      </div>
+      </SidePanelBody>
 
       {/* 6.3 footer — "Complete Session" / "Session complete". Rendered
           outside the scroll area so it stays pinned at the bottom of the

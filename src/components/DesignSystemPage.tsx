@@ -19,7 +19,7 @@ import {
   SolutionRow, SummaryFooter,
   MetricCard, InsightCard, TaskProgressCard, ReviewItemCard,
   StatusTag, ConnectorCard, HealthDimensionRow, SearchBox, TextField, PageLayout,
-  HeaderBar, SplitView, SidePanelHeader, SideCard, ToolbarPill, DemoBadge,
+  HeaderBar, SplitView, SidePanelHeader, SidePanelBody, SideCard, ToolbarPill, DemoBadge,
   ToolbarIconButton, ToolbarSegmented, Tooltip, Switch,
 } from './shared';
 // Live imports — every "real" component that ships in the app.
@@ -953,6 +953,7 @@ const SEARCH_INDEX: SearchEntry[] = [
   { tab: 'layouts', section: 'Layout Templates', name: 'HeaderBar', description: "Slim top bar for pages that don't use PageLayout (mainly ChatPanel)" },
   { tab: 'layouts', section: 'Layout Templates', name: 'SplitView', description: 'Main column + collapsible side column, responsive overlay mode' },
   { tab: 'layouts', section: 'Layout Templates', name: 'SidePanelHeader', description: 'Shared header row for side panels — close button and typography unified' },
+  { tab: 'layouts', section: 'Layout Templates', name: 'SidePanelBody', description: 'Scrollable body wrapper that pairs with SidePanelHeader — single source of truth for L/R padding, gap, and scrollbar treatment across right panels' },
   { tab: 'layouts', section: 'Layout Templates', name: 'SideCard', description: 'Collapsible card for right-column panels (Instructions / Scheduled / Files / Context)' },
   // Components — shared primitives
   { tab: 'components', section: 'Components · Shared Primitives', name: 'PrimaryButton · SecondaryButton · TertiaryButton', description: 'Three-tier button system, all h-[48px]. Only ONE Primary per view.' },
@@ -997,6 +998,7 @@ const SEARCH_INDEX: SearchEntry[] = [
   { tab: 'components', section: 'Components · ProjectPage Shared Layout', name: 'PageLayout (ProjectPage)', description: 'Canonical page shell used by ProjectPage.' },
   { tab: 'components', section: 'Components · ProjectPage Shared Layout', name: 'SplitView (ProjectPage)', description: 'Main + collapsible side column with responsive overlay.' },
   { tab: 'components', section: 'Components · ProjectPage Shared Layout', name: 'SidePanelHeader (ProjectPage)', description: 'Shared header row for side panels.' },
+  { tab: 'components', section: 'Components · ProjectPage Shared Layout', name: 'SidePanelBody (ProjectPage)', description: 'Scrollable body wrapper paired with SidePanelHeader.' },
   { tab: 'components', section: 'Components · ProjectPage Shared Layout', name: 'SideCard (ProjectPage)', description: 'Collapsible side-panel card.' },
   // Components — pages
   // Review Queue
@@ -1743,6 +1745,31 @@ function LayoutsTab() {
         </div>
         <div className="type-caption text-text-primary">
           <strong>Props:</strong> <code className="font-mono type-caption">title</code>, <code className="font-mono type-caption">onClose</code>, <code className="font-mono type-caption">closeIcon</code> ('x' | 'panel-right'), <code className="font-mono type-caption">closeLabel</code>
+        </div>
+      </LayoutCard>
+
+      <LayoutCard name="SidePanelBody" pagesUsing={['ProjectPage side panel', 'TaskContextPanel']}>
+        <p className="type-caption text-text-primary mb-3">
+          Scrollable body that pairs with <code className="font-mono type-caption">SidePanelHeader</code> and holds a vertical stack of <code className="font-mono type-caption">SideCard</code>s. Single source of truth for right-panel L/R padding (px-3) and inter-card gap (gap-4) — switching between project view and task view no longer shifts content horizontally.
+        </p>
+        <div className="rounded-lg overflow-hidden border border-stroke-outline" style={{ background: 'var(--color-bg-page)', height: 320 }}>
+          <div className="flex flex-col h-full">
+            <SidePanelHeader title="Panel title" onClose={() => {}} closeIcon="panel-right" />
+            <SidePanelBody>
+              <SideCard title="Instructions" defaultOpen>
+                <p className="type-caption text-text-primary">First card content.</p>
+              </SideCard>
+              <SideCard title="Files" defaultOpen>
+                <p className="type-caption text-text-primary">Second card content.</p>
+              </SideCard>
+              <SideCard title="Context">
+                <p className="type-caption text-text-primary">Third card content.</p>
+              </SideCard>
+            </SidePanelBody>
+          </div>
+        </div>
+        <div className="type-caption text-text-primary mt-3">
+          <strong>Props:</strong> <code className="font-mono type-caption">children</code>. Padding / gap are intentionally not configurable — that's the point.
         </div>
       </LayoutCard>
 

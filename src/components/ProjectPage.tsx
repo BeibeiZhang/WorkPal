@@ -6,7 +6,7 @@ import {
   FileCode2, MessageCircle, Pen, File, Plus, X,
   FolderOpen, FolderClosed, Inbox,
 } from 'lucide-react';
-import { AddRowButton, AgentRequiredHint, EmptyState, FilterChip, PageLayout, SearchBox, SideCard, SidePanelHeader, SplitView, outputIconFor } from './shared';
+import { AddRowButton, AgentRequiredHint, EmptyState, FilterChip, PageLayout, SearchBox, SideCard, SidePanelBody, SidePanelHeader, SplitView, outputIconFor } from './shared';
 import type { Chat, Attachment, OutputItem, OutputType } from '../types';
 import { filesToAttachments, formatFileSize } from '../lib/attachments';
 import { IS_DEMO } from '../lib/demoMode';
@@ -459,16 +459,8 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
             onClose={() => setInfoPanelOpen(false)}
             closeIcon="panel-right"
             closeLabel="Collapse panel"
-            className={overlay ? 'px-5' : 'pr-6 pl-0'}
           />
-          <div
-            className={
-              overlay
-                ? 'flex-1 min-h-0 overflow-y-auto px-5 pb-8 scrollbar-autohide'
-                : 'flex-1 min-h-0 overflow-y-auto pr-6 pb-8 scrollbar-autohide'
-            }
-          >
-            <div className="flex flex-col gap-4">
+          <SidePanelBody>
             {/* Instructions */}
             <SideCard title="Instructions" icon={<Pen size={14} />} defaultOpen>
               <div className="flex flex-col gap-2">
@@ -565,8 +557,7 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                 </button>
               </div>
             </SideCard>
-          </div>
-          </div>
+          </SidePanelBody>
         </div>
       )}
     >
