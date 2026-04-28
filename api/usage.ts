@@ -4,6 +4,7 @@ import {
   summarize,
   type Capability,
   type Provider,
+  type Source,
 } from './_lib/usage-store.js';
 
 /** Routes:
@@ -26,6 +27,7 @@ import {
 const ALLOWED_RANGES = new Set([1, 7, 30]);
 const ALLOWED_PROVIDERS: Provider[] = ['openai', 'anthropic', 'tavily'];
 const ALLOWED_CAPABILITIES: Capability[] = ['chat', 'voice', 'web_query', 'agent', 'other'];
+const ALLOWED_SOURCES: Source[] = ['localhost', 'workpal-beibei', 'my-workpal', 'unknown'];
 
 function strParam(v: unknown): string | undefined {
   return typeof v === 'string' ? v : undefined;
@@ -51,6 +53,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         cache_write_tokens?: number;
         cost_usd?: number;
         images_count?: number;
+        source?: string;
       };
       if (!body.provider || !ALLOWED_PROVIDERS.includes(body.provider as Provider)) {
         res.status(400).json({ error: 'invalid provider' });
@@ -67,6 +70,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const capability = body.capability && ALLOWED_CAPABILITIES.includes(body.capability as Capability)
         ? (body.capability as Capability)
         : undefined;
+      const source = body.source && ALLOWED_SOURCES.includes(body.source as Source)
+        ? (body.source as Source)
+        : undefined;
       await logUsage({
         provider: body.provider as Provider,
         model: body.model,
@@ -77,6 +83,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         cache_read_tokens: typeof body.cache_read_tokens === 'number' ? body.cache_read_tokens : undefined,
         cache_write_tokens: typeof body.cache_write_tokens === 'number' ? body.cache_write_tokens : undefined,
         cost_usd: body.cost_usd,
+        source,
       });
       res.json({ ok: true });
       return;

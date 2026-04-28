@@ -517,6 +517,24 @@ export function SidePanelHeader({
   );
 }
 
+/* ─── 0d-pre. SidePanelBody ───
+ * Scrollable body container for right-column side panels. Pairs with
+ * `SidePanelHeader` above and holds a vertical stack of `SideCard`s. Lifted
+ * out so ProjectPage and TaskContextPanel render the **same** L/R padding,
+ * gap, scrollbar treatment, and bottom space — switching between project
+ * and task views no longer shifts content horizontally.
+ *
+ *   Padding: `px-3 pb-6` (10.5px L/R desktop, 12px mobile via 14/16px rem).
+ *   Symmetric so SideCard dividers indent identically on both sides.
+ */
+export function SidePanelBody({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex-1 overflow-y-auto min-h-0 px-3 pb-6 flex flex-col gap-4 scrollbar-autohide">
+      {children}
+    </div>
+  );
+}
+
 /* ─── 0d. SideCard ───
  * Collapsible card used inside right-column side panels.
  *   - Border + rounded-2xl + page-bg surface (works in light/dark)

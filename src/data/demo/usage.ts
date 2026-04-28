@@ -51,6 +51,10 @@ const DEMO_USAGE_30: UsageSummary = {
     { capability: 'web_query', call_count: 8, cost_usd: 0, voice_minutes: 0, images_count: 0 },
     { capability: 'agent', call_count: 12, cost_usd: 5.0, voice_minutes: 0, images_count: 0 },
   ],
+  by_source: [
+    { source: 'workpal-beibei', cost_usd: 11.5, call_count: 180 },
+    { source: 'localhost', cost_usd: 5.0, call_count: 86 },
+  ],
   by_day: [
     { date: daysAgo(29), cost_usd: 0.4 }, { date: daysAgo(28), cost_usd: 0.7 },
     { date: daysAgo(27), cost_usd: 0.1 }, { date: daysAgo(26), cost_usd: 0.6 },
@@ -99,6 +103,10 @@ const DEMO_USAGE_7: UsageSummary = {
     { capability: 'web_query', call_count: 2, cost_usd: 0, voice_minutes: 0, images_count: 0 },
     { capability: 'agent', call_count: 3, cost_usd: 1.15, voice_minutes: 0, images_count: 0 },
   ],
+  by_source: [
+    { source: 'workpal-beibei', cost_usd: 2.7, call_count: 42 },
+    { source: 'localhost', cost_usd: 1.15, call_count: 20 },
+  ],
   by_day: [
     { date: daysAgo(6), cost_usd: 0 },
     { date: daysAgo(5), cost_usd: 0.6 },
@@ -135,6 +143,10 @@ const DEMO_USAGE_1: UsageSummary = {
     { capability: 'voice', call_count: 1, cost_usd: 0.07, voice_minutes: 1, images_count: 0 },
     { capability: 'web_query', call_count: 0, cost_usd: 0, voice_minutes: 0, images_count: 0 },
     { capability: 'agent', call_count: 1, cost_usd: 0.16, voice_minutes: 0, images_count: 0 },
+  ],
+  by_source: [
+    { source: 'workpal-beibei', cost_usd: 0.39, call_count: 6 },
+    { source: 'localhost', cost_usd: 0.16, call_count: 3 },
   ],
   by_day: [{ date: daysAgo(0), cost_usd: 0.55 }],
 };

@@ -9,6 +9,11 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 export type Provider = 'openai' | 'anthropic' | 'tavily';
 export type Capability = 'chat' | 'voice' | 'web_query' | 'agent' | 'other';
 
+// Which deployment wrote the row. Lets the dashboard tell apart cost driven
+// by Beibei's own use vs. anyone hitting the public workpal-beibei URL.
+// Pre-migration rows have null source and bucket as 'unknown' on read.
+export type Source = 'localhost' | 'workpal-beibei' | 'my-workpal' | 'unknown';
+
 export interface UsageEntry {
   ts: string;
   provider: Provider;
@@ -20,6 +25,7 @@ export interface UsageEntry {
   cache_read_tokens?: number;
   cache_write_tokens?: number;
   cost_usd: number;
+  source?: Source;
 }
 
 interface DbRow {
@@ -34,6 +40,7 @@ interface DbRow {
   cache_write_tokens: number | null;
   images_count: number | null;
   cost_usd: number;
+  source: string | null;
 }
 
 /** Fallback for rows written before the `capability` column existed or when a
@@ -104,6 +111,7 @@ export async function logUsage(entry: Omit<UsageEntry, 'ts'>): Promise<void> {
         cache_write_tokens: entry.cache_write_tokens ?? null,
         images_count: entry.images_count ?? null,
         cost_usd: entry.cost_usd,
+        source: entry.source ?? null,
       });
     if (error) console.warn('[usage-store] insert failed', error);
   } catch (err) {
@@ -155,6 +163,9 @@ export interface UsageSummary {
     voice_minutes: number;
     images_count: number;
   }>;
+  /** Cost split by deployment that wrote the row. Pre-migration rows (null
+   *  source) bucket as 'unknown'. */
+  by_source: Array<{ source: Source; cost_usd: number; call_count: number }>;
   by_day: Array<{ date: string; cost_usd: number }>;
 }
 
@@ -168,6 +179,7 @@ const EMPTY_SUMMARY = (rangeDays: number): UsageSummary => ({
   by_model: [],
   by_provider: [],
   by_capability: [],
+  by_source: [],
   by_day: [],
 });
 
@@ -195,6 +207,7 @@ export async function summarize(rangeDays: number): Promise<UsageSummary> {
       cache_write_tokens: r.cache_write_tokens ?? undefined,
       images_count: r.images_count ?? undefined,
       cost_usd: r.cost_usd,
+      source: (r.source as Source | null) ?? undefined,
     }));
   } catch (err) {
     console.warn('[usage-store] summarize threw', err);
@@ -208,6 +221,7 @@ export async function summarize(rangeDays: number): Promise<UsageSummary> {
   const capabilityMap = new Map<Capability, {
     cost: number; count: number; voiceMinutes: number; images: number;
   }>();
+  const sourceMap = new Map<Source, { cost: number; count: number }>();
   const dayMap = new Map<string, number>();
 
   let totalCost = 0;
@@ -246,6 +260,12 @@ export async function summarize(rangeDays: number): Promise<UsageSummary> {
     }
     capabilityMap.set(cap, c);
 
+    const src: Source = (r.source as Source | undefined) ?? 'unknown';
+    const s = sourceMap.get(src) ?? { cost: 0, count: 0 };
+    s.cost += r.cost_usd;
+    s.count += 1;
+    sourceMap.set(src, s);
+
     const day = r.ts.slice(0, 10);
     dayMap.set(day, (dayMap.get(day) ?? 0) + r.cost_usd);
   }
@@ -277,6 +297,11 @@ export async function summarize(rangeDays: number): Promise<UsageSummary> {
       voice_minutes: Math.round(v.voiceMinutes * 10) / 10,
       images_count: v.images,
     })).sort((a, b) => b.call_count - a.call_count),
+    by_source: Array.from(sourceMap, ([source, v]) => ({
+      source,
+      cost_usd: v.cost,
+      call_count: v.count,
+    })).sort((a, b) => b.cost_usd - a.cost_usd),
     by_day: Array.from(dayMap, ([date, cost_usd]) => ({ date, cost_usd }))
       .sort((a, b) => a.date.localeCompare(b.date)),
   };
