@@ -1412,49 +1412,97 @@ export default function App() {
     });
   }, [chats, projects]);
 
-  /** 6.3: user approved the diff — POST /api/session/merge and map the
-   *  response to the modal's success / not-ff / other-error phases. On
-   *  success we flip `chat.sessionCompleted` so the footer button permanently
-   *  disables (rolling back after a successful merge is out of Phase 6
-   *  scope) and auto-close the modal after a brief confirmation delay. */
-  const handleMergeSession = useCallback(async () => {
-    const chatId = completeSessionChatId;
-    if (!chatId) return;
-    const chat = chats.find(c => c.id === chatId);
-    if (!chat?.projectId || !chat.sessionFolder) return;
-    const project = projects.find(p => p.id === chat.projectId);
-    if (!project) return;
-    const projectSlug = slugify(project.name);
+  /** 6.3 + §20: user approved the diff and picked targets — POST
+   *  /api/session/merge and map the aggregate response to a phase. The
+   *  partial-success phase covers any case where the user selected ref
+   *  folders (even all-success multi-target), preserving the simpler
+   *  single-target `success` state for the legacy project-only path so the
+   *  alreadyUpToDate copy + 1.8s auto-close stay intact. */
+  const handleMergeSession = useCallback(
+    async (targets: { project: boolean; referenceFolders: string[] }) => {
+      const chatId = completeSessionChatId;
+      if (!chatId) return;
+      const chat = chats.find(c => c.id === chatId);
+      if (!chat?.projectId || !chat.sessionFolder) return;
+      const project = projects.find(p => p.id === chat.projectId);
+      if (!project) return;
+      const projectSlug = slugify(project.name);
 
-    setCompleteSessionPhase({ kind: 'merging' });
-    const result = await postSessionMerge(projectSlug, chat.sessionFolder);
+      setCompleteSessionPhase({ kind: 'merging' });
+      const response = await postSessionMerge({
+        projectSlug,
+        sessionFolder: chat.sessionFolder,
+        targets,
+      });
 
-    // Same in-flight guard as handleCompleteSession — modal may have been
-    // closed while the POST was landing.
-    setCompleteSessionChatId(currentId => {
-      if (currentId !== chatId) return currentId;
-      if (result.ok) {
-        setChats(prev => prev.map(c =>
-          c.id === chatId ? { ...c, sessionCompleted: true } : c,
-        ));
-        setCompleteSessionPhase({ kind: 'success', alreadyUpToDate: result.alreadyUpToDate });
-        // Auto-close after a beat so the user sees the ✅ land but the modal
-        // doesn't linger. Cleared below if the user closes it first.
-        window.setTimeout(() => {
-          setCompleteSessionChatId(inner => (inner === chatId ? null : inner));
-        }, 1800);
-      } else if (result.reason === 'not-ff') {
-        setCompleteSessionPhase({
-          kind: 'error-not-ff',
-          message: result.error,
-          cliCommand: result.cliCommand,
-        });
-      } else {
-        setCompleteSessionPhase({ kind: 'error-other', message: result.error });
-      }
-      return currentId;
-    });
-  }, [completeSessionChatId, chats, projects]);
+      // Same in-flight guard as handleCompleteSession — modal may have been
+      // closed while the POST was landing.
+      setCompleteSessionChatId(currentId => {
+        if (currentId !== chatId) return currentId;
+        if (response.kind === 'transport') {
+          setCompleteSessionPhase({ kind: 'error-other', message: response.error });
+          return currentId;
+        }
+
+        const projectResult = response.results.find(r => r.target === 'project');
+        const isMultiTarget = targets.referenceFolders.length > 0;
+
+        // Single-target legacy path: project only, no refs. Keep the
+        // alreadyUpToDate copy + auto-close behavior unchanged.
+        if (!isMultiTarget) {
+          if (projectResult?.ok) {
+            setChats(prev => prev.map(c =>
+              c.id === chatId ? { ...c, sessionCompleted: true } : c,
+            ));
+            setCompleteSessionPhase({
+              kind: 'success',
+              alreadyUpToDate: projectResult.alreadyUpToDate,
+            });
+            window.setTimeout(() => {
+              setCompleteSessionChatId(inner => (inner === chatId ? null : inner));
+            }, 1800);
+          } else if (projectResult && !projectResult.ok && projectResult.reason === 'not-ff') {
+            setCompleteSessionPhase({
+              kind: 'error-not-ff',
+              message: projectResult.error,
+              cliCommand: projectResult.cliCommand,
+            });
+          } else if (projectResult && !projectResult.ok) {
+            setCompleteSessionPhase({ kind: 'error-other', message: projectResult.error });
+          } else {
+            setCompleteSessionPhase({ kind: 'error-other', message: 'Unexpected response' });
+          }
+          return currentId;
+        }
+
+        // Multi-target path: even if everything succeeded, render per-target
+        // rows so the user sees what landed where. Project not-ff still
+        // bumps to the dedicated CLI-handoff phase since refs were skipped.
+        if (projectResult && !projectResult.ok && projectResult.reason === 'not-ff') {
+          setCompleteSessionPhase({
+            kind: 'error-not-ff',
+            message: projectResult.error,
+            cliCommand: projectResult.cliCommand,
+          });
+          return currentId;
+        }
+
+        // Flip sessionCompleted iff project succeeded (or was skipped) — a
+        // partial ref-folder failure shouldn't leave the button enabled if
+        // the user did get the project merged.
+        const projectSucceededOrSkipped =
+          !targets.project || (projectResult?.ok ?? false);
+        if (projectSucceededOrSkipped) {
+          setChats(prev => prev.map(c =>
+            c.id === chatId ? { ...c, sessionCompleted: true } : c,
+          ));
+        }
+        setCompleteSessionPhase({ kind: 'partial-success', results: response.results });
+        return currentId;
+      });
+    },
+    [completeSessionChatId, chats, projects],
+  );
 
   /** Open the PermissionPrompt modal and await the user's decision. Returns
    *  true on Allow / Always allow, false on Cancel. "Always allow" also
@@ -3620,6 +3668,13 @@ export default function App() {
           phase={completeSessionPhase}
           onCancel={() => setCompleteSessionChatId(null)}
           onMerge={handleMergeSession}
+          referenceFolders={(() => {
+            const chat = chats.find(c => c.id === completeSessionChatId);
+            const project = chat?.projectId
+              ? projects.find(p => p.id === chat.projectId)
+              : undefined;
+            return project?.referenceDirectories ?? [];
+          })()}
         />
       )}
 

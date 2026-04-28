@@ -819,6 +819,66 @@ export function Switch<T extends string>({
   );
 }
 
+/* ─── Checkbox ───
+ * Independent boolean primitive (NOT a radio group like Switch above).
+ * Built for §20 CompleteSessionModal target selector — multiple checkboxes
+ * stacked vertically, each toggling one merge target.
+ *
+ * Style mirrors Switch's selected-state token usage:
+ *   --color-selected-bg / --color-selected-text are CSS variables only (NOT
+ *   registered as Tailwind utilities), so they're applied via inline style —
+ *   token-via-inline-style, not the hex/rgba violation flagged in CLAUDE.md.
+ *   When/if the design system grows enough to need bg-selected utility, that's
+ *   a separate registration step in tailwind.config.js.
+ *
+ * Hint uses text-text-secondary (NOT text-text-primary/60 — alpha modifiers
+ * silently fail on rgba tokens per CLAUDE.md Violations).
+ */
+export function Checkbox({
+  checked,
+  onChange,
+  label,
+  hint,
+  disabled = false,
+}: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  label: string;
+  hint?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={checked}
+      aria-disabled={disabled || undefined}
+      disabled={disabled}
+      onClick={() => {
+        if (!disabled) onChange(!checked);
+      }}
+      className={`flex items-start gap-3 w-full px-3 py-2 rounded-lg text-left transition-colors ${
+        disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-bg-hover'
+      }`}
+    >
+      <span
+        className="shrink-0 mt-[2px] flex items-center justify-center w-4 h-4 rounded-[4px] border border-stroke-outline"
+        style={
+          checked ? { backgroundColor: 'var(--color-selected-bg)', borderColor: 'transparent' } : undefined
+        }
+      >
+        {checked && (
+          <Check size={12} strokeWidth={3} style={{ color: 'var(--color-selected-text)' }} />
+        )}
+      </span>
+      <span className="flex-1 min-w-0">
+        <span className="block type-detail text-text-primary">{label}</span>
+        {hint && <span className="block type-caption text-text-secondary truncate">{hint}</span>}
+      </span>
+    </button>
+  );
+}
+
 /* ─── 1. SectionTitle ─── */
 export function SectionTitle({
   emoji,
@@ -2056,8 +2116,16 @@ export function EmptyState({
  *     ArtifactCard, Undo) after the user clicks it. Auto-dismissed by the
  *     caller via setTimeout — this component is presentational only.
  */
-export function AgentRequiredHint({ variant = 'card' }: { variant?: 'card' | 'tip' }) {
-  const en = 'This needs WorkPal Agent on your Mac. Open the page on your computer to use it.';
+export function AgentRequiredHint({
+  variant = 'card',
+  message,
+}: {
+  variant?: 'card' | 'tip';
+  /** §20E: per-surface override. Falls back to the generic agent-required
+   *  copy when omitted, so PR #138's existing call sites stay unchanged. */
+  message?: string;
+}) {
+  const en = message ?? 'This needs WorkPal Agent on your Mac. Open the page on your computer to use it.';
   if (variant === 'tip') {
     return (
       <div

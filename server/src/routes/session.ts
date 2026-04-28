@@ -9,6 +9,27 @@ import {
 } from '../lib/git.js';
 import { initProjectIfNeeded, resolveProjectFolder } from '../lib/project.js';
 import { WORKPAL_ROOT } from '../lib/paths.js';
+import { copySessionOutputsToRefFolder } from '../lib/sessionCopy.js';
+import { validateReferenceDirectories } from '../lib/referenceDirs.js';
+
+/** §20: aggregate response shape for /api/session/merge. The handler always
+ *  returns this shape — single-project (no `targets` body) collapses to
+ *  `results: [{ target: 'project', ... }]`, multi-target merges include one
+ *  entry per requested ref folder. Frontend reads `ok` for top-level
+ *  success/partial and `results[]` for per-row UI in CompleteSessionModal. */
+export type MergeTargetResult =
+  | { target: 'project'; ok: true; commit: string; alreadyUpToDate: boolean }
+  | { target: 'project'; ok: false; reason: 'not-ff'; error: string; gitMessage: string }
+  | { target: 'project'; ok: false; reason: 'other'; error: string }
+  | { target: 'reference'; path: string; ok: true; copiedCount: number }
+  | { target: 'reference'; path: string; ok: true; copiedCount: 0; warning: 'no_outputs_dir' }
+  | {
+      target: 'reference';
+      path: string;
+      ok: false;
+      code: 'permission_denied' | 'not_found' | 'disk_full' | 'invalid_path' | 'unknown';
+      message: string;
+    };
 
 const router = Router();
 
@@ -160,52 +181,128 @@ router.post('/session/complete', async (req, res) => {
   }
 });
 
-// POST /api/session/merge — 6.3: user approved the diff. Attempt a
-// `git merge --ff-only` in the project base. 409 on non-FF (another session
-// was completed in between — 6.4 will surface the CLI hand-off); 500 on
-// anything else git complains about.
+// POST /api/session/merge — 6.3 + §20: user approved the diff. Body shape:
+//   {
+//     projectSlug, sessionFolder,
+//     targets?: { project?: boolean, referenceFolders?: string[] }
+//   }
+// Targets default to `{ project: true, referenceFolders: [] }` (back-compat
+// for any caller predating §20). Project merge runs first and aborts the
+// whole request on failure (409 non-ff / 500 other) — we never want to
+// pollute ref folders if the canonical project merge couldn't go through.
+// Ref folder copies run serially, each producing one MergeTargetResult; per-
+// folder failures don't short-circuit each other.
 router.post('/session/merge', async (req, res) => {
-  const check = await validateCompleteInputs(req.body ?? {});
+  const body = (req.body ?? {}) as {
+    projectSlug?: unknown;
+    sessionFolder?: unknown;
+    targets?: { project?: unknown; referenceFolders?: unknown };
+  };
+  const check = await validateCompleteInputs(body);
   if (!check.ok) {
     res.status(check.status).json({ error: check.error });
     return;
   }
-  const { projectPath, branchName } = check.value;
+  const { projectPath, workingDir, branchName } = check.value;
 
-  const result = await mergeSessionFFOnly(projectPath, branchName);
-  if (result.ok) {
-    console.log(
-      `[session/merge] ok ${projectPath} ${branchName} → ${result.commit.slice(0, 7)}${result.alreadyUpToDate ? ' (already up to date)' : ''}`,
-    );
-    res.json({
-      ok: true,
-      commit: result.commit,
-      alreadyUpToDate: result.alreadyUpToDate,
-    });
+  const wantsProject = body.targets?.project !== false;
+  const requestedRefFolders = body.targets?.referenceFolders;
+  const refDirsCheck = validateReferenceDirectories(requestedRefFolders ?? [], 'filter');
+  const validRefDirs = refDirsCheck.resolved;
+  const droppedRefDirs = refDirsCheck.dropped;
+
+  if (!wantsProject && validRefDirs.length === 0 && droppedRefDirs.length === 0) {
+    res.status(400).json({ error: 'Select at least one merge target / 至少选择一个合并目标' });
     return;
   }
 
-  if (result.reason === 'not-ff') {
-    console.log(
-      `[session/merge] non-ff ${projectPath} ${branchName}: ${result.message.trim()}`,
-    );
-    res.status(409).json({
+  const results: MergeTargetResult[] = [];
+
+  if (wantsProject) {
+    const result = await mergeSessionFFOnly(projectPath, branchName);
+    if (result.ok) {
+      console.log(
+        `[session/merge] project ok ${projectPath} ${branchName} → ${result.commit.slice(0, 7)}${result.alreadyUpToDate ? ' (already up to date)' : ''}`,
+      );
+      results.push({
+        target: 'project',
+        ok: true,
+        commit: result.commit,
+        alreadyUpToDate: result.alreadyUpToDate,
+      });
+    } else if (result.reason === 'not-ff') {
+      console.log(
+        `[session/merge] non-ff ${projectPath} ${branchName}: ${result.message.trim()}`,
+      );
+      results.push({
+        target: 'project',
+        ok: false,
+        reason: 'not-ff',
+        error:
+          'Session cannot be fast-forwarded — another completed session has advanced the project since this session started.',
+        gitMessage: result.message,
+      });
+      res.status(409).json({ ok: false, results });
+      return;
+    } else {
+      console.error(
+        `[session/merge] project other failure ${projectPath} ${branchName}: ${result.message.trim()}`,
+      );
+      results.push({
+        target: 'project',
+        ok: false,
+        reason: 'other',
+        error: `Merge failed: ${result.message}`,
+      });
+      res.status(500).json({ ok: false, results });
+      return;
+    }
+  }
+
+  for (const refPath of validRefDirs) {
+    const copy = await copySessionOutputsToRefFolder(workingDir, refPath);
+    if (copy.ok && 'warning' in copy) {
+      console.log(`[session/merge] reference warn ${refPath}: no_outputs_dir`);
+      results.push({
+        target: 'reference',
+        path: refPath,
+        ok: true,
+        copiedCount: 0,
+        warning: 'no_outputs_dir',
+      });
+    } else if (copy.ok) {
+      console.log(`[session/merge] reference ok ${refPath} → ${copy.copiedCount} file(s)`);
+      results.push({
+        target: 'reference',
+        path: refPath,
+        ok: true,
+        copiedCount: copy.copiedCount,
+      });
+    } else {
+      console.error(`[session/merge] reference fail ${refPath}: ${copy.code} ${copy.message}`);
+      results.push({
+        target: 'reference',
+        path: refPath,
+        ok: false,
+        code: copy.code,
+        message: copy.message,
+      });
+    }
+  }
+
+  for (const dropped of droppedRefDirs) {
+    console.warn(`[session/merge] reference invalid_path ${dropped.path}: ${dropped.error}`);
+    results.push({
+      target: 'reference',
+      path: dropped.path,
       ok: false,
-      reason: 'not-ff',
-      error: 'Session cannot be fast-forwarded — another completed session has advanced the project since this session started.',
-      gitMessage: result.message,
+      code: 'invalid_path',
+      message: dropped.error,
     });
-    return;
   }
 
-  console.error(
-    `[session/merge] other failure ${projectPath} ${branchName}: ${result.message.trim()}`,
-  );
-  res.status(500).json({
-    ok: false,
-    reason: 'other',
-    error: `Merge failed: ${result.message}`,
-  });
+  const allOk = results.every((r) => r.ok);
+  res.json({ ok: allOk, results });
 });
 
 export default router;

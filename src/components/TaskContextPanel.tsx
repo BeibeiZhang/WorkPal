@@ -226,6 +226,12 @@ export default function TaskContextPanel({
   const contextList = context ?? (useDemoDefaults ? DEMO_CONTEXT : []);
   const toolsList = toolsActive ?? (useDemoDefaults ? DEMO_TOOLS : []);
   const agentState = useAgentState();
+  // §20E: §15 follow-up — Complete Session is one of the "needs local agent"
+  // surfaces. On mobile, render the button visible-but-disabled and surface
+  // an AgentRequiredHint tip on click (mimics PR #138's FolderChip / Undo
+  // pattern). 5s auto-dismiss matches the existing tip cadence.
+  const isMobile = useIsMobile();
+  const [showCompleteHint, setShowCompleteHint] = useState(false);
   return (
     <div
       className="flex flex-col h-full shrink-0 max-w-full"
@@ -434,6 +440,8 @@ export default function TaskContextPanel({
           title={
             IS_DEMO
               ? 'Demo mode — session execution disabled'
+              : isMobile
+              ? 'Open WorkPal Agent on desktop to complete this session'
               : sessionCompleted
               ? 'Already saved to project knowledge'
               : "Adds this session's outputs to project knowledge so future sessions can read them."
@@ -441,10 +449,15 @@ export default function TaskContextPanel({
         >
           <TertiaryButton
             onClick={() => {
+              if (isMobile) {
+                setShowCompleteHint(true);
+                window.setTimeout(() => setShowCompleteHint(false), 5000);
+                return;
+              }
               if (sessionCompleted || IS_DEMO) return;
               onCompleteSession?.();
             }}
-            disabled={sessionCompleted || IS_DEMO}
+            disabled={sessionCompleted || IS_DEMO || isMobile}
             fullWidth
           >
             <span className="flex items-center gap-2">
@@ -456,6 +469,14 @@ export default function TaskContextPanel({
               {sessionCompleted ? 'Session complete' : 'Complete Session'}
             </span>
           </TertiaryButton>
+          {showCompleteHint && (
+            <div className="mt-2">
+              <AgentRequiredHint
+                variant="tip"
+                message="Open WorkPal Agent on desktop to complete this session."
+              />
+            </div>
+          )}
         </div>
       )}
     </div>
