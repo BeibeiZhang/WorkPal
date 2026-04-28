@@ -744,6 +744,29 @@ export function getAgentRouteIntent(
 
 ---
 
+## 31+32. `shipped` — Legacy Output entry path backfill + icon color polish
+
+**Shipped**: 2026-04-28 (PR [#153](https://github.com/BeibeiZhang/WorkPal/pull/153), merge commit `4adfb7d`, frontend-only — Vercel auto-deploy, no dmg bump). 8 files +302 −8.
+
+**§31 (backend + frontend backfill)**:
+- New backend route `POST /api/project/scan-outputs` ([server/src/routes/project.ts](../server/src/routes/project.ts), agent mirror) — body `{ projectSlug, names[] }` → `{ matches: [{name, path}] }`. Reuses `resolveProjectFolder` jail (zero new validation code, principle #7). Returns **only unique matches** (0 / multiple → dropped to avoid wrong-path overwrite).
+- New helper `indexProjectOutputs(projectPath, maxEntries=5000)` — recursive walk of `<project>/sessions/`, skips `.git/` + `node_modules/`, basename-keyed Map. Node 20+ `Dirent.parentPath` compatibility shim for older `@types/node`.
+- New frontend `postScanProjectOutputs(slug, names)` ([src/lib/api.ts](../src/lib/api.ts)) — graceful: agent unreachable / failure → silent `[]` return.
+- New `backfillLegacyOutputPaths(project, scan)` pure function ([src/lib/projectStore.ts](../src/lib/projectStore.ts)) — **DI pattern**, scan injected as parameter, store doesn't bind to fetch (testable + decoupled).
+- App.tsx wire ([src/App.tsx:1287](../src/App.tsx#L1287)): independent useEffect alongside `postInitProject`. `backfilledProjectsRef: Set<string>` guards once-per-project per session. `setProjects` updater closure uses **latest prev snapshot** to re-merge — concurrent-edit safe (scan in flight + user edits don't get lost). `agentState !== 'reachable'` short-circuits when agent down.
+
+**§32 (UI polish)**: [src/components/ProjectPage.tsx:688](../src/components/ProjectPage.tsx#L688) — `text-text-tertiary` → `text-text-primary` (light mode `#142740` 100% per Beibei spec). Dark mode `text-white` unchanged. Selected state `text-accent-blue` unchanged.
+
+**Surfaced**: 2026-04-28 Beibei testing v0.1.5 dmg post §23 ship — observed legacy Output entries (created before §23 frontend ship 20:53Z, e.g. `workpal_resume`) lack `path` field → click falls back to toggle-highlight only (§23 spec'd as accepted migration trade-off). Beibei requested fix + icon color preference Primary 100%.
+
+**Plan-quality highlights** (continues bar set by §22 / §23): impl self-imposed 3 safety patterns beyond spec — (a) **DI pattern** in `backfillLegacyOutputPaths`, (b) **idempotent guard via Set ref**, (c) **`setProjects` updater closure for concurrent-edit safety**. Plus Node 20+ Dirent compatibility shim. Multi-match drop (instead of fuzzy match) is **stricter than spec** (preferred behavior).
+
+**Trade-off (acceptable)**: legacy entries with **same basename across multiple sessions** (e.g., Beibei's multiple `resume.md` from §21 testing) → multi-match → dropped → those entries remain toggle-only. Workaround: regenerate with unique name. Documented choice over wrong-path overwrite.
+
+**Effort**: ~1.5h (vs spec 1-1.5h). **Risk**: low (frontend-only, no dmg). **Live test**: deferred to post-merge Vercel deploy + Beibei hard-refresh + click on unique-match legacy entry.
+
+---
+
 ## 24. `candidate` — Show routing decision in Progress panel
 
 **Surfaced**: 2026-04-28 reflecting on time spent debugging §21 ship — root cause of confusion was that routing decision (Claude path vs OpenAI fallback) is invisible to user. "AI 还是去邮箱" symptom required cross-checking 5 state variables (URL preview vs main / projectId / agent reachable / refDirs field / §21 code) via screenshots back-and-forth.

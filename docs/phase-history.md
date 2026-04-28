@@ -230,6 +230,7 @@ Phase 5 一路踩下的坑和形成的宗旨，**沉淀在 `docs/principles.md`*
 - Update 路径：boot-check → GitHub `/releases/latest` → 5th Settings card → 用户下 .dmg → 装
 
 **最近 ship**（按时间倒序）：
+- **PR [#153](https://github.com/BeibeiZhang/WorkPal/pull/153)** (2026-04-28, **frontend-only Vercel auto-deploy 不需 dmg**) — `feat: ProjectPage Output legacy path backfill + icon Primary color (#31 #32)`。8 文件 +302 −8。§31 = 新 `POST /api/project/scan-outputs` (agent + server mirror) + `indexProjectOutputs` 递归 walk sessions/ 5000 cap + `backfillLegacyOutputPaths` DI pure fn + App.tsx `backfilledProjectsRef` Set 守卫 + `setProjects` updater closure concurrent-edit safe。§32 = ProjectPage Output icon `text-text-tertiary` → `text-text-primary` (light only)。Plan-quality 持续高（继 §22/§23 后第三个 plan 体现：grep-verify spec → 自加 3 个 safety pattern beyond spec — DI / idempotent guard / concurrent-edit re-merge）。Multi-match drop 比 spec 严格（避免 wrong-path overwrite）。
 - **PR [#152](https://github.com/BeibeiZhang/WorkPal/pull/152)** (2026-04-28, **v0.1.6 dmg**) — `feat: local-file Output detail panel + Finder escape (#23)`。7 文件 +310 −90。点击 Output card → SplitView 右侧 DetailPanel inline 预览（markdown/html/plaintext）。Panel 头部 Finder icon → 新 `POST /api/claude-chat/reveal-in-finder` route (`open -R`) 弹 Finder 高亮文件。Binary 文件（pdf/docx/png 等）BINARY_EXT regex 客户端预判 → DetailPanel `unsupported` mode 双 button (Reveal in Finder / Open with default app)。Mobile silent no-op + Finder hidden。State 拆 chat/project 独立（防跨页面 preview 串台），shared `handleArtifactPreview` callback + `renderPreviewPanel` helper。Plan-quality 高：impl Key Findings 段 grep-verify 80% 已存在（`read-file` endpoint + `renderMarkdownBlocks` lib），只新加 reveal-in-finder route。
 - **PR [#151](https://github.com/BeibeiZhang/WorkPal/pull/151)** (2026-04-28, **v0.1.5 dmg**) — `feat: tighten §19 reference folder prompt to forbid out-of-scope search (#22)`。String-only edit (2 mirror files +2 −2)。在 `REFERENCE_FOLDERS_PROMPT` paths 列表后插 hard prohibition："These folders are your ONLY source of user content. Do NOT use Bash `find ~`, `ls /Users/...`, or any Glob outside these paths. If the content isn't in these folders, say so explicitly. Don't roam other directories."（plan reasoning: top 位置比 bottom 强）。Backtick escape 提前 flag 避坑。Out-of-scope 自提 §27 (Tool-level Bash deny) 作为软约束失败 backup。
 - **PR [#150](https://github.com/BeibeiZhang/WorkPal/pull/150)** (2026-04-28, **v0.1.5 dmg**) — `feat: project ref-folder defaults text chat to Claude (#21)`。Single-file change in `intentRouter.ts` + 1 caller wire (App.tsx handleSend)。`getAgentRouteIntent` 加第 3 参数 `referenceDirectories: string[]`，新 branch 在 IS_DEMO 之后 / keyword 之前：`length > 0 && isAgentCurrentlyReachable() → 'use-claude'`。Channel-aware routing 解决 keyword router miss 自然语言长尾问题（"加 / 加到 / 提一下" 不在 keyword 列表）。Live 验证：项目挂 ref folder + 自然语言 prompt → progress 面板 Glob/Read/Bash 而不是 search_gmail = §19 system prompt 真注入。
@@ -250,16 +251,22 @@ Phase 5 一路踩下的坑和形成的宗旨，**沉淀在 `docs/principles.md`*
 
 **CLAUDE.md violations + extend-don't-bypass**（commits `7c9b612` + `23a382f`）：明确禁止 hex / inline color / alpha modifier 等 ad-hoc 写法；找不到 token / primitive 必须扩 design system，绝不绕过。
 
-**下一步**：根据 [`docs/post-phase-6-candidates.md`](./post-phase-6-candidates.md) 优先级。**当前 backlog 28 条（19 已 shipped，9 在排队）**。pending 9 条：
-- **#3** Artifact 生成（decided-next，5-7 天，**最大产品扩面**，§22+§23 ship 后启动）
+**下一步**：根据 [`docs/post-phase-6-candidates.md`](./post-phase-6-candidates.md) 优先级。**当前 backlog 28 条（21 已 shipped，7 在排队）**。pending 7 条：
+- **#3** Artifact 生成（decided-next，5-7 天，**最大产品扩面**，§29/§30 ship 后启动）
 - **#4** Bilingual scaffold（parked，principle #8 翻转后过期，等真出现非英文 reader 再启）
 - **#6** CN→EN translate fix（candidate, ~1-2h）
 - **#13 Option C** Apple Developer 签名 + notarize（candidate, $99/yr）
 - **#24** Routing decision 显示在 Progress 面板（candidate, ~30min, 测试效率改进）
 - **#25** Debug overlay ⌘⇧D toggle（candidate, ~1h, console 命令产品化）
-- **#26** Single-ref-folder cwd = ref folder（candidate, architecture-level, **trigger condition**: §22 ship 后 AI 仍漫游才启）
-- **#27** Tool-level Bash deny outside ref folders（candidate, hard constraint backup, **trigger condition**: §22 软约束失败才启）
 - **#28** Test infra (vitest unit-only first, Playwright e2e later)（candidate, ~1-2h Phase 1）
+
+**In-flight (impl 写代码 / PR pending)**:
+- **#29** ChatInput multi-Enter race fix — impl 实现 + 实测 verified（preview MCP 3 Enter → 1 message ✓），但 PR 还没 push
+- **#30** Output → ref folder convention (prompt + backend fallback) — impl 在 plan 阶段，3 AskUserQuestion 全答（blocklist + terse 文案 + 递归 0 文件 fallback），等 plan ready
+
+**Triggered-only (休眠候选, 等条件满足才启)**:
+- **#26** Single-ref-folder cwd = ref folder — trigger: §22 + §27 ship 后 AI 仍漫游
+- **#27** Tool-level Bash deny outside ref folders — trigger: §22 软约束失败
 
 **§21 + §22 + §23 一日三 ship**（2026-04-28）：所有 ref folder workflow 闭环 fix 同日落地。§21 解决 keyword router miss 自然语言 → 走 Claude 路径让 §19 system prompt 真注入；§22 强化 §19 prompt 禁 AI 漫游 ~/Documents；§23 解决 Claude 生成 Output 没 preview 路径。Plan-quality 三连高（§21 + §22 + §23 都体现：grep-verify 现状、reasoning 而非机械、自提 follow-up candidate），impl 沉淀 `feedback_plan_quality_bar.md` memory。
 
@@ -275,6 +282,6 @@ Phase 5 一路踩下的坑和形成的宗旨，**沉淀在 `docs/principles.md`*
 - **`docs/phase-5-requirements.md`** — Phase 5 living doc，每个 sub-step 的 scope / context / acceptance tests
 - **`docs/phase-6-requirements.md`** — Phase 6 living doc，worktree + merge-ff-only 全流程
 - **`docs/phase-7-requirements.md`** — Phase 7 living doc，5 个 sub-phase + locked decisions + Context from blocks
-- **`docs/post-phase-6-candidates.md`** — **28 个 candidate** 的 living backlog（**19 已 shipped，9 pending**：#3 #4 #6 #13C #24 #25 #26 #27 #28）
+- **`docs/post-phase-6-candidates.md`** — **28 个 candidate** 的 living backlog（**21 已 shipped，7 pending**：#3 #4 #6 #13C #24 #25 #28，加 in-flight #29 #30，加 triggered-only #26 #27）
 - **`docs/principles.md`** — 15 条开发宗旨（Phase 5 形成、6/7 验证）
 - **MEMORY.md** — planning/testing Claude 自动加载的 cross-session context
