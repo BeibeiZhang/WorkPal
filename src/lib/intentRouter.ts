@@ -21,20 +21,37 @@ function matchesClaudeCodeKeyword(text: string): boolean {
 
 /** Candidate #15 — mobile-aware 3-state intent. Caller passes `isMobile`
  *  rather than this module sniffing it, so the source of truth stays in the
- *  shared `useIsMobile` hook (matchMedia, not userAgent). Decision tree:
- *    - demo URL                               → 'fallback-cloud' (mocked)
- *    - no code-keyword match                  → 'fallback-cloud'
- *    - keyword match + agent reachable        → 'use-claude'
- *    - keyword match + unreachable + mobile   → 'mac-only-on-mobile'
+ *  shared `useIsMobile` hook (matchMedia, not userAgent). Candidate #21
+ *  adds `referenceDirectories`: when a project has ref folders attached,
+ *  default text chat to Claude regardless of keyword match — natural-language
+ *  long-tail (中文 "加 / 加到 / 提一下" 等) can't be enumerated, and the user's
+ *  attaching a ref folder is the explicit signal that this is an editing
+ *  workflow. Voice mode bypasses this code path entirely. Decision tree:
+ *    - demo URL                                   → 'fallback-cloud' (mocked)
+ *    - ref folder attached + agent reachable      → 'use-claude' (§21)
+ *    - no code-keyword match                      → 'fallback-cloud'
+ *    - keyword match + agent reachable            → 'use-claude'
+ *    - keyword match + unreachable + mobile       → 'mac-only-on-mobile'
  *      (mobile users get an inline AgentRequiredHint instead of a silent
  *       OpenAI fallback that would pretend to do file work)
- *    - keyword match + unreachable + Mac      → 'fallback-cloud'
+ *    - keyword match + unreachable + Mac          → 'fallback-cloud'
  *      (Mac with agent restarting / probe-in-flight — keep today's quiet
  *       degrade since the OnboardingSurface still covers truly-uninstalled) */
 export type AgentRouteIntent = 'use-claude' | 'fallback-cloud' | 'mac-only-on-mobile';
 
-export function getAgentRouteIntent(text: string, isMobile: boolean): AgentRouteIntent {
+export function getAgentRouteIntent(
+  text: string,
+  isMobile: boolean,
+  referenceDirectories: string[],
+): AgentRouteIntent {
   if (IS_DEMO) return 'fallback-cloud';
+  // §21: project has ref folders → default text chat to Claude (let LLM
+  //      decide whether to use tools). Bypasses keyword match because
+  //      natural-language long-tail ("加 / 加到 / 提一下" etc.) can't be
+  //      enumerated. Voice mode unaffected (different code path).
+  if (referenceDirectories.length > 0 && isAgentCurrentlyReachable()) {
+    return 'use-claude';
+  }
   if (!matchesClaudeCodeKeyword(text)) return 'fallback-cloud';
   if (isAgentCurrentlyReachable()) return 'use-claude';
   if (isMobile) return 'mac-only-on-mobile';

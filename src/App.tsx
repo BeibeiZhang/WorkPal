@@ -2347,10 +2347,21 @@ export default function App() {
       // would otherwise route to the SDK.
       streamArtifactFromAPI(chatId, text);
     } else if (!attachments?.length) {
-      // 5.4b keyword router → candidate #15 mobile-aware 3-state intent.
-      // Attachments still bypass to OpenAI since the Claude path doesn't
+      // 5.4b keyword router → §15 mobile-aware → §21 project-ref-folder default.
+      // Project with attached ref folders defaults to Claude regardless of
+      // keyword match (natural-language long-tail can't be enumerated; user's
+      // attaching a ref folder is the explicit "this is an editing workflow"
+      // signal). Attachments still bypass to OpenAI — Claude path doesn't
       // wire them yet.
-      const intent = getAgentRouteIntent(text, isMobile);
+      const chatForRoute = chats.find(c => c.id === chatId);
+      const projectForRoute = chatForRoute?.projectId
+        ? projects.find(p => p.id === chatForRoute.projectId)
+        : null;
+      const intent = getAgentRouteIntent(
+        text,
+        isMobile,
+        projectForRoute?.referenceDirectories ?? [],
+      );
       if (intent === 'use-claude') {
         streamFromClaudeAPI(chatId, text, sessionFolderForSend);
       } else if (intent === 'mac-only-on-mobile') {
