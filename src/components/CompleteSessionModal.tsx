@@ -1,17 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CheckCircle2, Copy, FilePlus2, FilePen, FileMinus2, Loader2 } from 'lucide-react';
-import { PrimaryButton, TertiaryButton } from './shared';
-import type { SessionDiffEntry } from '../lib/api';
+import { AlertCircle, CheckCircle2, Copy, FilePlus2, FilePen, FileMinus2, Loader2, XCircle } from 'lucide-react';
+import { Checkbox, PrimaryButton, TertiaryButton } from './shared';
+import type { SessionDiffEntry, SessionMergeTargetResult } from '../lib/api';
 
-/** 6.3 Complete Session modal — six visual states driven by `phase`:
- *    loading  → spinner, diff POST in-flight
- *    ready    → file list rendered, user can Cancel or Merge
- *    empty    → diff came back empty (Undo-all edge case)
- *    merging  → Merge POST in-flight
- *    success  → ✅ + auto-close timer
- *    not-ff   → ❌ + bilingual error + CLI command
- *    other    → ❌ + bilingual error
+/** 6.3 + §20 Complete Session modal — visual states driven by `phase`:
+ *    loading          → spinner, diff POST in-flight
+ *    ready            → file list rendered + (if refs attached) target
+ *                       checkboxes; user can Cancel or Merge
+ *    empty            → diff came back empty (Undo-all edge case)
+ *    merging          → Merge POST in-flight
+ *    success          → ✅ + auto-close timer (single-target-only path)
+ *    partial-success  → §20: per-target rows (✓ / warn / ✗) when the user
+ *                       picked refs. Replaces `success` whenever results
+ *                       contain ref folder targets, even if all succeeded.
+ *    not-ff           → ❌ + bilingual error + CLI command
+ *    other            → ❌ + bilingual error
  *  Chrome mirrors PermissionPrompt: createPortal + fixed inset-0 + Esc-to-
  *  cancel (ignored while mid-merge so a stray key press can't leave the UI
  *  in a half-applied state). */
@@ -22,13 +26,18 @@ export type CompleteSessionPhase =
   | { kind: 'empty' }
   | { kind: 'merging' }
   | { kind: 'success'; alreadyUpToDate: boolean }
+  | { kind: 'partial-success'; results: SessionMergeTargetResult[] }
   | { kind: 'error-not-ff'; message: string; cliCommand: string }
   | { kind: 'error-other'; message: string };
 
 interface CompleteSessionModalProps {
   phase: CompleteSessionPhase;
   onCancel: () => void;
-  onMerge: () => void;
+  onMerge: (targets: { project: boolean; referenceFolders: string[] }) => void;
+  /** §20: project's attached reference folders. When non-empty, the modal
+   *  renders a target selector (project + each ref folder as checkboxes).
+   *  Empty/undefined → modal degrades to the original single-action flow. */
+  referenceFolders?: string[];
 }
 
 const STATUS_ICON = {
@@ -65,8 +74,24 @@ export default function CompleteSessionModal({
   phase,
   onCancel,
   onMerge,
+  referenceFolders,
 }: CompleteSessionModalProps) {
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
+
+  // §20: target selection state. Project defaults to checked (preserves
+  // pre-§20 behavior); ref folders default to unchecked so the user has to
+  // opt in. The list is keyed by absolute path — duplicates are blocked
+  // upstream by the project store's referenceDirectories validation.
+  const refFolders = useMemo(() => referenceFolders ?? [], [referenceFolders]);
+  const hasRefFolders = refFolders.length > 0;
+  const [projectChecked, setProjectChecked] = useState(true);
+  const [refsChecked, setRefsChecked] = useState<Record<string, boolean>>({});
+
+  const selectedRefFolders = useMemo(
+    () => refFolders.filter((p) => refsChecked[p]),
+    [refFolders, refsChecked],
+  );
+  const noTargetSelected = !projectChecked && selectedRefFolders.length === 0;
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -104,17 +129,20 @@ export default function CompleteSessionModal({
   };
 
   const title =
-    phase.kind === 'success'
+    phase.kind === 'success' || phase.kind === 'partial-success'
       ? 'Session complete'
       : phase.kind === 'error-not-ff' || phase.kind === 'error-other'
         ? 'Could not complete session'
         : 'Complete Session';
 
   const mergeDisabled =
-    phase.kind !== 'ready' || phase.files.length === 0;
+    phase.kind !== 'ready' || phase.files.length === 0 || noTargetSelected;
 
   const cancelLabel =
-    phase.kind === 'success' || phase.kind === 'error-not-ff' || phase.kind === 'error-other'
+    phase.kind === 'success' ||
+    phase.kind === 'partial-success' ||
+    phase.kind === 'error-not-ff' ||
+    phase.kind === 'error-other'
       ? 'Close'
       : 'Cancel';
 
@@ -154,15 +182,15 @@ export default function CompleteSessionModal({
           </div>
         )}
 
-        {/* ── ready (file list) ───────────────────────── */}
+        {/* ── ready (file list + §20 target selector) ─── */}
         {phase.kind === 'ready' && (
           <>
             <p className="type-detail text-text-primary mb-3">
               {phase.files.length === 1
-                ? '1 file will merge into the project base.'
-                : `${phase.files.length} files will merge into the project base.`}
+                ? '1 file changed in this session.'
+                : `${phase.files.length} files changed in this session.`}
             </p>
-            <div className="flex-1 overflow-y-auto min-h-0 mb-4 -mx-1 px-1">
+            <div className={`overflow-y-auto min-h-0 -mx-1 px-1 ${hasRefFolders ? 'max-h-[180px] mb-3' : 'flex-1 mb-4'}`}>
               <div className="flex flex-col gap-1">
                 {phase.files.map((f) => {
                   const Icon = STATUS_ICON[f.status];
@@ -188,6 +216,39 @@ export default function CompleteSessionModal({
                 })}
               </div>
             </div>
+
+            {/* §20 target selector — only renders when this project has
+             *  reference folders attached. Without refs the modal stays in
+             *  its pre-§20 single-action shape (Merge button merges into the
+             *  project base implicitly).
+             */}
+            {hasRefFolders && (
+              <div className="flex-1 overflow-y-auto min-h-0 mb-3 -mx-1 px-1 border-t border-stroke-outline pt-3">
+                <p className="type-detail-emphasized text-text-primary mb-2 px-3">Merge into:</p>
+                <Checkbox
+                  checked={projectChecked}
+                  onChange={setProjectChecked}
+                  label="Project main"
+                  hint="Save to project knowledge for future sessions"
+                />
+                {refFolders.map((path) => (
+                  <Checkbox
+                    key={path}
+                    checked={!!refsChecked[path]}
+                    onChange={(next) =>
+                      setRefsChecked((prev) => ({ ...prev, [path]: next }))
+                    }
+                    label={basename(path)}
+                    hint={path}
+                  />
+                ))}
+                {noTargetSelected && (
+                  <p className="type-caption text-text-secondary mt-1 px-3">
+                    Select at least one target.
+                  </p>
+                )}
+              </div>
+            )}
           </>
         )}
 
@@ -221,6 +282,38 @@ export default function CompleteSessionModal({
                 The worktree remains for reference and will be cleaned up
                 automatically.
               </p>
+            </div>
+          </div>
+        )}
+
+        {/* ── partial-success (§20 multi-target results) ─ */}
+        {phase.kind === 'partial-success' && (
+          <div className="flex-1 overflow-y-auto min-h-0 mb-4 -mx-1 px-1">
+            <div className="flex flex-col gap-2">
+              {phase.results.map((r, i) => {
+                const labelPath =
+                  r.target === 'project' ? 'Project main' : basename(r.path);
+                const subPath = r.target === 'reference' ? r.path : undefined;
+                return (
+                  <div
+                    key={`${r.target}-${r.target === 'reference' ? r.path : 'project'}-${i}`}
+                    className="flex items-start gap-3 px-3 py-2 rounded-lg"
+                  >
+                    {targetResultIcon(r)}
+                    <div className="flex-1 min-w-0">
+                      <p className="type-detail text-text-primary truncate">{labelPath}</p>
+                      {subPath && (
+                        <p className="type-caption text-text-secondary truncate">
+                          {subPath}
+                        </p>
+                      )}
+                      <p className={`type-caption ${targetResultColorClass(r)}`}>
+                        {targetResultMessage(r)}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -284,7 +377,12 @@ export default function CompleteSessionModal({
             phase.kind === 'loading' ||
             phase.kind === 'merging') && (
             <PrimaryButton
-              onClick={onMerge}
+              onClick={() =>
+                onMerge({
+                  project: hasRefFolders ? projectChecked : true,
+                  referenceFolders: selectedRefFolders,
+                })
+              }
               disabled={mergeDisabled}
               className="flex-1"
             >
@@ -296,4 +394,65 @@ export default function CompleteSessionModal({
     </div>,
     document.body,
   );
+}
+
+/* ─── §20 partial-success row helpers ─────
+ * Three states share one row layout: success (green check + count),
+ * warning (gray AlertCircle + "AI didn't produce outputs/" hint), failure
+ * (red XCircle + friendly per-code message). Warning is deliberately NOT
+ * red — see CLAUDE.md flagged review #4: a missing outputs/ dir is the
+ * agent skipping the layout convention, not a true failure.
+ */
+
+function targetResultIcon(r: SessionMergeTargetResult) {
+  if (r.target === 'reference' && r.ok && 'warning' in r) {
+    return (
+      <AlertCircle size={20} className="shrink-0 mt-[2px] text-text-tertiary" />
+    );
+  }
+  if (r.ok) {
+    return (
+      <CheckCircle2 size={20} className="shrink-0 mt-[2px] text-accent-green" />
+    );
+  }
+  return <XCircle size={20} className="shrink-0 mt-[2px] text-error" />;
+}
+
+function targetResultColorClass(r: SessionMergeTargetResult): string {
+  if (r.target === 'reference' && r.ok && 'warning' in r) return 'text-text-tertiary';
+  if (r.ok) return 'text-text-secondary';
+  return 'text-error';
+}
+
+function targetResultMessage(r: SessionMergeTargetResult): string {
+  if (r.target === 'project') {
+    if (r.ok) {
+      return r.alreadyUpToDate
+        ? 'Already up to date.'
+        : 'Saved to project knowledge.';
+    }
+    return r.error;
+  }
+  // reference target
+  if (r.ok && 'warning' in r) {
+    return "AI didn't produce outputs/ — nothing copied to this folder.";
+  }
+  if (r.ok) {
+    return r.copiedCount === 1
+      ? 'Merged 1 file.'
+      : `Merged ${r.copiedCount} files.`;
+  }
+  switch (r.code) {
+    case 'permission_denied':
+      return "Couldn't write to this folder — check folder permissions.";
+    case 'not_found':
+      return 'This folder no longer exists.';
+    case 'disk_full':
+      return 'Disk is full.';
+    case 'invalid_path':
+      return r.message;
+    case 'unknown':
+    default:
+      return r.message;
+  }
 }

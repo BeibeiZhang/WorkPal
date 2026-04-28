@@ -252,66 +252,96 @@ export async function postSessionComplete(
   }
 }
 
-/** 6.3: POST /api/session/merge — attempt `git merge --ff-only session/<slug>`
- *  in the project base repo. The three outcomes map to:
- *    • 200 → `{ok: true, commit, alreadyUpToDate}`
- *    • 409 → `{ok: false, reason: 'not-ff', ...}` with a copyable CLI command
- *    • 500 → `{ok: false, reason: 'other', ...}`
+/** §20: per-target outcome from POST /api/session/merge. Mirrors the
+ *  backend's MergeTargetResult plus a frontend-assembled `cliCommand` on the
+ *  not-ff project case (server-side path is unavailable to the browser, so
+ *  we build it from the already-validated sessionFolder per shared decision
+ *  D5 "frontend-assembled from already-validated inputs"). */
+export type SessionMergeTargetResult =
+  | { target: 'project'; ok: true; commit: string; alreadyUpToDate: boolean }
+  | { target: 'project'; ok: false; reason: 'not-ff'; error: string; gitMessage: string; cliCommand: string }
+  | { target: 'project'; ok: false; reason: 'other'; error: string }
+  | { target: 'reference'; path: string; ok: true; copiedCount: number }
+  | { target: 'reference'; path: string; ok: true; copiedCount: 0; warning: 'no_outputs_dir' }
+  | {
+      target: 'reference';
+      path: string;
+      ok: false;
+      code: 'permission_denied' | 'not_found' | 'disk_full' | 'invalid_path' | 'unknown';
+      message: string;
+    };
+
+/** §20: aggregate response. `kind: 'completed'` means the server processed
+ *  the request (which may include per-target failures); `kind: 'transport'`
+ *  means we couldn't reach the server at all. Modal keys off `kind` first,
+ *  then `ok` for completed-but-partial. */
+export type SessionMergeResponse =
+  | { kind: 'completed'; ok: boolean; results: SessionMergeTargetResult[] }
+  | { kind: 'transport'; error: string };
+
+/** 6.3 + §20: POST /api/session/merge — attempt to merge the session into the
+ *  selected targets. Project target → `git merge --ff-only` in the project
+ *  base; each reference folder target → `fs.cp(<sessionPath>/outputs/, <ref>)`.
+ *  Project failure short-circuits the request (server-side) so ref folders
+ *  aren't touched if the canonical merge couldn't go through.
  *
- *  The CLI command for the non-FF path is browser-assembled here (not
- *  returned from the server): both `sessionFolder` and the derived slug were
- *  already validated on the way in, so reusing them keeps the string
- *  grounded in the same trust boundary (shared decision D5 "frontend-
- *  assembled from already-validated inputs"). `basename` isn't available in
- *  the browser, so the slug is extracted with a plain `split`. */
-export async function postSessionMerge(
-  projectSlug: string,
-  sessionFolder: string,
-): Promise<
-  | { ok: true; commit: string; alreadyUpToDate: boolean }
-  | { ok: false; reason: 'not-ff'; error: string; cliCommand: string }
-  | { ok: false; reason: 'other'; error: string }
-> {
+ *  The CLI command for the project not-ff path is browser-assembled here
+ *  (not returned from the server): both `sessionFolder` and the derived slug
+ *  were already validated on the way in, so reusing them keeps the string
+ *  grounded in the same trust boundary. `basename` isn't available in the
+ *  browser, so the slug is extracted with a plain `split`. */
+export async function postSessionMerge(opts: {
+  projectSlug: string;
+  sessionFolder: string;
+  targets: { project: boolean; referenceFolders: string[] };
+}): Promise<SessionMergeResponse> {
+  const { projectSlug, sessionFolder, targets } = opts;
   try {
     const res = await fetchAgent('/api/session/merge', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ projectSlug, sessionFolder }),
+      body: JSON.stringify({ projectSlug, sessionFolder, targets }),
     });
-    if (res.ok) {
-      const payload = (await res.json()) as {
-        commit?: string;
-        alreadyUpToDate?: boolean;
-      };
+    const payload = (await res.json().catch(() => ({}))) as {
+      ok?: boolean;
+      results?: unknown[];
+      error?: string;
+    };
+
+    // Pre-validation 4xx (no `results` array) — synthesize one "other" failure
+    // for the project target so the modal still has something to render.
+    if (!Array.isArray(payload.results)) {
+      const error =
+        typeof payload.error === 'string'
+          ? payload.error
+          : `Merge failed (${res.status})`;
       return {
-        ok: true,
-        commit: payload.commit ?? '',
-        alreadyUpToDate: payload.alreadyUpToDate ?? false,
+        kind: 'completed',
+        ok: false,
+        results: [{ target: 'project', ok: false, reason: 'other', error }],
       };
     }
-    const payload = await res.json().catch(() => ({}));
-    const error =
-      typeof (payload as { error?: unknown }).error === 'string'
-        ? (payload as { error: string }).error
-        : `Merge failed (${res.status})`;
-    if (
-      res.status === 409 &&
-      (payload as { reason?: unknown }).reason === 'not-ff'
-    ) {
-      // Strip trailing `/sessions/<slug>/` to get the project folder path
-      // (lets us build `cd <projectPath> && git merge session/<slug>` without
-      // a separate API call). Capture group preserves the project path.
-      const trimmed = sessionFolder.replace(/\/+$/, '');
-      const slug = trimmed.split('/').pop() || '';
-      const projectPath = trimmed.replace(/\/sessions\/[^/]+$/, '');
-      const cliCommand = `cd ${projectPath} && git merge session/${slug}`;
-      return { ok: false, reason: 'not-ff', error, cliCommand };
-    }
-    return { ok: false, reason: 'other', error };
+
+    // Adapt server results → frontend results: project not-ff gets a
+    // browser-assembled cliCommand. Other shapes pass through unchanged.
+    const trimmed = sessionFolder.replace(/\/+$/, '');
+    const slug = trimmed.split('/').pop() || '';
+    const projectPath = trimmed.replace(/\/sessions\/[^/]+$/, '');
+    const cliCommand = `cd ${projectPath} && git merge session/${slug}`;
+
+    const results: SessionMergeTargetResult[] = (
+      payload.results as SessionMergeTargetResult[]
+    ).map((r) => {
+      if (r.target === 'project' && !r.ok && r.reason === 'not-ff') {
+        return { ...r, cliCommand };
+      }
+      return r;
+    });
+
+    return { kind: 'completed', ok: payload.ok ?? false, results };
   } catch (err) {
     return {
-      ok: false,
-      reason: 'other',
+      kind: 'transport',
       error: err instanceof Error ? err.message : 'Network error',
     };
   }

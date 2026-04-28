@@ -232,6 +232,16 @@ const ARTIFACT_PROMPT = [
   'END OF TURN MARKER (required when you produced an artifact): the LAST line of your final assistant message must be a marker on its own line. Use ONE of:\n  • `[PREVIEW: http://localhost:<port>]` — when you started a dev server the user should open in a browser (e.g. `npm run dev` produced `http://localhost:5173`).\n  • `[ARTIFACT: <absolute-or-relative-path>]` — when the deliverable is a single file (e.g. `[ARTIFACT: outputs/index.html]`).\nThe marker is stripped from the displayed chat and used to surface ONE clickable preview card. Do not include it if there is no deliverable (pure Q&A / discussion).',
 ].join('\n\n');
 
+// §19: when the request carries reference folders, tell the agent they exist
+// so it Globs/Reads them before guessing external context. Without this, the
+// agent would still answer "改一下我的简历" with a generic Gmail/Drive
+// fallback even though the user's resume folder is mounted via
+// additionalDirectories. The "don't write into them directly" clause keeps
+// the user-controlled merge story intact: agent writes go to cwd, user
+// chooses targets via the Complete Session UI.
+const REFERENCE_FOLDERS_PROMPT = (paths: string[]) =>
+  `The user has attached reference folders to this project:\n${paths.map((p) => `  • ${p}`).join('\n')}\n\nWhen the user asks about content that may live in these folders (their resume, a design doc, meeting notes, etc.), Glob each folder to list candidates first, then Read the most likely match before answering. Don't fabricate external context (Gmail, Drive, calendar) when these folders are attached — if the answer isn't on disk, say so explicitly. You can Glob/Read/Grep these folders to understand context. Don't write into them directly — your file outputs go to the session working directory (cwd); the user can later choose to merge them into the reference folders via the Complete Session UI.`;
+
 router.post('/claude-chat', async (req, res) => {
   const { prompt, sessionId, sessionFolder, projectSlug, hasAttachedFiles, referenceDirectories } = req.body as {
     prompt?: string;
@@ -518,7 +528,9 @@ router.post('/claude-chat', async (req, res) => {
       cwd: workingDir,
       sessionId,
       canUseTool,
-      appendSystemPrompt: ARTIFACT_PROMPT,
+      appendSystemPrompt: validatedRefDirs.length
+        ? `${ARTIFACT_PROMPT}\n\n${REFERENCE_FOLDERS_PROMPT(validatedRefDirs)}`
+        : ARTIFACT_PROMPT,
       ...(validatedRefDirs.length ? { additionalDirectories: validatedRefDirs } : {}),
     })) {
       switch (msg.type) {
