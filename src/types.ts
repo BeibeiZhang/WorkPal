@@ -155,6 +155,11 @@ export interface OutputItem {
    *  in a new tab. Undefined for claude-code and seed entries — those click
    *  only set the selected highlight. */
   href?: string;
+  /** §23: absolute file path for `source: 'claude-code'` outputs — drives
+   *  ProjectPage card click → DetailPanel preview + Finder reveal. Mirrors
+   *  ArtifactRef.path. Undefined for hosted artifacts (#3) and pre-§23
+   *  legacy entries (those click branches keep the toggle-highlight fallback). */
+  path?: string;
 }
 
 /** Inline reference to a produced file / document rendered inside a chat

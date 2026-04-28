@@ -894,6 +894,45 @@ router.post('/claude-chat/open-file', async (req, res) => {
   }
 });
 
+// §23: reveal-and-highlight a single file in macOS Finder. Distinct from
+// open-file (which spawns `open <path>` → default app); this uses `open -R`
+// so Finder pops to the front with the file pre-selected, the canonical
+// "show me where this lives" gesture. Same WORKPAL_ROOT jailing as open-file.
+router.post('/claude-chat/reveal-in-finder', async (req, res) => {
+  const { filePath } = req.body as { filePath?: string };
+  const pathCheck = resolveSessionFolder(filePath);
+  if (!pathCheck.ok) {
+    res.status(400).json({ error: pathCheck.reason });
+    return;
+  }
+  if (process.platform !== 'darwin') {
+    res.status(501).json({ error: 'reveal-in-finder is only wired for darwin' });
+    return;
+  }
+  try {
+    await access(pathCheck.resolved);
+  } catch {
+    res.status(404).json({ error: 'file not found' });
+    return;
+  }
+  try {
+    const child = spawn('open', ['-R', pathCheck.resolved], {
+      stdio: 'ignore',
+      detached: true,
+    });
+    child.unref();
+    child.on('error', (err) => {
+      console.error('[claude-chat] reveal-in-finder spawn error:', err.message);
+    });
+    console.log(`[claude-chat] reveal-in-finder ${pathCheck.resolved}`);
+    res.json({ ok: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[claude-chat] reveal-in-finder failed:', message);
+    res.status(500).json({ error: message });
+  }
+});
+
 // 6.4: read an artifact file for inline preview in the WorkPal DetailPanel.
 // Same WORKPAL_ROOT jail as open-file — the frontend wires ArtifactCard clicks
 // to this endpoint instead of spawning `open`, so the user sees the file

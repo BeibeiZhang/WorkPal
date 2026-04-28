@@ -485,6 +485,25 @@ export async function postOpenFile(filePath: string): Promise<boolean> {
   }
 }
 
+/** §23: reveal-and-highlight a file in macOS Finder via `open -R <path>`.
+ *  Distinct from postOpenFile (which delegates to the default app) — Reveal
+ *  pops a Finder window with the file pre-selected, the canonical "show me
+ *  where this lives" gesture. Used by the DetailPanel header button when the
+ *  user wants to escape the inline preview into the OS file browser. */
+export async function postRevealInFinder(filePath: string): Promise<boolean> {
+  try {
+    const res = await fetchAgent('/api/claude-chat/reveal-in-finder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filePath }),
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn('Failed to reveal file:', err);
+    return false;
+  }
+}
+
 /** 6.4: read a produced artifact file so the frontend can preview it inside
  *  the WorkPal DetailPanel (instead of spawning `open`). Returns null on any
  *  failure — caller treats null as "fall back to open-externally". */

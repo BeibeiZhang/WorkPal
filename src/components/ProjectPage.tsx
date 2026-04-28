@@ -32,6 +32,11 @@ interface ProjectPageProps {
   onRemoveReferenceDirectory?: (projectId: string, path: string) => void;
   sidebarOpen: boolean;
   onToggleSidebar?: () => void;
+  /** §23: click on a Claude-code Output card with a known `path` → request
+   *  the App to fetch the file and dock the DetailPanel preview at the
+   *  ProjectPage's right edge. Mobile + path-less (legacy / hosted) cards
+   *  skip this and fall back to the toggle-highlight. */
+  onOutputPreview?: (output: OutputItem) => void;
 }
 
 /** §17: Reference folders SideCard contents. Lifted out of ProjectPage's
@@ -346,8 +351,9 @@ const EMPTY_CONTENT: ProjectContent = {
   defaultSelectedOutputId: '',
 };
 
-export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, onAddFiles, onRemoveFile, onAddReferenceDirectory, onRemoveReferenceDirectory, sidebarOpen, onToggleSidebar }: ProjectPageProps) {
+export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, onAddFiles, onRemoveFile, onAddReferenceDirectory, onRemoveReferenceDirectory, sidebarOpen, onToggleSidebar, onOutputPreview }: ProjectPageProps) {
   const content = PROJECT_CONTENT[project.id] ?? EMPTY_CONTENT;
+  const isMobile = useIsMobile();
   // Three output sources feed the grid:
   //   1. seedOutputs  — PROJECT_CONTENT mock (proj-1 showcase). Demo only.
   //   2. claudeCodeOutputs — Claude Code file writes in this project, persisted
@@ -653,11 +659,16 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                           const isSelected = selectedOutputId === o.id;
                           // Hosted artifacts (candidate #3) carry an href; the
                           // card opens the /artifact/<slug> page in a new tab.
-                          // Claude-code and seed entries only toggle the
-                          // selected-highlight state.
+                          // §23: claude-code outputs with a known path →
+                          // dispatch to App so DetailPanel previews the file.
+                          // Mobile + path-less / legacy entries fall through
+                          // to the toggle-highlight (graceful degrade — no
+                          // panel surface on phone, no path nothing to read).
                           const handleClick = () => {
                             if (o.href) {
                               window.open(o.href, '_blank', 'noopener,noreferrer');
+                            } else if (o.path && !isMobile && onOutputPreview) {
+                              onOutputPreview(o);
                             } else {
                               setSelectedOutputId(o.id);
                             }
