@@ -101,7 +101,7 @@ function readFileAsDataUrl(file: File): Promise<string> {
 let attachmentIdCounter = 0;
 const nextAttachmentId = () => `att-${Date.now()}-${++attachmentIdCounter}`;
 
-export default function ChatInput({ onSend, placeholder = 'Message WorkPal', quickChips, actionChips, onChipClick, chatKey, draftValue, forceSendActive, onVoiceMode, voiceModeActive }: ChatInputProps) {
+export default function ChatInput({ onSend, placeholder = 'Message WorkPal', quickChips, actionChips, onChipClick, isAiResponding, chatKey, draftValue, forceSendActive, onVoiceMode, voiceModeActive }: ChatInputProps) {
   const [value, setValue] = useState(() => draftValue ?? '');
   const [focused, setFocused] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
@@ -113,6 +113,16 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Synchronous in-flight gate. The `isAiResponding` prop comes from App-level
+  // state, which React commits asynchronously — so a fast triple-Enter burst
+  // would all see prop=false within the same task and fire onSend three times.
+  // Setting the ref synchronously inside handleSend blocks duplicates within
+  // that same burst; the effect below releases it once the assistant turn
+  // finishes (isAiResponding flips back to false).
+  const sendingRef = useRef(false);
+  useEffect(() => {
+    if (!isAiResponding) sendingRef.current = false;
+  }, [isAiResponding]);
 
   // Sync draft value whenever the active chat changes
   const lastChatKeyRef = useRef<string | undefined>(chatKey);
@@ -166,9 +176,11 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
   }, [showAttachMenu]);
 
   const handleSend = () => {
+    if (isAiResponding || sendingRef.current) return;
     const trimmed = value.trim();
     const hasAttachments = attachments.length > 0;
     if (!trimmed && !hasAttachments && !forceSendActive) return;
+    sendingRef.current = true;
     onSend(trimmed, hasAttachments ? attachments : undefined);
     setValue('');
     setAttachments([]);
@@ -409,11 +421,18 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
           {voiceModeActive || focused || canSend || forceSendActive ? (
             (() => {
               const isSendActive = canSend || !!forceSendActive;
+              const isClickable = isSendActive && !isAiResponding;
               return (
                 <Tooltip label="Send">
                   <button
-                    onClick={isSendActive ? handleSend : undefined}
-                    className={`flex items-center justify-center shrink-0 rounded-full transition-all ${isSendActive ? 'cursor-pointer hover:shadow-[0_2px_15px_rgba(1,44,197,0.3)]' : 'cursor-default hover:bg-bg-hover'}`}
+                    onClick={isClickable ? handleSend : undefined}
+                    className={`flex items-center justify-center shrink-0 rounded-full transition-all ${
+                      isClickable
+                        ? 'cursor-pointer hover:shadow-[0_2px_15px_rgba(1,44,197,0.3)]'
+                        : isSendActive
+                          ? 'opacity-50 cursor-not-allowed'
+                          : 'cursor-default hover:bg-bg-hover'
+                    }`}
                     style={{
                       width: 'var(--input-btn-size)', height: 'var(--input-btn-size)',
                       ...(isSendActive ? { backgroundImage: 'linear-gradient(183.55deg, #7652B9 16.2%, #B46470 49%, #CA9D8C 109.3%)' } : {}),
