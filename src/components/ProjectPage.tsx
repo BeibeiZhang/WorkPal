@@ -685,7 +685,7 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
                             >
                               <Icon
                                 size={32}
-                                className={isSelected ? 'text-accent-blue' : 'text-text-tertiary dark:text-white'}
+                                className={isSelected ? 'text-accent-blue' : 'text-text-primary dark:text-white'}
                                 strokeWidth={1.2}
                               />
                               <span className={`type-detail text-center leading-[1.2] line-clamp-2 w-full ${isSelected ? 'text-accent-blue' : 'text-text-primary'}`}>

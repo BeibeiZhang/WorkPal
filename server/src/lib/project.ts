@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process';
-import { access } from 'node:fs/promises';
-import { join, resolve as pathResolve, sep } from 'node:path';
+import type { Dirent } from 'node:fs';
+import { access, readdir } from 'node:fs/promises';
+import { basename, join, resolve as pathResolve, sep } from 'node:path';
 import { promisify } from 'node:util';
 import { WORKPAL_ROOT } from './paths.js';
 
@@ -106,4 +107,50 @@ export async function initProjectIfNeeded(projectPath: string): Promise<void> {
     ['commit', '--allow-empty', '-q', '-m', 'WorkPal project baseline'],
     { cwd: projectPath },
   );
+}
+
+/** §31: walk `<projectPath>/sessions/` recursively, returning a map from
+ *  filename basename → list of absolute paths that match. Used by the
+ *  legacy-output backfill to recover `path` for OutputItem entries created
+ *  before §23 (which started persisting `path` on commit). Skips `.git/`,
+ *  `node_modules/`, and any other dotfile-prefixed directory — they're not
+ *  user-facing artifacts and would balloon the walk on real projects.
+ *
+ *  Bounded by `maxEntries` (default 5000) so a runaway sessions/ subtree
+ *  can't pin the event loop. Caller treats a partial result as best-effort:
+ *  the backfill is non-essential, and any unmatched legacy entries just
+ *  stay in their pre-§23 toggle-only fallback. */
+export async function indexProjectOutputs(
+  projectPath: string,
+  maxEntries = 5000,
+): Promise<Map<string, string[]>> {
+  const sessionsDir = join(projectPath, 'sessions');
+  const index = new Map<string, string[]>();
+  let entries: Dirent[];
+  try {
+    entries = await readdir(sessionsDir, { recursive: true, withFileTypes: true });
+  } catch {
+    // sessions/ doesn't exist yet — fresh project, no work to do.
+    return index;
+  }
+  let count = 0;
+  for (const entry of entries) {
+    if (count >= maxEntries) break;
+    if (!entry.isFile()) continue;
+    // node:fs Dirent.parentPath is the directory the entry lives in (Node 20+);
+    // older @types/node lacks the field, so we read it through `unknown` and
+    // fall back to sessionsDir on any older / non-string shape.
+    const rawParent = (entry as unknown as { parentPath?: unknown }).parentPath;
+    const parent = typeof rawParent === 'string' ? rawParent : sessionsDir;
+    if (parent.includes(`${sep}.git${sep}`) || parent.endsWith(`${sep}.git`)) continue;
+    if (parent.includes(`${sep}node_modules${sep}`) || parent.endsWith(`${sep}node_modules`)) continue;
+    const name = typeof entry.name === 'string' ? entry.name : String(entry.name);
+    const full = join(parent, name);
+    const key = basename(full);
+    const existing = index.get(key);
+    if (existing) existing.push(full);
+    else index.set(key, [full]);
+    count++;
+  }
+  return index;
 }

@@ -381,6 +381,38 @@ export async function postInitProject(
   }
 }
 
+/** §31: best-effort filename → absolute-path recovery for legacy
+ *  OutputItem entries created before §23 started persisting `path` on
+ *  commit. Posts the missing names to the agent which walks
+ *  `~/WorkPal/<projectSlug>/sessions/` and returns only names with exactly
+ *  one match (0 / multiple → dropped so we never overwrite with a wrong
+ *  path). Resolves to `[]` on any failure: the backfill is non-essential
+ *  and a missing agent / network blip should silently leave entries alone. */
+export async function postScanProjectOutputs(
+  projectSlug: string,
+  names: string[],
+): Promise<{ name: string; path: string }[]> {
+  if (names.length === 0) return [];
+  try {
+    const res = await fetchAgent('/api/project/scan-outputs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectSlug, names }),
+    });
+    if (!res.ok) {
+      console.warn(`[scan-outputs] non-ok ${res.status}`);
+      return [];
+    }
+    const payload = (await res.json()) as { matches?: { name: string; path: string }[] };
+    return Array.isArray(payload.matches) ? payload.matches : [];
+  } catch (err) {
+    if (!(err instanceof AgentUnreachableError)) {
+      console.warn('[scan-outputs] failed:', err);
+    }
+    return [];
+  }
+}
+
 /** 6.5: one error row from the reaper summary. Mirrors the server's
  *  `ReapError`. `stage` distinguishes a failed worktree remove (destructive
  *  step that was aborted) from a failed branch delete (cosmetic stray

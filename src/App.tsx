@@ -24,7 +24,7 @@ import { DEMO_EXTRA_CHAT_IDS } from './data/demo/chats';
 import { DEMO_CHANGES_ALCOHOL } from './data/demo/changes';
 import { IS_DEMO } from './lib/demoMode';
 import { useAgentState, initAgentProbe } from './lib/agent';
-import { postClaudePermissionDecision, postInitProject, postOpenFolder, postReadFile, postReaperRun, postSessionComplete, postSessionMerge, postUndoChange, streamChat, streamClaudeChat } from './lib/api';
+import { postClaudePermissionDecision, postInitProject, postOpenFolder, postReadFile, postReaperRun, postScanProjectOutputs, postSessionComplete, postSessionMerge, postUndoChange, streamChat, streamClaudeChat } from './lib/api';
 import { getAgentRouteIntent, shouldGenerateArtifact } from './lib/intentRouter';
 import { buildAttachmentContextBlock, buildImageDescriptionBlock } from './lib/attachments';
 import { artifactFromClaudePath, outputTypeFromPath, generateArtifactRequest, artifactItemCount } from './lib/artifacts';
@@ -65,6 +65,7 @@ import {
   upsertProjectOnServer,
   deleteProjectOnServer,
   bulkUploadProjects,
+  backfillLegacyOutputPaths,
   ProjectAuthError,
   ProjectValidationError,
 } from './lib/projectStore';
@@ -1282,6 +1283,51 @@ export default function App() {
         console.warn(`[project-init] open failed: ${result.error}`);
       }
     });
+  }, [activeProjectId, projects, agentState]);
+
+  // §31: legacy Output entry path backfill. Outputs created before §23 (which
+  // started persisting `path` on commit) have no click target — clicking falls
+  // through to the toggle-highlight only. On first project-open per session
+  // we ask the agent to walk `~/WorkPal/<slug>/sessions/` and recover paths
+  // for any name with exactly one match. Best-effort: 0 / multiple matches
+  // are dropped, scan failures are silent. Once-per-project guard keeps the
+  // walk from re-firing on every projects re-render. Re-applies matches via
+  // setProjects updater so concurrent edits during the scan aren't lost.
+  const backfilledProjectsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!activeProjectId) return;
+    if (agentState !== 'reachable') return;
+    const project = projects.find(p => p.id === activeProjectId);
+    if (!project) return;
+    if (backfilledProjectsRef.current.has(project.id)) return;
+    const missing = (project.outputs ?? []).filter(o => !o.path && !o.href);
+    if (missing.length === 0) {
+      backfilledProjectsRef.current.add(project.id);
+      return;
+    }
+    backfilledProjectsRef.current.add(project.id);
+    const slug = slugify(project.name);
+    void backfillLegacyOutputPaths(project, names => postScanProjectOutputs(slug, names))
+      .then(updated => {
+        if (updated === project) return;
+        const matchByName = new Map<string, string>();
+        for (const o of updated.outputs ?? []) {
+          if (o.path) matchByName.set(o.name, o.path);
+        }
+        if (matchByName.size === 0) return;
+        setProjects(prev => prev.map(p => {
+          if (p.id !== project.id) return p;
+          let touched = false;
+          const outputs = (p.outputs ?? []).map(o => {
+            if (o.path || o.href) return o;
+            const found = matchByName.get(o.name);
+            if (!found) return o;
+            touched = true;
+            return { ...o, path: found };
+          });
+          return touched ? { ...p, outputs } : p;
+        }));
+      });
   }, [activeProjectId, projects, agentState]);
 
   // 6.5: mount-time orphan worktree reaper. Fire-and-forget sweep — for
