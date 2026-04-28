@@ -775,17 +775,26 @@ export function Switch<T extends string>({
   onChange,
   segments,
   ariaLabel,
+  disabled,
 }: {
   value: T;
   onChange: (v: T) => void;
   segments: { value: T; label: string }[];
   ariaLabel?: string;
+  /** Whole control is read-only — selected segment still highlighted, but
+   *  no segment is clickable. Pointer turns to not-allowed and the entire
+   *  pill dims. Used by surfaces where a state is shown but not editable
+   *  by the current viewer (e.g. Demo deployment of the Agent Videos tab). */
+  disabled?: boolean;
 }) {
   return (
     <div
       role="radiogroup"
       aria-label={ariaLabel}
-      className="inline-flex items-center rounded-full border border-stroke-outline h-8 shrink-0"
+      aria-disabled={disabled || undefined}
+      className={`inline-flex items-center rounded-full border border-stroke-outline h-8 shrink-0 ${
+        disabled ? 'opacity-50' : ''
+      }`}
     >
       {segments.map((seg, i, arr) => {
         const isSelected = value === seg.value;
@@ -797,11 +806,15 @@ export function Switch<T extends string>({
             type="button"
             role="radio"
             aria-checked={isSelected}
+            disabled={disabled}
             onClick={() => {
+              if (disabled) return;
               if (!isSelected) onChange(seg.value);
             }}
             className={`h-full px-3 type-caption transition-colors ${
-              isSelected
+              disabled
+                ? 'cursor-not-allowed'
+                : isSelected
                 ? 'cursor-default'
                 : 'text-text-primary hover:bg-bg-hover cursor-pointer'
             }`}
