@@ -1693,7 +1693,11 @@ function LayoutsTab() {
           <HeaderBar
             sidebarOpen={false}
             onToggleSidebar={() => {}}
-            headerRight={<TertiaryButton>Panel</TertiaryButton>}
+            headerRight={
+              <HeaderIconButton ariaLabel="Open context panel">
+                <PanelRight size={20} />
+              </HeaderIconButton>
+            }
           />
         </div>
         <div className="type-caption text-text-primary mt-3">
