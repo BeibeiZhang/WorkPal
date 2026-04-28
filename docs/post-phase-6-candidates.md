@@ -547,6 +547,74 @@ Ship verification: install v0.1.2 agent + open `workpal-beibei.vercel.app` → P
 
 ---
 
+## 21. `decided-next` — Project ref-folder defaults text chat to Claude (channel-aware routing)
+
+**Surfaced**: 2026-04-27 conversation, Beibei testing v0.1.3 + §17 ref folder feature with natural-language prompts. Two prompts ("在我简历加上这个记录" / "把这段加到我简历上") both contain "加 / 加到 / 加上" — none in `CLAUDE_CODE_KEYWORDS` ([`src/lib/intentRouter.ts:13`](../src/lib/intentRouter.ts#L13)). Result: chat routes to OpenAI fallback (no tool access), AI hallucinates "I can't access your Gmail" context, never injects §19 system prompt (which only takes effect on Claude path). Growing the keyword list is cat-and-mouse long-tail; the structural fix is making project-with-ref-folder chats default to Claude.
+
+**Channel routing table after §21**:
+
+| Channel | Route | Note |
+|---|---|---|
+| Voice mode | Always OpenAI | Untouched (different code path, doesn't pass through `getAgentRouteIntent`) |
+| **Text + ref folder attached** | **Claude** (let LLM decide tool use) | **§21 new** |
+| Text, no ref folder + keyword match | Claude | Existing keyword router |
+| Text, no ref folder + no keyword | OpenAI fallback | Existing |
+| Text + agent unreachable + mobile | AgentRequiredHint | §15 already shipped |
+| Demo URL | Always fallback-cloud | §15 IS_DEMO short-circuit already shipped |
+
+**Strategy (locked)**:
+
+Single-point change in [`src/lib/intentRouter.ts`](../src/lib/intentRouter.ts) — extend `getAgentRouteIntent` signature with `referenceDirectories: string[]` and add a branch right after the IS_DEMO short-circuit, before the keyword check:
+
+```ts
+export function getAgentRouteIntent(
+  text: string,
+  isMobile: boolean,
+  referenceDirectories: string[],  // §21 new
+): AgentRouteIntent {
+  if (IS_DEMO) return 'fallback-cloud';
+  // §21: project has ref folders → default text chat to Claude (let LLM
+  //      decide whether to use tools). Bypasses keyword match because
+  //      natural-language long-tail ("加 / 加到 / 提一下" etc.) can't be
+  //      enumerated. Voice mode unaffected (different code path).
+  if (referenceDirectories.length > 0 && isAgentCurrentlyReachable()) {
+    return 'use-claude';
+  }
+  if (!matchesClaudeCodeKeyword(text)) return 'fallback-cloud';
+  if (isAgentCurrentlyReachable()) return 'use-claude';
+  if (isMobile) return 'mac-only-on-mobile';
+  return 'fallback-cloud';
+}
+```
+
+**Caller wiring** ([`src/App.tsx`](../src/App.tsx) handleSend): thread `project?.referenceDirectories ?? []` into the `getAgentRouteIntent` call. Same `project` lookup that already feeds `streamClaudeChat`'s `referenceDirectories` field — single source of truth.
+
+**Edge cases verified**:
+- Standalone chat (`chat.projectId === undefined`) → `project` undefined → `?? []` → length 0 → §21 branch skipped → keyword router fall-through
+- Project chat but project has no attached ref folders → length 0 → same fall-through
+- Project chat with ref folders + agent unreachable → `isAgentCurrentlyReachable()` false → §21 branch skipped → falls through to existing mobile / fallback handling
+- IS_DEMO → first short-circuit returns fallback-cloud, §21 branch never reached
+- Voice mode → not in this code path; OpenAI always
+
+**Why this design (vs growing keyword list)**:
+1. **User attached ref folder = "this project is AI editing workflow"** — explicit signal, not inference
+2. **Matches Codex / Cursor mode** — project context default has tool access, natural language works out of the box, no keyword memorization
+3. **Long-tail keyword problem unsolved by enumeration** — Chinese natural-language has hundreds of variants ("加 / 加上 / 加到 / 添到 / 补一下 / 提一下 / 修一下 / ..."), list will always lag
+
+**Cost / trade-off**: Each project-with-ref-folder chat spawns a Claude SDK subprocess instead of streaming OpenAI. Slightly slower + more expensive per call. Acceptable because user's intent (attach ref folder) is to use AI editing.
+
+**Effort**: ~30 min. Risk: low — single function signature change + 1 caller site. No backend / SDK / UI / mirror change. `intentRouter.ts` is frontend-only.
+
+**Test plan**:
+- Project with attached ref folder, send a non-keyword natural-language prompt ("加一段到我简历" / "记录这个" / "把这写进文档") → progress panel shows `Glob` / `Read` steps (proves Claude path active) → §19 system prompt finally injects → AI Globs ref folder, Reads candidates, proposes edit (NOT "I can't access Gmail").
+- Same prompt on project WITHOUT ref folders → keyword router (current behavior unchanged).
+- Standalone chat (no project) with same prompt → keyword router (current behavior unchanged).
+- Voice mode in project with ref folder → still OpenAI (verify network tab — no Claude SDK process spawn).
+- Demo URL → IS_DEMO precedence intact.
+- Mobile + project with ref folder + agent unreachable → falls through to existing mobile handling (AgentRequiredHint).
+
+---
+
 ## How to revisit / add candidates
 
 When a candidate ships → remove or mark `shipped`.
