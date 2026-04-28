@@ -21,7 +21,7 @@ import {
  *  origin specifically (no wildcard, no credentials). */
 
 const ALLOWED_ORIGINS = new Set([
-  'https://workpal.vercel.app',
+  'https://my-workpal.vercel.app',
   // Vercel preview/branch deploys for the demo project — pattern matched below.
 ]);
 
@@ -30,8 +30,9 @@ const STATUS_VALUES: ReadonlySet<VideoStatus> = new Set(['active', 'inactive', '
 function isAllowedOrigin(origin: string | undefined): origin is string {
   if (!origin) return false;
   if (ALLOWED_ORIGINS.has(origin)) return true;
-  // Vercel preview deploys for the demo project: workpal-<hash>-<scope>.vercel.app
-  return /^https:\/\/workpal-[a-z0-9-]+\.vercel\.app$/.test(origin);
+  // Vercel preview deploys for the demo project look like
+  // my-workpal-<hash>-<scope>.vercel.app
+  return /^https:\/\/my-workpal-[a-z0-9-]+\.vercel\.app$/.test(origin);
 }
 
 function applyCors(req: VercelRequest, res: VercelResponse) {
