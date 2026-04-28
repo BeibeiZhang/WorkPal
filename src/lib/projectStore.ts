@@ -14,6 +14,36 @@ import type { Project } from '../components/Sidebar';
 import type { Attachment, OutputItem } from '../types';
 import { IS_DEMO } from './demoMode';
 
+/** §31: pure backfill — for any OutputItem missing both `path` and `href`
+ *  (the two click-target fields), ask the injected `scan` for candidate
+ *  matches and graft `path` onto the entry on a unique hit. Returns the
+ *  same `project` reference unchanged when there's nothing to do (so the
+ *  caller's persistence/cloud-flush diff stays a no-op).
+ *
+ *  Transport stays in `api.ts` — caller passes
+ *  `(names) => postScanProjectOutputs(slugify(project.name), names)`. Keeps
+ *  this module free of agent / fetch concerns and trivially testable. */
+export async function backfillLegacyOutputPaths(
+  project: Project,
+  scan: (names: string[]) => Promise<{ name: string; path: string }[]>,
+): Promise<Project> {
+  const outputs = project.outputs ?? [];
+  const missing = outputs.filter((o) => !o.path && !o.href);
+  if (missing.length === 0) return project;
+  const matches = await scan(missing.map((o) => o.name));
+  if (matches.length === 0) return project;
+  const matchByName = new Map(matches.map((m) => [m.name, m.path]));
+  let touched = false;
+  const next: OutputItem[] = outputs.map((o) => {
+    if (o.path || o.href) return o;
+    const found = matchByName.get(o.name);
+    if (!found) return o;
+    touched = true;
+    return { ...o, path: found };
+  });
+  return touched ? { ...project, outputs: next } : project;
+}
+
 const PROJECTS_CACHE_KEY = 'workpal-projects-v1';
 const PROJECTS_UPDATED_AT_KEY = 'workpal-projects-updated-at-v1';
 const PROJECTS_MIGRATED_KEY = 'workpal-projects-cloud-migrated-v1';
