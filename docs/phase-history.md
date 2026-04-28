@@ -217,28 +217,42 @@ Phase 5 一路踩下的坑和形成的宗旨，**沉淀在 `docs/principles.md`*
 
 ---
 
-## 当前状态（2026-04-27）
+## 当前状态（2026-04-28）
 
-**Phase 7 完整收官 + v0.1.1 真正 launched**：
-- WorkPal Agent v0.1.1 from `/Applications/WorkPal Agent.app`，launchd 开机自启
+**Phase 7 完整收官 + v0.1.4 production launched + Reference folders 整链路完成**：
+- WorkPal Agent v0.1.4 from `/Applications/WorkPal Agent.app`，launchd 开机自启
 - 用户主入口：**`https://workpal-beibei.vercel.app/overview`**
-  - 这台 Mac（agent 跑着）：全功能（聊天 + 编辑本地文件 + git）
+  - 这台 Mac（agent 跑着）：**全 English UI** + 全功能（聊天 + 编辑本地文件 + git + reference folders + native folder picker）
   - 其他 Mac：OnboardingSurface 引导装 agent
-  - **iPhone**：cloud-only（chats / memory / projects）+ §15 mobile graceful degrade（chat panel 正常用 OpenAI；agent 类请求弹 AgentRequiredHint，不假装能改文件）
-  - Demo URL（workpal.vercel.app）：mocked，不调本地
+  - **iPhone**：cloud-only + §15 mobile graceful degrade + Complete Session button mobile gate（visible-but-disabled + 5s tip）
+  - Demo URL（workpal.vercel.app）：mocked，但 chat **真接 OpenAI**（不是 mock）；Agent Video Status 跨域同步自 workpal-beibei
+- 用户体验链路：用户在 ProjectPage 挂外部 reference folder（native picker 选）→ 在该 project chat 里说"加点东西到我简历"等自然语言 → 待 §21 ship 后自动走 Claude → AI Glob ref folder + Read 候选 + Write 改后版本到 session/outputs/ → 用户点 Complete Session → 选并入 project main / reference folder（Copy semantic 保留 git protection）→ 下次 session 该 output 成为 reference folder 知识库一员
 - Update 路径：boot-check → GitHub `/releases/latest` → 5th Settings card → 用户下 .dmg → 装
 
-**最近 ship**：
-- **PR [#136](https://github.com/BeibeiZhang/WorkPal/pull/136)** (2026-04-26) — `chore: post-Phase-7 cleanups (#11 + #12 + #14)`，3 条小 candidate 一次打包：animations DELETE 端点删除 / agent-video-status 服务路由换 localStorage / OnboardingSurface 反引号升 `<code>`。5 文件，+41 −239。Clean ship，0 rework。
-- **PR [#137](https://github.com/BeibeiZhang/WorkPal/pull/137)** (2026-04-26) — `Overview: unify expand-panel spacing to 8px`，纯 UI polish fast-lane，未走 candidate 流程。
-- **PR [#138](https://github.com/BeibeiZhang/WorkPal/pull/138)** (2026-04-26) — `feat: mobile graceful degrade for agent features (#15)`，10 文件 +333 −68。新 `useIsMobile` hook + `AgentRequiredHint` 共享组件 + 5 个 agent 触点 mobile 分支。Clean ship，planning 独立 live-test 4 场景过。
-- **PR [#141](https://github.com/BeibeiZhang/WorkPal/pull/141)** (2026-04-27) — Overview API Spend range 改 iOS wheel picker，纯 UI polish fast-lane。
-- **PR [#142](https://github.com/BeibeiZhang/WorkPal/pull/142)** (2026-04-27) — §15 follow-up：AgentRequiredHint 改 English-only（Beibei 决策，targeted bilingual exception）+ 修 hover ring 视觉（`inset: -1px` / `-2px` 让 chip / input hover 不再"缩水"）。
-- **PR [#143](https://github.com/BeibeiZhang/WorkPal/pull/143)** (2026-04-27) — `feat: project knowledge framing + reference folders (#16 + #17)`，22 文件 +846 −11。§16 = Complete Session 按钮 + 成功 modal 三态双语 tooltip / 文案让"知识库"框架显眼（0 行为变化）。§17 = 真功能：新 `reference_directories jsonb` 列（migration 0005，已 apply prod）+ `referenceDirs.ts` validator 双 mode + SDK `additionalDirectories` 透传 + Electron `dialog.showOpenDialog` picker（dev 模式 404 → text input fallback）+ ProjectPage SideCard + ChatPanel header chip + 复用 §15 mobile graceful-degrade pattern。Self-test 8 场景过；剩"真 Electron picker LSUIElement 行为"+"真 SDK chat 拿 refDirs"待 v0.1.2 装新 dmg 验。
+**最近 ship**（按时间倒序）：
+- **PR [#147](https://github.com/BeibeiZhang/WorkPal/pull/147)** (2026-04-28) — Sync agent video status across deployments via Supabase。把 §12 ship 的 localStorage-only video status 升级成 Supabase-backed cross-deployment sync（workpal-beibei 控制 master，demo cross-origin 读）。Beibei 平行 fast-lane session，未走主 candidate 流程。
+- **PR [#146](https://github.com/BeibeiZhang/WorkPal/pull/146)** (2026-04-28) — `feat: AI proactively uses reference folders + merge session to reference folders (#19 + #20)`。§19 = system prompt 引导 AI 主动 Glob ref folder 不 hallucinate Gmail。§20 = Complete Session 加并入到 reference folder 选项（Copy semantic, atomic abort policy）+ 新 Checkbox 共享 primitive + AgentRequiredHint customMessage prop + 5 个新 design system token（accent-blue-faint pair / overlay-loading / fixed-dark-text / tooltip-bg / 已 in #144 的 error）+ Mobile §15 gap fix（visible-but-disabled tip）。Bundle 一个 PR。
+- **PR [#144](https://github.com/BeibeiZhang/WorkPal/pull/144)** (2026-04-27) — `chore: UI English sweep + picker hotfix + design system tokens (#18)`，38 文件 +286 −292。Bundle 6 件：§17 picker hotfix + §18 双语 sweep（79 strings × 19 files）+ `--color-error` token + accent.* Tailwind class extension + one-off hex tokenization + alpha-modifier silent-failure 24 处 cleanup。包含 principle #8 翻转中触发 + CLAUDE.md violations + extend-don't-bypass 段添加 + stale memory 清理。
+- **PR [#143](https://github.com/BeibeiZhang/WorkPal/pull/143)** (2026-04-27) — §16 + §17 reference folders feature（initial ship，详见 §17 候选记录）。
+- **PR [#142](https://github.com/BeibeiZhang/WorkPal/pull/142)** (2026-04-27) — §15 follow-up：AgentRequiredHint English-only + hover ring inset fix。
+- **PR [#141](https://github.com/BeibeiZhang/WorkPal/pull/141)** (2026-04-27) — Overview API Spend wheel picker，fast-lane。
+- **PR [#138](https://github.com/BeibeiZhang/WorkPal/pull/138)** (2026-04-26) — §15 mobile graceful degrade。
+- **PR [#136/#137](https://github.com/BeibeiZhang/WorkPal/pull/136)** (2026-04-26) — post-Phase-7 cleanups（#11 / #12 / #14）+ Overview spacing。
 
-**下一步**：根据 [`docs/post-phase-6-candidates.md`](./post-phase-6-candidates.md) 优先级开新工作。当前 backlog 17 条（13 已 shipped，4 在排队）。pending 4 条：**#3** Artifact 生成（decided-next，5-7 天，最大产品扩面）/ **#4** Bilingual scaffold（parked）/ **#6** CN→EN translate fix（1-2h）/ **#13 Option C** 签名 + notarize（$99/yr）。Phase 7 主线没未完成项。
+**Releases 节奏**：v0.1.1（Phase 7.5 ship）→ v0.1.2（PR #143 ship 后）→ v0.1.3（PR #144 ship 后）→ v0.1.4（PR #146 ship 后，agent SDK 改动随 dmg 出）。每个 agent-relevant PR 之后 Beibei 手动 bump `agent/package.json` + tag + push 流程稳定。
 
-**等装 v0.1.2**: PR #143 ship 后 CI 自动出 v0.1.2 dmg。Beibei 装好后验两件事：(1) 真 Electron `dialog.showOpenDialog` 在 LSUIElement menu-bar context 下能弹（Phase 7.3 SecurityAgent 近邻坑，dialog 不需 admin domain 大概率 OK）；(2) 真 SDK chat 拿 `additionalDirectories` 跑 Read/Glob/Grep 命中外部目录。两件如果都过，§17 完整闭环；如果 picker 弹不出，client 已写好 fallback 到 text input。
+**Principle #8 翻转**（commit `f66a5be`，PR #144 中触发）：从 "bilingual day 1" → "English-first UI"。理由：双语 `/ 中文` 视觉累赘 + 维护税重。Voice / AI replies / intent router keywords / user input 不动；只 UI 文案翻转。`feedback_targeted_english_only.md` 删除（principle 翻转后过期）。
+
+**CLAUDE.md violations + extend-don't-bypass**（commits `7c9b612` + `23a382f`）：明确禁止 hex / inline color / alpha modifier 等 ad-hoc 写法；找不到 token / primitive 必须扩 design system，绝不绕过。
+
+**下一步**：根据 [`docs/post-phase-6-candidates.md`](./post-phase-6-candidates.md) 优先级。**当前 backlog 21 条（16 已 shipped，5 在排队）**。pending 5 条：
+- **#21** channel-aware routing（decided-next，~30min，prompt 已发；阻塞 §19 mental model 真闭环）
+- **#3** Artifact 生成（decided-next，5-7 天，最大产品扩面）
+- **#4** Bilingual scaffold（parked，等 i18n 真有需要再启）
+- **#6** CN→EN translate fix（1-2h）
+- **#13 Option C** Apple Developer 签名 + notarize（$99/yr，长期 Sequoia "已损坏" friction 解）
+
+**§21 紧迫性**：Beibei v0.1.4 装好后实测 reference folder workflow（"加点东西到简历"）发现 AI 答 Gmail——root cause 是 keyword router miss 自然语言 → OpenAI fallback → §19 system prompt 没机会注入。§21 (~30min impl) 是 §19 真生效的关键 fix。Channel-aware 设计（voice OpenAI / text+ref Claude / 其他保留 keyword）已 spec lock。
 
 ---
 

@@ -490,9 +490,26 @@ After clearing the quarantine attribute, double-click opens normally (no further
 
 ---
 
-## 18. `decided-next` — UI bilingual → English-only sweep + §17 picker hotfix
+## 18. `shipped` — UI bilingual → English-only sweep + §17 picker hotfix + design system tokens
 
-**Surfaced**: 2026-04-27, after [`docs/principles.md`](./principles.md) principle #8 flipped from "bilingual day 1" to "English-first UI" (commit `f66a5be`). All previously-shipped "EN / 中文" double-line UI copy needs to retrofit to English-only. Pure copy edit, zero behavior / logic / type change. Beibei's framing: "EN / 中文 同时显示视觉累赘 + 维护税重" — examples in screenshot included `Reference folders / 参考文件夹`, `Cancel / 取消`, `Paste an absolute path. / 粘贴绝对路径`. Bundled with a small §17 hotfix below since §17 picker is broken in production (dev-mode passed self-test but vercel.app deploy doesn't reach the agent endpoint).
+**Shipped**: 2026-04-27 (PR [#144](https://github.com/BeibeiZhang/WorkPal/pull/144), merge commit `28b282b`, 38 files +286 −292). Bundled **6 items** into one PR after principle #8 flip:
+
+1. **§17 picker hotfix**: bare `fetch('/api/pick-folder')` → `fetchAgent` (was always 404 on vercel.app cross-origin → text-input fallback; now reaches local agent on `:3001` → real macOS native folder picker).
+2. **§18 bilingual sweep**: 79 strings across 19 files (frontend + agent + server + agent vanilla HTML) — all `EN / 中文` patterns dropped to English-only per principle #8 flip.
+3. **`--color-error` token foundation**: light `#B42318` / dark `#F97066` (D1 lock); 7 hex hardcodes mass-replaced.
+4. **Accent.* Tailwind class extension**: `#3171ff` (`accent-blue`) + `#028901` (`accent-green`) were already CSS vars but not exposed as Tailwind classes — components hex-hardcoded them. ~28 sites mass-replaced.
+5. **One-off hex / inline tokenization**: `--color-tooltip-bg` (#1a1a1a) / `--color-overlay-loading` (rgba(0,0,0,0.4) light, rgba(255,255,255,0.4) dark — inverted direction) / `--color-fixed-dark-text` (#142740, D4 — Library / ComingSoon force-dark text on always-light overlays). Existing tokens reused: `#E8E8E8` / `#c4c4c4` / `#bebebe` → `border-stroke-outline`.
+6. **Tailwind alpha-modifier silent-failure cleanup**: 24 hits across ArtifactPage / ProjectPage / MessageCard / ChatInput / ChatMessage / VoiceMode. `text-text-X/60` silently failed because CSS vars are `rgba()` literals (Tailwind alpha modifier needs RGB triplets) → mapped to closest existing token (`text-text-secondary` rgba .6 / `text-text-tertiary` rgba .4).
+
+**Mid-PR process**: Beibei flipped principle #8 from "bilingual day 1" to "English-first UI" (commit `f66a5be`) after observing `/ 中文` double-line pattern was visually heavy on Reference folders SideCard. CLAUDE.md violations + "Extend, don't bypass" (commit `7c9b612` + alpha-modifier `23a382f`) sections added during this PR. Stale memory `feedback_targeted_english_only.md` deleted after principle flip made it obsolete.
+
+**Skill assets synced**: DESIGN_SYSTEM.md / src/index.css / tailwind.config.js / src/components/shared.tsx all copied to `~/.claude/skills/workpal-design-system/` per CLAUDE.md sync rule.
+
+**Live-test (Beibei)**: 7 scenarios passed — no `/ 中文` residue desktop + iPhone 375px, dark mode `--color-error` resolves to `#F97066`, native folder picker really pops on Mac (proves `fetchAgent` reaches `:3001`), AgentRequiredHint English-only on mobile (no Chinese line per PR #142 follow-up locked in).
+
+**v0.1.3 release**: Beibei bumped `agent/package.json` 0.1.2→0.1.3 + tagged + pushed → CI built dual-arch dmg → installed → agent restart → boot-check → Settings updated.
+
+**Surfaced**: 2026-04-27, after principle #8 flipped from "bilingual day 1" to "English-first UI". All previously-shipped "EN / 中文" double-line UI copy needs to retrofit to English-only. Pure copy edit, zero behavior / logic / type change. Beibei's framing: "EN / 中文 同时显示视觉累赘 + 维护税重" — examples in screenshot included `Reference folders / 参考文件夹`, `Cancel / 取消`, `Paste an absolute path. / 粘贴绝对路径`. Bundled with a small §17 hotfix below since §17 picker is broken in production (dev-mode passed self-test but vercel.app deploy doesn't reach the agent endpoint).
 
 **§17 picker hotfix (production bug, bundle in same PR)**:
 
@@ -544,6 +561,47 @@ Ship verification: install v0.1.2 agent + open `workpal-beibei.vercel.app` → P
 - Demo URL @ 375px: identical English UI to main site.
 - Sanity: AI assistant chat with a Chinese prompt ("帮我写个 hello world") still responds in Chinese — confirms LLM auto-language handling is untouched.
 - Sanity: typing "改一下 src/App.tsx" still triggers intentRouter to claude-code path (not artifact / cloud) — confirms keyword bilingual identification still works.
+
+---
+
+## 19. `shipped` — System prompt: AI proactively explores reference folders
+
+**Shipped**: 2026-04-28 (PR [#146](https://github.com/BeibeiZhang/WorkPal/pull/146), merge commit `68f25ee`, bundled with §20). Single conditional system prompt addition in `claudeChat.ts` (server + agent mirror byte-identical). `REFERENCE_FOLDERS_PROMPT(paths: string[])` injected **only when** `referenceDirectories.length > 0` — tells AI to Glob ref folder first / Read candidates / NOT fabricate Gmail / Drive / calendar context. Critical phrasing per planning Flag 1: "Don't write into them directly — your file outputs go to the session working directory (cwd); the user can later choose to merge them into the reference folders via the Complete Session UI" (prevents AI from trying to write directly into ref folders).
+
+**Surfaced**: 2026-04-27, when Beibei tested attached folder + asked "改一下我的简历" — AI hallucinated "I can't access Gmail" instead of Globbing the attached folder. Root cause: SDK gives Read/Glob/Grep on `additionalDirectories` but ARTIFACT_PROMPT didn't tell AI about them.
+
+**§19 follow-up surfaced post-ship**: keyword router miss makes §19 incomplete on its own — Beibei's natural-language prompts ("在我简历加上...") miss `CLAUDE_CODE_KEYWORDS` so chats route to OpenAI fallback, where §19 system prompt is never injected. Tracked as **§21**.
+
+---
+
+## 20. `shipped` — Output → Reference folder via "并入" extension to Complete Session
+
+**Shipped**: 2026-04-28 (PR [#146](https://github.com/BeibeiZhang/WorkPal/pull/146), merge commit `68f25ee`, bundled with §19). Reuses Phase 6.3 "Complete Session" mental model — extends merge gesture to support reference folder targets in addition to existing project main merge. **AI never writes ref folder directly** (pinning hack intact); user controls merge via Complete Session UI.
+
+**Implementation**:
+- **`Checkbox` shared primitive** ([`src/components/shared.tsx`](../src/components/shared.tsx)) — first checkbox in design system; reuses Switch's inline-style-with-CSS-var precedent (`var(--color-selected-bg)` / `var(--color-selected-text)` already in `src/index.css`); 100% token, zero hex, zero alpha modifier.
+- **CompleteSessionModal target selector** ([`CompleteSessionModal.tsx`](../src/components/CompleteSessionModal.tsx)): checkbox group below file list when `referenceFolders.length > 0`; new `partial-success` phase with three visual treatments — green CheckCircle2 (success), gray AlertCircle + `text-text-tertiary` (warning `no_outputs_dir`), red XCircle (failure). Empty refs → modal degrades to single-action flow.
+- **Backend** ([`server/src/lib/sessionCopy.ts`](../server/src/lib/sessionCopy.ts) + agent mirror NEW): `copySessionOutputsToRefFolder(sessionPath, refFolderPath)` strict-to-ARTIFACT_PROMPT layout — copies `<sessionPath>/outputs/*` flat into `<refFolderPath>/`. Missing `outputs/` → `success-with-warning` (`no_outputs_dir`). 4 error codes mapped: `permission_denied` / `not_found` / `disk_full` / `unknown`.
+- **`/api/session/merge` extension** ([`server/src/routes/session.ts`](../server/src/routes/session.ts) + agent mirror): accepts `targets?: { project?: boolean, referenceFolders?: string[] }`. Strict serial fail-abort — project first → fail returns early without touching ref folders (atomic abort per Q3 lock); ref folders independent serial copies; per-target failures don't short-circuit each other.
+- **Mobile §15 gap fix** ([`TaskContextPanel.tsx`](../src/components/TaskContextPanel.tsx)): visible-but-disabled + 5s `AgentRequiredHint` tip on click, mimics PR #138 FolderChip pattern. **`AgentRequiredHint` extended with `customMessage?: string` prop** (planning Flag 3) so this surface uses specific copy "Open WorkPal Agent on desktop to complete this session"; existing 5 callsites zero-regression default copy.
+
+**Beibei's 4 product locks** (via inline AskUserQuestion mid-impl):
+1. **Copy scope** = `outputs/*` flat to `refFolder/` (strict ARTIFACT_PROMPT contract; warning if AI didn't follow layout)
+2. **Endpoint** = extend `/api/session/merge` (preserves /complete=preview, /merge=action SRP)
+3. **Atomicity** = project fail → abort all ref folder copies
+4. **Mobile** = visible-but-disabled + tip (mimic PR #138, 顺手补 §15 gap)
+
+**Planning's 4 mid-plan flags incorporated**:
+1. §19 prompt "Don't write into ref folders directly — outputs go to cwd, user merges via Complete Session UI"
+2. Token verification confirmed `--color-selected-bg` / `--color-selected-text` exist in `src/index.css:33-34, 174-175`
+3. `AgentRequiredHint` `customMessage?` prop (single-prop, 5 existing callsites zero-regression)
+4. `no_outputs_dir` warning UI distinct from error (gray AlertCircle + `text-text-tertiary` instead of red `text-error`)
+
+**Verification**: typecheck clean (server + frontend); 3 mirror pairs byte-identical. **Live-test deferred to Beibei's local env** per `feedback_preview_reuse_idle` (port conflict prevented impl preview): scenarios a-e (UI states + atomic abort + permission denied + multi-target) verifiable on Vercel after merge with hard-refresh; scenario g (real SDK chat with ref folder) requires v0.1.4 dmg install.
+
+**v0.1.4 release**: Beibei bumped `agent/package.json` 0.1.3→0.1.4 + tagged + pushed → CI built dual-arch dmg → agent SDK changes (`ARTIFACT_PROMPT` extension + `additionalDirectories` plumbing per §19 mirror) live in production.
+
+**Surfaced**: 2026-04-27 conversation. Beibei rejected direct-write-to-ref-folder design — preferred reusing existing Phase 6.3 "review then merge" gesture as the channel for "AI output → reference folder" loop. Avoids security model rewrite + permission persistence + UI complexity that the original 4-button PermissionPrompt design would have required.
 
 ---
 
