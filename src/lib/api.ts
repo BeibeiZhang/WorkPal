@@ -261,8 +261,10 @@ export type SessionMergeTargetResult =
   | { target: 'project'; ok: true; commit: string; alreadyUpToDate: boolean }
   | { target: 'project'; ok: false; reason: 'not-ff'; error: string; gitMessage: string; cliCommand: string }
   | { target: 'project'; ok: false; reason: 'other'; error: string }
-  | { target: 'reference'; path: string; ok: true; copiedCount: number }
+  | { target: 'reference'; path: string; ok: true; copiedCount: number; usedFallback?: false }
+  | { target: 'reference'; path: string; ok: true; copiedCount: number; usedFallback: true }
   | { target: 'reference'; path: string; ok: true; copiedCount: 0; warning: 'no_outputs_dir' }
+  | { target: 'reference'; path: string; ok: true; copiedCount: 0; warning: 'no_new_deliverables' }
   | {
       target: 'reference';
       path: string;
