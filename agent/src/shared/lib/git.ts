@@ -495,10 +495,17 @@ export async function listNewFilesAtTop(cwd: string): Promise<string[]> {
  *
  *  Base branch read from `symbolic-ref --short HEAD` for the same reason as
  *  `diffSessionVsBase` (`init.defaultBranch` is user-config-dependent).
- *  `--no-renames` keeps the surface as a pure A/M/D set; `--diff-filter=A`
- *  narrows to additions only. Top-level filter mirrors §30's contract:
- *  subdir entries belong either to outputs/ (strict-copy path) or to scopes
- *  the fallback intentionally ignores.
+ *  `--diff-filter=A` narrows to additions only. Top-level filter mirrors
+ *  §30's contract: subdir entries belong either to outputs/ (strict-copy
+ *  path) or to scopes the fallback intentionally ignores.
+ *
+ *  `--no-renames` is NOT redundant with `--diff-filter=A`: git's default
+ *  rename detection (`-M`) collapses a 100% rename into a single `R`
+ *  entry, which `--diff-filter=A` then drops — losing the destination file
+ *  entirely. `--no-renames` forces the rename to surface as a `D` + `A`
+ *  pair, so the new top-level path still comes through the additions
+ *  filter. Without this, `mv old.md new.md` on the session branch would
+ *  silently miss `new.md` from the ref-folder copy.
  *
  *  Throws on detached HEAD / git failure — caller catches and degrades to
  *  the legacy `listNewFilesAtTop` path. */

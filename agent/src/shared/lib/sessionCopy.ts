@@ -142,7 +142,12 @@ async function copyTopLevelNewFiles(
   // failure (caught upstream and converted to undefined) would be
   // indistinguishable from a real empty diff and silently double-run.
   if (precomputedFiles !== undefined) {
-    candidates = precomputedFiles;
+    // Belt-and-braces: today's only caller (`/session/merge` route) gets a
+    // pre-filtered top-level list from `listAddedTopLevelFiles`, but the
+    // contract lives in two places. Re-filter here so a future caller can't
+    // bypass §30's "top-level only" rule by passing subdir paths and have
+    // them collide on `basename` at the destination.
+    candidates = precomputedFiles.filter((p) => !p.includes('/'));
   } else {
     try {
       candidates = await listNewFilesAtTop(sessionPath);

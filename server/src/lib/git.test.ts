@@ -395,4 +395,18 @@ describe('listAddedTopLevelFiles', () => {
 
     assert.deepEqual(result, []);
   });
+
+  it('throws when branch does not exist (route relies on this for catch-and-warn degrade)', async () => {
+    // The /merge route handler wraps this call in try/catch and degrades
+    // `addedFiles` to undefined on failure (which makes the ref-folder
+    // copy fall through to the legacy `listNewFilesAtTop` path). That
+    // degrade path is load-bearing — without a throw here the route would
+    // silently pass an `undefined` from a returned-empty diff and the bug
+    // would re-emerge differently. Pin the contract so a future "swallow
+    // and return []" refactor breaks loudly.
+    await assert.rejects(
+      () => listAddedTopLevelFiles(repo, 'session/does-not-exist'),
+      /does-not-exist|unknown revision|bad revision|ambiguous argument/i,
+    );
+  });
 });
