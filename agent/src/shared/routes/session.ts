@@ -21,8 +21,10 @@ export type MergeTargetResult =
   | { target: 'project'; ok: true; commit: string; alreadyUpToDate: boolean }
   | { target: 'project'; ok: false; reason: 'not-ff'; error: string; gitMessage: string }
   | { target: 'project'; ok: false; reason: 'other'; error: string }
-  | { target: 'reference'; path: string; ok: true; copiedCount: number }
+  | { target: 'reference'; path: string; ok: true; copiedCount: number; usedFallback?: false }
+  | { target: 'reference'; path: string; ok: true; copiedCount: number; usedFallback: true }
   | { target: 'reference'; path: string; ok: true; copiedCount: 0; warning: 'no_outputs_dir' }
+  | { target: 'reference'; path: string; ok: true; copiedCount: 0; warning: 'no_new_deliverables' }
   | {
       target: 'reference';
       path: string;
@@ -262,22 +264,37 @@ router.post('/session/merge', async (req, res) => {
   for (const refPath of validRefDirs) {
     const copy = await copySessionOutputsToRefFolder(workingDir, refPath);
     if (copy.ok && 'warning' in copy) {
-      console.log(`[session/merge] reference warn ${refPath}: no_outputs_dir`);
+      console.log(`[session/merge] reference warn ${refPath}: ${copy.warning}`);
       results.push({
         target: 'reference',
         path: refPath,
         ok: true,
         copiedCount: 0,
-        warning: 'no_outputs_dir',
+        warning: copy.warning,
       });
     } else if (copy.ok) {
-      console.log(`[session/merge] reference ok ${refPath} → ${copy.copiedCount} file(s)`);
-      results.push({
-        target: 'reference',
-        path: refPath,
-        ok: true,
-        copiedCount: copy.copiedCount,
-      });
+      const usedFallback = 'usedFallback' in copy && copy.usedFallback === true;
+      console.log(
+        `[session/merge] reference ok ${refPath} → ${copy.copiedCount} file(s)${
+          usedFallback ? ' (fallback: cwd top-level)' : ''
+        }`,
+      );
+      results.push(
+        usedFallback
+          ? {
+              target: 'reference',
+              path: refPath,
+              ok: true,
+              copiedCount: copy.copiedCount,
+              usedFallback: true,
+            }
+          : {
+              target: 'reference',
+              path: refPath,
+              ok: true,
+              copiedCount: copy.copiedCount,
+            },
+      );
     } else {
       console.error(`[session/merge] reference fail ${refPath}: ${copy.code} ${copy.message}`);
       results.push({

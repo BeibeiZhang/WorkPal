@@ -435,7 +435,15 @@ function targetResultMessage(r: SessionMergeTargetResult): string {
   }
   // reference target
   if (r.ok && 'warning' in r) {
+    if (r.warning === 'no_new_deliverables') {
+      return 'No new deliverable files — try outputs/<filename> next time.';
+    }
     return "AI didn't produce outputs/ — nothing copied to this folder.";
+  }
+  if (r.ok && 'usedFallback' in r && r.usedFallback) {
+    return r.copiedCount === 1
+      ? 'Merged 1 file from session root — AI wrote outside outputs/.'
+      : `Merged ${r.copiedCount} files from session root — AI wrote outside outputs/.`;
   }
   if (r.ok) {
     return r.copiedCount === 1

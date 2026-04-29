@@ -5,6 +5,7 @@ import {
   NOT_FF_RE,
   parseDiffNameStatus,
   parseDiffNumstat,
+  parseNewFilesPorcelain,
   SESSION_BRANCH_RE,
   type SessionDiffEntry,
 } from './git.js';
@@ -249,5 +250,75 @@ describe('NOT_FF_RE', () => {
     assert.equal(NOT_FF_RE.test('fatal: not a git repository\n'), false);
     assert.equal(NOT_FF_RE.test("error: pathspec 'foo' did not match\n"), false);
     assert.equal(NOT_FF_RE.test('fatal: index file corrupt\n'), false);
+  });
+});
+
+/** §30: parseNewFilesPorcelain feeds the ref-folder merge fallback. The
+ *  parser drives every safety decision downstream — wrong status filtering
+ *  would let `M`-only or deleted files through (overwriting user content
+ *  in the ref folder), and missing rename-skip would mis-pair status codes
+ *  with paths. Cover both axes plus the empty + malformed edge cases. */
+describe('parseNewFilesPorcelain', () => {
+  it('returns [] for empty input', () => {
+    assert.deepEqual(parseNewFilesPorcelain(''), []);
+  });
+
+  it('extracts untracked files (??)', () => {
+    const input = '?? foo.md\0?? bar.txt\0';
+    assert.deepEqual(parseNewFilesPorcelain(input), ['foo.md', 'bar.txt']);
+  });
+
+  it('extracts staged-add files (A )', () => {
+    const input = 'A  resume.md\0';
+    assert.deepEqual(parseNewFilesPorcelain(input), ['resume.md']);
+  });
+
+  it('treats AM (added then modified) as new', () => {
+    const input = 'AM draft.md\0';
+    assert.deepEqual(parseNewFilesPorcelain(input), ['draft.md']);
+  });
+
+  it('skips modified-only files (kept by user, not new)', () => {
+    const input = ' M existing.md\0M  changed.md\0MM mixed.md\0';
+    assert.deepEqual(parseNewFilesPorcelain(input), []);
+  });
+
+  it('skips deleted files', () => {
+    const input = ' D gone.md\0D  also-gone.md\0';
+    assert.deepEqual(parseNewFilesPorcelain(input), []);
+  });
+
+  it('skips renames (R) and consumes the old-path entry', () => {
+    // Rename emits two entries: status+new path, then old path alone.
+    // Without the skip we'd mis-parse the old-path entry as another file.
+    const input = 'R  new.md\0old.md\0?? foo.md\0';
+    assert.deepEqual(parseNewFilesPorcelain(input), ['foo.md']);
+  });
+
+  it('skips copies (C) similarly', () => {
+    const input = 'C  copy.md\0source.md\0?? real-new.md\0';
+    assert.deepEqual(parseNewFilesPorcelain(input), ['real-new.md']);
+  });
+
+  it('preserves paths with spaces and unicode (no quoting in -z)', () => {
+    const input = '?? my resume.md\0?? 简历.md\0';
+    assert.deepEqual(parseNewFilesPorcelain(input), ['my resume.md', '简历.md']);
+  });
+
+  it('returns subdirectory paths verbatim (caller filters top-level)', () => {
+    // The parser itself is path-shape agnostic; subdir filtering happens in
+    // listNewFilesAtTop. This test pins the contract so a future refactor
+    // doesn't accidentally couple the two.
+    const input = '?? outputs/foo.md\0?? src/bar.ts\0?? top.md\0';
+    assert.deepEqual(parseNewFilesPorcelain(input), [
+      'outputs/foo.md',
+      'src/bar.ts',
+      'top.md',
+    ]);
+  });
+
+  it('tolerates malformed entries (too short)', () => {
+    const input = '??\0?? ok.md\0';
+    assert.deepEqual(parseNewFilesPorcelain(input), ['ok.md']);
   });
 });

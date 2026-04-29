@@ -431,3 +431,53 @@ export async function mergeSessionFFOnly(
     return { ok: false, reason: 'other', message };
   }
 }
+
+/* ── §30: ref-folder merge fallback — detect AI-generated NEW files at cwd
+ *  top-level when the agent ignored the outputs/ convention. ────────────── */
+
+/** Parse `git status --porcelain=v1 -z` output to a list of newly-created
+ *  file paths (relative to the repo). Exported for unit-test coverage.
+ *
+ *  Porcelain v1 -z entry shape: `XY <path>\0` (status XY + space + path,
+ *  separated by NUL). Renames/copies consume two consecutive entries
+ *  (`R  <new>\0<old>\0`) — we skip the second one. We only return entries
+ *  whose status indicates a newly-created file: untracked (`??`) or any
+ *  index-added code (first char `A`, covers `A `, `AM`, `AD`, `AT`).
+ *  Modified-only (`M`/` M`/`MM`), deleted, type-change-only, and
+ *  unmerged-conflict entries are filtered out so we never overwrite
+ *  files the user already had. */
+export function parseNewFilesPorcelain(output: string): string[] {
+  const out: string[] = [];
+  if (!output) return out;
+  const entries = output.split('\0').filter((e) => e.length > 0);
+  let i = 0;
+  while (i < entries.length) {
+    const entry = entries[i++];
+    if (entry.length < 4) continue;
+    const code = entry.slice(0, 2);
+    const path = entry.slice(3);
+    if (code.startsWith('R') || code.startsWith('C')) {
+      i++; // rename/copy consumes the next entry as the old path
+      continue;
+    }
+    if (code !== '??' && code.charAt(0) !== 'A') continue;
+    out.push(path);
+  }
+  return out;
+}
+
+/** Run `git status --porcelain=v1 -z` in `cwd` and return newly-created
+ *  files at the repo's TOP LEVEL only. Subdirectory entries are skipped:
+ *  `outputs/*` is the responsibility of the strict-copy path in
+ *  `copySessionOutputsToRefFolder`, and any other subdir is out of scope
+ *  for §30 (only top-level cwd is the fallback target). The `-z` form
+ *  avoids filename-quoting that the default porcelain output applies to
+ *  paths with spaces / unicode / control chars. */
+export async function listNewFilesAtTop(cwd: string): Promise<string[]> {
+  const { stdout } = await execFileP(
+    'git',
+    ['status', '--porcelain=v1', '-z'],
+    { cwd, maxBuffer: 1024 * 1024 },
+  );
+  return parseNewFilesPorcelain(stdout).filter((p) => !p.includes('/'));
+}
