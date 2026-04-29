@@ -2324,6 +2324,94 @@ export default function App() {
     }));
   }, [requestPermission, addChange]);
 
+  /** §38: shared dispatch decision after the chat row exists. handleSend
+   *  and handleCreateChatInProject both end here, so ProjectPage chat
+   *  creation honors the §21 channel-aware router (was: ProjectPage path
+   *  bypassed routing and always hit OpenAI fallback).
+   *
+   *  `projectIdHint` is passed explicitly because fresh chats minted in
+   *  the same tick haven't flushed via setChats — a closure-only chats
+   *  lookup would miss them (same pattern as streamFromAPI's
+   *  `projectIdOverride` and streamFromClaudeAPI's `overrideSessionFolder`). */
+  const dispatchSendForChat = useCallback((
+    chatId: string,
+    text: string,
+    attachments: Attachment[] | undefined,
+    sessionFolderForSend: string | undefined,
+    projectIdHint: string | undefined,
+  ) => {
+    if (DEMO_CHAT_IDS.includes(chatId)) {
+      // Demo chats always use hardcoded flows
+      const responses = generateResponse(text);
+      showTypingThenRespond(chatId, responses, 1200);
+    } else if (voiceModeActive) {
+      // Voice mode active — don't call text API, the Realtime session handles it.
+      // The OpenAI Realtime API (gpt-4o-realtime-preview) only accepts input_text
+      // and input_audio — sending input_image breaks the session. So every kind of
+      // attachment goes in as text: non-image files via client-side extraction,
+      // images via a one-shot vision-model description round-trip. Both flow into
+      // pendingText; pendingImages stays undefined so no input_image gets sent.
+      setVoicePendingImages(undefined);
+      const hasImages = !!attachments?.some(a => a.kind === 'image');
+      const hasFiles = !!attachments?.some(a => a.kind !== 'image');
+      if (hasImages || hasFiles) {
+        Promise.all([
+          hasFiles ? buildAttachmentContextBlock(attachments!) : Promise.resolve(null),
+          hasImages ? buildImageDescriptionBlock(attachments!) : Promise.resolve(null),
+        ]).then(([docBlock, imgBlock]) => {
+          const parts = [docBlock, imgBlock, text].filter((p): p is string => !!p && p.length > 0);
+          setVoicePendingText(parts.join('\n\n'));
+        });
+      } else {
+        setVoicePendingText(text);
+      }
+    } else if (!attachments?.length && shouldGenerateArtifact(text)) {
+      // Candidate #3 — artifact intent (noun + verb bilingual match) wins
+      // before the Claude Code path because "写...周刊" contains "写" which
+      // would otherwise route to the SDK.
+      streamArtifactFromAPI(chatId, text);
+    } else if (!attachments?.length) {
+      // 5.4b keyword router → §15 mobile-aware → §21 project-ref-folder default.
+      // Project with attached ref folders defaults to Claude regardless of
+      // keyword match (natural-language long-tail can't be enumerated; user's
+      // attaching a ref folder is the explicit "this is an editing workflow"
+      // signal). Attachments still bypass to OpenAI — Claude path doesn't
+      // wire them yet.
+      const projectForRoute = projectIdHint
+        ? projects.find(p => p.id === projectIdHint)
+        : null;
+      const intent = getAgentRouteIntent(
+        text,
+        isMobile,
+        projectForRoute?.referenceDirectories ?? [],
+      );
+      if (intent === 'use-claude') {
+        streamFromClaudeAPI(chatId, text, sessionFolderForSend);
+      } else if (intent === 'mac-only-on-mobile') {
+        // Mobile + code/file intent + agent unreachable: render an inline
+        // assistant message that surfaces an AgentRequiredHint card instead
+        // of silently dispatching to OpenAI (which would pretend to do
+        // file work it can't actually perform from a phone).
+        const hintMessage: Message = {
+          id: nextId(),
+          role: 'assistant',
+          content: '',
+          timestamp: new Date(),
+          agentRequiredHint: true,
+        };
+        setChats(prev => prev.map(c =>
+          c.id === chatId
+            ? { ...c, messages: [...c.messages, hintMessage] }
+            : c
+        ));
+      } else {
+        streamFromAPI(chatId, text, attachments, projectIdHint);
+      }
+    } else {
+      streamFromAPI(chatId, text, attachments, projectIdHint);
+    }
+  }, [showTypingThenRespond, streamFromAPI, streamFromClaudeAPI, streamArtifactFromAPI, voiceModeActive, isMobile, projects]);
+
   const handleSend = useCallback((text: string, attachments?: Attachment[]) => {
     // Special-case the alcohol-delivery demo chat: keep title, run scripted
     // flow, and auto-open the inspector (the demo is a scripted "complex task"
@@ -2421,79 +2509,12 @@ export default function App() {
       };
     }));
 
-    // Generate response — route depends on current mode
-    if (DEMO_CHAT_IDS.includes(chatId)) {
-      // Demo chats always use hardcoded flows
-      const responses = generateResponse(text);
-      showTypingThenRespond(chatId, responses, 1200);
-    } else if (voiceModeActive) {
-      // Voice mode active — don't call text API, the Realtime session handles it.
-      // The OpenAI Realtime API (gpt-4o-realtime-preview) only accepts input_text
-      // and input_audio — sending input_image breaks the session. So every kind of
-      // attachment goes in as text: non-image files via client-side extraction,
-      // images via a one-shot vision-model description round-trip. Both flow into
-      // pendingText; pendingImages stays undefined so no input_image gets sent.
-      setVoicePendingImages(undefined);
-      const hasImages = !!attachments?.some(a => a.kind === 'image');
-      const hasFiles = !!attachments?.some(a => a.kind !== 'image');
-      if (hasImages || hasFiles) {
-        Promise.all([
-          hasFiles ? buildAttachmentContextBlock(attachments!) : Promise.resolve(null),
-          hasImages ? buildImageDescriptionBlock(attachments!) : Promise.resolve(null),
-        ]).then(([docBlock, imgBlock]) => {
-          const parts = [docBlock, imgBlock, text].filter((p): p is string => !!p && p.length > 0);
-          setVoicePendingText(parts.join('\n\n'));
-        });
-      } else {
-        setVoicePendingText(text);
-      }
-    } else if (!attachments?.length && shouldGenerateArtifact(text)) {
-      // Candidate #3 — artifact intent (noun + verb bilingual match) wins
-      // before the Claude Code path because "写...周刊" contains "写" which
-      // would otherwise route to the SDK.
-      streamArtifactFromAPI(chatId, text);
-    } else if (!attachments?.length) {
-      // 5.4b keyword router → §15 mobile-aware → §21 project-ref-folder default.
-      // Project with attached ref folders defaults to Claude regardless of
-      // keyword match (natural-language long-tail can't be enumerated; user's
-      // attaching a ref folder is the explicit "this is an editing workflow"
-      // signal). Attachments still bypass to OpenAI — Claude path doesn't
-      // wire them yet.
-      const chatForRoute = chats.find(c => c.id === chatId);
-      const projectForRoute = chatForRoute?.projectId
-        ? projects.find(p => p.id === chatForRoute.projectId)
-        : null;
-      const intent = getAgentRouteIntent(
-        text,
-        isMobile,
-        projectForRoute?.referenceDirectories ?? [],
-      );
-      if (intent === 'use-claude') {
-        streamFromClaudeAPI(chatId, text, sessionFolderForSend);
-      } else if (intent === 'mac-only-on-mobile') {
-        // Mobile + code/file intent + agent unreachable: render an inline
-        // assistant message that surfaces an AgentRequiredHint card instead
-        // of silently dispatching to OpenAI (which would pretend to do
-        // file work it can't actually perform from a phone).
-        const hintMessage: Message = {
-          id: nextId(),
-          role: 'assistant',
-          content: '',
-          timestamp: new Date(),
-          agentRequiredHint: true,
-        };
-        setChats(prev => prev.map(c =>
-          c.id === chatId
-            ? { ...c, messages: [...c.messages, hintMessage] }
-            : c
-        ));
-      } else {
-        streamFromAPI(chatId, text, attachments);
-      }
-    } else {
-      streamFromAPI(chatId, text, attachments);
-    }
-  }, [activeChatId, activeChat, showTypingThenRespond, streamFromAPI, streamFromClaudeAPI, streamArtifactFromAPI, runAlcoholDeliveryFlow, voiceModeActive, navigate, chatMatch, isMobile]);
+    // §38: hand off to the shared dispatcher so handleCreateChatInProject
+    // honors the same routing decisions (the channel-aware §21 router was
+    // dead inside ProjectPage before this extraction).
+    const chatForRoute = chats.find(c => c.id === chatId);
+    dispatchSendForChat(chatId, text, attachments, sessionFolderForSend, chatForRoute?.projectId);
+  }, [activeChatId, activeChat, runAlcoholDeliveryFlow, navigate, chatMatch, dispatchSendForChat]);
 
   const handleChipClick = useCallback((chip: ActionChip) => {
     // Treat chip click as a user message
@@ -2936,11 +2957,15 @@ export default function App() {
     setContextPanelOpen(false);
     setTaskSteps([]);
     setActiveTools([]);
-    // Stream the AI response — pass projectId explicitly because the chats
-    // closure inside streamFromAPI hasn't committed the new chat yet. The
-    // inspector panel auto-opens when the model calls its first tool.
-    streamFromAPI(chatId, text, attachments, projectId);
-  }, [streamFromAPI, projects, navigate]);
+    // §38: route through the shared dispatcher so a ProjectPage-created
+    // chat honors the §21 channel-aware decision (Claude SDK / artifact /
+    // OpenAI / mac-only-mobile hint) instead of always going to OpenAI.
+    // projectId is passed explicitly because the chats closure hasn't
+    // committed the new row yet — closure-only lookup inside the dispatcher
+    // would miss it. The inspector panel auto-opens when the model calls
+    // its first tool.
+    dispatchSendForChat(chatId, text, attachments, sessionFolder, projectId);
+  }, [dispatchSendForChat, projects, navigate]);
 
   const handleCreateProject = useCallback((name: string, description: string) => {
     const projectId = newProjectId();
@@ -3408,6 +3433,22 @@ export default function App() {
                   'project',
                 );
               }}
+              // §36: voice mode props parallel to ChatPanel's. Voice state
+              // lives in App.tsx; ProjectPage renders its own inline
+              // <VoiceMode> bar above the footer ChatInput so the mic
+              // toggle works on both surfaces. Avatar selection feeds
+              // agentGender derivation inside both mounts.
+              selectedAvatarId={selectedAvatarId}
+              onVoiceMode={() => setVoiceModeActive(true)}
+              voiceModeActive={voiceModeActive}
+              onVoiceModeClose={handleVoiceModeClose}
+              onVoiceMessage={handleVoiceMessage}
+              onVoiceImages={handleVoiceImages}
+              onVoiceVideos={handleVoiceVideos}
+              onVoiceWebSearch={handleVoiceWebSearch}
+              voicePendingText={voicePendingText}
+              voicePendingImages={voicePendingImages}
+              onVoicePendingTextConsumed={() => { setVoicePendingText(undefined); setVoicePendingImages(undefined); }}
             />
           </SplitView>
         ) : activeView === 'design-system' ? (

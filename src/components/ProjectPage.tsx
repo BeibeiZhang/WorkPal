@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { Project } from './Sidebar';
 import ChatInput from './ChatInput';
+import VoiceMode from './VoiceMode';
 import {
   ChevronDown, ChevronRight, Star, MoreVertical, PanelRight,
   FileCode2, MessageCircle, Pen, File, Plus, X,
   FolderOpen, FolderClosed, Inbox,
 } from 'lucide-react';
 import { AddRowButton, AgentRequiredHint, EmptyState, FilterChip, PageLayout, SearchBox, SideCard, SidePanelBody, SidePanelHeader, SplitView, outputIconFor } from './shared';
-import type { Chat, Attachment, OutputItem, OutputType } from '../types';
+import type { Chat, Attachment, OutputItem, OutputType, ImageResult, VideoResult, WebResult } from '../types';
 import { filesToAttachments, formatFileSize } from '../lib/attachments';
 import { IS_DEMO } from '../lib/demoMode';
 import { useIsMobile } from '../lib/useIsMobile';
@@ -37,6 +38,21 @@ interface ProjectPageProps {
    *  ProjectPage's right edge. Mobile + path-less (legacy / hosted) cards
    *  skip this and fall back to the toggle-highlight. */
   onOutputPreview?: (output: OutputItem) => void;
+  /** §36: voice mode props mirror ChatPanel's. State lives in App.tsx so
+   *  toggling voice on the ProjectPage footer surfaces the same bar as
+   *  the chat surface. Selected avatar drives the agent-gender voice
+   *  filter inside <VoiceMode>. */
+  selectedAvatarId?: string;
+  onVoiceMode?: () => void;
+  voiceModeActive?: boolean;
+  onVoiceModeClose?: () => void;
+  onVoiceMessage?: (role: 'user' | 'assistant', text: string) => void;
+  onVoiceImages?: (query: string, images: ImageResult[]) => void;
+  onVoiceVideos?: (query: string, videos: VideoResult[]) => void;
+  onVoiceWebSearch?: (query: string, results: WebResult[], images: ImageResult[]) => void;
+  voicePendingText?: string;
+  voicePendingImages?: string[];
+  onVoicePendingTextConsumed?: () => void;
 }
 
 /** §17: Reference folders SideCard contents. Lifted out of ProjectPage's
@@ -351,7 +367,16 @@ const EMPTY_CONTENT: ProjectContent = {
   defaultSelectedOutputId: '',
 };
 
-export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, onAddFiles, onRemoveFile, onAddReferenceDirectory, onRemoveReferenceDirectory, sidebarOpen, onToggleSidebar, onOutputPreview }: ProjectPageProps) {
+export default function ProjectPage({
+  project, chats, onCreateChat, onOpenChat,
+  onAddFiles, onRemoveFile,
+  onAddReferenceDirectory, onRemoveReferenceDirectory,
+  sidebarOpen, onToggleSidebar, onOutputPreview,
+  selectedAvatarId,
+  onVoiceMode, voiceModeActive, onVoiceModeClose,
+  onVoiceMessage, onVoiceImages, onVoiceVideos, onVoiceWebSearch,
+  voicePendingText, voicePendingImages, onVoicePendingTextConsumed,
+}: ProjectPageProps) {
   const content = PROJECT_CONTENT[project.id] ?? EMPTY_CONTENT;
   const isMobile = useIsMobile();
   // Three output sources feed the grid:
@@ -595,11 +620,32 @@ export default function ProjectPage({ project, chats, onCreateChat, onOpenChat, 
           <SearchBox value={search} onChange={setSearch} placeholder="Search this project" />
         }
         footer={
-          <ChatInput
-            onSend={handleSend}
-            chatKey={`project-${project.id}`}
-            placeholder="What would you like to work on in this project?"
-          />
+          <>
+            {/* §36: voice bar above the footer input — parallel mount to
+                ChatPanel's. State + callbacks live in App.tsx; only one
+                <VoiceMode> renders at a time because ProjectPage and
+                ChatPanel are conditional siblings in App's router. */}
+            {voiceModeActive && onVoiceModeClose && (
+              <VoiceMode
+                onClose={onVoiceModeClose}
+                onMessage={onVoiceMessage}
+                onImages={onVoiceImages}
+                onVideos={onVoiceVideos}
+                onWebSearch={onVoiceWebSearch}
+                pendingText={voicePendingText}
+                pendingImages={voicePendingImages}
+                onPendingTextConsumed={onVoicePendingTextConsumed}
+                agentGender={selectedAvatarId === 'white-man' ? 'male' : 'female'}
+              />
+            )}
+            <ChatInput
+              onSend={handleSend}
+              chatKey={`project-${project.id}`}
+              placeholder="What would you like to work on in this project?"
+              onVoiceMode={onVoiceMode}
+              voiceModeActive={voiceModeActive}
+            />
+          </>
         }
       >
             <div className="flex flex-col gap-6">
