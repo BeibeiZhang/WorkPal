@@ -466,7 +466,7 @@ export default function TaskContextPanel({
               ) : (
                 <GitMerge size={14} />
               )}
-              {sessionCompleted ? 'Session complete' : 'Complete Session'}
+              {sessionCompleted ? 'Saved to Knowledge' : 'Save to Knowledge'}
             </span>
           </TertiaryButton>
           {showCompleteHint && (

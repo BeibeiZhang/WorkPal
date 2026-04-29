@@ -1887,6 +1887,9 @@ export default function App() {
     // computed path straight through; established chats rely on the closure
     // lookup like before.
     overrideSessionFolder?: string,
+    // Same closure race as overrideSessionFolder: fresh chats from
+    // handleCreateChatInProject haven't flushed projectId to state yet.
+    projectIdOverride?: string,
     // 6.4: true if the user attached any local file with this message. Today
     // handleSend routes attachment-bearing messages to the OpenAI path, so
     // this defaults to false and the SDK runs in web-first mode (Bash/Read/
@@ -1918,8 +1921,9 @@ export default function App() {
     // /project/init in 6.1 — principle #9, the same slug flows from UI to git.
     // Chats outside any project (chat.projectId === undefined) leave this
     // undefined and the backend falls back to Phase 5's per-session git init.
-    const project = chat?.projectId
-      ? projects.find(p => p.id === chat.projectId)
+    const projectId = projectIdOverride ?? chat?.projectId;
+    const project = projectId
+      ? projects.find(p => p.id === projectId)
       : null;
     const projectSlug = project ? slugify(project.name) : undefined;
 
@@ -2386,7 +2390,7 @@ export default function App() {
         projectForRoute?.referenceDirectories ?? [],
       );
       if (intent === 'use-claude') {
-        streamFromClaudeAPI(chatId, text, sessionFolderForSend);
+        streamFromClaudeAPI(chatId, text, sessionFolderForSend, projectIdHint);
       } else if (intent === 'mac-only-on-mobile') {
         // Mobile + code/file intent + agent unreachable: render an inline
         // assistant message that surfaces an AgentRequiredHint card instead
