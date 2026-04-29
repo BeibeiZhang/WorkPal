@@ -130,10 +130,10 @@ export default function CompleteSessionModal({
 
   const title =
     phase.kind === 'success' || phase.kind === 'partial-success'
-      ? 'Session complete'
+      ? 'Saved to Knowledge'
       : phase.kind === 'error-not-ff' || phase.kind === 'error-other'
-        ? 'Could not complete session'
-        : 'Complete Session';
+        ? 'Could not save to Knowledge'
+        : 'Save to Knowledge';
 
   const mergeDisabled =
     phase.kind !== 'ready' || phase.files.length === 0 || noTargetSelected;

@@ -239,7 +239,7 @@ export async function postSessionComplete(
       const error =
         typeof (payload as { error?: unknown }).error === 'string'
           ? (payload as { error: string }).error
-          : `Complete Session failed (${res.status})`;
+          : `Save to Knowledge failed (${res.status})`;
       return { ok: false, error };
     }
     const payload = (await res.json()) as { files?: SessionDiffEntry[] };
