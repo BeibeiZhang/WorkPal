@@ -72,8 +72,17 @@ export function HeaderBar({
  * Intentionally no visible footprint outside demo mode (real users and
  * localhost dev see nothing).
  */
+const DEMO_EXPLAINER_SEEN_KEY = 'workpal:demo-explainer-seen';
+
 export function DemoBadge() {
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(DEMO_EXPLAINER_SEEN_KEY)) return;
+      setOpen(true);
+      localStorage.setItem(DEMO_EXPLAINER_SEEN_KEY, '1');
+    } catch { /* private mode — silently skip auto-open */ }
+  }, []);
   return (
     <>
       <button
@@ -138,14 +147,21 @@ function DemoExplainerModal({ open, onClose }: { open: boolean; onClose: () => v
               <span aria-hidden className="shrink-0">✨</span>
               <div>
                 <div className="type-detail-emphasized text-text-primary">Chat + tasks in one project</div>
-                <div className="type-detail text-text-secondary mt-0.5">Combining OpenAI's natural conversation with Claude Cowork's task execution—sharing project memory.</div>
+                <div className="type-detail text-text-secondary mt-0.5">Chat (OpenAI Model) and Tasks (Anthropic Agent) share the same project memory.</div>
               </div>
             </li>
             <li className="flex gap-2.5">
-              <span aria-hidden className="shrink-0">🤖</span>
+              <span aria-hidden className="shrink-0">🎤</span>
               <div>
-                <div className="type-detail-emphasized text-text-primary">AI handles the routing</div>
-                <div className="type-detail text-text-secondary mt-0.5">No need to manually switch between chat and task modes. AI detects your intent.</div>
+                <div className="type-detail-emphasized text-text-primary">Voice-interruptible Chat</div>
+                <div className="type-detail text-text-secondary mt-0.5">You can interrupt anytime with voice and add more materials during conversation.</div>
+              </div>
+            </li>
+            <li className="flex gap-2.5">
+              <span aria-hidden className="shrink-0">📤</span>
+              <div>
+                <div className="type-detail-emphasized text-text-primary">Selective Task Output</div>
+                <div className="type-detail text-text-secondary mt-0.5">You can selectively merge high-quality task results into your designated documents as knowledge for future tasks.</div>
               </div>
             </li>
             <li className="flex gap-2.5">
