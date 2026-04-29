@@ -64,14 +64,28 @@ function isDeliverable(name: string): boolean {
  *  rather than the whole worktree (which would sweep in .git, scratch
  *  scaffolding, node_modules from any tooling the agent ran).
  *
- *  §30 fallback: if outputs/ is missing OR contains zero files, we run
- *  `git status --porcelain` in the worktree and copy any NEW (untracked or
- *  staged-add) files at the cwd TOP-LEVEL whose names pass `isDeliverable`.
- *  This catches the common case where a free-form prompt nudges the agent
- *  to write at cwd root instead of cwd/outputs/. Path-jail check rejects
- *  any porcelain entry that doesn't resolve inside the worktree.
- *  `COPYFILE_EXCL` ensures we never overwrite an existing user file in
- *  the ref folder (§30 only handles AI-NEW files; collisions skip
+ *  §30 fallback: if outputs/ is missing OR contains zero files, we look for
+ *  NEW files at the cwd TOP-LEVEL whose names pass `isDeliverable`. The
+ *  source list comes from one of two places:
+ *
+ *    • §41 — `addedFiles` param (preferred): pre-captured list of newly-
+ *      ADDED top-level files from `git diff base...session --diff-filter=A`,
+ *      computed by the route handler BEFORE the FF merge. Catches files the
+ *      agent committed via Phase 5.5 auto-commit, which `git status` no
+ *      longer sees by /merge time. Tri-state contract: `[]` means "route
+ *      captured but found nothing" → no fallback to git status; `undefined`
+ *      means "route did not capture" → falls through to the legacy path.
+ *      This distinction prevents capture failures from silently double-
+ *      running and masking bugs.
+ *
+ *    • Legacy — `listNewFilesAtTop` (`git status --porcelain`): catches
+ *      untracked/staged files at cwd top-level. Used when `addedFiles` is
+ *      undefined (back-compat for callers predating §41 + the degraded path
+ *      when the route's pre-capture failed).
+ *
+ *  Path-jail check rejects any candidate that doesn't resolve inside the
+ *  worktree. `COPYFILE_EXCL` ensures we never overwrite an existing user
+ *  file in the ref folder (§30 only handles AI-NEW files; collisions skip
  *  silently and don't count toward `copiedCount`).
  *
  *  fs.cp is invoked with `force: true` (overwrite name clashes — the ref
@@ -82,6 +96,7 @@ function isDeliverable(name: string): boolean {
 export async function copySessionOutputsToRefFolder(
   sessionPath: string,
   refFolderPath: string,
+  addedFiles?: string[],
 ): Promise<CopyResult> {
   const outputsDir = join(sessionPath, 'outputs');
 
@@ -110,23 +125,34 @@ export async function copySessionOutputsToRefFolder(
     }
   }
 
-  // §30 fallback path.
-  return copyTopLevelNewFiles(sessionPath, refFolderPath);
+  // §30 fallback path. §41: if route handler pre-captured `addedFiles`,
+  // use it (including the empty-array case); otherwise legacy git-status.
+  return copyTopLevelNewFiles(sessionPath, refFolderPath, addedFiles);
 }
 
 async function copyTopLevelNewFiles(
   sessionPath: string,
   refFolderPath: string,
+  precomputedFiles?: string[],
 ): Promise<CopyResult> {
   let candidates: string[];
-  try {
-    candidates = await listNewFilesAtTop(sessionPath);
-  } catch (err) {
-    // Worktree without git, or git binary unavailable. Don't 500 the
-    // multi-target merge — surface as "no new deliverables" so the modal
-    // can show a useful hint instead of a generic failure.
-    console.warn('[sessionCopy] listNewFilesAtTop failed:', err);
-    return { ok: true, copiedCount: 0, warning: 'no_new_deliverables' };
+  // §41: tri-state on `precomputedFiles`. `undefined` = route didn't capture
+  // → fall back to git status. `[]` = route captured but the diff was empty
+  // → DO NOT fall back; treat as "truly nothing new", otherwise a capture
+  // failure (caught upstream and converted to undefined) would be
+  // indistinguishable from a real empty diff and silently double-run.
+  if (precomputedFiles !== undefined) {
+    candidates = precomputedFiles;
+  } else {
+    try {
+      candidates = await listNewFilesAtTop(sessionPath);
+    } catch (err) {
+      // Worktree without git, or git binary unavailable. Don't 500 the
+      // multi-target merge — surface as "no new deliverables" so the modal
+      // can show a useful hint instead of a generic failure.
+      console.warn('[sessionCopy] listNewFilesAtTop failed:', err);
+      return { ok: true, copiedCount: 0, warning: 'no_new_deliverables' };
+    }
   }
 
   const cwdJail = sessionPath + sep;

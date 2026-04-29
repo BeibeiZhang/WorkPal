@@ -197,4 +197,54 @@ describe('copySessionOutputsToRefFolder — §30 fallback', () => {
     const refFiles = await readdir(ref);
     assert.deepEqual(refFiles, ['official.md']);
   });
+
+  /** §41 — `addedFiles` 3rd arg lets the route handler pre-capture
+   *  base...session diff before FF merge collapses it. Two cases pin the
+   *  tri-state semantics: provided (used as-is) vs `[]` (treated as truly
+   *  empty — does NOT fall through to git status). */
+
+  it('case 9: addedFiles param bypasses git status, copies committed files', async () => {
+    // Mirror real production state: file is COMMITTED on the session
+    // branch (Phase 5.5 auto-commit), so `git status --porcelain` returns
+    // empty. Without the §41 fix the fallback would silently miss it.
+    await writeFile(join(session, 'hello.md'), '# committed deliverable');
+    await execFileP('git', ['add', 'hello.md'], { cwd: session });
+    await execFileP('git', ['commit', '-q', '-m', 'session work'], { cwd: session });
+
+    // Sanity: confirm git status really is empty now (the bug condition).
+    const { stdout: statusOut } = await execFileP(
+      'git',
+      ['status', '--porcelain=v1', '-z'],
+      { cwd: session },
+    );
+    assert.equal(statusOut, '', 'precondition: git status should be empty post-commit');
+
+    const result = await copySessionOutputsToRefFolder(session, ref, ['hello.md']);
+
+    assert.equal(result.ok, true);
+    if (!result.ok) return;
+    assert.equal(result.copiedCount, 1);
+    assert.equal('usedFallback' in result && result.usedFallback, true);
+    const refFiles = await readdir(ref);
+    assert.deepEqual(refFiles, ['hello.md']);
+  });
+
+  it('case 10: addedFiles=[] yields no_new_deliverables even when cwd has untracked .md', async () => {
+    // Setup an untracked file that would have been picked up by the legacy
+    // `listNewFilesAtTop` path. Pass [] explicitly: route captured nothing.
+    // The fallback MUST treat [] as truly empty — falling through to git
+    // status here would defeat the §41 capture and let stale untracked
+    // files leak into the ref folder when the route already decided
+    // there's nothing to copy.
+    await writeFile(join(session, 'stray.md'), '# untracked, would tempt fallback');
+
+    const result = await copySessionOutputsToRefFolder(session, ref, []);
+
+    assert.equal(result.ok, true);
+    if (!result.ok) return;
+    assert.equal(result.copiedCount, 0);
+    assert.equal('warning' in result && result.warning, 'no_new_deliverables');
+    const refFiles = await readdir(ref);
+    assert.deepEqual(refFiles, []);
+  });
 });

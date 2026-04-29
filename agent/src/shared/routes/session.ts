@@ -4,6 +4,7 @@ import { basename, join, resolve as pathResolve, sep } from 'node:path';
 import { homedir } from 'node:os';
 import {
   diffSessionVsBase,
+  listAddedTopLevelFiles,
   mergeSessionFFOnly,
   SESSION_BRANCH_RE,
 } from '../lib/git.js';
@@ -220,6 +221,24 @@ router.post('/session/merge', async (req, res) => {
 
   const results: MergeTargetResult[] = [];
 
+  // §41: capture top-level newly-ADDED files BEFORE the FF merge runs.
+  // After FF, the `base...session` range collapses to empty and the diff
+  // returns nothing. We need this list so the §30 ref-folder fallback can
+  // copy files Phase 5.5 already committed (which `git status` no longer
+  // sees). Only run when at least one ref folder is selected — single-
+  // project merges don't need it. On failure we log and degrade to
+  // `undefined`, which makes the copy fall through to the legacy
+  // `listNewFilesAtTop` (still useful for never-committed scratch files).
+  let addedFiles: string[] | undefined;
+  if (validRefDirs.length > 0) {
+    try {
+      addedFiles = await listAddedTopLevelFiles(projectPath, branchName);
+    } catch (err) {
+      const m = err instanceof Error ? err.message : String(err);
+      console.warn(`[session/merge] listAddedTopLevelFiles failed: ${m}`);
+    }
+  }
+
   if (wantsProject) {
     const result = await mergeSessionFFOnly(projectPath, branchName);
     if (result.ok) {
@@ -262,7 +281,7 @@ router.post('/session/merge', async (req, res) => {
   }
 
   for (const refPath of validRefDirs) {
-    const copy = await copySessionOutputsToRefFolder(workingDir, refPath);
+    const copy = await copySessionOutputsToRefFolder(workingDir, refPath, addedFiles);
     if (copy.ok && 'warning' in copy) {
       console.log(`[session/merge] reference warn ${refPath}: ${copy.warning}`);
       results.push({

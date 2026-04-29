@@ -481,3 +481,53 @@ export async function listNewFilesAtTop(cwd: string): Promise<string[]> {
   );
   return parseNewFilesPorcelain(stdout).filter((p) => !p.includes('/'));
 }
+
+/** §41 — diff base vs session branch and return newly-ADDED files at the
+ *  project's TOP LEVEL only. Complements §30's `listNewFilesAtTop`: that one
+ *  runs `git status` (catches untracked/staged), this one runs
+ *  `git diff base...session --diff-filter=A` (catches *committed*). Phase
+ *  5.5's auto-commit means by /merge time the agent's writes are already
+ *  committed to the session branch — `git status` returns empty and §30's
+ *  fallback silently misses every legitimate top-level deliverable.
+ *
+ *  Caller (the /merge route handler) MUST call this BEFORE `mergeSessionFFOnly`:
+ *  after the FF merge the `base...session` range collapses to empty.
+ *
+ *  Base branch read from `symbolic-ref --short HEAD` for the same reason as
+ *  `diffSessionVsBase` (`init.defaultBranch` is user-config-dependent).
+ *  `--no-renames` keeps the surface as a pure A/M/D set; `--diff-filter=A`
+ *  narrows to additions only. Top-level filter mirrors §30's contract:
+ *  subdir entries belong either to outputs/ (strict-copy path) or to scopes
+ *  the fallback intentionally ignores.
+ *
+ *  Throws on detached HEAD / git failure — caller catches and degrades to
+ *  the legacy `listNewFilesAtTop` path. */
+export async function listAddedTopLevelFiles(
+  projectPath: string,
+  branchName: string,
+): Promise<string[]> {
+  const { stdout: headOut } = await execFileP(
+    'git',
+    ['-C', projectPath, 'symbolic-ref', '--short', 'HEAD'],
+  );
+  const baseBranch = headOut.trim();
+  if (!baseBranch) {
+    throw new Error(
+      `project repo at ${projectPath} has detached HEAD or no base branch`,
+    );
+  }
+  const range = `${baseBranch}...${branchName}`;
+  const { stdout } = await execFileP('git', [
+    '-C',
+    projectPath,
+    'diff',
+    '--diff-filter=A',
+    '--name-status',
+    '--no-renames',
+    '-z',
+    range,
+  ]);
+  return parseDiffNameStatus(stdout)
+    .map((entry) => entry.path)
+    .filter((p) => !p.includes('/'));
+}
