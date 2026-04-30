@@ -12,7 +12,7 @@ AI workplace assistant desktop app prototype.
 
 All design tokens, color variables, typography, spacing, and component-to-code mappings are documented in [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md). When implementing or modifying UI from Figma designs, always reference this file to ensure 100% alignment with the Figma component library.
 
-The design system is also published as a personal Claude Code Skill at `~/.claude/skills/workpal-design-system/`. When `DESIGN_SYSTEM.md`, `src/index.css`, `tailwind.config.js`, or `src/components/shared.tsx` change here, copy the updated file into the Skill's `assets/` (or re-copy `DESIGN_SYSTEM.md` at the Skill root) to keep them in sync.
+The design system is also published as a personal Claude Code Skill at `~/.claude/skills/workpal-design-system/`. The four materialized files (`DESIGN_SYSTEM.md`, `src/index.css`, `tailwind.config.js`, `src/components/shared.tsx`) are **auto-synced** to the Skill via local git hooks (`post-commit`, `post-merge`, `post-rewrite`) — no manual copying needed. To force a sync: `npm run sync:skill`. To verify: `npm run check:skill-drift`. Hook script lives at [`scripts/sync-design-system-skill.sh`](./scripts/sync-design-system-skill.sh).
 
 Key rules:
 - Use CSS variables from `src/index.css` for all colors (supports light/dark mode)

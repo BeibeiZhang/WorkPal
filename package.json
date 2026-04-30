@@ -7,7 +7,9 @@
     "dev": "vite",
     "dev:server": "cd server && npm run dev",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sync:skill": "./scripts/sync-design-system-skill.sh",
+    "check:skill-drift": "./scripts/check-design-system-skill-sync.sh"
   },
   "dependencies": {
     "@googleapis/calendar": "^14.2.0",
