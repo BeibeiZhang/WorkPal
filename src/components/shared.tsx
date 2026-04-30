@@ -116,7 +116,7 @@ function DemoExplainerModal({ open, onClose }: { open: boolean; onClose: () => v
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div
-        className="relative w-[460px] max-w-[90vw] rounded-[12px] shadow-2xl overflow-hidden dark:border dark:border-stroke-outline"
+        className="relative w-[460px] md:w-[720px] max-w-[90vw] rounded-[12px] shadow-2xl overflow-hidden dark:border dark:border-stroke-outline"
         style={{ background: 'var(--color-bg-page)' }}
       >
         <button
@@ -135,7 +135,7 @@ function DemoExplainerModal({ open, onClose }: { open: boolean; onClose: () => v
         />
 
         <div className="px-7 pt-6 pb-7 flex flex-col gap-4 type-detail text-text-primary">
-          <ul className="flex flex-col gap-4">
+          <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
             <li className="flex gap-2.5">
               <FolderClosed size={18} strokeWidth={2} className="text-text-primary shrink-0 mt-px" aria-hidden />
               <div>
