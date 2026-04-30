@@ -4,7 +4,7 @@
  * Single source of truth — used by both app pages and the Design System page.
  * Update a component here → it updates everywhere in the app.
  */
-import { AlertTriangle, ArrowLeft, ArrowUpRight, BadgeCheck, Check, ChevronDown, ChevronRight, Clock, FileCode2, FileImage, FileText, Info, Mail, MonitorPlay, PanelLeft, PanelRight, Presentation, Smartphone, Ticket, Play, Plus, Search, Send, Smile, SquarePen, Timer, User, Sparkles, X, XCircle, type LucideIcon } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowUpRight, AudioLines, BadgeCheck, Check, ChevronDown, ChevronRight, Clock, FileCode2, FileImage, FileText, FolderClosed, GitMerge, Info, LayoutDashboard, Mail, MonitorPlay, PanelLeft, PanelRight, Presentation, Smartphone, Ticket, Play, Plus, Search, Send, Smile, SquarePen, Timer, User, Sparkles, X, XCircle, type LucideIcon } from 'lucide-react';
 import { type MouseEvent as ReactMouseEvent, type ReactNode, useEffect, useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { IS_DEMO } from '../lib/demoMode';
@@ -116,59 +116,52 @@ function DemoExplainerModal({ open, onClose }: { open: boolean; onClose: () => v
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div
-        className="panel-border relative w-[460px] max-w-[90vw] rounded-[12px] p-7 shadow-2xl"
+        className="relative w-[460px] max-w-[90vw] rounded-[12px] shadow-2xl overflow-hidden dark:border dark:border-stroke-outline"
         style={{ background: 'var(--color-bg-page)' }}
       >
         <button
           onClick={onClose}
           aria-label="Close"
-          className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full hover:bg-bg-hover transition-colors"
+          className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-black/20 hover:bg-black/30 transition-colors"
         >
-          <X size={18} className="text-text-primary" />
+          <X size={18} className="text-white" />
         </button>
 
-        <div className="flex items-center gap-3 mb-5">
-          <div
-            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-            style={{ background: 'var(--color-bg-message)' }}
-          >
-            <Info size={18} className="text-text-primary" />
-          </div>
-          <div className="min-w-0">
-            <h2 className="type-h2-emphasized text-text-primary">
-              About this demo
-            </h2>
-          </div>
-        </div>
+        <img
+          src="/icons/demo-hero.png"
+          alt="WorkPal 2.0"
+          className="block w-full h-auto select-none"
+          draggable={false}
+        />
 
-        <div className="flex flex-col gap-4 type-detail text-text-primary">
+        <div className="px-7 pt-6 pb-7 flex flex-col gap-4 type-detail text-text-primary">
           <ul className="flex flex-col gap-4">
             <li className="flex gap-2.5">
-              <span aria-hidden className="shrink-0">✨</span>
+              <FolderClosed size={18} strokeWidth={2} className="text-text-primary shrink-0 mt-px" aria-hidden />
               <div>
-                <div className="type-detail-emphasized text-text-primary">Chat + tasks in one project</div>
-                <div className="type-detail text-text-secondary mt-0.5">Chat (OpenAI Model) and Tasks (Anthropic Agent) share the same project memory.</div>
+                <div className="type-detail-emphasized text-text-primary">Chat + Tasks in the Same Project</div>
+                <div className="type-detail text-text-secondary mt-0.5">Chat (OpenAI models) and Tasks (Anthropic agents) share the same project memory—keeping conversation and execution seamlessly connected.</div>
               </div>
             </li>
             <li className="flex gap-2.5">
-              <span aria-hidden className="shrink-0">🎤</span>
+              <AudioLines size={18} strokeWidth={2} className="text-text-primary shrink-0 mt-px" aria-hidden />
               <div>
-                <div className="type-detail-emphasized text-text-primary">Voice-interruptible Chat</div>
-                <div className="type-detail text-text-secondary mt-0.5">You can interrupt anytime with voice and add more materials during conversation.</div>
+                <div className="type-detail-emphasized text-text-primary">Voice-Enabled Rich Input</div>
+                <div className="type-detail text-text-secondary mt-0.5">In voice mode, you can add rich inputs anytime—text, images, or files—without breaking the flow.</div>
               </div>
             </li>
             <li className="flex gap-2.5">
-              <span aria-hidden className="shrink-0">📤</span>
+              <GitMerge size={18} strokeWidth={2} className="text-text-primary shrink-0 mt-px" aria-hidden />
               <div>
-                <div className="type-detail-emphasized text-text-primary">Selective Task Output</div>
-                <div className="type-detail text-text-secondary mt-0.5">You can selectively merge high-quality task results into your designated documents as knowledge for future tasks.</div>
+                <div className="type-detail-emphasized text-text-primary">Selective Knowledge Output</div>
+                <div className="type-detail text-text-secondary mt-0.5">Merge high-quality task results into your documents—turning outputs into reusable knowledge for future tasks.</div>
               </div>
             </li>
             <li className="flex gap-2.5">
-              <span aria-hidden className="shrink-0">📊</span>
+              <LayoutDashboard size={18} strokeWidth={2} className="text-text-primary shrink-0 mt-px" aria-hidden />
               <div>
-                <div className="type-detail-emphasized text-text-primary">Overview page</div>
-                <div className="type-detail text-text-secondary mt-0.5">One glance at your agent's progress across every project.</div>
+                <div className="type-detail-emphasized text-text-primary">Overview Page</div>
+                <div className="type-detail text-text-secondary mt-0.5">Get a clear view of your agent's progress across all projects—at a glance.</div>
               </div>
             </li>
           </ul>
