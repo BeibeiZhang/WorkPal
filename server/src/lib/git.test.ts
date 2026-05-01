@@ -6,7 +6,7 @@ import { promisify } from 'node:util';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  listAddedTopLevelFiles,
+  listChangedTopLevelFiles,
   listMainBranchDeliverables,
   listSessionBranchDeliverables,
   mergeDiffOutputs,
@@ -333,18 +333,19 @@ describe('parseNewFilesPorcelain', () => {
   });
 });
 
-/** §41 — listAddedTopLevelFiles is the diff-based companion to
+/** §41 + §43.1 — listChangedTopLevelFiles is the diff-based companion to
  *  listNewFilesAtTop. Phase 5.5 auto-commits writes to the session branch
  *  before /merge runs, so `git status` returns empty by then; this function
- *  diffs base...session to surface those committed additions. Test mirrors
- *  the real production state: a session branch with one top-level commit
- *  and one subdir commit; only top-level should come through. */
-describe('listAddedTopLevelFiles', () => {
+ *  diffs base...session to surface those committed changes (Added or
+ *  Modified). §43.1 widened from `--diff-filter=A` to `AM` so AI-modified
+ *  existing main-branch files also propagate; the original A-only filter
+ *  silently dropped them. */
+describe('listChangedTopLevelFiles', () => {
   let repo: string;
   let baseBranch: string;
 
   beforeEach(async () => {
-    repo = await mkdtemp(join(tmpdir(), 'workpal-listadded-'));
+    repo = await mkdtemp(join(tmpdir(), 'workpal-listchanged-'));
     await execFileP('git', ['init', '-q'], { cwd: repo });
     await execFileP('git', ['config', 'user.email', 'test@workpal'], { cwd: repo });
     await execFileP('git', ['config', 'user.name', 'Test'], { cwd: repo });
@@ -377,12 +378,70 @@ describe('listAddedTopLevelFiles', () => {
     await execFileP('git', ['-C', repo, 'commit', '-q', '-m', 'session work']);
     await execFileP('git', ['-C', repo, 'checkout', '-q', baseBranch]);
 
-    const result = await listAddedTopLevelFiles(repo, 'session/foo');
+    const result = await listChangedTopLevelFiles(repo, 'session/foo');
 
     assert.deepEqual(result, ['hello.md']);
   });
 
-  it('returns empty array when session branch added no top-level files', async () => {
+  it('§43.1: returns top-level MODIFIED files (was silently dropped under --diff-filter=A)', async () => {
+    // The §43.1 motivating bug: a file already on main, AI rewrites it on
+    // the session branch. Original A-only filter returned [] → fallback
+    // emitted "no_new_deliverables" warning even though the user clearly
+    // produced new content. AM filter must surface the modification.
+    await writeFile(join(repo, 'report.md'), '# v1 on main');
+    await execFileP('git', ['-C', repo, 'add', '.']);
+    await execFileP('git', ['-C', repo, 'commit', '-q', '-m', 'main version']);
+
+    await execFileP('git', ['-C', repo, 'checkout', '-q', '-b', 'session/rewrite']);
+    await writeFile(join(repo, 'report.md'), '# v2 — AI rewrote it');
+    await execFileP('git', ['-C', repo, 'add', '.']);
+    await execFileP('git', ['-C', repo, 'commit', '-q', '-m', 'session rewrite']);
+    await execFileP('git', ['-C', repo, 'checkout', '-q', baseBranch]);
+
+    const result = await listChangedTopLevelFiles(repo, 'session/rewrite');
+
+    assert.deepEqual(result, ['report.md']);
+  });
+
+  it('§43.1: returns mix of Added + Modified in one session', async () => {
+    // Real-world session: AI creates a new file AND rewrites an existing
+    // one. Both must come through.
+    await writeFile(join(repo, 'existing.md'), '# v1');
+    await execFileP('git', ['-C', repo, 'add', '.']);
+    await execFileP('git', ['-C', repo, 'commit', '-q', '-m', 'main version']);
+
+    await execFileP('git', ['-C', repo, 'checkout', '-q', '-b', 'session/mixed']);
+    await writeFile(join(repo, 'existing.md'), '# v2 modified');
+    await writeFile(join(repo, 'fresh.md'), '# new');
+    await execFileP('git', ['-C', repo, 'add', '.']);
+    await execFileP('git', ['-C', repo, 'commit', '-q', '-m', 'session mixed']);
+    await execFileP('git', ['-C', repo, 'checkout', '-q', baseBranch]);
+
+    const result = (await listChangedTopLevelFiles(repo, 'session/mixed')).sort();
+
+    assert.deepEqual(result, ['existing.md', 'fresh.md']);
+  });
+
+  it('§43.1: deletions are NOT included (D excluded by --diff-filter=AM)', async () => {
+    // Destructive propagation is out of scope: the user-owned ref folder
+    // shouldn't lose files just because a session branch deleted them
+    // upstream. Pin the D-exclusion contract.
+    await writeFile(join(repo, 'doomed.md'), '# on main');
+    await execFileP('git', ['-C', repo, 'add', '.']);
+    await execFileP('git', ['-C', repo, 'commit', '-q', '-m', 'main version']);
+
+    await execFileP('git', ['-C', repo, 'checkout', '-q', '-b', 'session/delete']);
+    await rm(join(repo, 'doomed.md'));
+    await execFileP('git', ['-C', repo, 'add', '-A']);
+    await execFileP('git', ['-C', repo, 'commit', '-q', '-m', 'session delete']);
+    await execFileP('git', ['-C', repo, 'checkout', '-q', baseBranch]);
+
+    const result = await listChangedTopLevelFiles(repo, 'session/delete');
+
+    assert.deepEqual(result, []);
+  });
+
+  it('returns empty array when session branch changed no top-level files', async () => {
     // Subdir-only commit (e.g. agent wrote into outputs/) should yield [].
     // Pins the contract so the route handler can safely pass [] into the
     // ref-folder copy and trust the tri-state semantics in sessionCopy.ts.
@@ -393,21 +452,21 @@ describe('listAddedTopLevelFiles', () => {
     await execFileP('git', ['-C', repo, 'commit', '-q', '-m', 'subdir only']);
     await execFileP('git', ['-C', repo, 'checkout', '-q', baseBranch]);
 
-    const result = await listAddedTopLevelFiles(repo, 'session/subdir-only');
+    const result = await listChangedTopLevelFiles(repo, 'session/subdir-only');
 
     assert.deepEqual(result, []);
   });
 
   it('throws when branch does not exist (route relies on this for catch-and-warn degrade)', async () => {
     // The /merge route handler wraps this call in try/catch and degrades
-    // `addedFiles` to undefined on failure (which makes the ref-folder
+    // `changedFiles` to undefined on failure (which makes the ref-folder
     // copy fall through to the legacy `listNewFilesAtTop` path). That
     // degrade path is load-bearing — without a throw here the route would
     // silently pass an `undefined` from a returned-empty diff and the bug
     // would re-emerge differently. Pin the contract so a future "swallow
     // and return []" refactor breaks loudly.
     await assert.rejects(
-      () => listAddedTopLevelFiles(repo, 'session/does-not-exist'),
+      () => listChangedTopLevelFiles(repo, 'session/does-not-exist'),
       /does-not-exist|unknown revision|bad revision|ambiguous argument/i,
     );
   });
@@ -531,7 +590,7 @@ describe('listSessionBranchDeliverables', () => {
   });
 
   it('skips already-merged session branches without error', async () => {
-    // Session branch that was merged into main — listAddedTopLevelFiles
+    // Session branch that was merged into main — listChangedTopLevelFiles
     // returns [] since the diff range collapses. The function should not
     // include those files (they'd appear in listMainBranchDeliverables).
     await execFileP('git', ['-C', repo, 'checkout', '-q', '-b', 'session/merged']);

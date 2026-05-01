@@ -49,9 +49,12 @@ interface TaskContextPanelProps {
    *  file write. Chats outside a project (legacy Phase 5) and pure-Q&A
    *  chats never render this button. */
   canCompleteSession?: boolean;
-  /** 6.3: true after the user has already merged this session's branch into
-   *  the project base. Button stays visible but disabled with a success
-   *  label — Phase 6 intentionally doesn't offer a "re-open" path. */
+  /** 6.3 + §43.2: true after the user has already merged this session's
+   *  branch into the project base at least once. Affects the button's
+   *  label/icon (checkmark + "Saved to Knowledge") but NOT its disabled
+   *  state — chat is a continuation of work, so a re-save after subsequent
+   *  AI writes must remain reachable. The Phase 6.3 modal handles the
+   *  no-changes path with the "Already up to date" auto-dismiss state. */
   sessionCompleted?: boolean;
   /** 6.3: open the Complete Session modal. Passed from App.tsx, which hosts
    *  the modal and manages its phase state. Undefined while the gate above
@@ -443,7 +446,7 @@ export default function TaskContextPanel({
               : isMobile
               ? 'Open WorkPal Agent on desktop to complete this session'
               : sessionCompleted
-              ? 'Already saved to project knowledge'
+              ? 'Save any new changes since the last save to project knowledge.'
               : "Adds this session's outputs to project knowledge so future sessions can read them."
           }
         >
@@ -454,10 +457,14 @@ export default function TaskContextPanel({
                 window.setTimeout(() => setShowCompleteHint(false), 5000);
                 return;
               }
-              if (sessionCompleted || IS_DEMO) return;
+              if (IS_DEMO) return;
               onCompleteSession?.();
             }}
-            disabled={sessionCompleted || IS_DEMO || isMobile}
+            // §43.2: `sessionCompleted` no longer gates `disabled` — chat is a
+            // continuation of work and re-saves after additional AI writes
+            // must remain reachable. Phase 6.3 modal's "Already up to date"
+            // state handles the no-changes path with a 1.8s auto-dismiss.
+            disabled={IS_DEMO || isMobile}
             fullWidth
           >
             <span className="flex items-center gap-2">

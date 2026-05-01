@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import assert from 'node:assert/strict';
@@ -166,19 +166,27 @@ describe('copySessionOutputsToRefFolder — §30 fallback', () => {
     assert.deepEqual(refFiles, ['README.md']);
   });
 
-  it('case 7: collisions in ref folder are skipped silently (no overwrite)', async () => {
+  it('§43.3 case 7: collisions in ref folder are OVERWRITTEN', async () => {
+    // §43.3 reversed the original "skip on EEXIST" behavior. Save = explicit
+    // propagate intent, matching the strict-copy path's `fs.cp force:true`.
+    // The user clicked Save to push the latest session state into the ref
+    // folder; silently keeping the stale version surprised users whose
+    // re-saves no-op'd.
     await writeFile(join(ref, 'existing.md'), '# original');
-    await writeFile(join(session, 'existing.md'), '# new (would overwrite)');
+    await writeFile(join(session, 'existing.md'), '# new (overwrites)');
     await writeFile(join(session, 'fresh.md'), '# fresh');
 
     const result = await copySessionOutputsToRefFolder(session, ref);
 
     assert.equal(result.ok, true);
     if (!result.ok) return;
-    // existing.md skipped (EEXIST), fresh.md copied.
-    assert.equal(result.copiedCount, 1);
+    // Both files counted — existing.md overwritten, fresh.md copied.
+    assert.equal(result.copiedCount, 2);
     const refFiles = (await readdir(ref)).sort();
     assert.deepEqual(refFiles, ['existing.md', 'fresh.md']);
+    // Verify the OVERWRITE — content is the new session version.
+    const overwrittenContent = await readFile(join(ref, 'existing.md'), 'utf8');
+    assert.equal(overwrittenContent, '# new (overwrites)');
   });
 
   it('case 8: outputs/ with files takes precedence over fallback', async () => {
@@ -229,7 +237,7 @@ describe('copySessionOutputsToRefFolder — §30 fallback', () => {
     assert.deepEqual(refFiles, ['hello.md']);
   });
 
-  it('case 10: addedFiles=[] yields no_new_deliverables even when cwd has untracked .md', async () => {
+  it('case 10: changedFiles=[] yields no_new_deliverables even when cwd has untracked .md', async () => {
     // Setup an untracked file that would have been picked up by the legacy
     // `listNewFilesAtTop` path. Pass [] explicitly: route captured nothing.
     // The fallback MUST treat [] as truly empty — falling through to git
@@ -246,5 +254,32 @@ describe('copySessionOutputsToRefFolder — §30 fallback', () => {
     assert.equal('warning' in result && result.warning, 'no_new_deliverables');
     const refFiles = await readdir(ref);
     assert.deepEqual(refFiles, []);
+  });
+
+  it('§43.3 case 11: read-only ref folder surfaces permission_denied (errors not swallowed)', async () => {
+    // Beibei's §43.3 flag: after removing COPYFILE_EXCL + EEXIST skip, real
+    // fs failures are now caught by `firstError` instead of silently
+    // continuing. Pin the contract: when no file can be written and the
+    // copy attempt fails (EACCES from chmod 0o500 on the ref dir), the
+    // CopyResult discriminates as `ok:false, code:'permission_denied'`
+    // rather than returning `ok:true, copiedCount:0` which would mask the
+    // failure as "nothing to copy".
+    await writeFile(join(session, 'fresh.md'), '# fresh');
+    // 0o500 = read+execute for owner, no write. Disallows new file
+    // creation in the ref dir but still lets us read/cleanup afterward.
+    await chmod(ref, 0o500);
+
+    let result;
+    try {
+      result = await copySessionOutputsToRefFolder(session, ref, ['fresh.md']);
+    } finally {
+      // Restore writable mode so afterEach rm can clean up.
+      await chmod(ref, 0o700);
+    }
+
+    assert.equal(result.ok, false);
+    if (result.ok) return;
+    assert.equal(result.code, 'permission_denied');
+    assert.ok(result.message.length > 0, 'message should be populated');
   });
 });

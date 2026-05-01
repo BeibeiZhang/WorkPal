@@ -1,4 +1,3 @@
-import { constants as fsConstants } from 'node:fs';
 import { copyFile, lstat, readdir, stat } from 'node:fs/promises';
 import { cp } from 'node:fs/promises';
 import { basename, join, resolve, sep } from 'node:path';
@@ -65,28 +64,34 @@ export function isDeliverable(name: string): boolean {
  *  scaffolding, node_modules from any tooling the agent ran).
  *
  *  §30 fallback: if outputs/ is missing OR contains zero files, we look for
- *  NEW files at the cwd TOP-LEVEL whose names pass `isDeliverable`. The
+ *  CHANGED files at the cwd TOP-LEVEL whose names pass `isDeliverable`. The
  *  source list comes from one of two places:
  *
- *    • §41 — `addedFiles` param (preferred): pre-captured list of newly-
- *      ADDED top-level files from `git diff base...session --diff-filter=A`,
- *      computed by the route handler BEFORE the FF merge. Catches files the
- *      agent committed via Phase 5.5 auto-commit, which `git status` no
- *      longer sees by /merge time. Tri-state contract: `[]` means "route
- *      captured but found nothing" → no fallback to git status; `undefined`
- *      means "route did not capture" → falls through to the legacy path.
- *      This distinction prevents capture failures from silently double-
- *      running and masking bugs.
+ *    • §41 + §43.1 — `changedFiles` param (preferred): pre-captured list of
+ *      top-level files (Added or Modified) from
+ *      `git diff base...session --diff-filter=AM`, computed by the route
+ *      handler BEFORE the FF merge. Catches files the agent committed via
+ *      Phase 5.5 auto-commit, which `git status` no longer sees by /merge
+ *      time. Tri-state contract: `[]` means "route captured but found
+ *      nothing" → no fallback to git status; `undefined` means "route did
+ *      not capture" → falls through to the legacy path. This distinction
+ *      prevents capture failures from silently double-running and masking
+ *      bugs.
  *
  *    • Legacy — `listNewFilesAtTop` (`git status --porcelain`): catches
- *      untracked/staged files at cwd top-level. Used when `addedFiles` is
+ *      untracked/staged files at cwd top-level. Used when `changedFiles` is
  *      undefined (back-compat for callers predating §41 + the degraded path
  *      when the route's pre-capture failed).
  *
  *  Path-jail check rejects any candidate that doesn't resolve inside the
- *  worktree. `COPYFILE_EXCL` ensures we never overwrite an existing user
- *  file in the ref folder (§30 only handles AI-NEW files; collisions skip
- *  silently and don't count toward `copiedCount`).
+ *  worktree.
+ *
+ *  §43.3: ref-folder collisions OVERWRITE the existing file. The user
+ *  clicked "Save to Knowledge" with explicit propagate intent, so the ref
+ *  folder should reflect the latest session state — same mental model as
+ *  the strict-copy path (`fs.cp force:true`). The original `COPYFILE_EXCL`
+ *  skip-on-collision behavior was inconsistent and surprised users whose
+ *  re-saves silently no-op'd.
  *
  *  fs.cp is invoked with `force: true` (overwrite name clashes — the ref
  *  folder is user-owned and "merge" means "make it look like the new
@@ -96,7 +101,7 @@ export function isDeliverable(name: string): boolean {
 export async function copySessionOutputsToRefFolder(
   sessionPath: string,
   refFolderPath: string,
-  addedFiles?: string[],
+  changedFiles?: string[],
 ): Promise<CopyResult> {
   const outputsDir = join(sessionPath, 'outputs');
 
@@ -125,9 +130,9 @@ export async function copySessionOutputsToRefFolder(
     }
   }
 
-  // §30 fallback path. §41: if route handler pre-captured `addedFiles`,
+  // §30 fallback path. §41: if route handler pre-captured `changedFiles`,
   // use it (including the empty-array case); otherwise legacy git-status.
-  return copyTopLevelNewFiles(sessionPath, refFolderPath, addedFiles);
+  return copyTopLevelNewFiles(sessionPath, refFolderPath, changedFiles);
 }
 
 async function copyTopLevelNewFiles(
@@ -143,7 +148,7 @@ async function copyTopLevelNewFiles(
   // indistinguishable from a real empty diff and silently double-run.
   if (precomputedFiles !== undefined) {
     // Belt-and-braces: today's only caller (`/session/merge` route) gets a
-    // pre-filtered top-level list from `listAddedTopLevelFiles`, but the
+    // pre-filtered top-level list from `listChangedTopLevelFiles`, but the
     // contract lives in two places. Re-filter here so a future caller can't
     // bypass §30's "top-level only" rule by passing subdir paths and have
     // them collide on `basename` at the destination.
@@ -181,17 +186,16 @@ async function copyTopLevelNewFiles(
       const lst = await lstat(src);
       if (!lst.isFile()) continue; // skip symlinks / devices / dirs
       const dest = join(refFolderPath, basename(relPath));
-      await copyFile(src, dest, fsConstants.COPYFILE_EXCL);
+      // §43.3: default copyFile mode (no COPYFILE_EXCL) overwrites the
+      // destination. Save = explicit propagate intent; matches strict-copy
+      // path's `fs.cp force:true`. Genuine fs failures (EACCES, ENOSPC,
+      // etc.) flow through `firstError` and surface as a typed CopyResult.
+      await copyFile(src, dest);
       copiedCount++;
     } catch (err: unknown) {
-      const e = err as NodeJS.ErrnoException;
-      // EEXIST: ref folder already has a file with this name. §30 explicitly
-      // does NOT overwrite existing user files; skip silently.
-      if (e.code === 'EEXIST') continue;
-      // Remember the first non-EEXIST error so the route handler can surface
-      // it if it's the only thing that happened. We keep going through the
-      // remaining candidates so a single bad file doesn't kill a partial
-      // success.
+      // Remember the first error so the route handler can surface it if it's
+      // the only thing that happened. We keep going through the remaining
+      // candidates so a single bad file doesn't kill a partial success.
       if (!firstError) firstError = err;
     }
   }
