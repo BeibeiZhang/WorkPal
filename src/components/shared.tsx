@@ -4,7 +4,7 @@
  * Single source of truth — used by both app pages and the Design System page.
  * Update a component here → it updates everywhere in the app.
  */
-import { AlertTriangle, ArrowLeft, ArrowUpRight, AudioLines, BadgeCheck, Check, ChevronDown, ChevronRight, Clock, FileCode2, FileImage, FileText, FolderClosed, GitMerge, Info, LayoutDashboard, Mail, MonitorPlay, PanelLeft, PanelRight, Presentation, Smartphone, Ticket, Play, Plus, Search, Send, Smile, SquarePen, Timer, User, Sparkles, X, XCircle, type LucideIcon } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowUpRight, AudioLines, BadgeCheck, Check, ChevronDown, ChevronRight, Clock, FileCode2, FileImage, FileText, FolderClosed, GitMerge, Info, LayoutDashboard, Loader2, Mail, MonitorPlay, PanelLeft, PanelRight, Presentation, Smartphone, Ticket, Play, Plus, Search, Send, Smile, SquarePen, Timer, User, Sparkles, X, XCircle, type LucideIcon } from 'lucide-react';
 import { type MouseEvent as ReactMouseEvent, type ReactNode, useEffect, useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { IS_DEMO } from '../lib/demoMode';
@@ -2140,6 +2140,55 @@ export function EmptyState({
       <div className="type-detail-emphasized text-text-primary">{title}</div>
       {description && (
         <div className="type-detail text-text-secondary max-w-[280px]">{description}</div>
+      )}
+    </div>
+  );
+}
+
+/* ─── VersionRow ───
+ * Single row in the Software Update dashboard. Shows a component name,
+ * current version, latest version, and a status tag.
+ */
+export function VersionRow({
+  label,
+  current,
+  latest,
+  status,
+  error,
+  loading,
+}: {
+  label: string;
+  current: string;
+  latest: string | null;
+  status: 'up-to-date' | 'update-available' | 'unknown';
+  error?: string;
+  loading?: boolean;
+}) {
+  const statusVariant = status === 'up-to-date' ? 'success' : status === 'update-available' ? 'pending' : 'neutral';
+  const statusLabel = status === 'up-to-date' ? 'Up to date' : status === 'update-available' ? 'Update available' : 'Unknown';
+
+  return (
+    <div className="panel-border rounded-[12px] p-4">
+      <div className="flex items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <p className="type-detail-emphasized text-text-primary">{label}</p>
+          <p className="type-caption text-text-secondary truncate mt-0.5">
+            {current}
+            {latest && latest !== current && (
+              <span className="text-text-tertiary"> → {latest}</span>
+            )}
+          </p>
+        </div>
+        <div className="shrink-0">
+          {loading ? (
+            <Loader2 size={16} className="animate-spin text-text-secondary" />
+          ) : (
+            <StatusTag variant={statusVariant} label={statusLabel} size="sm" />
+          )}
+        </div>
+      </div>
+      {error && (
+        <p className="type-caption text-text-tertiary mt-2">{error}</p>
       )}
     </div>
   );

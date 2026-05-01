@@ -27,12 +27,12 @@ DST_LIB="$ROOT_DIR/agent/src/shared/lib"
 # routes stay server-side (memory, chats, projects, connectors, artifacts,
 # usage, chat) — they have Vercel serverless equivalents and don't belong
 # on a per-user Mac.
-LOCAL_ROUTES=(claudeChat.ts project.ts session.ts reaper.ts)
+LOCAL_ROUTES=(claudeChat.ts project.ts session.ts reaper.ts versionInfo.ts)
 
 # Lib files the 4 routes transitively need. Regenerate this list if a new
 # route is promoted to "local" or if server/src/lib grows a new helper a
 # local route pulls in.
-SHARED_LIB=(claudeCode.ts git.ts project.ts reaper.ts paths.ts referenceDirs.ts sessionCopy.ts usageLog.ts)
+SHARED_LIB=(claudeCode.ts git.ts project.ts reaper.ts paths.ts referenceDirs.ts semver.ts sessionCopy.ts usageLog.ts)
 
 mkdir -p "$DST_ROUTES" "$DST_LIB"
 

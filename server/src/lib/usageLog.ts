@@ -72,7 +72,11 @@ function inferCapability(e: UsageEntry): Capability {
 // Per 1M tokens, USD. Prefix match so versioned ids (e.g. "claude-opus-4-7-20260115")
 // still land on the right price. If no prefix matches, priceFor returns 0 — the
 // dashboard shows $0 rather than crashing, and we'll notice via the model label.
-const PRICING: Record<string, { in: number; out: number }> = {
+//
+// Also serves as the single source of truth for "which models do we reference"
+// — the Software Update page derives its known-model lists from these keys
+// (see server/src/routes/versionInfo.ts).
+export const PRICING: Record<string, { in: number; out: number }> = {
   'gpt-4o-mini': { in: 0.15, out: 0.60 },
   'gpt-4o-realtime-preview': { in: 5.00, out: 20.00 },
   'gpt-4o': { in: 2.50, out: 10.00 },

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Chat, Attachment, OutputItem } from '../types';
-import { LayoutDashboard, SquarePen, Link, BookOpen, Brain, FolderPlus, ChevronDown, Search, Palette, PanelLeft, MoreHorizontal, Trash2, FolderInput, Check, Sparkles, LogOut, User } from 'lucide-react';
+import { ArrowUpCircle, LayoutDashboard, SquarePen, Link, BookOpen, Brain, FolderPlus, ChevronDown, Search, Palette, PanelLeft, MoreHorizontal, Trash2, FolderInput, Check, Sparkles, LogOut, User } from 'lucide-react';
 import { iconSun, iconMoon } from '../assets';
 import { NavItem } from './shared';
 import { useAuth } from '../lib/useAuth';
@@ -269,9 +269,10 @@ function AvatarMenu({ compact = false, activeView, activeChatId, onViewChange, o
   const items: { id: string; label: string; Icon: typeof Link; onClick: () => void; active: boolean }[] = [
     { id: 'connectors',    label: 'Connectors',            Icon: Link,     onClick: () => onViewChange?.('connectors'),    active: activeView === 'connectors' },
     { id: 'library',       label: 'Library',               Icon: BookOpen, onClick: () => onViewChange?.('library'),       active: activeView === 'library' },
-    { id: 'memory',        label: 'Memory',                Icon: Brain,    onClick: () => onViewChange?.('memory'),        active: activeView === 'memory' },
-    { id: 'onboarding',    label: 'Onboarding Experience', Icon: Sparkles, onClick: () => onChatSelect?.('my-workpal'),    active: activeChatId === 'my-workpal' && activeView === 'chat' },
-    { id: 'design-system', label: 'Design System',         Icon: Palette,  onClick: () => onViewChange?.('design-system'), active: activeView === 'design-system' },
+    { id: 'memory',          label: 'Memory',                Icon: Brain,          onClick: () => onViewChange?.('memory'),          active: activeView === 'memory' },
+    { id: 'software-update', label: 'Software Update',       Icon: ArrowUpCircle,  onClick: () => onViewChange?.('software-update'), active: activeView === 'software-update' },
+    { id: 'onboarding',      label: 'Onboarding Experience', Icon: Sparkles,       onClick: () => onChatSelect?.('my-workpal'),      active: activeChatId === 'my-workpal' && activeView === 'chat' },
+    { id: 'design-system',   label: 'Design System',         Icon: Palette,        onClick: () => onViewChange?.('design-system'),   active: activeView === 'design-system' },
   ];
 
   return (
@@ -290,7 +291,7 @@ function AvatarMenu({ compact = false, activeView, activeChatId, onViewChange, o
         className={
           compact
             ? 'block rounded-full overflow-hidden hover:opacity-80 transition-opacity'
-            : 'flex items-center gap-4 w-full rounded-full hover:bg-bg-hover transition-colors text-left'
+            : 'flex items-center gap-2 pr-3 rounded-full hover:bg-bg-hover transition-colors text-left'
         }
         style={compact ? { width: 35, height: 35 } : undefined}
       >
@@ -369,14 +370,14 @@ export interface Project {
 interface SidebarProps {
   chats: Chat[];
   activeChatId: string;
-  activeView?: 'chat' | 'connectors' | 'design-system' | 'overview' | 'library' | 'memory';
+  activeView?: 'chat' | 'connectors' | 'design-system' | 'overview' | 'library' | 'memory' | 'software-update';
   activeProjectId?: string | null;
   projects: Project[];
   onChatSelect: (id: string) => void;
   onNewChat: () => void;
   onNewProject: () => void;
   onProjectSelect: (id: string) => void;
-  onViewChange?: (view: 'chat' | 'connectors' | 'design-system' | 'overview' | 'library' | 'memory') => void;
+  onViewChange?: (view: 'chat' | 'connectors' | 'design-system' | 'overview' | 'library' | 'memory' | 'software-update') => void;
   onDeleteChat?: (id: string) => void;
   onDeleteProject?: (id: string) => void;
   /** File a chat into a project, or pass null to remove it from any project. */

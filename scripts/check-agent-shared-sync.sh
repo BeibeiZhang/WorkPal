@@ -23,8 +23,8 @@ SRC_LIB="$ROOT_DIR/server/src/lib"
 DST_ROUTES="$ROOT_DIR/agent/src/shared/routes"
 DST_LIB="$ROOT_DIR/agent/src/shared/lib"
 
-LOCAL_ROUTES=(claudeChat.ts project.ts session.ts reaper.ts)
-SHARED_LIB=(claudeCode.ts git.ts project.ts reaper.ts paths.ts referenceDirs.ts sessionCopy.ts usageLog.ts)
+LOCAL_ROUTES=(claudeChat.ts project.ts session.ts reaper.ts versionInfo.ts)
+SHARED_LIB=(claudeCode.ts git.ts project.ts reaper.ts paths.ts referenceDirs.ts semver.ts sessionCopy.ts usageLog.ts)
 
 drift=0
 for f in "${LOCAL_ROUTES[@]}"; do

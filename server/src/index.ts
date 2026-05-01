@@ -13,6 +13,7 @@ import projectsRouter from './routes/projects.js';
 import connectorsRouter from './routes/connectors.js';
 import artifactsRouter from './routes/artifacts.js';
 import usageRouter from './routes/usage.js';
+import versionInfoRouter from './routes/versionInfo.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -36,6 +37,7 @@ app.use('/api', projectsRouter);
 app.use('/api', connectorsRouter);
 app.use('/api', artifactsRouter);
 app.use('/api', usageRouter);
+app.use('/api', versionInfoRouter);
 
 // Health check
 app.get('/health', (_req, res) => {

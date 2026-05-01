@@ -53,6 +53,8 @@ strong, b {
   --color-accent-violet: #6B54E6;
   --color-accent-neutral: #6B7280;
 
+  --color-warning: #F79009;
+
   /* Form validation / inline error red. Distinct from --color-accent-red
      (#C93838, status indicator) — error red is deeper crimson tuned for
      inline validation messages and small icons against light fills. */
@@ -178,6 +180,8 @@ strong, b {
   /* Dark mode chat input inner fill: 20% black. */
   --color-input-bg: rgba(0, 0, 0, 0.2);
   --color-progress-bar: #3171ff;
+
+  --color-warning: #FDB022;
 
   /* Lighter red for dark canvas — Tailwind red-400 family. The light-mode
      #B42318 is too dark against #001424 (~4:1, borderline for body text). */
