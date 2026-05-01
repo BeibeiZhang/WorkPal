@@ -495,11 +495,9 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
   const [projectsOpen, setProjectsOpen] = useState(true);
   const [recentsOpen, setRecentsOpen] = useState(true);
 
-  // Hide drafts (and any leftover empty "New Session" entries from older
-  // sessions in localStorage) from the Recents list — they live under the
-  // top "New Session" button until the user actually sends a message.
-  const isDraftLike = (c: Chat) =>
-    c.isDraft || (c.title === 'New Session' && c.messages.length === 0);
+  // Hide empty chats (no messages yet) from the Recents list — they live
+  // under the top "New Session" button until the user sends a message.
+  const isDraftLike = (c: Chat) => c.messages.length === 0;
 
   const filteredChats = chats
     .filter(c => c.id !== 'my-workpal' && !isDraftLike(c))

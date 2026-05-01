@@ -468,9 +468,9 @@ export default function ProjectPage({
 
   // Real chats belonging to this project, mapped into the RecentItem shape so
   // they render with the same layout as the seeded demo rows. Newest first.
-  // Drafts (empty "New Session" placeholders) are excluded.
+  // Empty chats (no messages yet) are excluded.
   const realRecents: (RecentItem & { isReal: true })[] = chats
-    .filter(c => c.projectId === project.id && !c.isDraft && c.messages.length > 0)
+    .filter(c => c.projectId === project.id && c.messages.length > 0)
     .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
     .map(c => ({
       id: c.id,
