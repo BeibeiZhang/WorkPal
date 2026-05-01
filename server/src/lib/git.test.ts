@@ -7,6 +7,8 @@ import { afterEach, beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   listAddedTopLevelFiles,
+  listMainBranchDeliverables,
+  listSessionBranchDeliverables,
   mergeDiffOutputs,
   NOT_FF_RE,
   parseDiffNameStatus,
@@ -408,5 +410,138 @@ describe('listAddedTopLevelFiles', () => {
       () => listAddedTopLevelFiles(repo, 'session/does-not-exist'),
       /does-not-exist|unknown revision|bad revision|ambiguous argument/i,
     );
+  });
+});
+
+// ── §43 ────────────────────────────────────────────────────────────────
+
+describe('listMainBranchDeliverables', () => {
+  let repo: string;
+
+  beforeEach(async () => {
+    repo = await mkdtemp(join(tmpdir(), 'workpal-maindeliverables-'));
+    await execFileP('git', ['init', '-q'], { cwd: repo });
+    await execFileP('git', ['config', 'user.email', 'test@workpal'], { cwd: repo });
+    await execFileP('git', ['config', 'user.name', 'Test'], { cwd: repo });
+    await execFileP('git', ['commit', '--allow-empty', '-q', '-m', 'baseline'], {
+      cwd: repo,
+    });
+  });
+
+  afterEach(async () => {
+    await rm(repo, { recursive: true, force: true });
+  });
+
+  it('returns only top-level deliverable files, excludes subdirs + non-deliverable + scaffolding', async () => {
+    await writeFile(join(repo, 'report.md'), '# report');
+    await writeFile(join(repo, 'data.csv'), 'a,b');
+    await writeFile(join(repo, 'app.ts'), 'console.log("nope")');
+    await writeFile(join(repo, 'package.json'), '{}');
+    await mkdir(join(repo, 'subdir'));
+    await writeFile(join(repo, 'subdir', 'nested.md'), '# nested');
+    await execFileP('git', ['-C', repo, 'add', '.']);
+    await execFileP('git', ['-C', repo, 'commit', '-q', '-m', 'add files']);
+
+    const result = await listMainBranchDeliverables(repo);
+
+    const names = result.map((r) => r.name).sort();
+    assert.deepEqual(names, ['data.csv', 'report.md']);
+  });
+
+  it('each item has a valid ISO-8601 mtime', async () => {
+    await writeFile(join(repo, 'notes.txt'), 'hello');
+    await execFileP('git', ['-C', repo, 'add', '.']);
+    await execFileP('git', ['-C', repo, 'commit', '-q', '-m', 'add notes']);
+
+    const result = await listMainBranchDeliverables(repo);
+
+    assert.equal(result.length, 1);
+    assert.equal(result[0].name, 'notes.txt');
+    assert.ok(result[0].mtime.length > 0, 'mtime should be non-empty');
+    assert.ok(!isNaN(Date.parse(result[0].mtime)), 'mtime should be parseable as a date');
+  });
+
+  it('returns empty on baseline-only repo with no files', async () => {
+    const result = await listMainBranchDeliverables(repo);
+    assert.deepEqual(result, []);
+  });
+});
+
+describe('listSessionBranchDeliverables', () => {
+  let repo: string;
+  let baseBranch: string;
+
+  beforeEach(async () => {
+    repo = await mkdtemp(join(tmpdir(), 'workpal-sessiondeliverables-'));
+    await execFileP('git', ['init', '-q'], { cwd: repo });
+    await execFileP('git', ['config', 'user.email', 'test@workpal'], { cwd: repo });
+    await execFileP('git', ['config', 'user.name', 'Test'], { cwd: repo });
+    await execFileP('git', ['commit', '--allow-empty', '-q', '-m', 'baseline'], {
+      cwd: repo,
+    });
+    const { stdout } = await execFileP(
+      'git',
+      ['-C', repo, 'symbolic-ref', '--short', 'HEAD'],
+    );
+    baseBranch = stdout.trim();
+  });
+
+  afterEach(async () => {
+    await rm(repo, { recursive: true, force: true });
+  });
+
+  it('returns deliverables from session branches with correct sessionIds', async () => {
+    await execFileP('git', ['-C', repo, 'checkout', '-q', '-b', 'session/alpha']);
+    await writeFile(join(repo, 'design.md'), '# design doc');
+    await execFileP('git', ['-C', repo, 'add', '.']);
+    await execFileP('git', ['-C', repo, 'commit', '-q', '-m', 'alpha work']);
+    await execFileP('git', ['-C', repo, 'checkout', '-q', baseBranch]);
+
+    await execFileP('git', ['-C', repo, 'checkout', '-q', '-b', 'session/beta']);
+    await writeFile(join(repo, 'analysis.html'), '<h1>analysis</h1>');
+    await execFileP('git', ['-C', repo, 'add', '.']);
+    await execFileP('git', ['-C', repo, 'commit', '-q', '-m', 'beta work']);
+    await execFileP('git', ['-C', repo, 'checkout', '-q', baseBranch]);
+
+    const result = await listSessionBranchDeliverables(repo);
+
+    const sorted = result.sort((a, b) => a.name.localeCompare(b.name));
+    assert.equal(sorted.length, 2);
+    assert.equal(sorted[0].name, 'analysis.html');
+    assert.equal(sorted[0].sessionId, 'beta');
+    assert.equal(sorted[1].name, 'design.md');
+    assert.equal(sorted[1].sessionId, 'alpha');
+  });
+
+  it('filters non-deliverable files on session branches', async () => {
+    await execFileP('git', ['-C', repo, 'checkout', '-q', '-b', 'session/code-only']);
+    await writeFile(join(repo, 'app.ts'), 'export const x = 1;');
+    await writeFile(join(repo, 'package.json'), '{}');
+    await execFileP('git', ['-C', repo, 'add', '.']);
+    await execFileP('git', ['-C', repo, 'commit', '-q', '-m', 'code only']);
+    await execFileP('git', ['-C', repo, 'checkout', '-q', baseBranch]);
+
+    const result = await listSessionBranchDeliverables(repo);
+    assert.deepEqual(result, []);
+  });
+
+  it('returns empty when no session branches exist', async () => {
+    const result = await listSessionBranchDeliverables(repo);
+    assert.deepEqual(result, []);
+  });
+
+  it('skips already-merged session branches without error', async () => {
+    // Session branch that was merged into main — listAddedTopLevelFiles
+    // returns [] since the diff range collapses. The function should not
+    // include those files (they'd appear in listMainBranchDeliverables).
+    await execFileP('git', ['-C', repo, 'checkout', '-q', '-b', 'session/merged']);
+    await writeFile(join(repo, 'merged-doc.md'), '# merged');
+    await execFileP('git', ['-C', repo, 'add', '.']);
+    await execFileP('git', ['-C', repo, 'commit', '-q', '-m', 'session work']);
+    await execFileP('git', ['-C', repo, 'checkout', '-q', baseBranch]);
+    await execFileP('git', ['-C', repo, 'merge', '--ff-only', 'session/merged']);
+
+    const result = await listSessionBranchDeliverables(repo);
+    assert.deepEqual(result, []);
   });
 });

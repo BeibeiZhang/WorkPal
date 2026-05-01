@@ -415,6 +415,43 @@ export async function postScanProjectOutputs(
   }
 }
 
+/** §43: one row from GET /api/project/:slug/deliverables. Represents a
+ *  file on the project's main branch ("saved") or on an active session
+ *  branch ("in-session"). The frontend uses this as the authoritative
+ *  Output grid data source instead of the legacy project.outputs[]. */
+export interface DeliverableItem {
+  name: string;
+  path: string;
+  status: 'saved' | 'in-session';
+  mtime: string;
+  sessionId?: string;
+}
+
+/** §43: fetch the authoritative deliverable list for a project. Merges
+ *  main-branch saved files with in-session uncommitted files, deduped by
+ *  basename. Returns [] on any failure — the Output grid falls back to
+ *  the existing project.outputs[] source. */
+export async function fetchProjectDeliverables(
+  projectSlug: string,
+): Promise<DeliverableItem[]> {
+  try {
+    const res = await fetchAgent(
+      `/api/project/${encodeURIComponent(projectSlug)}/deliverables`,
+    );
+    if (!res.ok) {
+      console.warn(`[deliverables] non-ok ${res.status}`);
+      return [];
+    }
+    const payload = (await res.json()) as { items?: DeliverableItem[] };
+    return Array.isArray(payload.items) ? payload.items : [];
+  } catch (err) {
+    if (!(err instanceof AgentUnreachableError)) {
+      console.warn('[deliverables] failed:', err);
+    }
+    return [];
+  }
+}
+
 /** 6.5: one error row from the reaper summary. Mirrors the server's
  *  `ReapError`. `stage` distinguishes a failed worktree remove (destructive
  *  step that was aborted) from a failed branch delete (cosmetic stray

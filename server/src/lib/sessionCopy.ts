@@ -43,13 +43,13 @@ export type CopyResult =
  *  AI flows do produce schema.json / data.json deliverables; the
  *  scaffolding block-list catches the common npm/Vite cases. README.md
  *  is NOT blocked since it's a frequent legitimate deliverable. */
-const DELIVERABLE_EXT = /\.(md|txt|html|pdf|docx?|json|ya?ml|csv)$/i;
-const SCAFFOLDING_BLOCK: ReadonlySet<string> = new Set([
+export const DELIVERABLE_EXT = /\.(md|txt|html|pdf|docx?|json|ya?ml|csv)$/i;
+export const SCAFFOLDING_BLOCK: ReadonlySet<string> = new Set([
   'package.json',
   'package-lock.json',
   'tsconfig.json',
 ]);
-const SCAFFOLDING_PATTERN = /^tsconfig\..+\.json$/i;
+export const SCAFFOLDING_PATTERN = /^tsconfig\..+\.json$/i;
 
 export function isDeliverable(name: string): boolean {
   if (!DELIVERABLE_EXT.test(name)) return false;

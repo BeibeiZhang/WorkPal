@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { mkdir } from 'node:fs/promises';
+import { join } from 'node:path';
+import { listMainBranchDeliverables, listSessionBranchDeliverables } from '../lib/git.js';
 import { indexProjectOutputs, initProjectIfNeeded, resolveProjectFolder } from '../lib/project.js';
 
 const router = Router();
@@ -89,6 +91,85 @@ router.post('/project/scan-outputs', async (req, res) => {
     console.error(`[project/scan-outputs] walk failed for ${check.resolved}:`, message);
     res.status(500).json({ error: `Failed to scan project outputs: ${message}` });
   }
+});
+
+// GET /api/project/:slug/deliverables — §43: authoritative deliverable list
+// for the ProjectPage Output grid. Merges main-branch saved files with
+// in-session uncommitted files, deduped by basename (main wins when both
+// exist). Each item carries a status tag so the frontend can distinguish
+// "Saved" from "In session".
+router.get('/project/:slug/deliverables', async (req, res) => {
+  const check = resolveProjectFolder(req.params.slug);
+  if (!check.ok) {
+    res.status(400).json({ error: check.reason });
+    return;
+  }
+  const projectPath = check.resolved;
+
+  let mainItems: Array<{ name: string; mtime: string }> = [];
+  let sessionItems: Array<{ name: string; sessionId: string; mtime: string }> = [];
+
+  // Defense-in-depth: each sub-query already has .catch(() => []), this outer
+  // catch guards against Promise.all internal failures (rare but possible
+  // under mock/test environments). Removing would lose belt-and-braces.
+  try {
+    [mainItems, sessionItems] = await Promise.all([
+      listMainBranchDeliverables(projectPath).catch(() => []),
+      listSessionBranchDeliverables(projectPath).catch(() => []),
+    ]);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[project/deliverables] failed for ${projectPath}:`, message);
+    res.json({ items: [] });
+    return;
+  }
+
+  interface DeliverableItem {
+    name: string;
+    path: string;
+    status: 'saved' | 'in-session';
+    mtime: string;
+    sessionId?: string;
+  }
+
+  const seen = new Map<string, DeliverableItem>();
+
+  for (const m of mainItems) {
+    seen.set(m.name, {
+      name: m.name,
+      path: join(projectPath, m.name),
+      status: 'saved',
+      mtime: m.mtime,
+    });
+  }
+
+  for (const s of sessionItems) {
+    if (!seen.has(s.name)) {
+      seen.set(s.name, {
+        name: s.name,
+        // Assumes worktree folder name === branch slug (true per Phase 6.2
+        // contract: `git worktree add <projectPath>/sessions/<slug> -b
+        // session/<slug>`, see SESSION_BRANCH_RE in git.ts). If branch naming
+        // convention ever changes, update this path derivation.
+        path: join(projectPath, 'sessions', s.sessionId, s.name),
+        status: 'in-session',
+        mtime: s.mtime,
+        sessionId: s.sessionId,
+      });
+    }
+  }
+
+  const items = [...seen.values()].sort((a, b) => {
+    if (!a.mtime && !b.mtime) return 0;
+    if (!a.mtime) return 1;
+    if (!b.mtime) return -1;
+    return b.mtime.localeCompare(a.mtime);
+  });
+
+  console.log(
+    `[project/deliverables] ${projectPath} saved=${mainItems.length} session=${sessionItems.length} total=${items.length}`,
+  );
+  res.json({ items });
 });
 
 export default router;
