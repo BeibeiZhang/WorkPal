@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Chat, Attachment, OutputItem } from '../types';
-import { LayoutDashboard, SquarePen, Link, BookOpen, Brain, FolderPlus, ChevronDown, Search, Palette, PanelLeft, MoreHorizontal, Trash2, FolderInput, Check, Sparkles, LogOut } from 'lucide-react';
+import { LayoutDashboard, SquarePen, Link, BookOpen, Brain, FolderPlus, ChevronDown, Search, Palette, PanelLeft, MoreHorizontal, Trash2, FolderInput, Check, Sparkles, LogOut, User } from 'lucide-react';
 import { iconSun, iconMoon } from '../assets';
 import { NavItem } from './shared';
 import { useAuth } from '../lib/useAuth';
@@ -190,7 +190,20 @@ function RowMoreMenu({
   );
 }
 
-const USER_PROFILE_IMG = '/icons/user-profile.png';
+/** User profile avatar — uses the design-system `User` icon
+ *  (lucide-react) on a neutral gray surface so it stays in tune with all
+ *  other shared icons. Kept as a small inline component to keep the two
+ *  render branches (compact + expanded) aligned. */
+function UserAvatar({ size = 35 }: { size?: number }) {
+  return (
+    <div
+      className="flex items-center justify-center"
+      style={{ width: size, height: size }}
+    >
+      <User size={Math.round(size * 0.6)} className="text-text-primary" />
+    </div>
+  );
+}
 
 /**
  * Account dropdown anchored to the sidebar's profile row. Opens upward
@@ -277,17 +290,15 @@ function AvatarMenu({ compact = false, activeView, activeChatId, onViewChange, o
         className={
           compact
             ? 'block rounded-full overflow-hidden hover:opacity-80 transition-opacity'
-            : 'flex items-center gap-6 w-full rounded-full hover:bg-bg-hover transition-colors text-left'
+            : 'flex items-center gap-4 w-full rounded-full hover:bg-bg-hover transition-colors text-left'
         }
         style={compact ? { width: 35, height: 35 } : undefined}
       >
         {compact ? (
-          <img src={USER_PROFILE_IMG} alt={displayName} className="w-full h-full object-cover" />
+          <UserAvatar size={35} />
         ) : (
           <>
-            <div className="rounded-full overflow-hidden shrink-0" style={{ width: 35, height: 35 }}>
-              <img src={USER_PROFILE_IMG} alt={displayName} className="w-full h-full object-cover" />
-            </div>
+            <UserAvatar size={35} />
             <p className="type-h2-emphasized text-text-primary truncate">
               {displayName}
             </p>
