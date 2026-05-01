@@ -3,6 +3,8 @@ import { access } from 'node:fs/promises';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 
+import { isDeliverable } from './sessionCopy.js';
+
 const execFileP = promisify(execFile);
 
 /** 6.2: Branch-name contract for worktree-backed sessions. Supersedes D2's
@@ -537,4 +539,106 @@ export async function listAddedTopLevelFiles(
   return parseDiffNameStatus(stdout)
     .map((entry) => entry.path)
     .filter((p) => !p.includes('/'));
+}
+
+/** §43: list deliverable files on the project's main branch (HEAD).
+ *  Returns top-level files that pass the `isDeliverable` filter, each with
+ *  the ISO-8601 author-date of the commit that last touched it. */
+export async function listMainBranchDeliverables(
+  projectPath: string,
+): Promise<Array<{ name: string; mtime: string }>> {
+  const { stdout } = await execFileP('git', [
+    '-C',
+    projectPath,
+    'ls-tree',
+    '-r',
+    '--name-only',
+    'HEAD',
+  ]);
+  const names = stdout
+    .split('\n')
+    .filter((n) => n.length > 0 && !n.includes('/') && isDeliverable(n));
+  if (names.length === 0) return [];
+  const results = await Promise.all(
+    names.map(async (name) => {
+      const { stdout: dateOut } = await execFileP('git', [
+        '-C',
+        projectPath,
+        'log',
+        '-1',
+        '--format=%aI',
+        'HEAD',
+        '--',
+        name,
+      ]);
+      return { name, mtime: dateOut.trim() };
+    }),
+  );
+  return results;
+}
+
+/** §43: list deliverable files across all active session branches that have
+ *  not yet been merged into the project's main branch. Each session branch
+ *  is queried independently — a corrupt or dangling ref skips with a warning
+ *  instead of failing the whole list. */
+export async function listSessionBranchDeliverables(
+  projectPath: string,
+): Promise<Array<{ name: string; sessionId: string; mtime: string }>> {
+  let branchOutput: string;
+  try {
+    const { stdout } = await execFileP('git', [
+      '-C',
+      projectPath,
+      'branch',
+      '--list',
+      'session/*',
+      '--format=%(refname:short)',
+    ]);
+    branchOutput = stdout;
+  } catch {
+    return [];
+  }
+  const branches = branchOutput
+    .split('\n')
+    .filter((b) => b.length > 0);
+  if (branches.length === 0) return [];
+
+  const perBranch = await Promise.all(
+    branches.map(async (branchName) => {
+      try {
+        const added = await listAddedTopLevelFiles(projectPath, branchName);
+        const deliverables = added.filter((p) => isDeliverable(p));
+        if (deliverables.length === 0) return [];
+        const sessionId = branchName.replace(/^session\//, '');
+        return Promise.all(
+          deliverables.map(async (name) => {
+            let mtime = '';
+            try {
+              const { stdout: dateOut } = await execFileP('git', [
+                '-C',
+                projectPath,
+                'log',
+                '-1',
+                '--format=%aI',
+                branchName,
+                '--',
+                name,
+              ]);
+              mtime = dateOut.trim();
+            } catch {
+              // Fall back to empty mtime if git log fails for this file.
+            }
+            return { name, sessionId, mtime };
+          }),
+        );
+      } catch (err) {
+        console.warn(
+          `[deliverables] skipping branch ${branchName}:`,
+          err instanceof Error ? err.message : err,
+        );
+        return [];
+      }
+    }),
+  );
+  return perBranch.flat();
 }

@@ -12,11 +12,15 @@ import type { Chat, Attachment, OutputItem, OutputType, ImageResult, VideoResult
 import { filesToAttachments, formatFileSize } from '../lib/attachments';
 import { IS_DEMO } from '../lib/demoMode';
 import { useIsMobile } from '../lib/useIsMobile';
-import { listArtifacts, type Artifact, type ArtifactKind } from '../lib/artifacts';
+import { listArtifacts, outputTypeFromPath, type Artifact, type ArtifactKind } from '../lib/artifacts';
+import { fetchProjectDeliverables, type DeliverableItem } from '../lib/api';
 import { fetchAgent, AgentUnreachableError } from '../lib/agent';
 
 interface ProjectPageProps {
   project: Project;
+  /** §43: pre-computed slugify(project.name) from App.tsx so ProjectPage
+   *  can call fetchProjectDeliverables without duplicating slugify. */
+  projectSlug: string;
   chats: Chat[];
   onCreateChat: (projectId: string, text: string, attachments?: Attachment[]) => void;
   onOpenChat: (chatId: string) => void;
@@ -368,7 +372,7 @@ const EMPTY_CONTENT: ProjectContent = {
 };
 
 export default function ProjectPage({
-  project, chats, onCreateChat, onOpenChat,
+  project, projectSlug, chats, onCreateChat, onOpenChat,
   onAddFiles, onRemoveFile,
   onAddReferenceDirectory, onRemoveReferenceDirectory,
   sidebarOpen, onToggleSidebar, onOutputPreview,
@@ -379,17 +383,18 @@ export default function ProjectPage({
 }: ProjectPageProps) {
   const content = PROJECT_CONTENT[project.id] ?? EMPTY_CONTENT;
   const isMobile = useIsMobile();
-  // Three output sources feed the grid:
-  //   1. seedOutputs  — PROJECT_CONTENT mock (proj-1 showcase). Demo only.
-  //   2. claudeCodeOutputs — Claude Code file writes in this project, persisted
-  //      on `project.outputs` via the App-level streaming loop (PR #93).
-  //   3. hostedArtifacts — candidate #3 /api/artifacts rows scoped to this
-  //      project. Fetched fresh on mount; demo-mode short-circuits to [].
-  // Merged in that priority (real work first, seed as fallback), deduped by
-  // name so re-generating a seed-named item doesn't double up.
+  // Four output sources feed the grid:
+  //   1. deliverables — §43 authoritative list from GET /api/project/:slug/deliverables.
+  //      Merges main-branch saved files + in-session uncommitted, deduped by basename.
+  //   2. claudeCodeOutputs — instant feedback for in-flight chat file writes.
+  //   3. hostedArtifacts — candidate #3 /api/artifacts rows scoped to this project.
+  //   4. seedOutputs — PROJECT_CONTENT mock (proj-1 showcase). Demo only.
+  // Deliverables carry authoritative status tags; remaining sources fill gaps
+  // for items the endpoint hasn't seen yet (in-flight writes, hosted artifacts).
   const seedOutputs = content.outputs;
   const claudeCodeOutputs = project.outputs ?? [];
   const [hostedArtifacts, setHostedArtifacts] = useState<OutputItem[]>([]);
+  const [deliverables, setDeliverables] = useState<DeliverableItem[]>([]);
   useEffect(() => {
     if (IS_DEMO) return;
     let cancelled = false;
@@ -399,8 +404,29 @@ export default function ProjectPage({
     });
     return () => { cancelled = true; };
   }, [project.id]);
+  useEffect(() => {
+    if (IS_DEMO) return;
+    let cancelled = false;
+    fetchProjectDeliverables(projectSlug).then((items) => {
+      if (!cancelled) setDeliverables(items);
+    });
+    return () => { cancelled = true; };
+  }, [projectSlug]);
+
   const seenNames = new Set<string>();
   const mergedOutputs: OutputItem[] = [];
+  // Deliverables first — they carry the authoritative status tag.
+  for (const d of deliverables) {
+    if (seenNames.has(d.name)) continue;
+    seenNames.add(d.name);
+    mergedOutputs.push({
+      id: `deliverable-${d.name}`,
+      name: d.name,
+      type: outputTypeFromPath(d.name),
+      path: d.path,
+      status: d.status,
+    });
+  }
   for (const o of [...claudeCodeOutputs, ...hostedArtifacts, ...seedOutputs]) {
     if (seenNames.has(o.name)) continue;
     seenNames.add(o.name);
@@ -728,6 +754,13 @@ export default function ProjectPage({
                               <span className={`type-detail text-center leading-[1.2] line-clamp-2 w-full ${isSelected ? 'text-accent-blue' : 'text-text-primary'}`}>
                                 {o.name}
                               </span>
+                              {o.status && (
+                                <span className={`type-detail ${
+                                  o.status === 'saved' ? 'text-accent-green' : 'text-text-tertiary'
+                                }`}>
+                                  {o.status === 'saved' ? 'Saved' : 'In session'}
+                                </span>
+                              )}
                             </button>
                           );
                         })}

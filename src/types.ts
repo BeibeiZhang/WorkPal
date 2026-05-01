@@ -160,6 +160,9 @@ export interface OutputItem {
    *  ArtifactRef.path. Undefined for hosted artifacts (#3) and pre-§23
    *  legacy entries (those click branches keep the toggle-highlight fallback). */
   path?: string;
+  /** §43: 'saved' = on project main branch; 'in-session' = active session
+   *  branch only. Undefined for seed/hosted/legacy entries (no tag rendered). */
+  status?: 'saved' | 'in-session';
 }
 
 /** Inline reference to a produced file / document rendered inside a chat

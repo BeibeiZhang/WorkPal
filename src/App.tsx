@@ -3423,6 +3423,7 @@ export default function App() {
           >
             <ProjectPage
               project={projects.find(p => p.id === activeProjectId)!}
+              projectSlug={slugify(projects.find(p => p.id === activeProjectId)!.name)}
               chats={chats}
               onCreateChat={handleCreateChatInProject}
               onOpenChat={handleChatSelect}
