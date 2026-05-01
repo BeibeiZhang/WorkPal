@@ -51,7 +51,7 @@ const SCAFFOLDING_BLOCK: ReadonlySet<string> = new Set([
 ]);
 const SCAFFOLDING_PATTERN = /^tsconfig\..+\.json$/i;
 
-function isDeliverable(name: string): boolean {
+export function isDeliverable(name: string): boolean {
   if (!DELIVERABLE_EXT.test(name)) return false;
   if (SCAFFOLDING_BLOCK.has(name)) return false;
   if (SCAFFOLDING_PATTERN.test(name)) return false;
