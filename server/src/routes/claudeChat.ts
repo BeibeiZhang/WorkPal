@@ -13,7 +13,7 @@ import {
   worktreeAddIfNeeded,
   worktreeRemoveIfEmpty,
 } from '../lib/git.js';
-import { initProjectIfNeeded, resolveProjectFolder } from '../lib/project.js';
+import { initProjectIfNeeded, listProjectMainDeliverables, resolveProjectFolder } from '../lib/project.js';
 import { WORKPAL_ROOT } from '../lib/paths.js';
 import { validateReferenceDirectories } from '../lib/referenceDirs.js';
 import { logUsage } from '../lib/usageLog.js';
@@ -231,6 +231,11 @@ const ARTIFACT_PROMPT = [
   // Explicit end-of-message marker — the strongest signal.
   'END OF TURN MARKER (required when you produced an artifact): the LAST line of your final assistant message must be a marker on its own line. Use ONE of:\n  • `[PREVIEW: http://localhost:<port>]` — when you started a dev server the user should open in a browser (e.g. `npm run dev` produced `http://localhost:5173`).\n  • `[ARTIFACT: <absolute-or-relative-path>]` — when the deliverable is a single file (e.g. `[ARTIFACT: outputs/index.html]`).\nThe marker is stripped from the displayed chat and used to surface ONE clickable preview card. Do not include it if there is no deliverable (pure Q&A / discussion).',
 ].join('\n\n');
+
+// §44: when the project's main branch has committed deliverables, list them
+// so the AI Globs/Reads before answering instead of fabricating from scratch.
+const PROJECT_CONTEXT_PROMPT = (deliverables: string[]) =>
+  `This project already has the following deliverables on its main branch:\n${deliverables.map((d) => `  • ${d}`).join('\n')}\n\nWhen the user asks to edit, update, or reference one of these files, Glob and Read the matching file in your working directory FIRST — it was branched from main and contains the real content. Do not fabricate a new version from scratch. If the file is not in your working directory (e.g. it was deleted on this session branch), say so and offer to recreate it.`;
 
 // §19: when the request carries reference folders, tell the agent they exist
 // so it Globs/Reads them before guessing external context. Without this, the
@@ -519,6 +524,18 @@ router.post('/claude-chat', async (req, res) => {
   }
   const validatedRefDirs = refDirsCheck.resolved;
 
+  // §44: list deliverables on the project's main branch so the AI knows what
+  // already exists. Fail-quiet: git errors silently skip injection.
+  let projectDeliverables: string[] = [];
+  if (projectPath) {
+    try {
+      projectDeliverables = await listProjectMainDeliverables(projectPath);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn(`[claude-chat] listProjectMainDeliverables failed: ${message}`);
+    }
+  }
+
   try {
     // 6.4 regression: let the SDK operate with its default toolset. All
     // permission UX is handled by canUseTool's auto-allow rules below —
@@ -528,9 +545,11 @@ router.post('/claude-chat', async (req, res) => {
       cwd: workingDir,
       sessionId,
       canUseTool,
-      appendSystemPrompt: validatedRefDirs.length
-        ? `${ARTIFACT_PROMPT}\n\n${REFERENCE_FOLDERS_PROMPT(validatedRefDirs)}`
-        : ARTIFACT_PROMPT,
+      appendSystemPrompt: [
+        ARTIFACT_PROMPT,
+        ...(projectDeliverables.length ? [PROJECT_CONTEXT_PROMPT(projectDeliverables)] : []),
+        ...(validatedRefDirs.length ? [REFERENCE_FOLDERS_PROMPT(validatedRefDirs)] : []),
+      ].join('\n\n'),
       ...(validatedRefDirs.length ? { additionalDirectories: validatedRefDirs } : {}),
     })) {
       switch (msg.type) {

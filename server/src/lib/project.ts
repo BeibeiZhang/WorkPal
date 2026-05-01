@@ -4,6 +4,7 @@ import { access, readdir } from 'node:fs/promises';
 import { basename, join, resolve as pathResolve, sep } from 'node:path';
 import { promisify } from 'node:util';
 import { WORKPAL_ROOT } from './paths.js';
+import { isDeliverable } from './sessionCopy.js';
 
 const execFileP = promisify(execFile);
 
@@ -153,4 +154,22 @@ export async function indexProjectOutputs(
     count++;
   }
   return index;
+}
+
+/** §44: list user-facing deliverable filenames on the project's main branch.
+ *  Runs `git ls-tree` against project HEAD (the base branch). Filters to
+ *  top-level deliverables only via the shared `isDeliverable` filter.
+ *  Throws on git failure — caller catches and silently skips injection. */
+export async function listProjectMainDeliverables(
+  projectPath: string,
+): Promise<string[]> {
+  const { stdout } = await execFileP(
+    'git',
+    ['-C', projectPath, 'ls-tree', '-r', '--name-only', 'HEAD'],
+  );
+  return stdout
+    .split('\n')
+    .filter((line) => line.length > 0)
+    .filter((path) => !path.includes('/'))
+    .filter((name) => isDeliverable(name));
 }
