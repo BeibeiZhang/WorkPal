@@ -31,6 +31,7 @@ export default {
         stroke: {
           outline: 'var(--color-stroke-outline)',
         },
+        warning: 'var(--color-warning)',
         error: 'var(--color-error)',
         accent: {
           blue: 'var(--color-accent-blue)',

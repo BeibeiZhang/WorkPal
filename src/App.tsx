@@ -14,6 +14,7 @@ import DesignSystemPage from './components/DesignSystemPage';
 import OverviewPage from './components/OverviewPage';
 import LibraryPage from './components/LibraryPage';
 import MemoryPage from './components/MemoryPage';
+import SoftwareUpdatePage from './components/SoftwareUpdatePage';
 import NewProjectDialog from './components/NewProjectDialog';
 import { SplitView } from './components/shared';
 import { Chat, Message, ActionChip, Attachment, TicketCard, AgentCard, ScheduleCard, ImageResult, VideoResult, WebResult, MemoryEntry, MemoryKind, CardData, ChangeEntry, ChangeKind, PermissionRequest, OutputItem, ArtifactRef } from './types';
@@ -576,13 +577,14 @@ export default function App() {
   const projectMatch = useMatch('/project/:projectId');
   const [rootChatId, setRootChatId] = useState<string>(initialChatState.activeChatId);
 
-  type ViewName = 'chat' | 'connectors' | 'design-system' | 'overview' | 'library' | 'memory';
+  type ViewName = 'chat' | 'connectors' | 'design-system' | 'overview' | 'library' | 'memory' | 'software-update';
   const activeView: ViewName =
     location.pathname === '/overview' ? 'overview'
     : location.pathname === '/connectors' ? 'connectors'
     : location.pathname === '/design-system' ? 'design-system'
     : location.pathname === '/library' ? 'library'
     : location.pathname === '/memory' ? 'memory'
+    : location.pathname === '/software-update' ? 'software-update'
     : 'chat';
   const activeChatId = chatMatch?.params.chatId ?? rootChatId;
   const activeProjectId = projectMatch?.params.projectId ?? null;
@@ -3487,6 +3489,12 @@ export default function App() {
             onAdd={handleAddMemory}
             onUpdate={handleUpdateMemory}
             onDelete={handleDeleteMemory}
+            sidebarOpen={sidebarOpen || !isMobile}
+            onToggleSidebar={() => setSidebarOpen(o => !o)}
+            onNewChat={isMobile ? handleNewChat : undefined}
+          />
+        ) : activeView === 'software-update' ? (
+          <SoftwareUpdatePage
             sidebarOpen={sidebarOpen || !isMobile}
             onToggleSidebar={() => setSidebarOpen(o => !o)}
             onNewChat={isMobile ? handleNewChat : undefined}
