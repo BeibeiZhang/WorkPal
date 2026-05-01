@@ -508,7 +508,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
   // The top "New Session" button shows as selected while a draft chat is the
   // active chat — i.e. the user has clicked it but hasn't sent a message yet.
   const activeChat = chats.find(c => c.id === activeChatId);
-  const isNewSessionActive = activeView === 'chat' && !!activeChat && isDraftLike(activeChat);
+  const isNewSessionActive = activeView === 'chat' && !!activeChat && isDraftLike(activeChat) && !activeProjectId;
 
   return (
     <div
