@@ -111,18 +111,21 @@ export async function startApiServer(): Promise<void> {
     res.json({ status: 'ok', pid: process.pid, port: API_PORT });
   });
 
-  // Mount the 4 local-touching routes from agent/src/shared/routes/. Order
+  // Mount the local-touching routes from agent/src/shared/routes/. Order
   // matches server/src/index.ts so any route-level middleware in the shared
   // code behaves identically between dev server and agent runtime.
   const claudeChat = (await import('../shared/routes/claudeChat.js')).default;
   const project = (await import('../shared/routes/project.js')).default;
   const session = (await import('../shared/routes/session.js')).default;
   const reaper = (await import('../shared/routes/reaper.js')).default;
+  const versionInfo = (await import('../shared/routes/versionInfo.js')).default;
 
   app.use('/api', requireAnthropicKey, claudeChat);
   app.use('/api', project);
   app.use('/api', session);
   app.use('/api', reaper);
+  // versionInfo handles missing keys gracefully per-row, so no requireAnthropicKey gate.
+  app.use('/api', versionInfo);
 
   // §17 native folder picker. Electron-only — the dev server (server/src/)
   // has no electron import, so this endpoint returns 404 there and the

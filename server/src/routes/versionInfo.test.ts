@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
  */
 
 import { parseSemver, compareSemver } from '../lib/semver.js';
+import { readAgentVersion } from './versionInfo.js';
 
 describe('version-info endpoint logic', () => {
   describe('SDK version comparison', () => {
@@ -70,6 +71,35 @@ describe('version-info endpoint logic', () => {
       const tag = 'v1.0.0-beta.1';
       const parsed = parseSemver(tag);
       assert.equal(parsed, null);
+    });
+  });
+
+  describe('readAgentVersion (asar path resolution)', () => {
+    it('falls back to fs read when not in Electron context', async () => {
+      // No isElectron flag, no electronLoader → takes the filesystem branch.
+      // Proves the dev-server / non-Electron path resolves agent/package.json
+      // correctly via import.meta.url + path.resolve.
+      const version = await readAgentVersion();
+      assert.match(version, /^\d+\.\d+\.\d+$/, 'version should be x.y.z');
+    });
+
+    it('uses electron.app.getVersion() when isElectron flag is true (simulated asar context)', async () => {
+      // Inject a fake electron module via the testability seam. In real asar
+      // packaging fs.readFile against an asar-virtualised path is the failure
+      // mode this avoids — by using app.getVersion() (a native Electron call)
+      // we sidestep filesystem virtualisation entirely.
+      const fakeElectron = { app: { getVersion: () => '0.9.99-asar-test' } };
+      const version = await readAgentVersion(async () => fakeElectron, true);
+      assert.equal(version, '0.9.99-asar-test');
+    });
+
+    it('falls back to fs read if electronLoader rejects under simulated Electron context', async () => {
+      // Simulates a corrupted electron module load — fallback must kick in
+      // and read from disk so the row still populates instead of silently
+      // returning empty.
+      const failingLoader = async () => { throw new Error('electron unavailable'); };
+      const version = await readAgentVersion(failingLoader, true);
+      assert.match(version, /^\d+\.\d+\.\d+$/);
     });
   });
 
