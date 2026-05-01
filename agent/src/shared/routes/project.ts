@@ -109,6 +109,9 @@ router.get('/project/:slug/deliverables', async (req, res) => {
   let mainItems: Array<{ name: string; mtime: string }> = [];
   let sessionItems: Array<{ name: string; sessionId: string; mtime: string }> = [];
 
+  // Defense-in-depth: each sub-query already has .catch(() => []), this outer
+  // catch guards against Promise.all internal failures (rare but possible
+  // under mock/test environments). Removing would lose belt-and-braces.
   try {
     [mainItems, sessionItems] = await Promise.all([
       listMainBranchDeliverables(projectPath).catch(() => []),
@@ -144,6 +147,10 @@ router.get('/project/:slug/deliverables', async (req, res) => {
     if (!seen.has(s.name)) {
       seen.set(s.name, {
         name: s.name,
+        // Assumes worktree folder name === branch slug (true per Phase 6.2
+        // contract: `git worktree add <projectPath>/sessions/<slug> -b
+        // session/<slug>`, see SESSION_BRANCH_RE in git.ts). If branch naming
+        // convention ever changes, update this path derivation.
         path: join(projectPath, 'sessions', s.sessionId, s.name),
         status: 'in-session',
         mtime: s.mtime,
