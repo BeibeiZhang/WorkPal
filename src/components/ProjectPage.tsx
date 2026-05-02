@@ -696,14 +696,20 @@ export default function ProjectPage({
                         visual noise above a "nothing here yet" message. */}
                     {mergedOutputs.length > 0 && (
                       <div className="flex gap-2">
-                        {OUTPUT_FILTERS.map(f => (
-                          <FilterChip
-                            key={f}
-                            label={f}
-                            active={outputFilter === f}
-                            onClick={() => setOutputFilter(f)}
-                          />
-                        ))}
+                        {OUTPUT_FILTERS.map(f => {
+                          const count = f === 'All'
+                            ? mergedOutputs.length
+                            : mergedOutputs.filter(o => o.type === f).length;
+                          return (
+                            <FilterChip
+                              key={f}
+                              label={f}
+                              count={count}
+                              active={outputFilter === f}
+                              onClick={() => setOutputFilter(f)}
+                            />
+                          );
+                        })}
                       </div>
                     )}
 
@@ -751,7 +757,7 @@ export default function ProjectPage({
                                 className={isSelected ? 'text-accent-blue' : 'text-text-primary dark:text-white'}
                                 strokeWidth={1.2}
                               />
-                              <span className={`type-detail text-center leading-[1.2] line-clamp-2 w-full ${isSelected ? 'text-accent-blue' : 'text-text-primary'}`}>
+                              <span className={`type-h3 text-center line-clamp-2 w-full ${isSelected ? 'text-accent-blue' : 'text-text-primary'}`}>
                                 {o.name}
                               </span>
                               {o.status && (

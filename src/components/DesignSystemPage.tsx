@@ -541,6 +541,16 @@ const TYPE_SCALE: {
     ],
   },
   {
+    className: 'type-h3',
+    label: 'H3 / Regular',
+    size: '14', lh: '16', weight: '400', tracking: '0',
+    sample: 'Compact heading',
+    usage: 'Sub-section labels and dense card titles — same size as Detail but tighter 16px leading for short headings',
+    appearances: [
+      'Reserved for new compact-heading surfaces — pair with detail/caption body copy.',
+    ],
+  },
+  {
     className: 'type-detail-emphasized',
     label: 'Detail / Emphasized',
     size: '14', lh: '22', weight: '700', tracking: '0',
@@ -912,7 +922,7 @@ const PRINCIPLES: { n: number; title: string; rule: string; why?: string; refTab
   {
     n: 7,
     title: '5 text styles only',
-    rule: 'Use .type-display-xl, .type-display, .type-h1, .type-h1--emphasized, .type-body, .type-body-emphasized, .type-h2, .type-h2-emphasized, .type-detail, .type-detail-emphasized, .type-caption, .type-footnote. Forbidden running-text sizes: 9, 10, 13, 17, 18, 24, 28, 32 px. 11/12 are valid only via .type-footnote / .type-caption.',
+    rule: 'Use .type-display-xl, .type-display, .type-h1, .type-h1--emphasized, .type-body, .type-body-emphasized, .type-h2, .type-h2-emphasized, .type-h3, .type-detail, .type-detail-emphasized, .type-caption, .type-footnote. Forbidden running-text sizes: 9, 10, 13, 17, 18, 24, 28, 32 px. 11/12 are valid only via .type-footnote / .type-caption.',
     refTab: 'Design Foundations',
   },
   {

@@ -105,6 +105,14 @@ strong, b {
   --font-h2-emphasized-weight: 700;
   --font-h2-tracking: 0px;
 
+  /* H3 — 14/16/400. Compact heading between H2 (16/22) and Detail (14/22):
+     same body size as Detail but with tighter 16px leading for short titles
+     where 22px feels airy. Use for sub-section labels, dense card titles. */
+  --font-h3-size: 14px;
+  --font-h3-lh: 16px;
+  --font-h3-weight: 400;
+  --font-h3-tracking: 0px;
+
   --font-body-size: 16px;
   --font-body-lh: 32px;
   --font-body-weight: 400;
@@ -658,6 +666,12 @@ html, body, #root {
   line-height: var(--font-h2-lh);
   font-weight: var(--font-h2-emphasized-weight);
   letter-spacing: var(--font-h2-tracking);
+}
+.type-h3 {
+  font-size: var(--font-h3-size);
+  line-height: var(--font-h3-lh);
+  font-weight: var(--font-h3-weight);
+  letter-spacing: var(--font-h3-tracking);
 }
 .type-body {
   font-size: var(--font-body-size);
