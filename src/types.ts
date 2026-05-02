@@ -253,6 +253,11 @@ export interface Chat {
    *  anyway). Optional so existing localStorage-persisted chats default to
    *  "not completed" without a migration. */
   sessionCompleted?: boolean;
+  /** Sidebar indicator: flips to `true` when the agent finishes a turn while
+   *  the user is viewing a different chat (or non-chat view). Cleared the
+   *  next time the user opens this chat. Drives the blue dot in the Recents
+   *  row. Thinking state itself is derived from `messages.some(m => m.isLoading)`. */
+  hasUnviewedCompletion?: boolean;
 }
 
 export interface App {

@@ -1387,6 +1387,40 @@ export default function App() {
   // Detect if AI is currently responding (last message is a loading indicator)
   const isAiResponding = !!activeChat?.messages.some(m => m.isLoading);
 
+  // Sidebar "agent finished while you were elsewhere" indicator. Tracks each
+  // chat's previous loading state in a ref; when isLoading flips true→false
+  // and the chat isn't currently active, mark `hasUnviewedCompletion`. The
+  // companion effect below clears the flag the moment the user opens the chat.
+  const prevChatLoadingRef = useRef<Map<string, boolean>>(new Map());
+  useEffect(() => {
+    const finished: string[] = [];
+    chats.forEach(c => {
+      const isLoading = c.messages.some(m => m.isLoading);
+      const wasLoading = prevChatLoadingRef.current.get(c.id) ?? false;
+      if (wasLoading && !isLoading) finished.push(c.id);
+      prevChatLoadingRef.current.set(c.id, isLoading);
+    });
+    if (finished.length === 0) return;
+    setChats(prev => prev.map(c => {
+      if (!finished.includes(c.id)) return c;
+      const isActive = c.id === activeChatId && activeView === 'chat';
+      if (isActive) return c;
+      if (c.hasUnviewedCompletion) return c;
+      return { ...c, hasUnviewedCompletion: true };
+    }));
+  }, [chats, activeChatId, activeView]);
+
+  useEffect(() => {
+    if (activeView !== 'chat' || !activeChatId) return;
+    setChats(prev => {
+      const target = prev.find(c => c.id === activeChatId);
+      if (!target?.hasUnviewedCompletion) return prev;
+      return prev.map(c =>
+        c.id === activeChatId ? { ...c, hasUnviewedCompletion: false } : c,
+      );
+    });
+  }, [activeChatId, activeView]);
+
   const updateChat = useCallback((chatId: string, updater: (chat: Chat) => Chat) => {
     setChats(prev => prev.map(c => c.id === chatId ? updater(c) : c));
   }, []);
