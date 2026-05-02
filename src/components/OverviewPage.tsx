@@ -651,6 +651,9 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                     </div>
                   </div>
 
+                  {/* Vertical divider — fades at top + bottom edges */}
+                  <div className="w-px self-stretch divider-fade-v shrink-0" />
+
                   {/* Spend headline — clickable to expand details */}
                   <button
                     type="button"
