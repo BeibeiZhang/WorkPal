@@ -328,6 +328,59 @@ html, body, #root {
   box-shadow: 0px 4px 8px 0px rgba(20, 39, 64, 0.2);
 }
 
+/* ── API Spend range picker (Figma node 6744:27188) ──
+   60×141 brand-gradient surface with 1/7/30 segments. Inset glow + outer
+   drop-shadow lift the deck off the spend card. Each segment carries its
+   own border; the selected one brightens to white-50 and the text pops
+   from white-30 to opaque white. */
+.spend-picker-deck {
+  /* Two-layer background: surface gradient inside the border, brand
+     gradient on the border itself. CSS `border` only takes solid colors,
+     so the standard padding-box / border-box double-bg trick gives us a
+     1px gradient ring that the `border: 1px solid transparent` reveals. */
+  background:
+    linear-gradient(
+      188.3deg,
+      rgba(118, 82, 185, 0.5) 16.2%,
+      rgba(180, 100, 112, 0.5) 49%,
+      rgba(202, 157, 140, 0.5) 109.3%
+    ) padding-box,
+    linear-gradient(
+      188.3deg,
+      var(--brand-grad-start) 0%,
+      var(--brand-grad-mid) 52%,
+      var(--brand-grad-end) 100%
+    ) border-box;
+  border: 1px solid transparent;
+  box-shadow:
+    0 -2px 20px 0 rgba(0, 99, 170, 0.11),
+    0 4px 20px 0 rgba(0, 23, 141, 0.1),
+    0 15px 15px 0 rgba(181, 51, 3, 0.3),
+    inset 0 -11px 20px 0 rgba(202, 157, 140, 0.8),
+    inset 0 4px 20px 0 rgba(118, 82, 185, 0.69),
+    inset 0 0 17px 0 var(--brand-grad-mid);
+}
+.spend-picker-item {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.3);
+  transition: color 150ms ease, border-color 150ms ease;
+}
+/* Scoped chain — beats .type-h1--emphasized (defined later in this file)
+   so the picker numbers honour the Figma 20px line-height + -0.5px tracking. */
+.spend-picker-deck .spend-picker-item {
+  line-height: 20px;
+  letter-spacing: -0.5px;
+}
+.spend-picker-item.is-selected {
+  border-color: rgba(255, 255, 255, 0.5);
+  color: #FFFFFF;
+  box-shadow: 0 1px 0 0 rgba(0, 20, 36, 0.05);
+}
+.spend-picker-item:not(.is-selected):hover {
+  color: rgba(255, 255, 255, 0.6);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
 .bg-light-purple {
   background: radial-gradient(ellipse at right bottom, rgba(118,82,185,0.12) 0%, transparent 60%);
 }
