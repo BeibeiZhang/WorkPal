@@ -952,37 +952,59 @@ router.post('/claude-chat/reveal-in-finder', async (req, res) => {
   }
 });
 
-// 6.4: read an artifact file for inline preview in the WorkPal DetailPanel.
-// Same WORKPAL_ROOT jail as open-file — the frontend wires ArtifactCard clicks
-// to this endpoint instead of spawning `open`, so the user sees the file
-// content inside the app instead of a new browser/editor window. 10 MB cap
-// keeps a misclick on a huge file from blocking the event loop.
+// 6.4 + §52: read an artifact file for inline preview in the WorkPal
+// DetailPanel. Accepts optional `fallbackPaths` — when the primary path is
+// ENOENT (session worktree reaped), the route tries each fallback in order
+// (project root, reference directories) through the same WORKPAL_ROOT jail.
 router.post('/claude-chat/read-file', async (req, res) => {
-  const { filePath } = req.body as { filePath?: string };
-  const pathCheck = resolveSessionFolder(filePath);
-  if (!pathCheck.ok) {
-    res.status(400).json({ error: pathCheck.reason });
+  const { filePath, fallbackPaths } = req.body as {
+    filePath?: string;
+    fallbackPaths?: unknown;
+  };
+
+  const rawFallbacks = Array.isArray(fallbackPaths)
+    ? (fallbackPaths as unknown[]).filter((p): p is string => typeof p === 'string').slice(0, 10)
+    : [];
+
+  const candidates: string[] = [];
+  const primaryCheck = resolveSessionFolder(filePath);
+  if (!primaryCheck.ok && rawFallbacks.length === 0) {
+    res.status(400).json({ error: primaryCheck.reason });
     return;
   }
+  if (primaryCheck.ok) candidates.push(primaryCheck.resolved);
+  for (const fp of rawFallbacks) {
+    const check = resolveSessionFolder(fp);
+    if (check.ok) candidates.push(check.resolved);
+  }
+  if (candidates.length === 0) {
+    res.status(400).json({ error: primaryCheck.ok ? 'no candidates' : primaryCheck.reason });
+    return;
+  }
+
   try {
     const { readFile, stat } = await import('node:fs/promises');
-    const stats = await stat(pathCheck.resolved);
-    if (!stats.isFile()) {
-      res.status(400).json({ error: 'path is not a file' });
-      return;
+
+    for (const resolved of candidates) {
+      try {
+        const stats = await stat(resolved);
+        if (!stats.isFile()) continue;
+        if (stats.size > 10 * 1024 * 1024) {
+          res.status(413).json({ error: 'file too large for inline preview (>10 MB)' });
+          return;
+        }
+        const content = await readFile(resolved, 'utf8');
+        res.json({ content, size: stats.size, resolvedPath: resolved });
+        return;
+      } catch (inner) {
+        const ie = inner as NodeJS.ErrnoException;
+        if (ie.code === 'ENOENT') continue;
+        throw inner;
+      }
     }
-    if (stats.size > 10 * 1024 * 1024) {
-      res.status(413).json({ error: 'file too large for inline preview (>10 MB)' });
-      return;
-    }
-    const content = await readFile(pathCheck.resolved, 'utf8');
-    res.json({ content, size: stats.size });
+
+    res.status(404).json({ error: 'file not found', reason: 'file_no_longer_accessible' });
   } catch (err) {
-    const e = err as NodeJS.ErrnoException;
-    if (e.code === 'ENOENT') {
-      res.status(404).json({ error: 'file not found' });
-      return;
-    }
     const message = err instanceof Error ? err.message : String(err);
     console.error('[claude-chat] read-file failed:', message);
     res.status(500).json({ error: message });
