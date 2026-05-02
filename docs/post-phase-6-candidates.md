@@ -858,6 +858,263 @@ Hidden in `IS_DEMO` builds (no debug for HR audience).
 
 ---
 
+## 29. `shipped` — ChatInput multi-Enter race fix
+
+**Shipped**: 2026-04-28 (PR [#154](https://github.com/BeibeiZhang/WorkPal/pull/154), frontend-only Vercel auto-deploy). 1 file ChatInput.tsx +22/-3.
+
+**Root cause**: Spec 推 single `if (isStreaming) return` guard 不够 — impl preview MCP 实测 3 Enter → 仍 3 message。React state update 跨 event 也要等 commit；同步 burst 里 prop 仍 stale.
+
+**Fix**: `sendingRef` (useRef) 同步置 true，`useEffect` 监听 `isAiResponding` 回 false 时释放。`handleSend` 双 guard: `if (isAiResponding || sendingRef.current) return`。Plus optional: send button `opacity-50 cursor-not-allowed` when streaming.
+
+**Plan-quality 4th high-bar plan** — impl preview MCP 实测 catch spec wrong + iterate fix.
+
+---
+
+## 30. `shipped` — Output → ref folder convention (prompt + backend fallback)
+
+**Shipped**: 2026-04-28 (PR [#157](https://github.com/BeibeiZhang/WorkPal/pull/157), v0.1.7 dmg). 14 files +740/-101.
+
+**Part A** — §19 `REFERENCE_FOLDERS_PROMPT` 加 closing sentence "Your deliverable file outputs go to `<cwd>/outputs/<name>` (matches ARTIFACT_PROMPT convention)".
+
+**Part B** — backend `copySessionOutputsToRefFolder` 加 fallback：if `outputs/` missing/empty → run `git status --porcelain=v1 -z` → filter top-level + `DELIVERABLE_EXT` (`md|txt|html|pdf|docx?|json|ya?ml|csv`) + `SCAFFOLDING_BLOCK` → copy with `COPYFILE_EXCL`. New `listNewFilesAtTop` git helper + `parseNewFilesPorcelain` testable function. CopyResult union 加 `usedFallback?: true` + `'no_new_deliverables'` warning. Frontend CompleteSessionModal terse messages.
+
+**Plan-quality 5th high-bar plan**. Tests added: `sessionCopy.test.ts` + `git.test.ts` extension — proactive beyond spec. **Known minor nit (deferred to §35)**: `pnpm-lock.yaml` 漏过 blocklist (`.yaml` in deliverable list, lockfile name not in block).
+
+---
+
+## 31+32. `shipped` — Legacy Output backfill + icon Primary color
+
+**Shipped**: 2026-04-28 (PR [#153](https://github.com/BeibeiZhang/WorkPal/pull/153), frontend-only Vercel auto-deploy). 8 files +302/-8.
+
+**§31** = new `POST /api/project/scan-outputs` (server + agent mirror) → `indexProjectOutputs(projectPath, maxEntries=5000)` 递归 walk sessions/ skip `.git/` / `node_modules/`, basename-keyed Map; returns **only unique matches** (0/multi → drop, avoid wrong-path overwrite). Frontend: `postScanProjectOutputs(slug, names)` graceful agent-unreachable returns `[]`; `backfillLegacyOutputPaths(project, scan)` **DI pure function**; App.tsx `backfilledProjectsRef: Set<string>` once-per-project guard + `setProjects` updater closure latest-prev re-merge (concurrent-edit safe).
+
+**§32** = ProjectPage Output icon `text-text-tertiary` → `text-text-primary` (light only `#142740` 100%).
+
+**Plan-quality 第 3 个 high-bar plan**: impl 自加 3 safety patterns beyond spec — DI / idempotent guard / concurrent-edit re-merge — plus Node 20+ Dirent shim + multi-match stricter than spec.
+
+---
+
+## 36. `shipped` — ProjectPage ChatInput voice mode props
+
+**Shipped**: 2026-04-28 (PR [#158](https://github.com/BeibeiZhang/WorkPal/pull/158), bundled with §38, frontend-only).
+
+**Surfaced**: Beibei observed Career ProjectPage 输入框无 mic button while ChatPanel 有.
+
+**Decision via AskUserQuestion**: Strategy 1 = parallel inline mounts (impl grep verified VoiceMode is inline bar above ChatInput, NOT fixed overlay — impl 矫正 planning Strategy A "lift to top-level overlay" 假设).
+
+**Fix**: ProjectPage 加 11 voice props (selectedAvatarId / onVoiceMode / voiceModeActive / onVoiceModeClose / onVoiceMessage / onVoiceImages / onVoiceVideos / onVoiceWebSearch / voicePendingText / voicePendingImages / onVoicePendingTextConsumed). ChatPanel **零改动** (parallel mounts, runtime 只 1 个 active 因为路由互斥).
+
+---
+
+## 38. `shipped` — ProjectPage chat creation routing fix (SHOWSTOPPER)
+
+**Shipped**: 2026-04-28 (PR [#158](https://github.com/BeibeiZhang/WorkPal/pull/158), bundled with §36, frontend-only).
+
+**Surfaced**: Beibei extensive debugging discovered **ProjectPage 内 chat 永远走 OpenAI 不管 §21 ref folder routing**。同样 prompt "创建 hello.md" → standalone chat: Claude SDK Write tool ✅; ProjectPage chat: OpenAI calls `create_calendar_event` ❌.
+
+**Root cause**: `handleCreateChatInProject` (App.tsx:2902) 直接调 `streamFromAPI` 跳过 `getAgentRouteIntent`.
+
+**Fix**: 抽出 `dispatchSendForChat` useCallback，handleSend + handleCreateChatInProject 都调它做 routing decision。`projectIdHint` parameter 显式传 (per defensive engineering — fresh chats setChats 没 flush，closure-only lookup miss).
+
+**Plan-quality 6th high-bar plan**: impl 7 条 pitfalls 全显式 flag (closure flush race / branch order / shouldGenerateArtifact precedence / dep bloat / voice flow / selectedAvatarId / cross-route session reset).
+
+---
+
+## 39+40. `shipped` — streamFromClaudeAPI projectIdOverride + Save to Knowledge rename
+
+**Shipped**: 2026-04-29 (PR [#159](https://github.com/BeibeiZhang/WorkPal/pull/159), v0.1.7 dmg). 4 files +12/-8.
+
+**§39 root cause**: §38 plan 显式 flag `streamFromAPI` projectIdOverride pattern 但漏了 `streamFromClaudeAPI` **also lacks** the parameter — fresh chat from `handleCreateChatInProject` → setChats 没 flush → closure 内 `chat?.projectId` undefined → projectSlug undefined → backend 走 Phase 5 fallback (no `git worktree add -b session/<slug>`) → no branch → no commit → no Output card + Save to Knowledge diff fails.
+
+**§39 fix**: 加 `projectIdOverride?: string` 到 `streamFromClaudeAPI` signature, dispatchSendForChat 传 projectIdHint.
+
+**§40**: Rename "Complete Session" → "Save to Knowledge" 3 处 user-visible (button label + modal title 3 states + error fallback). Component file name / function names / state vars / types 不动.
+
+**Lesson sealed**: when adding parameter override to one stream function, audit ALL similar stream functions for same closure-flush gap.
+
+---
+
+## 41. `shipped` — Ref folder fallback uses `base...session` diff (catch committed files)
+
+**Shipped**: 2026-04-29 (PR [#160](https://github.com/BeibeiZhang/WorkPal/pull/160), v0.1.8 dmg).
+
+**Surfaced**: Beibei §39+§40 ship 后 verify — Save to Knowledge "Project main ✓" 但 ref folder ⚠ "No new deliverable files". 实际 AI 写了 `goodbye.md` 但 §30 fallback 漏过.
+
+**Root cause**: §30 fallback 用 `git status --porcelain` 只 catch 未 commit 的文件（untracked/staged）。但 Phase 5.5 auto-commit 在每次 Write tool 后立刻 `git add && git commit` → `git status` 返回空 → fallback 找不到 → `no_new_deliverables`.
+
+**Fix**: 新 `listAddedTopLevelFiles(projectPath, branchName)` 用 `git diff --diff-filter=A --name-status -z <base>...<session>`. Capture 必须在 `mergeSessionFFOnly` 之前 (post-FF range 空). `copySessionOutputsToRefFolder` 加可选 `addedFiles?: string[]` 三态语义: `undefined` → 旧 git-status path; `[]` → truly empty NOT fallthrough; provided → use it.
+
+Follow-up commit (impl plan review 后): `copyTopLevelNewFiles` 防御性 `/` filter (1 LOC) + `listAddedTopLevelFiles` throw 测试 (钉死 catch-and-warn 降级 contract) + `--no-renames` 注释 (Plugin review 错以为冗余, 加注释防再次误判).
+
+---
+
+## 42. `shipped` — Software Update page
+
+**Shipped**: 2026-04-29 (PR [#166](https://github.com/BeibeiZhang/WorkPal/pull/166), v0.1.9 dmg).
+
+**Goal**: AvatarMenu 新 "Software Update" 页面 6 行 dashboard 实时检查升级状态. 6 sources:
+- WorkPal Agent (GitHub `/releases/latest`)
+- Claude SDK (`@anthropic-ai/claude-agent-sdk` npm registry)
+- OpenAI SDK (`openai` npm registry)
+- Claude models (Anthropic `/v1/models`, 需 ANTHROPIC_API_KEY)
+- OpenAI text/chat (filter `gpt-*` non-realtime)
+- OpenAI voice (filter `realtime`/`whisper`/`transcribe`)
+
+各 row 独立 try/catch + 5s timeout, 单点失败不 500 整页. Mobile §15 graceful degrade. IS_DEMO 短路.
+
+**Plan-quality flag — agent shared mirror missing**: PR 第一版只 touch `server/src/routes/versionInfo.ts`, **没** mirror 到 `agent/src/shared/`. Planning catch + impl follow-up commit 加 mirror + `app.getVersion()` asar-safe 解析 + PRICING dedup model lists. **首次 surface "agent shared mirror is impl-mandatory" pattern → memory `feedback_agent_shared_mirror.md`**.
+
+---
+
+## 43. `shipped` — ProjectPage Output 数据源 main + in-session 合并 + status tag
+
+**Shipped**: 2026-04-30 (PR [#168](https://github.com/BeibeiZhang/WorkPal/pull/168), v0.1.10 dmg).
+
+**Surfaced**: Beibei verify Career project 实际 main 8 deliverable + sessions/ 2 worktree, ProjectPage Output 列表只显 3. Root cause: §31 `indexProjectOutputs` 只 walk `<project>/sessions/`, 不看 main 分支 — Save to Knowledge 后 sessions 被 reaper 清就从列表消失. 文件实际还在 main, 不是真丢, 是显示 bug.
+
+**Goal**: Output 列表反映"项目全部产出": main 已 saved + sessions/ in-flight 合并去重，每行文字 status tag 区分 Saved (绿) / In session (灰).
+
+**Backend** — 新 `GET /api/project/:slug/deliverables`:
+1. Saved 列表: `git ls-tree -r --name-only HEAD` filter top-level + `isDeliverable`
+2. In-session 列表: 枚举 `sessions/*`, 每 session `listAddedTopLevelFiles(projectPath, 'session/<slug>')`
+3. 合并去重 by basename: main + session → `'saved'` (优先); main only → `'saved'`; session only → `'in-session'`
+4. Return `{ items: [{name, path, status, mtime, sessionId?}] }` 按 mtime desc
+
+**Frontend**: ProjectPage 进 view 时调 `getProjectDeliverables(slug)` 替换 Project.outputs[] 渲染源 (Project.outputs[] 仍保留作 chat 内 artifact card 即时反馈). Output card 加文字 status tag.
+
+---
+
+## 43.1+43.2+43.3. `shipped` — Save to Knowledge UX batch
+
+**Shipped**: 2026-04-30 (PR [#169](https://github.com/BeibeiZhang/WorkPal/pull/169), v0.1.11 dmg).
+
+**§43.1** — fallback 抓 Modified files: `listAddedTopLevelFiles` rename → `listChangedTopLevelFiles`, `--diff-filter=A` → `--diff-filter=AM`. Beibei 改写 main 已有文件 → AI 改 → diff A 漏 → 误报 "no_new_deliverables". Plus rename chain 抓到 `listSessionBranchDeliverables` 第 2 个 call site (spec 没提, impl 自抓).
+
+**§43.2** — Save to Knowledge button 不再终态 disable: `TaskContextPanel.tsx:460 disabled={sessionCompleted}` + `App.tsx:1560/1602` Save 后 `sessionCompleted=true` 从不 reset → button 永久 disabled. Impl simpler approach: 移除 `sessionCompleted` 从 disable gate, button always enabled, click 时 Phase 6.3 alreadyUpToDate modal 处理 no-changes (planning accept simpler at this time, **后被 §53 revert**).
+
+**§43.3** — Fallback overwrite 一致策略 (Beibei 选 A): `sessionCopy.ts copyTopLevelNewFiles` 移除 `COPYFILE_EXCL`，改 `copyFile(src, dest)` default overwrite，跟 outputs/ 路径 `cp force:true` 心智一致.
+
+Plan-quality 加分: impl Edge-case truth table 5 行 old vs new, 审查所有 chat 创建路径确认 row 4 行为变化在生产中不存在 → no regression. + 非 display 端 isDraft 用法审计 8 处. + Part B race fix 拆 §50.1 follow-up.
+
+---
+
+## 44. `shipped` — Project context system prompt 自动注入
+
+**Shipped**: 2026-04-30 (PR [#167](https://github.com/BeibeiZhang/WorkPal/pull/167), v0.1.10 dmg).
+
+**Surfaced**: Beibei 问 "在项目下的聊天记录和创造的文件会不会成为这个项目下的 memory, AI 会知道之前做过什么吗?" — 现状: 文件 main 上有, AI 有访问权 (Glob/Read) 但**不主动 surface**, 要 prompt 引导.
+
+**Goal**: AI 在 project chat 启动时主动知道项目历史 deliverable. 用户问 "改一下 resume" 等自然引用时, AI 立刻知道哪些文件存在, Glob/Read 后再答, 不 fabricate.
+
+**Fix**: `claudeChat.ts` 加 `PROJECT_CONTEXT_PROMPT(deliverables)` system prompt segment, 在 `chat.projectId` set + main worktree 有 deliverable 时注入. 复用 `isDeliverable` from `sessionCopy.ts`. Fail-quiet on git error. Array-join system prompt 重构 (extensible §45/§46 future).
+
+Prompt 文字关键: "Glob and Read the matching file in your working directory FIRST — it was branched from main and contains the real content. Do not fabricate from scratch."
+
+---
+
+## 50. `shipped` — Chat isDraft display layer fix (find chat-930)
+
+**Shipped**: 2026-05-01 (PR [#170](https://github.com/BeibeiZhang/WorkPal/pull/170), frontend-only Vercel auto-deploy). 5+/7- in 2 files.
+
+**Surfaced**: Beibei v0.1.11 测 — WorkPal project chat ("给予你对这个项目资料的了解...") AI 生成网页 + PREVIEW marker + 给 PermissionPrompt 权限 → 完成后 chat 从 sidebar Recents 和 ProjectPage chat 列表都消失. Planning verify 数据**全在** (chat-930 完整在 localStorage / index.html 80KB + i18n.ts 在 ~/WorkPal/workpal/ main / git log 2 commits today)，**不是 data loss，是 filter bug**.
+
+**Root cause**:
+- `ProjectPage.tsx:473` filter: `chats.filter(c => c.projectId === project.id && !c.isDraft && c.messages.length > 0)`
+- `Sidebar.tsx:501-502` filter: `isDraftLike(c) = c.isDraft || (c.title === 'New Session' && c.messages.length === 0)`
+
+两处都 hide `isDraft: true` chat. chat-930 的 isDraft 字段没在 first message 后 reset (race), 所以 UI 都看不到.
+
+**Fix Part A (Defensive, this PR)**: 移除 `!c.isDraft &&` from ProjectPage filter; `isDraftLike` 简化成 `c.messages.length === 0`. 新 invariant: **`messages.length > 0` = not a draft**.
+
+**Part B (race fix) 拆 §50.1 follow-up**: 因为 race 路径多, Part A defensive-first.
+
+---
+
+## 50.1. `shipped` — isDraft cross-device sync fix
+
+**Shipped**: 2026-05-01 (PR [#174](https://github.com/BeibeiZhang/WorkPal/pull/174), frontend-only). 9+/7- in 2 files.
+
+**Surfaced**: §50 (PR #170) Part A 修了 display layer。但 isDraft 字段本身 race 仍存在 — chat-930 messages.length===4 但 isDraft 卡 true. Race 影响 cross-device sync:
+- `App.tsx:904,914,1037,1063` cloud sync 跳过 isDraft chat → chat-930 不上传 Supabase
+- `chatStore.ts:262` bulk upload 同样跳过
+- 后果: Beibei iPhone workpal-beibei.vercel.app 看不到 chat-930
+
+**Root cause (impl disprove planning hypothesis)**: 原 spec 假设 stale-closure race. Impl grep + verify 实际所有 isDraft mutation 已用 functional updater. **chat-930 stale state 实际是 historical data** (从早期 wiring 不全时 persist 进来), 不是 active race.
+
+**Fix — 3 layers**:
+- **Layer 1 boot normalization**: `chatStore.loadChatsCache` + `recordToChat` (closes cloud→client loop): `isDraft && messages>0` → `undefined`
+- **Layer 2 defensive sync filter**: `App.tsx:904, 914, 1063` + `chatStore.bulkUploadChats` skip only if `isDraft && messages.length === 0`. Line 1037 reconciliation guard 不动 (destructive path)
+- **Layer 3 defense-in-depth**: `addMessage` helper + `handleChipClick` + `handleCardAction` set-agent 都 reset isDraft
+
+---
+
+## 50.2. `candidate` — Delete isDraft field entirely (cleanup)
+
+**Surfaced**: §50 + §50.1 ship 后, `isDraft` field 已被 display + sync 两层取消依赖. 真正彻底清理是删 field from `Chat` type / Supabase schema.
+
+**Effort**: ~1-2h (改多处 + delete 字段 schema migration + localStorage 现有 chat isDraft 字段 untouched 但 ignore).
+
+**Defer 原因**: cosmetic cleanup, 现 single source of truth 已经是 `messages.length === 0`. 等真有需要 (e.g. Chat type 改大动作 / Supabase schema migration) 时再做.
+
+---
+
+## 51. `shipped` — Sidebar 双 highlight fix
+
+**Shipped**: 2026-05-01 (PR [#171](https://github.com/BeibeiZhang/WorkPal/pull/171), frontend-only Vercel auto-deploy). 1 LOC.
+
+**Surfaced**: Beibei 反复观察 Sidebar 中 "New Session" 和 project entry 同时 highlight (gradient border).
+
+**Root cause**: `Sidebar.tsx:511 isNewSessionActive = activeView === 'chat' && !!activeChat && isDraftLike(activeChat)` + `Sidebar.tsx:589` project entry `active={activeProjectId === proj.id}` — 两个 active 判断独立, 没 mutual exclusion → project draft chat 状态下两者同时 true.
+
+**Fix**: `Sidebar.tsx:511` 加 `&& !activeProjectId` guard. **Impl spec correctness override**: 我 spec 说 `!activeChat.projectId`, 但 impl 在 browser verify 显示 top-level draft chats `projectId === undefined` even after project navigation — `activeProjectId` 是 prop that actually flips。
+
+新 semantics:
+- Project 状态下 → 只 highlight project entry
+- Standalone draft chat → 只 highlight "New Session"
+
+---
+
+## 52. `shipped` — File preview multi-candidate path resolve chain
+
+**Shipped**: 2026-05-01 (PR [#175](https://github.com/BeibeiZhang/WorkPal/pull/175), v0.1.12 dmg). 7 files.
+
+**Surfaced**: Beibei v0.1.11 测 — chat 内编辑 `workpal_resume.md` → Save to Knowledge → session worktree 被 reaper 清 → 回 chat click file chip → DetailPanel "Cannot preview this file type" (实际 file 在 main 顶层 ✓ 文件没丢, 是 path 没 fallback). Beibei 重要 product 提醒: Save 是 user-choice (可选 main / 多 ref folder / 都不选), path **不能固定**, 需要按用户选择动态 resolve.
+
+**Goal**: Chat 内 file chip click → preview 永远 work（如果 file 还能找到）+ 友好 message 当 file 真清了。
+
+**Fix**:
+- Backend `/api/claude-chat/read-file` 接 `fallbackPaths` 字段, 按优先级 resolve: session path → main path → ref folder paths → 都不在 → `file_no_longer_accessible` reason
+- Frontend DetailPanel 加 `'inaccessible'` mode, friendly "This file is no longer accessible" + FileX icon (区分 binary "Cannot preview")
+
+**Plan-quality flag — agent mirror missing (二次 surface)**: PR 第一版只 touch server, 没 mirror agent. Planning catch (memory `feedback_agent_shared_mirror.md` 已沉淀). Impl follow-up commit 加 mirror with explanation: "Without this mirror, the installed v0.1.11 dmg agent would still run the old read-file route — frontend's fallbackPaths would be ignored".
+
+---
+
+## 53. `shipped` — Save to Knowledge button reactive + backend graceful for reaped branch
+
+**Shipped**: 2026-05-02 (PR [#178](https://github.com/BeibeiZhang/WorkPal/pull/178), v0.1.13 dmg). 332+/15- in 7 files.
+
+**Surfaced**: Beibei v0.1.12 测 — §43.2 simpler approach (button always enabled + click then alreadyUpToDate modal) 实战暴露 2 问题:
+1. **Visual lies about state** — saved chat 显 enabled. Beibei 期望 saved + 无新 changes → button **disabled** (visual), 不是 click 才知道. Saved 后又改 → enabled.
+2. **Reaped session crashes** — clicking already-saved chat whose `session/<branch>` 被 reaper 清 → backend `git diff main...session/<...>` → `fatal: ambiguous argument` → modal raw git error popup.
+
+**§53 revert §43.2 simpler approach + 加 backend graceful**.
+
+**Backend** (B1 + B2):
+- `diffSessionVsBase`: pre-flight `git rev-parse --verify --quiet refs/heads/<branchName>` → return `[]` if missing
+- `mergeSessionFFOnly`: same pre-flight → return `{ ok: true, alreadyUpToDate: true, commit: <HEAD> }` if missing
+
+**Frontend** (F1-F5):
+- App.tsx 加 `chatHasUnsavedChanges: Record<string, boolean | undefined>` 三态 (`undefined` = "fetch in flight", 防 disabled-then-enabled flash)
+- AbortController per-chat Map + 500ms debounce
+- 3 trigger sites: chat enter / AI commit chunk (impl 选 commit not tool_result, 避免 wasted round trip per read) / post-merge
+- TaskContextPanel: `disabled = IS_DEMO || isMobile || hasUnsavedChanges === false`. Label/icon 三 case matrix.
+- `fetchAgent` 加 AbortError re-throw 不触发 "unreachable" side effects (impl beyond plan).
+
+**Plan-quality 加分**: impl 自加 5+ patterns beyond spec — `boolean | undefined` 三态 / commit chunk vs tool_result reasoning / AbortController per-chat Map / `refs/heads/<branchName>` explicit namespace / `--quiet` suppress stderr / `useEffect` deps 故意 omit 防 fetch storm.
+
+---
+
 ## How to revisit / add candidates
 
 When a candidate ships → remove or mark `shipped`.

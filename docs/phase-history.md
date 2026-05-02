@@ -217,63 +217,56 @@ Phase 5 一路踩下的坑和形成的宗旨，**沉淀在 `docs/principles.md`*
 
 ---
 
-## 当前状态（2026-04-28）
+## 当前状态（2026-05-02）
 
-**Phase 7 完整收官 + v0.1.5/v0.1.6 production launched + Reference folders 整链路 + AI 真主动用 ref folder 闭环 + Output preview**：
-- WorkPal Agent **v0.1.5/v0.1.6** from `/Applications/WorkPal Agent.app`，launchd 开机自启（v0.1.5 = §22 prompt polish；v0.1.6 = §23 Output preview + reveal-in-finder）
-- 用户主入口：**`https://workpal-beibei.vercel.app/overview`**
-  - 这台 Mac（agent 跑着）：**全 English UI** + 全功能（聊天 + 编辑本地文件 + git + reference folders + native folder picker + **§22 AI 锁定在 ref folder 内搜** + **§23 Output card 点击预览 + Finder 高亮**）
-  - 其他 Mac：OnboardingSurface 引导装 agent
-  - **iPhone**：cloud-only + §15 mobile graceful degrade + Complete Session button mobile gate（visible-but-disabled + 5s tip）+ §23 Output card mobile silent no-op
-  - Demo URL（my-workpal.vercel.app）：mocked，但 chat **真接 OpenAI**（不是 mock）；Agent Video Status 跨域同步自 workpal-beibei
-- 用户体验链路（§21 ship 后真闭环）：用户在 ProjectPage 挂外部 reference folder（native picker 选）→ 在该 project chat 里说"加点东西到我简历"等**完全无关键词的自然语言** → §21 channel-aware routing 自动走 Claude（不靠关键字）→ §22 严格 prompt 让 AI Glob ref folder + Read 候选（不漫游 ~/Documents）→ Write 改后版本到 session/outputs/ → ProjectPage Output 区出现 card → §23 点击 card 右侧 DetailPanel 预览 markdown / Finder icon 一键 reveal 文件位置 → 用户点 Complete Session → 选并入 project main / reference folder（Copy semantic 保留 git protection）→ 下次 session 该 output 成为 reference folder 知识库一员
-- Update 路径：boot-check → GitHub `/releases/latest` → 5th Settings card → 用户下 .dmg → 装
+**Phase 7 完整收官 + v0.1.13 production launched + Save to Knowledge UX 真完美闭环 + Software Update page + Reference folders 整链路 + AI 主动用项目历史**：
 
-**最近 ship**（按时间倒序）：
-- **PR [#153](https://github.com/BeibeiZhang/WorkPal/pull/153)** (2026-04-28, **frontend-only Vercel auto-deploy 不需 dmg**) — `feat: ProjectPage Output legacy path backfill + icon Primary color (#31 #32)`。8 文件 +302 −8。§31 = 新 `POST /api/project/scan-outputs` (agent + server mirror) + `indexProjectOutputs` 递归 walk sessions/ 5000 cap + `backfillLegacyOutputPaths` DI pure fn + App.tsx `backfilledProjectsRef` Set 守卫 + `setProjects` updater closure concurrent-edit safe。§32 = ProjectPage Output icon `text-text-tertiary` → `text-text-primary` (light only)。Plan-quality 持续高（继 §22/§23 后第三个 plan 体现：grep-verify spec → 自加 3 个 safety pattern beyond spec — DI / idempotent guard / concurrent-edit re-merge）。Multi-match drop 比 spec 严格（避免 wrong-path overwrite）。
-- **PR [#152](https://github.com/BeibeiZhang/WorkPal/pull/152)** (2026-04-28, **v0.1.6 dmg**) — `feat: local-file Output detail panel + Finder escape (#23)`。7 文件 +310 −90。点击 Output card → SplitView 右侧 DetailPanel inline 预览（markdown/html/plaintext）。Panel 头部 Finder icon → 新 `POST /api/claude-chat/reveal-in-finder` route (`open -R`) 弹 Finder 高亮文件。Binary 文件（pdf/docx/png 等）BINARY_EXT regex 客户端预判 → DetailPanel `unsupported` mode 双 button (Reveal in Finder / Open with default app)。Mobile silent no-op + Finder hidden。State 拆 chat/project 独立（防跨页面 preview 串台），shared `handleArtifactPreview` callback + `renderPreviewPanel` helper。Plan-quality 高：impl Key Findings 段 grep-verify 80% 已存在（`read-file` endpoint + `renderMarkdownBlocks` lib），只新加 reveal-in-finder route。
-- **PR [#151](https://github.com/BeibeiZhang/WorkPal/pull/151)** (2026-04-28, **v0.1.5 dmg**) — `feat: tighten §19 reference folder prompt to forbid out-of-scope search (#22)`。String-only edit (2 mirror files +2 −2)。在 `REFERENCE_FOLDERS_PROMPT` paths 列表后插 hard prohibition："These folders are your ONLY source of user content. Do NOT use Bash `find ~`, `ls /Users/...`, or any Glob outside these paths. If the content isn't in these folders, say so explicitly. Don't roam other directories."（plan reasoning: top 位置比 bottom 强）。Backtick escape 提前 flag 避坑。Out-of-scope 自提 §27 (Tool-level Bash deny) 作为软约束失败 backup。
-- **PR [#150](https://github.com/BeibeiZhang/WorkPal/pull/150)** (2026-04-28, **v0.1.5 dmg**) — `feat: project ref-folder defaults text chat to Claude (#21)`。Single-file change in `intentRouter.ts` + 1 caller wire (App.tsx handleSend)。`getAgentRouteIntent` 加第 3 参数 `referenceDirectories: string[]`，新 branch 在 IS_DEMO 之后 / keyword 之前：`length > 0 && isAgentCurrentlyReachable() → 'use-claude'`。Channel-aware routing 解决 keyword router miss 自然语言长尾问题（"加 / 加到 / 提一下" 不在 keyword 列表）。Live 验证：项目挂 ref folder + 自然语言 prompt → progress 面板 Glob/Read/Bash 而不是 search_gmail = §19 system prompt 真注入。
-- **PR [#147](https://github.com/BeibeiZhang/WorkPal/pull/147)** (2026-04-28) — Sync agent video status across deployments via Supabase。把 §12 ship 的 localStorage-only video status 升级成 Supabase-backed cross-deployment sync（workpal-beibei 控制 master，demo cross-origin 读）。Beibei 平行 fast-lane session，未走主 candidate 流程。
-- **PR [#146](https://github.com/BeibeiZhang/WorkPal/pull/146)** (2026-04-28) — `feat: AI proactively uses reference folders + merge session to reference folders (#19 + #20)`。§19 = system prompt 引导 AI 主动 Glob ref folder 不 hallucinate Gmail。§20 = Complete Session 加并入到 reference folder 选项（Copy semantic, atomic abort policy）+ 新 Checkbox 共享 primitive + AgentRequiredHint customMessage prop + 5 个新 design system token（accent-blue-faint pair / overlay-loading / fixed-dark-text / tooltip-bg / 已 in #144 的 error）+ Mobile §15 gap fix（visible-but-disabled tip）。Bundle 一个 PR。
-- **PR [#144](https://github.com/BeibeiZhang/WorkPal/pull/144)** (2026-04-27) — `chore: UI English sweep + picker hotfix + design system tokens (#18)`，38 文件 +286 −292。Bundle 6 件：§17 picker hotfix + §18 双语 sweep（79 strings × 19 files）+ `--color-error` token + accent.* Tailwind class extension + one-off hex tokenization + alpha-modifier silent-failure 24 处 cleanup。包含 principle #8 翻转中触发 + CLAUDE.md violations + extend-don't-bypass 段添加 + stale memory 清理。
-- **PR [#143](https://github.com/BeibeiZhang/WorkPal/pull/143)** (2026-04-27) — §16 + §17 reference folders feature（initial ship，详见 §17 候选记录）。
-- **PR [#142](https://github.com/BeibeiZhang/WorkPal/pull/142)** (2026-04-27) — §15 follow-up：AgentRequiredHint English-only + hover ring inset fix。
-- **PR [#141](https://github.com/BeibeiZhang/WorkPal/pull/141)** (2026-04-27) — Overview API Spend wheel picker，fast-lane。
-- **PR [#138](https://github.com/BeibeiZhang/WorkPal/pull/138)** (2026-04-26) — §15 mobile graceful degrade。
-- **PR [#136/#137](https://github.com/BeibeiZhang/WorkPal/pull/136)** (2026-04-26) — post-Phase-7 cleanups（#11 / #12 / #14）+ Overview spacing。
+- WorkPal Agent **v0.1.13** from `/Applications/WorkPal Agent.app`，launchd 开机自启
+- 用户主入口：**`https://workpal-beibei.vercel.app`**（Mac 全功能 / iPhone cloud-only graceful degrade）
+- 用户体验链路（截止 §53 完整闭环）：ProjectPage 挂 ref folder → 自然语言 chat → §21 自动走 Claude → AI Glob 项目历史 deliverable（§44）+ ref folder（§19+§22）→ Read/Write 编辑或新建 → Output 区显示 main + in-session 合并 + status tag（§43）→ 点 card 多候选 path 永远 preview-able（§52）→ Save to Knowledge button 反应实时状态（§53 reactive）→ 完成后 chat 跨设备 visible（§50+§50.1）
 
-**Releases 节奏**：v0.1.1（Phase 7.5 ship）→ v0.1.2（PR #143 ship 后）→ v0.1.3（PR #144 ship 后）→ v0.1.4（PR #146 ship 后）→ **v0.1.5**（PR #150 + #151 ship 后；§21 frontend 通过 Vercel deploy 立即生效，§22 agent prompt 随 dmg 出）→ **v0.1.6**（PR #152 ship 后；§23 Output preview + reveal-in-finder route 含在 agent dmg）。
+**v0.1.7 → v0.1.13 release sequence** (2026-04-28 → 2026-05-02)：
 
-**v0.1.5 时序记录**（process learning）：v0.1.5 release 在 §22 merge 后 + §23 merge 前 build，**§23 没赶上 v0.1.5 dmg**。Beibei bump v0.1.6 包 §23。**Lesson**：multi-PR batch ship dmg 时，先 merge all PRs 再 bump，避免 release 跑在 PR mid-flight。
+| Version | Ship | Highlights |
+|---|---|---|
+| v0.1.7 | 2026-04-28 | §38/§39/§40 ProjectPage chat routing + projectIdOverride + Save to Knowledge rename |
+| v0.1.8 | 2026-04-29 | §41 ref folder fallback `base...session` diff (catch committed files) |
+| v0.1.9 | 2026-04-29 | §42 Software Update page (Agent + 2 SDKs + 3 model groups) |
+| v0.1.10 | 2026-04-30 | §43 + §44 (Output main+in-session + status tag, AI 主动 surface 历史) |
+| v0.1.11 | 2026-04-30 | §43.1+§43.2+§43.3 Save to Knowledge UX batch (catch M, button gate改, overwrite一致) |
+| v0.1.12 | 2026-05-01 | §52 file path multi-candidate resolve chain |
+| v0.1.13 | 2026-05-02 | §53 button reactive + backend graceful for reaped branch |
 
-**Principle #8 翻转**（commit `f66a5be`，PR #144 中触发）：从 "bilingual day 1" → "English-first UI"。理由：双语 `/ 中文` 视觉累赘 + 维护税重。Voice / AI replies / intent router keywords / user input 不动；只 UI 文案翻转。`feedback_targeted_english_only.md` 删除（principle 翻转后过期）。
+Plus frontend-only (Vercel auto, 不需 dmg)：§29 ChatInput multi-Enter race · §31/§32 Output legacy backfill · §50 chat isDraft display · §50.1 cross-device sync · §51 sidebar 双 highlight · 多个 fast-lane UI polish PRs。
 
-**CLAUDE.md violations + extend-don't-bypass**（commits `7c9b612` + `23a382f`）：明确禁止 hex / inline color / alpha modifier 等 ad-hoc 写法；找不到 token / primitive 必须扩 design system，绝不绕过。
+**最近 batch ships**（compressed，详见 `docs/post-phase-6-candidates.md` § entries）：
 
-**下一步**：根据 [`docs/post-phase-6-candidates.md`](./post-phase-6-candidates.md) 优先级。**当前 backlog 28 条（21 已 shipped，7 在排队）**。pending 7 条：
-- **#3** Artifact 生成（decided-next，5-7 天，**最大产品扩面**，§29/§30 ship 后启动）
-- **#4** Bilingual scaffold（parked，principle #8 翻转后过期，等真出现非英文 reader 再启）
-- **#6** CN→EN translate fix（candidate, ~1-2h）
-- **#13 Option C** Apple Developer 签名 + notarize（candidate, $99/yr）
-- **#24** Routing decision 显示在 Progress 面板（candidate, ~30min, 测试效率改进）
-- **#25** Debug overlay ⌘⇧D toggle（candidate, ~1h, console 命令产品化）
-- **#28** Test infra (vitest unit-only first, Playwright e2e later)（candidate, ~1-2h Phase 1）
+- **§41** ref folder fallback (PR #160) — `git status` 漏 Phase 5.5 auto-committed 文件 → 改 `git diff base...session --diff-filter=A`，三态语义 (`undefined` 走旧 path / `[]` truly empty)
+- **§42** Software Update page (PR #166) — 6 行实时 dashboard。**首次 surface "agent shared mirror is impl-mandatory" pattern**（memory `feedback_agent_shared_mirror.md`）
+- **§43** ProjectPage Output 数据源 (PR #168) — `GET /api/project/:slug/deliverables` 解决 "8 文件 ProjectPage 只显 3 个"
+- **§43.1+§43.2+§43.3** Save to Knowledge UX batch (PR #169) — `--diff-filter=A` → `AM`; `sessionCompleted` 不再 gate disable; COPYFILE_EXCL → overwrite 一致
+- **§44** Project context system prompt (PR #167) — `PROJECT_CONTEXT_PROMPT(deliverables)` 让 AI 主动 Glob/Read 历史
+- **§50** chat isDraft display (PR #170) — `messages.length > 0 = not draft` defensive filter
+- **§50.1** cross-device sync (PR #174) — 3-layer normalize. Impl disprove planning race hypothesis (historical data, not active race)
+- **§51** sidebar 双 highlight (PR #171) — 1 LOC `&& !activeProjectId` guard. Impl browser verify 后修正 spec field
+- **§52** file path fallback chain (PR #175) — `read-file` 加 fallbackPaths。**第二次 catch agent mirror 缺失**（memory pattern 起作用）
+- **§53** Save to Knowledge reactive + backend graceful (PR #178) — Revert §43.2 simpler approach; `git rev-parse --verify refs/heads/<branch>` pre-flight 防 ambiguous argument error
 
-**In-flight (impl 写代码 / PR pending)**:
-- **#29** ChatInput multi-Enter race fix — impl 实现 + 实测 verified（preview MCP 3 Enter → 1 message ✓），但 PR 还没 push
-- **#30** Output → ref folder convention (prompt + backend fallback) — impl 在 plan 阶段，3 AskUserQuestion 全答（blocklist + terse 文案 + 递归 0 文件 fallback），等 plan ready
+**当前 backlog 状态**（53 candidate · ~45 shipped · 8 pending）：
+- **#3** Artifact 生成（decided-next，5-7 天，**最大产品扩面**，下一阶段重点）
+- **#6** CN→EN translate fix · **#13C** Apple Developer 签名 · **#24** Progress 面板路由透出 · **#25** Debug overlay · **#28** Test infra vitest（all candidate）
+- **#4** Bilingual scaffold（parked，principle #8 翻转后过期）
+- **§50.2** delete isDraft field（cleanup defer）
 
-**Triggered-only (休眠候选, 等条件满足才启)**:
-- **#26** Single-ref-folder cwd = ref folder — trigger: §22 + §27 ship 后 AI 仍漫游
-- **#27** Tool-level Bash deny outside ref folders — trigger: §22 软约束失败
+**Triggered-only**：#26 single-ref-folder cwd / #27 tool-level Bash deny — trigger: §22 软约束失败时启动
 
-**§21 + §22 + §23 一日三 ship**（2026-04-28）：所有 ref folder workflow 闭环 fix 同日落地。§21 解决 keyword router miss 自然语言 → 走 Claude 路径让 §19 system prompt 真注入；§22 强化 §19 prompt 禁 AI 漫游 ~/Documents；§23 解决 Claude 生成 Output 没 preview 路径。Plan-quality 三连高（§21 + §22 + §23 都体现：grep-verify 现状、reasoning 而非机械、自提 follow-up candidate），impl 沉淀 `feedback_plan_quality_bar.md` memory。
+**Process learnings 2026-04-29 → 2026-05-02 ship cycle**:
 
-**Process learnings 2026-04-28 ship cycle**:
-- **Multi-PR batch dmg release**：先 merge all PRs 再 bump dmg（v0.1.5 漏 §23 教训）。
-- **Static review 替代 medium-risk live test 的边界**：§23 是 medium-risk，但 backend reuse `resolveSessionFolder` jail（零新 validation）+ frontend state 拆分 diff verify 完整，merge 决策 OK。Live test 留 dmg 装好后 1 case 验。
-- **Live-test 时间花在 cross-state diagnosis**：§21 ship 当日"AI 还是去邮箱" 排查 5 个状态变量（URL preview vs main / projectId / agent reachable / refDirs / §21 code），单次 ~30min Beibei 时间。surfaced §24 (routing transparency) + §25 (debug overlay) + §28 (test infra) 三个 testing-efficiency candidate。
+- **Agent shared mirror is impl-mandatory** (memory `feedback_agent_shared_mirror.md` 新沉淀)：§42 PR #166 + §52 PR #175 都 catch 缺失 mirror, impl follow-up commit 修。任何 `server/src/{routes,lib}/` 改动需要 `scripts/sync-agent-shared.sh` + 同 PR commit。
+- **Plan correctness override**：§50.1 PR #174 impl disprove planning race hypothesis (historical data); §51 PR #171 impl 在 browser verify 后修正 spec field。多次体现 `feedback_verify_before_deferring` pattern.
+- **Simpler approach 谨慎收回**：§43.2 accept simpler approach 后 v0.1.12 实测 Beibei 表达不要 → §53 revert 走 reactive。Lesson: UX 决策不能 simpler-first if user mental model already otherwise.
+- **Multi-PR batch dmg release** 沿用：先 merge all PRs 再 bump dmg, no orphan ship.
+- **Plan-quality bar 持续高**：多个 §（§22/§23/§29/§30/§31/§43/§50.1/§52/§53）impl plan 都 grep-verify spec → 自加 safety patterns beyond spec → 自提 follow-up candidates → 自 disprove planning hypothesis 当 evidence 不支持。
 
 ---
 
