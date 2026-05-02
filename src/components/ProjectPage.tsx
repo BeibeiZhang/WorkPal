@@ -469,16 +469,24 @@ export default function ProjectPage({
   // Real chats belonging to this project, mapped into the RecentItem shape so
   // they render with the same layout as the seeded demo rows. Newest first.
   // Empty chats (no messages yet) are excluded.
+  // outputTag: first artifact produced in the chat (Write/Edit tool results)
+  // — surfaces the deliverable as a chip beneath the description, matching
+  // the seeded demo rows.
   const realRecents: (RecentItem & { isReal: true })[] = chats
     .filter(c => c.projectId === project.id && c.messages.length > 0)
     .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-    .map(c => ({
-      id: c.id,
-      title: c.title,
-      description: c.lastMessage || c.messages[0]?.content || '',
-      time: formatRelative(c.timestamp),
-      isReal: true as const,
-    }));
+    .map(c => {
+      const firstArtifact = c.messages
+        .flatMap(m => m.artifacts ?? [])[0];
+      return {
+        id: c.id,
+        title: c.title,
+        description: c.lastMessage || c.messages[0]?.content || '',
+        time: formatRelative(c.timestamp),
+        outputTag: firstArtifact?.name,
+        isReal: true as const,
+      };
+    });
 
   // Combine real chats on top, then the project's seeded demo rows.
   const combinedRecents: (RecentItem & { isReal?: boolean })[] = [
@@ -754,13 +762,6 @@ export default function ProjectPage({
                               <span className={`type-detail text-center leading-[1.2] line-clamp-2 w-full ${isSelected ? 'text-accent-blue' : 'text-text-primary'}`}>
                                 {o.name}
                               </span>
-                              {o.status && (
-                                <span className={`type-detail ${
-                                  o.status === 'saved' ? 'text-accent-green' : 'text-text-tertiary'
-                                }`}>
-                                  {o.status === 'saved' ? 'Saved' : 'In session'}
-                                </span>
-                              )}
                             </button>
                           );
                         })}
