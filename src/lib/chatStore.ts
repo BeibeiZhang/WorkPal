@@ -88,7 +88,7 @@ function recordToChat(record: ChatRecord): Chat {
       timestamp: new Date(m.timestamp as unknown as string),
     })),
     projectId: record.projectId,
-    isDraft: record.isDraft,
+    isDraft: (record.isDraft && !(record.messages?.length)) || undefined,
     hasInspector: record.hasInspector,
     sessionFolder: record.sessionFolder,
     folderMaterialized: record.folderMaterialized,
@@ -127,6 +127,7 @@ export function loadChatsCache(): Chat[] {
         ...m,
         timestamp: new Date(m.timestamp as unknown as string),
       })),
+      isDraft: (c.isDraft && !(c.messages?.length)) || undefined,
       hasInspector: c.hasInspector ?? seedById[c.id]?.hasInspector,
       sessionFolder: c.sessionFolder ?? seedById[c.id]?.sessionFolder,
       folderMaterialized: c.folderMaterialized ?? seedById[c.id]?.folderMaterialized,
@@ -259,7 +260,7 @@ export async function bulkUploadChats(
 ): Promise<number> {
   if (IS_DEMO) return 0;
   const records = chats
-    .filter((c) => !c.isDraft)
+    .filter((c) => !c.isDraft || c.messages.length > 0)
     .map((c) => chatToRecord(c, updatedAtMap[c.id] ?? new Date().toISOString()));
   if (records.length === 0) return 0;
   const res = await fetch('/api/chats/bulk-upsert', {
