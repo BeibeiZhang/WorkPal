@@ -468,12 +468,12 @@ export default function ProjectPage({
 
   // Real chats belonging to this project, mapped into the RecentItem shape so
   // they render with the same layout as the seeded demo rows. Newest first.
-  // Drafts (empty "New Session" placeholders) are excluded.
-  // outputTag: first unique artifact produced in the chat (Write/Edit tool
-  // results) — surfaces the deliverable as a clickable-looking chip beneath
-  // the description, matching the seeded demo rows.
+  // Empty chats (no messages yet) are excluded.
+  // outputTag: first artifact produced in the chat (Write/Edit tool results)
+  // — surfaces the deliverable as a chip beneath the description, matching
+  // the seeded demo rows.
   const realRecents: (RecentItem & { isReal: true })[] = chats
-    .filter(c => c.projectId === project.id && !c.isDraft && c.messages.length > 0)
+    .filter(c => c.projectId === project.id && c.messages.length > 0)
     .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
     .map(c => {
       const firstArtifact = c.messages
