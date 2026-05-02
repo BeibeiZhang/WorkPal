@@ -3486,6 +3486,7 @@ export default function App() {
                   'project',
                 );
               }}
+              currentPreviewPath={projectPreviewArtifact?.path ?? null}
               // §36: voice mode props parallel to ChatPanel's. Voice state
               // lives in App.tsx; ProjectPage renders its own inline
               // <VoiceMode> bar above the footer ChatInput so the mic

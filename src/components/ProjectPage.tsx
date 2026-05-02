@@ -42,6 +42,12 @@ interface ProjectPageProps {
    *  ProjectPage's right edge. Mobile + path-less (legacy / hosted) cards
    *  skip this and fall back to the toggle-highlight. */
   onOutputPreview?: (output: OutputItem) => void;
+  /** Path of the file currently docked in the project DetailPanel preview,
+   *  or null when no preview is open. Drives the Output card's "open" blue
+   *  highlight so the thumbnail matches the actually-rendered file rather
+   *  than a stale local selection. Path-less cards keep their local
+   *  click-toggle behavior. */
+  currentPreviewPath?: string | null;
   /** §36: voice mode props mirror ChatPanel's. State lives in App.tsx so
    *  toggling voice on the ProjectPage footer surfaces the same bar as
    *  the chat surface. Selected avatar drives the agent-gender voice
@@ -375,7 +381,7 @@ export default function ProjectPage({
   project, projectSlug, chats, onCreateChat, onOpenChat,
   onAddFiles, onRemoveFile,
   onAddReferenceDirectory, onRemoveReferenceDirectory,
-  sidebarOpen, onToggleSidebar, onOutputPreview,
+  sidebarOpen, onToggleSidebar, onOutputPreview, currentPreviewPath,
   selectedAvatarId,
   onVoiceMode, voiceModeActive, onVoiceModeClose,
   onVoiceMessage, onVoiceImages, onVoiceVideos, onVoiceWebSearch,
@@ -733,7 +739,11 @@ export default function ProjectPage({
                       <div className="flex gap-3 overflow-x-auto pb-1">
                         {filteredOutputs.map(o => {
                           const Icon = outputIconFor(o.type);
-                          const isSelected = selectedOutputId === o.id;
+                          // DetailPanel's open file is the source of truth.
+                          // Path-less cards keep the click-toggle fallback.
+                          const isSelected = currentPreviewPath
+                            ? (!!o.path && o.path === currentPreviewPath)
+                            : selectedOutputId === o.id;
                           // Hosted artifacts (candidate #3) carry an href; the
                           // card opens the /artifact/<slug> page in a new tab.
                           // §23: claude-code outputs with a known path →
