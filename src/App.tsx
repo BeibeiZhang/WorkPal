@@ -636,6 +636,7 @@ export default function App() {
   type PreviewArtifactState =
     | { kind: 'preview'; name: string; content: string; renderAs: 'markdown' | 'html' | 'plaintext'; path: string }
     | { kind: 'unsupported'; name: string; path: string }
+    | { kind: 'inaccessible'; name: string }
     | null;
   const [chatPreviewArtifact, setChatPreviewArtifact] = useState<PreviewArtifactState>(null);
   const [projectPreviewArtifact, setProjectPreviewArtifact] = useState<PreviewArtifactState>(null);
@@ -658,8 +659,6 @@ export default function App() {
     const setPreview = which === 'chat' ? setChatPreviewArtifact : setProjectPreviewArtifact;
     const lower = artifact.name.toLowerCase();
     const BINARY_EXT = /\.(pdf|docx?|xlsx?|pptx?|png|jpe?g|gif|webp|svg|mp4|mov|zip|tar|gz)$/i;
-    // Opening a preview takes over the side panel — close any other side
-    // surface (card detail / context) so only one is ever visible at a time.
     setDetailCard(null);
     setDetailMessageId(null);
     setDetailOpen(false);
@@ -668,34 +667,46 @@ export default function App() {
       setPreview({ kind: 'unsupported', name: artifact.name, path: artifact.path });
       return;
     }
-    const content = await postReadFile(artifact.path);
-    if (content === null) {
-      setPreview({ kind: 'unsupported', name: artifact.name, path: artifact.path });
+    // §52: build fallback paths so the backend can try project root /
+    // reference directories when the original session path is reaped.
+    const filename = artifact.name;
+    const fallbacks: string[] = [];
+    const project = which === 'chat'
+      ? (() => { const c = chats.find(c => c.id === activeChatId); return c?.projectId ? projects.find(p => p.id === c.projectId) : undefined; })()
+      : projects.find(p => p.id === activeProjectId);
+    if (project) {
+      fallbacks.push(`~/WorkPal/${slugify(project.name)}/${filename}`);
+      for (const refDir of project.referenceDirectories ?? []) {
+        fallbacks.push(`${refDir}/${filename}`);
+      }
+    }
+    const result = await postReadFile(artifact.path, fallbacks);
+    if (result.content === null) {
+      if (result.reason === 'file_no_longer_accessible') {
+        setPreview({ kind: 'inaccessible', name: artifact.name });
+      } else {
+        setPreview({ kind: 'unsupported', name: artifact.name, path: artifact.path });
+      }
       return;
     }
     const renderAs: 'markdown' | 'html' | 'plaintext' =
       lower.endsWith('.html') || lower.endsWith('.htm') ? 'html'
       : lower.endsWith('.md') || lower.endsWith('.markdown') ? 'markdown'
       : 'plaintext';
-    setPreview({ kind: 'preview', name: artifact.name, content, renderAs, path: artifact.path });
-  }, []);
-  // §23: render the DetailPanel shell for either preview slot. Body branches
-  // on `state.kind` — 'preview' uses the file's renderAs (markdown/html/
-  // plaintext); 'unsupported' shows the binary placeholder + Reveal/Open
-  // buttons. Always passes filePath so the header gets the Finder reveal
-  // button (DetailPanel hides it on mobile internally).
+    setPreview({ kind: 'preview', name: artifact.name, content: result.content, renderAs, path: result.resolvedPath });
+  }, [chats, activeChatId, projects, activeProjectId]);
   const renderPreviewPanel = (
     state: NonNullable<PreviewArtifactState>,
     overlay: boolean,
     onClose: () => void,
   ) => (
     <DetailPanel
-      key={state.path}
+      key={state.kind === 'inaccessible' ? state.name : state.path}
       title={state.name}
       content={state.kind === 'preview' ? state.content : ''}
       renderAs={state.kind === 'preview' ? state.renderAs : 'plaintext'}
-      mode={state.kind === 'preview' ? 'preview' : 'unsupported'}
-      filePath={state.path}
+      mode={state.kind === 'preview' ? 'preview' : state.kind === 'inaccessible' ? 'inaccessible' : 'unsupported'}
+      filePath={state.kind === 'inaccessible' ? undefined : state.path}
       onClose={onClose}
       fullScreen={overlay}
       onResize={setDetailPanelWidth}

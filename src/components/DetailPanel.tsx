@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pencil, FolderOpen, FileQuestion } from 'lucide-react';
+import { Pencil, FolderOpen, FileQuestion, FileX } from 'lucide-react';
 import { iconShorter, iconExtend, iconFormal, iconTranslate } from '../assets';
 import { SidePanelHeader } from './shared';
 import { streamEditArticle, postRevealInFinder, postOpenFile, type EditPreset } from '../lib/api';
@@ -37,7 +37,7 @@ interface DetailPanelProps {
   /** §23: 'preview' (default) renders `content` in the chosen `renderAs`;
    *  'unsupported' replaces the body with a "Cannot preview this file type"
    *  placeholder + Reveal in Finder / Open with default app buttons. */
-  mode?: 'preview' | 'unsupported';
+  mode?: 'preview' | 'unsupported' | 'inaccessible';
 }
 
 const RESIZE_MIN_PX = 400;
@@ -298,13 +298,17 @@ export default function DetailPanel({
 
       <div
         ref={contentAreaRef}
-        className={`flex-1 overflow-y-auto relative ${mode === 'unsupported' || renderAs !== 'html' ? 'pl-10 pr-[32px]' : ''}`}
+        className={`flex-1 overflow-y-auto relative ${mode !== 'preview' || renderAs !== 'html' ? 'pl-10 pr-[32px]' : ''}`}
       >
-        {mode === 'unsupported' ? (
-          // §23: client-side binary preflight (or read-file failure) lands
-          // here — the file exists but we can't render its bytes inline.
-          // Two-button escape: Reveal pops Finder, Open hands off to the
-          // registered default app.
+        {mode === 'inaccessible' ? (
+          <div className="flex flex-col items-center justify-center text-center pt-16 pb-24 gap-4">
+            <FileX size={48} className="text-text-tertiary" strokeWidth={1.2} />
+            <p className="type-h2 text-text-primary">This file is no longer accessible</p>
+            <p className="type-detail text-text-secondary max-w-[320px]">
+              The session workspace may have been cleaned up. If you saved this file, try opening it from the project folder.
+            </p>
+          </div>
+        ) : mode === 'unsupported' ? (
           <div className="flex flex-col items-center justify-center text-center pt-16 pb-24 gap-4">
             <FileQuestion size={48} className="text-text-tertiary" strokeWidth={1.2} />
             <p className="type-h2 text-text-primary">Cannot preview this file type</p>

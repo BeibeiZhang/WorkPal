@@ -575,22 +575,40 @@ export async function postRevealInFinder(filePath: string): Promise<boolean> {
   }
 }
 
-/** 6.4: read a produced artifact file so the frontend can preview it inside
- *  the WorkPal DetailPanel (instead of spawning `open`). Returns null on any
- *  failure — caller treats null as "fall back to open-externally". */
-export async function postReadFile(filePath: string): Promise<string | null> {
+export type ReadFileResult =
+  | { content: string; resolvedPath: string }
+  | { content: null; reason: 'file_no_longer_accessible' | 'error' };
+
+/** 6.4 + §52: read a produced artifact file for inline preview. Accepts
+ *  optional fallback paths so the backend can try project root / ref
+ *  directories when the original session path has been reaped. */
+export async function postReadFile(
+  filePath: string,
+  fallbackPaths?: string[],
+): Promise<ReadFileResult> {
   try {
+    const body: Record<string, unknown> = { filePath };
+    if (fallbackPaths && fallbackPaths.length > 0) body.fallbackPaths = fallbackPaths;
     const res = await fetchAgent('/api/claude-chat/read-file', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filePath }),
+      body: JSON.stringify(body),
     });
-    if (!res.ok) return null;
-    const data = (await res.json()) as { content?: string };
-    return typeof data.content === 'string' ? data.content : null;
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({})) as { reason?: string };
+      if (res.status === 404 && data.reason === 'file_no_longer_accessible') {
+        return { content: null, reason: 'file_no_longer_accessible' };
+      }
+      return { content: null, reason: 'error' };
+    }
+    const data = (await res.json()) as { content?: string; resolvedPath?: string };
+    if (typeof data.content === 'string') {
+      return { content: data.content, resolvedPath: data.resolvedPath ?? filePath };
+    }
+    return { content: null, reason: 'error' };
   } catch (err) {
     console.warn('Failed to read file:', err);
-    return null;
+    return { content: null, reason: 'error' };
   }
 }
 
