@@ -614,85 +614,42 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
               const RANGES = [1, 7, 30] as const;
               const idx = RANGES.indexOf(spendRange);
               const rangeLabel = spendRange === 1 ? 'Past 24 Hours' : `Past ${spendRange} Days`;
+              // Step = item-height (28px: 20 line-height + 8 py) + gap-4 (16).
+              // Translates the column so the selected item sits at the deck's
+              // vertical centre; items above/below get clipped by the deck.
+              const STEP = 44;
               return (
                 <div className="rounded-2xl bg-bg-message flex items-center gap-4 sm:gap-10 px-4 sm:px-10 py-5 overflow-visible">
-                  {/* Range deck — wheel picker. Click any number to scroll it
-                      to center; the selected number always lands on the
-                      fixed highlight. */}
+                  {/* Range deck — Figma node 6744:27188. Brand-gradient
+                      surface + 1px gradient ring (double-bg trick on the
+                      deck class). The wheel-picker scroll behaviour is
+                      preserved: clicking any number translates the column
+                      so that number sits at the centre, with adjacent
+                      items partially visible and far items clipped. */}
                   <div className="flex items-center shrink-0">
-                    {/* Deck — true wheel picker (Figma node 6648:24782).
-                        Selected item always sits at the center; the whole
-                        1/7/30 column translates so the selected slot lands on
-                        the fixed highlight. Items above/below fade into the
-                        deck color via the curtain overlay. Dimensions: w-71
-                        h-164, boxes h-9 (36px) with gap-2 (8px), step = 44px. */}
-                    <div className="relative w-[71px] h-[164px] rounded-[4px]">
-                      {/* Deck bg + frame. Outer drop-shadow lifts the wheel
-                          off the card (matches Figma node 6648:24786 — strong
-                          y=23 offset shadow). Inset shadow on the top edge
-                          gives the subtle "depth" inside the wheel. */}
-                      <div className="absolute inset-0 rounded-[4px] bg-bg-page border border-stroke-outline shadow-[0_23px_9.55px_rgba(0,0,0,0.25),inset_0_4px_20px_rgba(0,0,0,0.04)] dark:bg-[rgba(226,243,255,0.05)] pointer-events-none" />
-                      {/* Fixed center highlight — border-only frame (no bg)
-                          marks where the selected item lands at y=64. The
-                          frame is the visible "selected" indicator; non-
-                          selected items fade via opacity. Border lives on the
-                          highlight (not on each item) so as the wheel scrolls
-                          we never get adjacent item-borders stacking. */}
+                    <div className="spend-picker-deck w-[60px] h-[141px] flex flex-col items-center justify-center px-2 py-6 rounded-[4px] overflow-clip">
                       <div
-                        aria-hidden="true"
-                        className="absolute left-2 right-2 top-[64px] h-[36px] rounded-[4px] border border-[rgba(20,39,64,0.06)] dark:border-stroke-outline pointer-events-none"
-                      />
-                      {/* Scrolling column. translateY shifts the stack so the
-                          selected item lands at y=64. All items render at full
-                          opacity — the fading is done entirely by the curtain
-                          overlay below, which sits ON TOP of the items and
-                          partially covers 1 / 30 with the deck color.
-                          Explicit px on the box/gap/padding so the layout
-                          stays in sync with the deck's px-based dimensions
-                          regardless of the project's root font-size. */}
-                      <div className="absolute inset-0 px-[8px] py-[20px] overflow-hidden rounded-[4px]">
-                        <div
-                          className="flex flex-col gap-[8px] transition-transform duration-300 ease-out"
-                          style={{ transform: `translateY(${(1 - idx) * 44}px)` }}
-                        >
-                          {RANGES.map((r) => {
-                            const selected = r === spendRange;
-                            return (
-                              <button
-                                key={r}
-                                type="button"
-                                onClick={() => setSpendRange(r)}
-                                aria-pressed={selected}
-                                aria-label={`Past ${r === 1 ? '24 hours' : `${r} days`}`}
-                                className={`h-[36px] w-full flex items-center justify-center rounded-[4px] bg-transparent transition-opacity focus:outline-none focus-visible:outline-none ${selected ? '' : 'dark:opacity-20'}`}
-                              >
-                                <span className="type-h1--emphasized text-text-primary !leading-[36px]">{r}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
+                        className="flex flex-col gap-4 items-stretch w-full transition-transform duration-300 ease-out"
+                        style={{ transform: `translateY(${(1 - idx) * STEP}px)` }}
+                      >
+                        {RANGES.map((r) => {
+                          const selected = r === spendRange;
+                          return (
+                            <button
+                              key={r}
+                              type="button"
+                              onClick={() => setSpendRange(r)}
+                              aria-pressed={selected}
+                              aria-label={`Past ${r === 1 ? '24 hours' : `${r} days`}`}
+                              className={`spend-picker-item ${selected ? 'is-selected' : ''} type-h1--emphasized w-full flex items-center justify-center px-0 py-1 rounded-[4px] bg-transparent text-center focus:outline-none focus-visible:outline-none`}
+                            >
+                              {r}
+                            </button>
+                          );
+                        })}
                       </div>
-                      {/* Curtain overlay — deck-color div on TOP of the
-                          scrolling items. mask-image gradient controls how
-                          much it covers: opaque at the very top/bottom edges
-                          (full deck color, items invisible), ~60% opaque at
-                          the 1 and 30 positions (numbers show 40% through —
-                          the "half-fade" Figma asks for), transparent in the
-                          middle (selected slot stays untouched). Matches
-                          Figma "Exclude" cutout (node 6648:24813). */}
-                      <div
-                        aria-hidden="true"
-                        className="absolute inset-0 pointer-events-none rounded-[4px] bg-bg-page dark:bg-[rgba(226,243,255,0.05)]"
-                        style={{
-                          maskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.65) 23%, rgba(0,0,0,0) 39%, rgba(0,0,0,0) 61%, rgba(0,0,0,0.65) 77%, rgba(0,0,0,1) 100%)',
-                          WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.65) 23%, rgba(0,0,0,0) 39%, rgba(0,0,0,0) 61%, rgba(0,0,0,0.65) 77%, rgba(0,0,0,1) 100%)',
-                        }}
-                      />
                     </div>
                   </div>
-
-                  {/* Vertical divider */}
-                  <div className="w-px self-stretch bg-stroke-outline shrink-0" />
 
                   {/* Spend headline — clickable to expand details */}
                   <button
