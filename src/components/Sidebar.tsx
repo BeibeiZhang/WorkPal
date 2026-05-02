@@ -396,7 +396,7 @@ function DarkToggle({ isDark, onToggle }: { isDark: boolean; onToggle: () => voi
     <button
       onClick={onToggle}
       className="flex items-center gap-2 p-1 rounded-full transition-colors"
-      style={{ background: isDark ? 'var(--color-card-panel-bg)' : 'var(--color-stroke-toggle)' }}
+      style={{ background: isDark ? 'var(--color-input-bg)' : 'var(--color-stroke-toggle)' }}
     >
       <span
         className="flex items-center justify-center p-1 rounded-full transition-colors"

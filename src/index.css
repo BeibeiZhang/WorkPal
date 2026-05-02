@@ -183,8 +183,8 @@ strong, b {
   --color-outer-border: #001424;
   --color-selected-bg: #3171ff;
   --color-selected-text: #ffffff;
-  /* Dark mode card panel: 25% black. */
-  --color-card-panel-bg: rgba(0, 0, 0, 0.25);
+  /* Dark mode card panel: matches --color-bg-hover. */
+  --color-card-panel-bg: rgba(226, 243, 255, 0.1);
   /* Dark mode chat input inner fill: 20% black. */
   --color-input-bg: rgba(0, 0, 0, 0.2);
   --color-progress-bar: #3171ff;
