@@ -611,6 +611,8 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
 
           {recentsOpen && filteredChats.map(chat => {
             const isActive = activeChatId === chat.id && activeView === 'chat';
+            const isThinking = chat.messages.some(m => m.isLoading);
+            const showDot = !isThinking && !!chat.hasUnviewedCompletion && !isActive;
             return (
               <div key={chat.id} className="relative group">
                 <NavItem
@@ -619,6 +621,24 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
                   label={chat.title}
                   reserveRightPadding
                 />
+                {(isThinking || showDot) && (
+                  <div
+                    aria-hidden
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center pointer-events-none transition-opacity opacity-100 group-hover:opacity-0 focus-within:opacity-0"
+                  >
+                    {isThinking ? (
+                      <span
+                        className="block w-3.5 h-3.5 rounded-full border-[1.5px] border-stroke-outline border-t-text-primary animate-spin"
+                        title="Agent is thinking…"
+                      />
+                    ) : (
+                      <span
+                        className="block w-2 h-2 rounded-full bg-accent-blue"
+                        title="New activity"
+                      />
+                    )}
+                  </div>
+                )}
                 {onDeleteChat && (
                   <RowMoreMenu
                     onDelete={() => onDeleteChat(chat.id)}
