@@ -32,7 +32,7 @@ LOCAL_ROUTES=(claudeChat.ts project.ts session.ts reaper.ts versionInfo.ts)
 # Lib files the 4 routes transitively need. Regenerate this list if a new
 # route is promoted to "local" or if server/src/lib grows a new helper a
 # local route pulls in.
-SHARED_LIB=(claudeCode.ts git.ts project.ts reaper.ts paths.ts referenceDirs.ts semver.ts sessionCopy.ts usageLog.ts)
+SHARED_LIB=(claudeCode.ts git.ts project.ts reaper.ts paths.ts referenceDirs.ts referencePrompt.ts semver.ts sessionCopy.ts usageLog.ts)
 
 mkdir -p "$DST_ROUTES" "$DST_LIB"
 

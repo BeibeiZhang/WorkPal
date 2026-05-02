@@ -8,6 +8,8 @@
     "dev:server": "cd server && npm run dev",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "test": "vitest",
+    "test:run": "vitest run",
     "sync:skill": "./scripts/sync-design-system-skill.sh",
     "check:skill-drift": "./scripts/check-design-system-skill-sync.sh"
   },
@@ -29,10 +31,12 @@
     "@types/react-dom": "^18.3.1",
     "@vercel/node": "^5.1.0",
     "@vitejs/plugin-react": "^4.3.3",
+    "@vitest/ui": "^4.1.5",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.16",
     "typescript": "^5.6.3",
-    "vite": "^6.0.3"
+    "vite": "^6.0.3",
+    "vitest": "^4.1.5"
   }
 }

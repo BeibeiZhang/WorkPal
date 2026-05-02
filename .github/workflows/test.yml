@@ -1,0 +1,44 @@
+# §28 Phase 1 — vitest unit-test gate. Runs on every PR and every push to main
+# so routing-layer regressions (intent router, ref-folder system prompt) get
+# caught before merge. Frontend-only: vitest is a dev dep and the suite uses
+# vi.mock to stub IS_DEMO + isAgentCurrentlyReachable, so no DB / agent /
+# network is needed. Server-side node:test (server/src/lib/*.test.ts) is
+# unrelated and not invoked here.
+#
+# Stays separate from release.yml (tag-triggered DMG build) — different
+# trigger, different concern, no overlap.
+
+name: Test
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+# Cancel in-flight runs on the same ref when a new push lands. PR pushes
+# happen in bursts during impl review — the latest commit is the one we care
+# about.
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run vitest
+        run: npm run test:run

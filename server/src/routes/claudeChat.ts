@@ -16,6 +16,7 @@ import {
 import { initProjectIfNeeded, listProjectMainDeliverables, resolveProjectFolder } from '../lib/project.js';
 import { WORKPAL_ROOT } from '../lib/paths.js';
 import { validateReferenceDirectories } from '../lib/referenceDirs.js';
+import { REFERENCE_FOLDERS_PROMPT } from '../lib/referencePrompt.js';
 import { logUsage } from '../lib/usageLog.js';
 
 const router = Router();
@@ -237,15 +238,9 @@ const ARTIFACT_PROMPT = [
 const PROJECT_CONTEXT_PROMPT = (deliverables: string[]) =>
   `This project already has the following deliverables on its main branch:\n${deliverables.map((d) => `  • ${d}`).join('\n')}\n\nWhen the user asks to edit, update, or reference one of these files, Glob and Read the matching file in your working directory FIRST — it was branched from main and contains the real content. Do not fabricate a new version from scratch. If the file is not in your working directory (e.g. it was deleted on this session branch), say so and offer to recreate it.`;
 
-// §19: when the request carries reference folders, tell the agent they exist
-// so it Globs/Reads them before guessing external context. Without this, the
-// agent would still answer "改一下我的简历" with a generic Gmail/Drive
-// fallback even though the user's resume folder is mounted via
-// additionalDirectories. The "don't write into them directly" clause keeps
-// the user-controlled merge story intact: agent writes go to cwd, user
-// chooses targets via the Complete Session UI.
-const REFERENCE_FOLDERS_PROMPT = (paths: string[]) =>
-  `The user has attached reference folders to this project:\n${paths.map((p) => `  • ${p}`).join('\n')}\n\nThese folders are your ONLY source of user content. Do NOT use Bash \`find ~\`, \`ls /Users/...\`, or any Glob outside these paths. If the content isn't in these folders, say so explicitly. Don't roam other directories.\n\nWhen the user asks about content that may live in these folders (their resume, a design doc, meeting notes, etc.), Glob each folder to list candidates first, then Read the most likely match before answering. Don't fabricate external context (Gmail, Drive, calendar) when these folders are attached — if the answer isn't on disk, say so explicitly. You can Glob/Read/Grep these folders to understand context. Don't write into ref folders directly. Your deliverable file outputs go to \`<cwd>/outputs/<name>\` (matches the ARTIFACT_PROMPT convention) — the user can later choose to merge them into reference folders via the Complete Session UI. Files outside outputs/ won't be copied as ref folder merge targets.`;
+// §19/§22 prompt fragment lives in ../lib/referencePrompt.ts so the frontend
+// vitest assertion can import + pin the load-bearing "ONLY these folders"
+// string without dragging in express/SDK/node deps from this route.
 
 router.post('/claude-chat', async (req, res) => {
   const { prompt, sessionId, sessionFolder, projectSlug, hasAttachedFiles, referenceDirectories } = req.body as {
