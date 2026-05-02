@@ -31,6 +31,7 @@ import {
   StatusTag, ConnectorCard, HealthDimensionRow, SearchBox, TextField, PageLayout,
   HeaderBar, SplitView, SidePanelHeader, SidePanelBody, SideCard, ToolbarPill, DemoBadge,
   ToolbarIconButton, ToolbarSegmented, Tooltip, Switch,
+  Checkbox, AreaChart, ArtifactCard, EmptyState, VersionRow, AgentRequiredHint,
 } from './shared';
 // Live imports — every "real" component that ships in the app.
 // Rendering these here (not screenshots) means a foundations change
@@ -44,7 +45,7 @@ import TaskContextPanel from './TaskContextPanel';
 import NewProjectDialog from './NewProjectDialog';
 import PermissionPrompt from './PermissionPrompt';
 import type { PermissionKind, PermissionRequest } from '../types';
-import type { Chat, Message, CardData } from '../types';
+import type { Chat, Message, CardData, ArtifactRef } from '../types';
 import { AGENTS, useAgentVideoStatus, type AgentVideo, type VideoStatus } from '../agentVideos';
 import { IS_DEMO } from '../lib/demoMode';
 
@@ -101,6 +102,18 @@ function TextFieldDemo() {
         leadingIcon={<X size={16} />}
         error={pw.length > 0 && pw.length < 4 ? 'At least 4 characters' : null}
       />
+    </div>
+  );
+}
+
+function CheckboxDemo() {
+  const [a, setA] = useState(true);
+  const [b, setB] = useState(false);
+  return (
+    <div className="flex flex-col gap-1 max-w-[320px]">
+      <Checkbox checked={a} onChange={setA} label="Auto-save on close" hint="Save session outputs when navigating away" />
+      <Checkbox checked={b} onChange={setB} label="Include archived" />
+      <Checkbox checked={false} onChange={() => {}} label="Disabled option" disabled />
     </div>
   );
 }
@@ -528,6 +541,16 @@ const TYPE_SCALE: {
     ],
   },
   {
+    className: 'type-h3',
+    label: 'H3 / Regular',
+    size: '14', lh: '16', weight: '400', tracking: '0',
+    sample: 'Compact heading',
+    usage: 'Sub-section labels and dense card titles — same size as Detail but tighter 16px leading for short headings',
+    appearances: [
+      'Reserved for new compact-heading surfaces — pair with detail/caption body copy.',
+    ],
+  },
+  {
     className: 'type-detail-emphasized',
     label: 'Detail / Emphasized',
     size: '14', lh: '22', weight: '700', tracking: '0',
@@ -899,7 +922,7 @@ const PRINCIPLES: { n: number; title: string; rule: string; why?: string; refTab
   {
     n: 7,
     title: '5 text styles only',
-    rule: 'Use .type-display-xl, .type-display, .type-h1, .type-h1--emphasized, .type-body, .type-body-emphasized, .type-h2, .type-h2-emphasized, .type-detail, .type-detail-emphasized, .type-caption, .type-footnote. Forbidden running-text sizes: 9, 10, 13, 17, 18, 24, 28, 32 px. 11/12 are valid only via .type-footnote / .type-caption.',
+    rule: 'Use .type-display-xl, .type-display, .type-h1, .type-h1--emphasized, .type-body, .type-body-emphasized, .type-h2, .type-h2-emphasized, .type-h3, .type-detail, .type-detail-emphasized, .type-caption, .type-footnote. Forbidden running-text sizes: 9, 10, 13, 17, 18, 24, 28, 32 px. 11/12 are valid only via .type-footnote / .type-caption.',
     refTab: 'Design Foundations',
   },
   {
@@ -1040,6 +1063,12 @@ const SEARCH_INDEX: SearchEntry[] = [
   { tab: 'components', section: 'Components · Shared Primitives', name: 'SectionTitle', description: 'Emoji + bold title + optional count badge.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'SearchBox', description: 'Responsive search input — desktop pill / mobile icon that expands on tap.' },
   { tab: 'components', section: 'Components · Shared Primitives', name: 'TextField', description: 'Filled labeled text input with optional leading icon and inline error. Used by LoginScreen, PasswordModal.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'Checkbox', description: 'Accessible checkbox row — label + optional hint, checked/unchecked/disabled states.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'AreaChart', description: 'SVG area chart with Catmull-Rom smoothing, responsive width, x-axis labels.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'ArtifactCard', description: 'Compact file card — icon by file type, name, optional link/click. Used in chat messages.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'EmptyState', description: 'Centered icon + title + optional description for empty sections.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'VersionRow', description: 'Version info row — label, current/latest, status tag. Used by Software Update.' },
+  { tab: 'components', section: 'Components · Shared Primitives', name: 'AgentRequiredHint', description: 'Mobile-only notice when a feature needs the local WorkPal Agent. Two variants: card / tip.' },
   // Components — chat & messaging
   { tab: 'components', section: 'Components · Chat & Messaging', name: 'ChatMessage', description: 'User / assistant chat bubble — markdown, chips, feedback bar.' },
   { tab: 'components', section: 'Components · Chat & Messaging', name: 'ChatInput', description: 'Text composer — textarea, attachment menu, voice input.' },
@@ -2463,6 +2492,78 @@ function ComponentsTab() {
       description: 'Filled labeled text input with optional label, leading icon, and inline error. Pass `autoComplete` for browser keychain hints (username / current-password).',
       usedIn: ['LoginScreen', 'PasswordModal'],
       preview: <TextFieldDemo />,
+    },
+    {
+      name: 'Checkbox',
+      description: 'Accessible checkbox row with label and optional hint text. Renders as a button with role="checkbox". States: checked, unchecked, disabled.',
+      usedIn: ['CompleteSessionModal (merge targets)'],
+      preview: <CheckboxDemo />,
+    },
+    {
+      name: 'AreaChart',
+      description: 'Responsive SVG area chart with Catmull-Rom smoothing. Auto-sizes to container width via ResizeObserver. Pass data as {label, value}[] and optional color.',
+      usedIn: ['OverviewPage (weekly trends)'],
+      preview: (
+        <div className="max-w-[480px]">
+          <AreaChart
+            data={[
+              { label: 'Mon', value: 3 },
+              { label: 'Tue', value: 7 },
+              { label: 'Wed', value: 5 },
+              { label: 'Thu', value: 9 },
+              { label: 'Fri', value: 6 },
+            ]}
+            color="var(--color-accent-blue)"
+            height={120}
+          />
+        </div>
+      ),
+    },
+    {
+      name: 'ArtifactCard',
+      description: 'Compact file card with icon derived from fileType (Web / Slides / Image / Video / File). Supports click-to-open (onClick) or external link (href). Non-interactive when neither is set.',
+      usedIn: ['ChatMessage (claude-code outputs)', 'ProjectPage (Output section)'],
+      preview: (
+        <div className="flex flex-wrap gap-3">
+          <ArtifactCard artifact={{ name: 'report.html', fileType: 'Web', source: 'claude-code' } as ArtifactRef} />
+          <ArtifactCard artifact={{ name: 'deck.pptx', fileType: 'Slides', source: 'claude-code' } as ArtifactRef} />
+          <ArtifactCard artifact={{ name: 'photo.png', fileType: 'Image', source: 'upload' } as ArtifactRef} />
+        </div>
+      ),
+    },
+    {
+      name: 'EmptyState',
+      description: 'Centered icon + title + optional description. Deliberately minimal — no CTA, no illustration. Reads as "nothing here yet, that\'s expected".',
+      usedIn: ['ProjectPage (empty Output / empty Recents)'],
+      preview: (
+        <div className="flex gap-6">
+          <EmptyState icon={Inbox} title="No outputs yet" description="Run a session to generate outputs" />
+          <EmptyState icon={FolderOpen} title="No files" />
+        </div>
+      ),
+    },
+    {
+      name: 'VersionRow',
+      description: 'Single row in the Software Update dashboard. Shows component name, current → latest version, and a StatusTag. Loading state shows spinner instead of tag.',
+      usedIn: ['SoftwareUpdatePage'],
+      preview: (
+        <div className="flex flex-col gap-2 max-w-[400px]">
+          <VersionRow label="WorkPal Agent" current="0.1.11" latest="0.1.11" status="up-to-date" />
+          <VersionRow label="Claude SDK" current="1.2.0" latest="1.3.0" status="update-available" />
+          <VersionRow label="OpenAI SDK" current="4.0.0" latest={null} status="unknown" />
+        </div>
+      ),
+    },
+    {
+      name: 'AgentRequiredHint',
+      description: 'Notice shown on mobile when a feature needs the local WorkPal Agent. Two variants: "card" (full-width inline message) and "tip" (compact pill next to a disabled control).',
+      usedIn: ['ChatPanel', 'ChatMessage', 'TaskContextPanel', 'ProjectPage', 'SoftwareUpdatePage'],
+      preview: (
+        <div className="flex flex-col gap-3 max-w-[480px]">
+          <AgentRequiredHint variant="card" />
+          <AgentRequiredHint variant="tip" message="Open on Mac to reveal this file" />
+        </div>
+      ),
     },
   ];
 
