@@ -726,6 +726,25 @@ export default function App() {
   const [changes, setChanges] = useState<Record<string, ChangeEntry[]>>(
     IS_DEMO ? { 'alcohol-delivery': DEMO_CHANGES_ALCOHOL } : {},
   );
+  /** §53: per-chat reactive flag — `true` iff `/api/session/complete`
+   *  reported uncommitted file diffs vs the project base. Drives the Save
+   *  to Knowledge button's disabled state in TaskContextPanel. `undefined`
+   *  before the first fetch resolves, which we deliberately treat as
+   *  "enabled" so the button doesn't flash disabled-then-enabled on chat
+   *  entry. Refetched on (a) chat enter, (b) AI commit chunk landed
+   *  (debounced 500ms), (c) post-merge success. */
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState<
+    Record<string, boolean | undefined>
+  >({});
+  /** §53: per-chat AbortController for the in-flight `hasUnsavedChanges`
+   *  fetch. Rapid chat switching or a multi-write storm would otherwise
+   *  pile up requests and let the wrong one win the race. Aborting on each
+   *  new fetch keeps "last-fired-wins" semantics + frees the server. */
+  const refetchAbortRef = useRef<Map<string, AbortController>>(new Map());
+  /** §53: per-chat debounce timer for AI-commit-driven refetches. Bursts
+   *  of file writes (a typical AI turn does 3-5) coalesce into one fetch
+   *  500ms after the last commit. */
+  const refetchTimersRef = useRef<Map<string, number>>(new Map());
   /** FIFO queue of permission requests awaiting the user's decision. The
    *  modal renders the head; on resolution the head is shifted off and the
    *  next entry (if any) flows in. A queue is needed — not a single slot —
@@ -1528,6 +1547,76 @@ export default function App() {
     }, 5000);
   }, [chats, changes]);
 
+  /** §53: refetch /api/session/complete to keep `hasUnsavedChanges[chatId]`
+   *  current. Aborts any prior in-flight fetch for this chat so rapid chat
+   *  switches and multi-write storms don't race. Silent on failure — the
+   *  button stays in its prior state and the user can still click to surface
+   *  the modal's error path. */
+  const refetchHasUnsavedChanges = useCallback(async (
+    chatId: string,
+    projectSlug: string,
+    sessionFolder: string,
+  ) => {
+    const aborts = refetchAbortRef.current;
+    aborts.get(chatId)?.abort();
+    const ac = new AbortController();
+    aborts.set(chatId, ac);
+    try {
+      const result = await postSessionComplete(projectSlug, sessionFolder, ac.signal);
+      if (ac.signal.aborted) return;
+      if (result.ok) {
+        setHasUnsavedChanges(prev => ({
+          ...prev,
+          [chatId]: result.files.length > 0,
+        }));
+      }
+    } catch {
+      // Network or abort — silent. Prior value (or undefined) sticks.
+    } finally {
+      if (aborts.get(chatId) === ac) aborts.delete(chatId);
+    }
+  }, []);
+
+  /** §53: schedule a debounced refetch — used after each AI commit chunk
+   *  lands. A typical AI turn fires 3-5 commits in quick succession; the
+   *  500ms window coalesces them into one fetch after the burst settles. */
+  const scheduleRefetch = useCallback((
+    chatId: string,
+    projectSlug: string,
+    sessionFolder: string,
+  ) => {
+    const timers = refetchTimersRef.current;
+    const existing = timers.get(chatId);
+    if (existing) window.clearTimeout(existing);
+    const id = window.setTimeout(() => {
+      timers.delete(chatId);
+      void refetchHasUnsavedChanges(chatId, projectSlug, sessionFolder);
+    }, 500);
+    timers.set(chatId, id);
+  }, [refetchHasUnsavedChanges]);
+
+  /** §53: prime `hasUnsavedChanges` on chat enter for project-bound chats.
+   *  Fires immediately (no debounce — user-perceptible). Standalone Phase
+   *  5 chats (no projectId) and demo / mobile / agent-unreachable cases
+   *  short-circuit so the button stays in its existing fallback paths.
+   *
+   *  Deps: `activeChatId` + `agentState`. Intentionally omits `chats` and
+   *  `projects` so unrelated state churn during AI streaming doesn't
+   *  re-fire the fetch. The `find` lookups inside are stale-tolerant —
+   *  the chat-id-keyed Map setter is safe even if a project rename slipped
+   *  in between effect firings. */
+  useEffect(() => {
+    if (IS_DEMO) return;
+    if (agentState !== 'reachable') return;
+    if (!activeChatId) return;
+    const chat = chats.find(c => c.id === activeChatId);
+    if (!chat?.projectId || !chat.sessionFolder) return;
+    const project = projects.find(p => p.id === chat.projectId);
+    if (!project) return;
+    void refetchHasUnsavedChanges(chat.id, slugify(project.name), chat.sessionFolder);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeChatId, agentState, refetchHasUnsavedChanges]);
+
   /** 6.3: open the Complete Session modal and fetch the diff preview.
    *  Entry point from TaskContextPanel's footer button. Computes
    *  projectSlug + sessionFolder the same way `streamClaudeChat` does
@@ -1580,6 +1669,10 @@ export default function App() {
       const project = projects.find(p => p.id === chat.projectId);
       if (!project) return;
       const projectSlug = slugify(project.name);
+      // §53: extract narrow-stable string before the await + nested callback
+      // — TS widens `chat.sessionFolder` back to `string | undefined` once
+      // the closure crosses the await boundary.
+      const sessionFolder = chat.sessionFolder;
 
       setCompleteSessionPhase({ kind: 'merging' });
       const response = await postSessionMerge({
@@ -1607,6 +1700,10 @@ export default function App() {
             setChats(prev => prev.map(c =>
               c.id === chatId ? { ...c, sessionCompleted: true } : c,
             ));
+            // §53: post-merge the diff range collapses to empty — refetch
+            // so the button flips to disabled + green-check immediately,
+            // not on the next chat-enter.
+            void refetchHasUnsavedChanges(chatId, projectSlug, sessionFolder);
             setCompleteSessionPhase({
               kind: 'success',
               alreadyUpToDate: projectResult.alreadyUpToDate,
@@ -1649,12 +1746,17 @@ export default function App() {
           setChats(prev => prev.map(c =>
             c.id === chatId ? { ...c, sessionCompleted: true } : c,
           ));
+          // §53: same refetch as the single-target path. Skipped-project
+          // merge (targets.project=false) leaves the actual git state
+          // untouched, but the user's intent here is "I'm done" — refetch
+          // honors whatever the diff says.
+          void refetchHasUnsavedChanges(chatId, projectSlug, sessionFolder);
         }
         setCompleteSessionPhase({ kind: 'partial-success', results: response.results });
         return currentId;
       });
     },
-    [completeSessionChatId, chats, projects],
+    [completeSessionChatId, chats, projects, refetchHasUnsavedChanges],
   );
 
   /** Open the PermissionPrompt modal and await the user's decision. Returns
@@ -2118,6 +2220,14 @@ export default function App() {
               };
               return { ...p, outputs: [...existing, entry] };
             }));
+          }
+          // §53: file write committed → button's "Save to Knowledge"
+          // disabled state needs to flip to enabled (or stay enabled).
+          // Debounced 500ms so a typical 3-5-write AI turn coalesces into
+          // a single fetch after the burst settles. Skip in demo (no real
+          // backend) and for chats outside a project (no diff endpoint).
+          if (project && chat?.sessionFolder && !IS_DEMO) {
+            scheduleRefetch(chatId, slugify(project.name), chat.sessionFolder);
           }
         } else if (chunk.type === 'permission_request') {
           // 5.4d bridge: server parked a SDK canUseTool resolver under
@@ -3684,6 +3794,13 @@ export default function App() {
                           : !!(activeChat?.projectId && activeChat?.folderMaterialized)
                       }
                       sessionCompleted={!!activeChat?.sessionCompleted}
+                      hasUnsavedChanges={
+                        // §53: undefined = fetch in flight (preserve enabled
+                        // state, no flash of disabled-then-enabled). false =
+                        // confirmed empty diff (button disabled). true =
+                        // diffs to save (button enabled).
+                        activeChat ? hasUnsavedChanges[activeChat.id] : undefined
+                      }
                       onCompleteSession={
                         activeChat
                           ? () => handleCompleteSession(activeChat.id)

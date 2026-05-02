@@ -170,6 +170,15 @@ export async function fetchAgent(path: string, init?: RequestInit): Promise<Resp
   try {
     return await fetch(`${AGENT_BASE_URL}${path}`, init);
   } catch (err) {
+    // §53: callers passing an AbortSignal (e.g. the reactive
+    // hasUnsavedChanges poller cancelling on rapid chat switch) trip this
+    // catch as a DOMException with name 'AbortError'. That's intentional
+    // user-driven cancellation, not a real network failure — skip the
+    // unreachable side effect and re-throw the original error so the caller
+    // can distinguish abort from genuine transport failures.
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw err;
+    }
     setState('unreachable');
     void triggerReprobe();
     throw new AgentUnreachableError(err);

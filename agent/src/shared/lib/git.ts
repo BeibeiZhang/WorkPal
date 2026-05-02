@@ -325,6 +325,26 @@ export async function diffSessionVsBase(
   projectPath: string,
   branchName: string,
 ): Promise<SessionDiffEntry[]> {
+  // §53: session branch may have been reaped after a previous save (the
+  // reaper removes the worktree + deletes the branch). Without this probe
+  // the git diff below throws `fatal: ambiguous argument 'main...session/...'`,
+  // which the route handler surfaces as a raw "Could not save to Knowledge"
+  // popup. Treat missing branch as "no changes" so the modal renders the
+  // existing Empty state instead. `refs/heads/` is explicit so a same-named
+  // tag can't satisfy the verify; `--quiet` suppresses stderr noise for
+  // this expected case.
+  try {
+    await execFileP('git', [
+      '-C',
+      projectPath,
+      'rev-parse',
+      '--verify',
+      '--quiet',
+      `refs/heads/${branchName}`,
+    ]);
+  } catch {
+    return [];
+  }
   const { stdout: headOut } = await execFileP(
     'git',
     ['-C', projectPath, 'symbolic-ref', '--short', 'HEAD'],
@@ -400,6 +420,31 @@ export async function mergeSessionFFOnly(
   projectPath: string,
   branchName: string,
 ): Promise<MergeFFResult> {
+  // §53: session branch may have been reaped (worktree gone, branch
+  // deleted). Treat as a successful no-op merge — the frontend's existing
+  // alreadyUpToDate path (Phase 6.3) renders the right "nothing to do"
+  // affordance instead of surfacing a raw "ambiguous argument" git error.
+  // Mirror the same explicit `refs/heads/` namespace + `--quiet` shape
+  // used by `diffSessionVsBase` so a coincidentally-named tag can't sneak
+  // past this guard.
+  try {
+    await execFileP('git', [
+      '-C',
+      projectPath,
+      'rev-parse',
+      '--verify',
+      '--quiet',
+      `refs/heads/${branchName}`,
+    ]);
+  } catch {
+    const { stdout: headOut } = await execFileP('git', [
+      '-C',
+      projectPath,
+      'rev-parse',
+      'HEAD',
+    ]);
+    return { ok: true, commit: headOut.trim(), alreadyUpToDate: true };
+  }
   try {
     const { stdout } = await execFileP('git', [
       '-C',

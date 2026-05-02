@@ -49,13 +49,19 @@ interface TaskContextPanelProps {
    *  file write. Chats outside a project (legacy Phase 5) and pure-Q&A
    *  chats never render this button. */
   canCompleteSession?: boolean;
-  /** 6.3 + §43.2: true after the user has already merged this session's
-   *  branch into the project base at least once. Affects the button's
-   *  label/icon (checkmark + "Saved to Knowledge") but NOT its disabled
-   *  state — chat is a continuation of work, so a re-save after subsequent
-   *  AI writes must remain reachable. The Phase 6.3 modal handles the
-   *  no-changes path with the "Already up to date" auto-dismiss state. */
+  /** 6.3 + §43.2 + §53: true after the user has already merged this
+   *  session's branch into the project base at least once. Drives the
+   *  green-check + "Saved to Knowledge" label when there are also no new
+   *  unsaved changes. Pre-§53 this also gated `disabled` (then §43.2
+   *  removed that gate, then §53 reinstated reactive disabling via
+   *  `hasUnsavedChanges` instead). */
   sessionCompleted?: boolean;
+  /** §53: reactive flag fetched from /api/session/complete — true iff
+   *  there are uncommitted file diffs vs the project base. `false` ->
+   *  button disabled; `true` -> enabled. `undefined` (initial fetch in
+   *  flight) is intentionally treated as "enabled" so the button doesn't
+   *  flash disabled-then-enabled on chat entry. */
+  hasUnsavedChanges?: boolean;
   /** 6.3: open the Complete Session modal. Passed from App.tsx, which hosts
    *  the modal and manages its phase state. Undefined while the gate above
    *  is false. */
@@ -220,6 +226,7 @@ export default function TaskContextPanel({
   onUndoChange,
   canCompleteSession = false,
   sessionCompleted = false,
+  hasUnsavedChanges,
   onCompleteSession,
 }: TaskContextPanelProps) {
   // Demo chat falls back to the original scripted placeholders; real chats
@@ -445,6 +452,10 @@ export default function TaskContextPanel({
               ? 'Demo mode — session execution disabled'
               : isMobile
               ? 'Open WorkPal Agent on desktop to complete this session'
+              : hasUnsavedChanges === false && sessionCompleted
+              ? 'Saved — no new changes since the last save.'
+              : hasUnsavedChanges === false
+              ? 'No changes yet to save.'
               : sessionCompleted
               ? 'Save any new changes since the last save to project knowledge.'
               : "Adds this session's outputs to project knowledge so future sessions can read them."
@@ -460,20 +471,24 @@ export default function TaskContextPanel({
               if (IS_DEMO) return;
               onCompleteSession?.();
             }}
-            // §43.2: `sessionCompleted` no longer gates `disabled` — chat is a
-            // continuation of work and re-saves after additional AI writes
-            // must remain reachable. Phase 6.3 modal's "Already up to date"
-            // state handles the no-changes path with a 1.8s auto-dismiss.
-            disabled={IS_DEMO || isMobile}
+            // §53 (revert §43.2): reactive disabled state. `=== false` is
+            // intentional — `undefined` (initial fetch in flight) keeps the
+            // button enabled to avoid a flash of disabled-then-enabled on
+            // chat enter. Backend graceful-no-op covers the rare case
+            // where the diff fetch is skipped (Phase 5 standalone, demo)
+            // and a stale click would otherwise hit a reaped branch.
+            disabled={IS_DEMO || isMobile || hasUnsavedChanges === false}
             fullWidth
           >
             <span className="flex items-center gap-2">
-              {sessionCompleted ? (
+              {hasUnsavedChanges === false && sessionCompleted ? (
                 <CheckCircle2 size={14} className="text-accent-green" />
               ) : (
                 <GitMerge size={14} />
               )}
-              {sessionCompleted ? 'Saved to Knowledge' : 'Save to Knowledge'}
+              {hasUnsavedChanges === false && sessionCompleted
+                ? 'Saved to Knowledge'
+                : 'Save to Knowledge'}
             </span>
           </TertiaryButton>
           {showCompleteHint && (

@@ -220,10 +220,17 @@ export interface SessionDiffEntry {
 
 /** 6.3: POST /api/session/complete — asks the backend to diff
  *  `session/<slug>` against the project's base branch and return the file
- *  list for the Complete Session modal. Does not merge anything. */
+ *  list for the Complete Session modal. Does not merge anything.
+ *
+ *  §53: optional AbortSignal so the App-level reactive `hasUnsavedChanges`
+ *  poller can cancel an in-flight fetch when the user rapidly switches chats
+ *  or a new file write supersedes a debounced refetch. The modal-driven
+ *  call site (`handleCompleteSession`) doesn't pass a signal — its existing
+ *  drop-on-switch defense is at the React state layer. */
 export async function postSessionComplete(
   projectSlug: string,
   sessionFolder: string,
+  signal?: AbortSignal,
 ): Promise<
   | { ok: true; files: SessionDiffEntry[] }
   | { ok: false; error: string }
@@ -233,6 +240,7 @@ export async function postSessionComplete(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ projectSlug, sessionFolder }),
+      signal,
     });
     if (!res.ok) {
       const payload = await res.json().catch(() => ({}));
