@@ -2232,7 +2232,7 @@ export function AgentRequiredHint({
     <div
       role="status"
       className="panel-border rounded-[12px] p-4 flex items-start gap-3 max-w-[480px]"
-      style={{ background: 'var(--color-bg-page)' }}
+      style={{ background: 'var(--color-card-panel-bg)' }}
     >
       <div className="w-8 h-8 shrink-0 flex items-center justify-center rounded-full bg-bg-message text-text-secondary">
         <Smartphone size={16} strokeWidth={1.5} className="icon-theme" />
