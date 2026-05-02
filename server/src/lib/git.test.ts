@@ -6,10 +6,12 @@ import { promisify } from 'node:util';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  diffSessionVsBase,
   listChangedTopLevelFiles,
   listMainBranchDeliverables,
   listSessionBranchDeliverables,
   mergeDiffOutputs,
+  mergeSessionFFOnly,
   NOT_FF_RE,
   parseDiffNameStatus,
   parseDiffNumstat,
@@ -602,5 +604,81 @@ describe('listSessionBranchDeliverables', () => {
 
     const result = await listSessionBranchDeliverables(repo);
     assert.deepEqual(result, []);
+  });
+});
+
+// ── §53: graceful no-op when session branch has been reaped ─────────────
+//
+// After a successful save, the reaper eventually deletes the session branch
+// + worktree (reaper.ts). If the user has a stale chat tab and clicks Save
+// again, both /complete and /merge would previously surface raw git stderr
+// ("fatal: ambiguous argument 'main...session/...'") via the route's
+// 500-with-message path, which the frontend renders as a "Could not save to
+// Knowledge" error popup. Both lib functions now short-circuit to a "no
+// changes" success outcome on a missing branch — `diffSessionVsBase` returns
+// [] (modal renders Empty), `mergeSessionFFOnly` returns alreadyUpToDate
+// (modal renders the auto-dismiss success state).
+
+describe('diffSessionVsBase — §53 missing branch graceful', () => {
+  let repo: string;
+
+  beforeEach(async () => {
+    repo = await mkdtemp(join(tmpdir(), 'workpal-diff-missing-'));
+    await execFileP('git', ['init', '-q'], { cwd: repo });
+    await execFileP('git', ['config', 'user.email', 'test@workpal'], { cwd: repo });
+    await execFileP('git', ['config', 'user.name', 'Test'], { cwd: repo });
+    await execFileP('git', ['commit', '--allow-empty', '-q', '-m', 'baseline'], {
+      cwd: repo,
+    });
+  });
+
+  afterEach(async () => {
+    await rm(repo, { recursive: true, force: true });
+  });
+
+  it('returns [] when the session branch does not exist', async () => {
+    // No session branch was ever created (or it was reaped). The pre-flight
+    // `git rev-parse --verify refs/heads/<branch>` should fail and the
+    // function returns `[]` instead of letting the diff throw `fatal:
+    // ambiguous argument`.
+    const result = await diffSessionVsBase(repo, 'session/reaped');
+    assert.deepEqual(result, []);
+  });
+});
+
+describe('mergeSessionFFOnly — §53 missing branch graceful', () => {
+  let repo: string;
+
+  beforeEach(async () => {
+    repo = await mkdtemp(join(tmpdir(), 'workpal-merge-missing-'));
+    await execFileP('git', ['init', '-q'], { cwd: repo });
+    await execFileP('git', ['config', 'user.email', 'test@workpal'], { cwd: repo });
+    await execFileP('git', ['config', 'user.name', 'Test'], { cwd: repo });
+    await execFileP('git', ['commit', '--allow-empty', '-q', '-m', 'baseline'], {
+      cwd: repo,
+    });
+  });
+
+  afterEach(async () => {
+    await rm(repo, { recursive: true, force: true });
+  });
+
+  it('returns alreadyUpToDate success when the session branch does not exist', async () => {
+    // Reaped-branch case: the route handler then forwards a normal success
+    // response and the frontend's existing alreadyUpToDate path renders the
+    // 1.8s auto-dismiss success state instead of "Could not save".
+    const { stdout: headOut } = await execFileP(
+      'git',
+      ['-C', repo, 'rev-parse', 'HEAD'],
+    );
+    const expectedCommit = headOut.trim();
+
+    const result = await mergeSessionFFOnly(repo, 'session/reaped');
+
+    assert.equal(result.ok, true);
+    if (result.ok) {
+      assert.equal(result.alreadyUpToDate, true);
+      assert.equal(result.commit, expectedCommit);
+    }
   });
 });
