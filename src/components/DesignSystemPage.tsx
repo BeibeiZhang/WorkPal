@@ -287,12 +287,12 @@ const SURFACE_TOKENS: ColorToken[] = [
   {
     name: 'Background · Card',
     cssVar: '--color-card-panel-bg',
-    usage: 'Elevated surfaces — CardShell, ArtifactCard, DarkToggle pill, VoiceMode panel. White in light; 25% black in dark so the shell gradient reads through',
+    usage: 'Elevated surfaces — CardShell, ArtifactCard, AgentRequiredHint card, VoiceMode panel. White in light; matches bg-hover (10% light blue) in dark so cards lift off the canvas with the same tone as other elevated surfaces',
   },
   {
     name: 'Background · Input',
     cssVar: '--color-input-bg',
-    usage: 'Input field fill — ChatInput textarea and inline search surfaces. #142740 at 5% in light (same overlay as bg-hover); 20% black in dark so the shell gradient reads through',
+    usage: 'Input field fill — ChatInput textarea, inline search surfaces, DarkToggle outer pill in dark. #142740 at 5% in light (same overlay as bg-hover); 20% black in dark so the shell gradient reads through',
   },
   {
     name: 'Background · Outer',
