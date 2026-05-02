@@ -780,6 +780,16 @@ html, body, #root {
   background-position: bottom;
 }
 
+/* Vertical sibling of `.side-card-divider` — 1px gradient line that
+   fades at the top and bottom. Apply to a `w-px self-stretch` div to
+   separate two columns inside a card. */
+.divider-fade-v {
+  background-image: linear-gradient(to bottom, transparent 0%, var(--color-stroke-outline) 20%, var(--color-stroke-outline) 80%, transparent 100%);
+  background-repeat: no-repeat;
+  background-size: 1px 100%;
+  background-position: center;
+}
+
 /* Canonical hover elevation for interactive cards (Figma node 6518:26127).
    Light mode lifts the card with a soft blue shadow on hover.
    Dark mode swaps the shadow for a 1px brand-gradient ring on hover —
