@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pencil, FolderOpen, FileQuestion, FileX } from 'lucide-react';
+import { Pencil, FolderOpen, FileQuestion, FileX, Globe } from 'lucide-react';
 import { iconShorter, iconExtend, iconFormal, iconTranslate } from '../assets';
 import { SidePanelHeader } from './shared';
 import { streamEditArticle, postRevealInFinder, postOpenFile, type EditPreset } from '../lib/api';
@@ -70,6 +70,7 @@ export default function DetailPanel({
 }: DetailPanelProps) {
   const isMobile = useIsMobile();
   const showRevealButton = !!filePath && !isMobile;
+  const showOpenInBrowserButton = !!filePath && renderAs === 'html' && mode === 'preview' && !isMobile;
   const panelRef = useRef<HTMLDivElement>(null);
   const startResize = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (fullScreen || !onResize) return;
@@ -284,6 +285,16 @@ export default function DetailPanel({
         onClose={onClose}
         className="pl-10 pr-[32px]"
       >
+        {showOpenInBrowserButton && (
+          <button
+            onClick={() => { void postOpenFile(filePath!); }}
+            aria-label="Open in browser"
+            title="Open in browser"
+            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors shrink-0 text-text-primary"
+          >
+            <Globe size={20} />
+          </button>
+        )}
         {showRevealButton && (
           <button
             onClick={() => { void postRevealInFinder(filePath!); }}
