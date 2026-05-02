@@ -901,7 +901,7 @@ export default function App() {
     const currById = new Map(chats.map((c) => [c.id, c]));
     let dirty = false;
     for (const [id, chat] of currById) {
-      if (chat.isDraft) continue;
+      if (chat.isDraft && chat.messages.length === 0) continue;
       if (DEMO_CHAT_IDS.includes(id)) continue;
       const prev = prevById.get(id);
       if (prev !== chat) {
@@ -911,7 +911,7 @@ export default function App() {
     }
     for (const [id, prev] of prevById) {
       if (currById.has(id)) continue;
-      if (prev.isDraft) continue;
+      if (prev.isDraft && prev.messages.length === 0) continue;
       if (DEMO_CHAT_IDS.includes(id)) continue;
       tombstoneChatsRef.current.add(id);
       dirtyChatsRef.current.delete(id);
@@ -1060,7 +1060,7 @@ export default function App() {
         if (!isChatsMigrationDone()) {
           const cloudIds = new Set(cloudMeta.map((m) => m.id));
           const localOnly = prevChatsRef.current.filter(
-            (c) => !c.isDraft && !cloudIds.has(c.id),
+            (c) => (!c.isDraft || c.messages.length > 0) && !cloudIds.has(c.id),
           );
           if (localOnly.length > 0) {
             await bulkUploadChats(localOnly, chatsUpdatedAtMapRef.current, password);
@@ -1397,6 +1397,7 @@ export default function App() {
       messages: [...chat.messages, message],
       lastMessage: message.content || 'New message',
       timestamp: message.timestamp,
+      isDraft: false,
     }));
   }, [updateChat]);
 
@@ -2533,7 +2534,7 @@ export default function App() {
 
     setChats(prev => prev.map(c => {
       if (c.id !== activeChatId) return c;
-      return { ...c, messages: [...c.messages, userMessage] };
+      return { ...c, messages: [...c.messages, userMessage], isDraft: false };
     }));
 
     // Look up flow
@@ -2643,7 +2644,7 @@ export default function App() {
             { label: '💬 Just chat', action: 'just-chat' },
           ],
         });
-        return { ...c, messages };
+        return { ...c, messages, isDraft: false };
       }));
       return;
     }
