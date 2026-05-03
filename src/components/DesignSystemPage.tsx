@@ -2432,12 +2432,12 @@ function ComponentsTab() {
     },
     {
       name: 'ReviewItemCard',
-      description: 'Card with optional urgent accent bar, metadata, time pill, action button.',
+      description: 'Card with type icon, title, type/time metadata, and chevron affordance.',
       usedIn: ['Overview "Needs your eyes" section'],
       preview: (
         <div className="flex flex-col gap-2">
-          <ReviewItemCard title="UX meeting summary — 6 action items" source="Zoom → Docs" type="Document" time="3 min ago" humanTime="~5 min" />
-          <ReviewItemCard title="Weekly stakeholder email draft" source="Gmail" type="Email" time="2h ago" humanTime="~3 min" />
+          <ReviewItemCard title="UX meeting summary — 6 action items" source="Zoom → Docs" type="Document" time="3 min ago" />
+          <ReviewItemCard title="Weekly stakeholder email draft" source="Gmail" type="Email" time="2h ago" />
         </div>
       ),
     },
