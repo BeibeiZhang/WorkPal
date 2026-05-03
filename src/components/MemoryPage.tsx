@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Brain, Plus, Trash2, Pencil, X, Info } from 'lucide-react';
+import { Brain, Plus, Trash2, Pencil, X } from 'lucide-react';
 import { FilterChip, GhostPillButton, HeaderIconButton, PageLayout, PrimaryButton, TertiaryButton } from './shared';
 import type { MemoryEntry, MemoryKind } from '../types';
 import { KIND_LABEL } from '../lib/memory';
@@ -250,20 +250,6 @@ export default function MemoryPage({
       }
     >
       <div className="flex flex-col gap-4">
-        {/* Demo-mode banner — read-only seed data, mutations are hidden. */}
-        {IS_DEMO && (
-          <div
-            className="flex items-start gap-3 p-4 rounded-xl"
-            style={{ background: 'var(--color-bg-message)' }}
-          >
-            <Info size={16} className="text-text-secondary mt-0.5 shrink-0" />
-            <div className="type-detail text-text-secondary leading-relaxed">
-              <span className="font-medium text-text-primary">Demo mode — these are seed memories.</span>{' '}
-              Editing, adding, and deleting are disabled. No real data is stored.
-            </div>
-          </div>
-        )}
-
         {/* Explainer — shown when no memories yet (real mode only). */}
         {!IS_DEMO && memories.length === 0 && !adding && (
           <div

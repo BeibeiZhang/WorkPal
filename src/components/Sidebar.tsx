@@ -267,13 +267,13 @@ function AvatarMenu({ compact = false, activeView, activeChatId, onViewChange, o
   }, [open]);
 
   const items: { id: string; label: string; Icon: typeof Link; onClick: () => void; active: boolean }[] = [
-    { id: 'connectors',    label: 'Connectors',            Icon: Link,     onClick: () => onViewChange?.('connectors'),    active: activeView === 'connectors' },
-    { id: 'library',       label: 'Library',               Icon: BookOpen, onClick: () => onViewChange?.('library'),       active: activeView === 'library' },
-    { id: 'memory',          label: 'Memory',                Icon: Brain,          onClick: () => onViewChange?.('memory'),          active: activeView === 'memory' },
-    // Software Update is local-agent maintenance — hidden in the public demo build (my-workpal.vercel.app) where there's no agent to update.
-    ...(IS_DEMO ? [] : [{ id: 'software-update', label: 'Software Update',       Icon: ArrowUpCircle,  onClick: () => onViewChange?.('software-update'), active: activeView === 'software-update' }]),
     { id: 'about',           label: 'About',                 Icon: Info,           onClick: () => onViewChange?.('about'),           active: activeView === 'about' },
     { id: 'onboarding',      label: 'Onboarding Experience', Icon: Sparkles,       onClick: () => onChatSelect?.('my-workpal'),      active: activeChatId === 'my-workpal' && activeView === 'chat' },
+    { id: 'memory',          label: 'Memory',                Icon: Brain,          onClick: () => onViewChange?.('memory'),          active: activeView === 'memory' },
+    { id: 'library',       label: 'Library',               Icon: BookOpen, onClick: () => onViewChange?.('library'),       active: activeView === 'library' },
+    { id: 'connectors',    label: 'Connectors',            Icon: Link,     onClick: () => onViewChange?.('connectors'),    active: activeView === 'connectors' },
+    // Software Update is local-agent maintenance — hidden in the public demo build (my-workpal.vercel.app) where there's no agent to update.
+    ...(IS_DEMO ? [] : [{ id: 'software-update', label: 'Software Update',       Icon: ArrowUpCircle,  onClick: () => onViewChange?.('software-update'), active: activeView === 'software-update' }]),
     { id: 'design-system',   label: 'Design System',         Icon: Palette,        onClick: () => onViewChange?.('design-system'),   active: activeView === 'design-system' },
   ];
 

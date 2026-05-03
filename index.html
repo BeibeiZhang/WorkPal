@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <!-- iOS Safari status-bar tint — kills the seam between the system bar and the app shell.
+         Hex values mirror --color-bg-page in src/index.css (light :root / dark .dark);
+         App.tsx overrides the non-media meta on isDark toggle so in-app theme switches stay in sync. -->
+    <meta name="theme-color" content="#F3F4F5" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#001424" media="(prefers-color-scheme: dark)" />
     <title>WorkPal</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
