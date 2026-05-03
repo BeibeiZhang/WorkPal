@@ -24,7 +24,7 @@ export default function AboutPage({ sidebarOpen, onToggleSidebar, onNewChat }: A
             src="https://beibeizhang.github.io/workpal-hero.jpg"
             alt="WorkPal 2.0 — Chat + Tasks in the Same Project, Voice-Enabled Rich Input, Selective Knowledge Output, Overview page."
             loading="lazy"
-            className="w-full h-[50vh] object-cover object-center rounded-[16px] shadow-[0_16px_50px_rgba(118,82,185,0.18),0_4px_12px_rgba(20,39,64,0.08)]"
+            className="w-full aspect-video md:aspect-auto md:h-[50vh] object-cover object-center rounded-[16px] shadow-[0_16px_50px_rgba(118,82,185,0.18),0_4px_12px_rgba(20,39,64,0.08)]"
           />
           <h2 className="type-h1--emphasized text-text-primary max-w-[880px]" style={{ fontSize: '40px', lineHeight: '48px', letterSpacing: '-0.5px' }}>
             An <span className="gradient-text">agentic workspace</span> where chat, tasks, and knowledge evolve together.
@@ -139,21 +139,9 @@ export default function AboutPage({ sidebarOpen, onToggleSidebar, onNewChat }: A
                   </div>
                   <p className="type-h2-emphasized text-text-primary mb-2">{m.title}</p>
                   <p
-                    className="type-detail text-text-secondary mb-3 [&_b]:font-semibold [&_b]:text-text-primary [&_i]:italic [&_code]:font-mono [&_code]:bg-bg-hover [&_code]:px-1 [&_code]:rounded [&_code]:text-[0.85em]"
+                    className="type-detail text-text-secondary [&_b]:font-semibold [&_b]:text-text-primary [&_i]:italic [&_code]:font-mono [&_code]:bg-bg-hover [&_code]:px-1 [&_code]:rounded [&_code]:text-[0.85em]"
                     dangerouslySetInnerHTML={{ __html: m.body }}
                   />
-                  {m.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      {m.tags.map((t) => (
-                        <span
-                          key={t}
-                          className="type-caption text-text-secondary border border-stroke-outline rounded-full px-3 py-1"
-                        >
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </div>
             ))}
@@ -244,7 +232,6 @@ interface Milestone {
   date: string;
   title: string;
   body: string;
-  tags: string[];
   now?: boolean;
 }
 
@@ -253,64 +240,55 @@ const TIMELINE: Milestone[] = [
     num: 1,
     date: 'Mar 26, 2026',
     title: 'Research & design exploration',
-    body: '<b>Two research decks</b> on agentic AI UI/UX patterns — competitive analysis + visual pattern study. Then <b>three rounds of concept exploration</b> (dashboard directions, product proposals, style references).',
-    tags: ['Competitive Research', 'Design Exploration', 'Concept Proposals', 'Pattern Study'],
+    body: '<b>Research decks</b> on agentic AI UI/UX patterns — competitive analysis + visual pattern study. Then <b>rounds of concept exploration</b> (dashboard directions, product proposals, style references).',
   },
   {
     num: 2,
     date: 'Apr 6, 2026',
     title: 'Foundation — design system & Figma pipeline',
     body: 'Three-panel shell, first design tokens, dark mode, and a primitives library. Figma → Tailwind pipeline, tokenized end-to-end. The design system that every later surface fits into.',
-    tags: ['Figma → Code', 'Design Tokens', 'Dark-Mode System', 'AI Design System'],
   },
   {
     num: 3,
     date: 'Apr 7, 2026',
     title: 'Product direction + frontend architecture',
     body: '<b>The product call that came out of research:</b> under a project foundation, chat and tasks share memory. The key decision: <b>integrate the best chat experience and the best agent experience on the market.</b> Then built the frontend architecture to hold this shape.',
-    tags: ['Product Vision', 'Project-Centered IA', 'Product Judgment', 'Frontend Architecture'],
   },
   {
     num: 4,
     date: 'Apr 16, 2026',
     title: 'Connect OpenAI — streaming chat, integrations, memory',
     body: 'Integrated OpenAI GPT streaming over SSE. Designed the animated token bubble, feedback bar, and a <b>mode-switching composer (chat / task)</b> — the first version before Phase 06 unified it. Then Gmail + Calendar OAuth, structured tool-call cards, and persistent cross-session memory.',
-    tags: ['Streaming UX', 'Trust-Gated OAuth', 'Tool-Call Cards', 'Cross-Session Memory'],
   },
   {
     num: 5,
     date: 'Apr 18, 2026',
     title: 'Connect Claude Code — real agent, real files, real Undo',
     body: 'Wired the UI into Claude Agent SDK. The AI now edits local files with per-action permission prompts, every write auto-commits to git, and <b>Undo is a real <code>git reset --hard HEAD~1</code></b>. The agent actually <i>does</i> things — safely and reversibly.',
-    tags: ['Agent Integration', 'Permission UX', 'Reversible Actions', 'SDK Integration'],
   },
   {
     num: 6,
     date: 'Apr 19, 2026',
     title: 'AI routes intent — the big UX change',
     body: "The big UX change I made as designer-PM: <b>users shouldn't pick chat vs. task — the AI classifies intent from the input.</b> Mode overhead drops to zero. Ships with single-input composer, auto-opening inspector, Promote-to-Project, and a 4-kind PermissionPrompt (file-write / read / command / external-url).",
-    tags: ['Product Judgment', 'Intent Classification', 'Single-Input UX', 'Permission UX'],
   },
   {
     num: 7,
     date: 'Apr 23, 2026',
     title: 'Cross-device sync — chats & projects via Supabase',
     body: "Chats and projects <b>sync via Supabase</b> so anything you say in the browser shows up on every device. Memory and agent execution intentionally stayed local-first — that became Phase 08's design problem to solve.",
-    tags: ['Sync Architecture', 'Cross-Device UX', 'Supabase RLS', 'Local-First Decision'],
   },
   {
     num: 8,
     date: 'Apr 24, 2026',
     title: 'Web + Local Agent — web UI editing your local Mac',
     body: '<b>Browsers can\'t touch your local files.</b> So I shipped a small Mac menu-bar app — the web UI calls it to do the file, git, and agent work. One-click install, auto-update from GitHub.',
-    tags: ['Hybrid Web + Native', 'Onboarding UX', 'Install Flow', 'Settings Card Design', 'Menu-Bar App'],
   },
   {
     num: 9,
     date: 'Apr 27–28, 2026',
     title: 'Reference folders — project becomes a knowledge base',
     body: '<b>The product call behind "Selective Task Output":</b> a project isn\'t just chats — it\'s a living knowledge base. Users attach external folders (résumé, brand guidelines) via native picker. The AI proactively reads them, and on Complete Session, you choose which task outputs merge back into the project\'s reference folders. <b>Knowledge accrues across sessions.</b> Plus channel-aware routing (natural language without keywords still goes to Claude) and one-click Output preview with reveal-in-Finder.',
-    tags: ['Knowledge Base UX', 'Channel-Aware Routing', 'System-Prompt Engineering', 'Output Preview', 'Native Folder Picker'],
     now: true,
   },
 ];

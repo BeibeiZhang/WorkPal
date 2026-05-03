@@ -788,9 +788,22 @@ export default function App() {
    *  needed because nothing in the UI tree reads this value directly. */
   const approvedScopesRef = useRef<Set<string>>(new Set());
 
-  // Toggle dark class on root element
+  // Toggle dark class on root element + sync iOS Safari status-bar tint to
+  // the live page background so there's no seam between the system bar and
+  // the app shell. Reads --color-bg-page after the class flips so the value
+  // tracks the design token (don't hard-code the hex here).
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark);
+    const bg = getComputedStyle(document.documentElement)
+      .getPropertyValue('--color-bg-page').trim();
+    if (!bg) return;
+    let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]:not([media])');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.name = 'theme-color';
+      document.head.appendChild(meta);
+    }
+    meta.content = bg;
   }, [isDark]);
 
   // Responsive auto-collapse: when the viewport drops below the all-three
