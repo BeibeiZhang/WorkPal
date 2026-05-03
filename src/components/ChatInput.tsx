@@ -173,7 +173,10 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
         setShowAttachMenu(false);
       }
     };
-    const handleKey = (e: KeyboardEvent) => {
+    // Note: `KeyboardEvent` is imported from 'react' at the top, which
+    // shadows the DOM `KeyboardEvent`. Letting TS infer the param type
+    // from `addEventListener('keydown', ...)` resolves to the DOM type.
+    const handleKey = (e: globalThis.KeyboardEvent) => {
       if (e.key === 'Escape') {
         setShowAttachMenu(false);
       }
