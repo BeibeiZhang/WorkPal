@@ -431,7 +431,7 @@ export default function ChatMessage({ message, isLastAssistant, onCardAction, on
       <div className="flex flex-col items-end mb-4 message-appear">
         {hasAttachments && <MessageAttachments attachments={message.attachments!} />}
         {hasText && (
-          <div className="max-w-[320px] bg-bg-message rounded-lg px-4 py-3">
+          <div className="max-w-[320px] rounded-lg bg-bg-hover px-4 py-3">
             <p className="type-h2 text-text-primary">{message.content}</p>
           </div>
         )}

@@ -662,6 +662,18 @@ export default function App() {
   useEffect(() => {
     if (!chatPreviewArtifact && !projectPreviewArtifact && !detailOpen) setDetailPanelWidth(DETAIL_DEFAULT_WIDTH);
   }, [chatPreviewArtifact, projectPreviewArtifact, detailOpen]);
+  // Auto-close any open DetailPanel / artifact preview when the user navigates
+  // to a different page. Right-side detail content is scoped to the page that
+  // opened it (a chat's research card, a project's output preview); on
+  // navigation away the panel should close so it doesn't reappear stale on
+  // return, and so cross-route slots don't bleed into each other.
+  useEffect(() => {
+    setDetailOpen(false);
+    setDetailCard(null);
+    setDetailMessageId(null);
+    setChatPreviewArtifact(null);
+    setProjectPreviewArtifact(null);
+  }, [location.pathname]);
   // §23: shared preview handler — chat ArtifactCard click and ProjectPage
   // Output card click both route through here. `which` decides which preview
   // slot the result lands in (state was split so the two routes don't bleed).
