@@ -42,6 +42,7 @@ Every CSS variable with its resolved light / dark value. If you need a token, fi
 --color-bg-hover              rgba(20,39,64,0.05)  / rgba(226,243,255,0.1)
 --color-card-panel-bg         #FFFFFF              / rgba(226,243,255,0.1)
 --color-input-bg              var(--color-bg-page) / rgba(0,0,0,0.2)
+--color-input-bg-active       #FFFFFF              / rgba(0,0,0,0.2)
 --color-icon-primary          #142740              / #FFFFFF
 --color-sidebar-bg            #F7F7F8              / #001424
 --color-outer-bg              #F5F5F7              / #001424
@@ -118,7 +119,8 @@ Every CSS variable with its resolved light / dark value. If you need a token, fi
 | `--color-bg-page` | `#F7F7F8` | `#001424` | Main surfaces |
 | `--color-bg-message` / `--color-bg-hover` | `rgba(20,39,64,0.05)` | `rgba(226,243,255,0.1)` | Message bubbles, hover, input fields |
 | `--color-card-panel-bg` | `#FFFFFF` | `rgba(226,243,255,0.1)` | CardShell, ArtifactCard, AgentRequiredHint card, VoiceMode panel — dark value mirrors bg-hover for consistent elevated-surface tone |
-| `--color-input-bg` | `var(--color-bg-page)` | `rgba(0,0,0,0.2)` | ChatInput inner fill, DarkToggle outer pill (dark) |
+| `--color-input-bg` | `var(--color-bg-page)` | `rgba(0,0,0,0.2)` | ChatInput idle fill, DarkToggle outer pill (dark), OverviewPage tinted cards |
+| `--color-input-bg-active` | `#FFFFFF` | `rgba(0,0,0,0.2)` | ChatInput active (focused/composing) fill — pure white in light, mirrors idle in dark |
 | `--color-sidebar-bg` | `#F7F7F8` | `#001424` | NavPanel surface |
 | `--color-stroke-outline` | `#E8E8E8` | `rgba(115,178,255,0.2)` | Borders, dividers |
 | `--color-stroke-toggle` | `#E6E8EA` | `rgba(115,178,255,0.2)` | Inputs, toggles |

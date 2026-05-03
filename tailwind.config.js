@@ -28,6 +28,7 @@ export default {
         },
         input: {
           bg: 'var(--color-input-bg)',
+          'bg-active': 'var(--color-input-bg-active)',
         },
         stroke: {
           outline: 'var(--color-stroke-outline)',
