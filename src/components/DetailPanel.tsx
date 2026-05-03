@@ -36,8 +36,12 @@ interface DetailPanelProps {
   filePath?: string;
   /** §23: 'preview' (default) renders `content` in the chosen `renderAs`;
    *  'unsupported' replaces the body with a "Cannot preview this file type"
-   *  placeholder + Reveal in Finder / Open with default app buttons. */
-  mode?: 'preview' | 'unsupported' | 'inaccessible';
+   *  placeholder + Reveal in Finder / Open with default app buttons.
+   *  'iframe' embeds `srcUrl` directly (same-origin static asset under /public). */
+  mode?: 'preview' | 'unsupported' | 'inaccessible' | 'iframe';
+  /** Used only when `mode === 'iframe'`: same-origin URL rendered via
+   *  `<iframe src>` (relative resources resolve naturally — no `<base>` hack). */
+  srcUrl?: string;
 }
 
 const RESIZE_MIN_PX = 400;
@@ -67,10 +71,22 @@ export default function DetailPanel({
   onResize,
   filePath,
   mode = 'preview',
+  srcUrl,
 }: DetailPanelProps) {
   const isMobile = useIsMobile();
-  const showRevealButton = !!filePath && !isMobile;
-  const showOpenInBrowserButton = !!filePath && renderAs === 'html' && mode === 'preview' && !isMobile;
+  // 'iframe' mode is a same-origin demo asset → no real local file; both
+  // header buttons appear (browser opens the URL, folder shows a demo notice).
+  const showRevealButton = (!!filePath || mode === 'iframe') && !isMobile;
+  const showOpenInBrowserButton = ((!!filePath && renderAs === 'html' && mode === 'preview') || mode === 'iframe') && !isMobile;
+  // Ephemeral inline notice anchored under the folder button — used when the
+  // user clicks "Reveal in Finder" in iframe (demo) mode and there's nothing
+  // to reveal. Auto-clears after 2.5s.
+  const [demoNotice, setDemoNotice] = useState(false);
+  useEffect(() => {
+    if (!demoNotice) return;
+    const t = window.setTimeout(() => setDemoNotice(false), 2500);
+    return () => window.clearTimeout(t);
+  }, [demoNotice]);
   const panelRef = useRef<HTMLDivElement>(null);
   const startResize = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (fullScreen || !onResize) return;
@@ -287,7 +303,13 @@ export default function DetailPanel({
       >
         {showOpenInBrowserButton && (
           <button
-            onClick={() => { void postOpenFile(filePath!); }}
+            onClick={() => {
+              if (mode === 'iframe' && srcUrl) {
+                window.open(srcUrl, '_blank', 'noopener,noreferrer');
+              } else if (filePath) {
+                void postOpenFile(filePath);
+              }
+            }}
             aria-label="Open in browser"
             title="Open in browser"
             className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors shrink-0 text-text-primary"
@@ -296,22 +318,48 @@ export default function DetailPanel({
           </button>
         )}
         {showRevealButton && (
-          <button
-            onClick={() => { void postRevealInFinder(filePath!); }}
-            aria-label="Reveal in Finder"
-            title="Reveal in Finder"
-            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors shrink-0 text-text-primary"
-          >
-            <FolderOpen size={20} />
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => {
+                if (mode === 'iframe') {
+                  setDemoNotice(true);
+                } else if (filePath) {
+                  void postRevealInFinder(filePath);
+                }
+              }}
+              aria-label="Reveal in Finder"
+              title="Reveal in Finder"
+              className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-bg-hover transition-colors shrink-0 text-text-primary"
+            >
+              <FolderOpen size={20} />
+            </button>
+            {demoNotice && (
+              <div
+                role="status"
+                className="absolute top-full right-0 mt-1 px-3 py-1.5 rounded-md bg-text-primary text-bg-page type-detail whitespace-nowrap shadow-lg z-50 pointer-events-none"
+              >
+                Demo only — file isn't on your local disk
+              </div>
+            )}
+          </div>
         )}
       </SidePanelHeader>
 
       <div
         ref={contentAreaRef}
-        className={`flex-1 overflow-y-auto relative ${mode !== 'preview' || renderAs !== 'html' ? 'pl-10 pr-[32px]' : ''}`}
+        className={`flex-1 overflow-y-auto relative ${(mode === 'iframe' || (mode === 'preview' && renderAs === 'html')) ? '' : 'pl-10 pr-[32px]'}`}
       >
-        {mode === 'inaccessible' ? (
+        {mode === 'iframe' && srcUrl ? (
+          // Same-origin static asset (e.g. seeded showcase under /public).
+          // No sandbox — we control the source. Relative URLs inside the
+          // document resolve against srcUrl naturally.
+          <iframe
+            title={title}
+            src={srcUrl}
+            className="w-full h-full border-0"
+            style={{ background: 'var(--color-bg-page)' }}
+          />
+        ) : mode === 'inaccessible' ? (
           <div className="flex flex-col items-center justify-center text-center pt-16 pb-24 gap-4">
             <FileX size={48} className="text-text-tertiary" strokeWidth={1.2} />
             <p className="type-h2 text-text-primary">This file is no longer accessible</p>

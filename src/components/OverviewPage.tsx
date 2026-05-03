@@ -39,7 +39,6 @@ type SourceKind = 'chat' | 'project';
 type Source = { kind: SourceKind; id: string; label: string };
 
 const REVIEW_ITEMS: Array<{ title: string; source: string; type: string; time: string; urgent: boolean; from?: Source }> = [
-  { title: 'UX meeting summary — 6 action items extracted', source: 'Zoom → Docs', type: 'Document', time: 'Ready 3 min ago', urgent: true, from: { kind: 'chat', id: 'ux-meeting', label: 'UX Meeting Minutes' } },
   { title: '3 Jira tickets drafted from design feedback', source: 'Docs → Jira', type: 'Tickets', time: 'Ready 1h ago', urgent: false, from: { kind: 'chat', id: 'alcohol-delivery', label: 'Alcohol Delivery Issues' } },
   { title: 'Weekly stakeholder email draft', source: 'Gmail', type: 'Email', time: 'Ready 2h ago', urgent: false, from: { kind: 'project', id: 'proj-1', label: 'Agent Design' } },
 ];

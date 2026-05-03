@@ -16,6 +16,42 @@ const hour = (n: number) => new Date(Date.now() - n * 3_600_000);
  *  so HRs land on a populated sidebar instead of an empty-state prompt. */
 export const DEMO_EXTRA_CHATS: Chat[] = [
   {
+    id: 'demo-compare-ux-architecture',
+    title: 'Generate Agent Design Component Library',
+    lastMessage: 'Library generated — 10 patterns grouped by Surface / Governors / Tuners / Trust / Operations. Open it on the right.',
+    timestamp: hour(5),
+    projectId: 'proj-1',
+    messages: [
+      {
+        id: 'demo-cua-u1',
+        role: 'user',
+        content:
+          'Generate an Agent Design Component Library — distill the recurring UX patterns we\'ll need when we ship our own agent product. Group them by intent (surface / governance / tuning / trust / operations) and back each one with real product screenshots and design principles.',
+        timestamp: hour(5),
+      },
+      {
+        id: 'demo-cua-a1',
+        role: 'assistant',
+        content:
+          "Library generated — 10 patterns, grouped by what they do for the user.\n\n**Surface (1)**\n• Workflow — compose multi-step actions into a reusable, predictable flow\n\n**Governors (5)**\n• Action Plan — show the agent's plan before it acts, confirm-then-execute\n• Stream of Thought — make reasoning, tool calls, and decisions visible and auditable\n• Verification — checkpoint risky steps so the user can intervene\n• Memory — persist context across sessions with clear scope\n• Shared Vision — agree on outcome and constraints up front\n\n**Tuners (1)**\n• Connectors — give the agent access to user data and tools\n\n**Trust (1)**\n• Trust Builders — surface why the agent is reliable in this run\n\n**Operations (2)**\n• Inspector Panel — debug a running agent (steps + tool calls + I/O)\n• Operations Dashboard — monitor production agents and intervene at scale\n\nEach card carries real product screenshots, design intent, and best practices. Open the doc on the right to drill in.",
+        timestamp: hour(5),
+        artifacts: [
+          {
+            name: 'Agent Design Component Library',
+            fileType: 'Web',
+            href: '/agent-design-guide.html',
+            source: 'artifact',
+          },
+        ],
+        chips: [
+          { label: 'Show the Verification pattern', action: 'explore-solutions' },
+          { label: 'Add a new component', action: 'explore-solutions' },
+          { label: 'Draft handoff specs', action: 'create-tickets' },
+        ],
+      },
+    ],
+  },
+  {
     id: 'demo-q1-ux-research',
     title: 'Q1 UX research highlights',
     lastMessage: 'Here are the top themes from Q1 usability sessions.',

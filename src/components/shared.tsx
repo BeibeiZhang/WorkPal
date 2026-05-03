@@ -2096,7 +2096,11 @@ export function ArtifactCard({
   const wrapperClass = `inline-block max-w-full text-left no-underline${
     isInteractive ? ' cursor-pointer' : ''
   }`;
-  if (artifact.href) {
+  // Same-origin href (seeded showcase under /public) prefers the in-app
+  // handler — embeds in the DetailPanel iframe instead of jumping to a new
+  // tab. Hosted-artifact hrefs (cross-origin) keep the new-tab behavior.
+  const sameOriginHref = !!artifact.href && artifact.href.startsWith('/');
+  if (artifact.href && !(sameOriginHref && onClick)) {
     return (
       <a href={artifact.href} target="_blank" rel="noreferrer" className={wrapperClass}>
         {inner}

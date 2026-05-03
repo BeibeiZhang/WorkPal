@@ -1,0 +1,2412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Agent UX Component Library</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;600;700;900&display=swap');
+
+:root {
+  --bg: #ffffff;
+  --bg-secondary: #f5f5f7;
+  --bg-code: #f9f9fb;
+  --bg-sidebar: #fbfbfd;
+  --text: #1d1d1f;
+  --text-secondary: #6e6e73;
+  --text-tertiary: #86868b;
+  --accent: #0071e3;
+  --accent-hover: #0077ed;
+  --accent-bg: #e8f0fe;
+  --green: #28a745;
+  --green-bg: #e6f9ed;
+  --red: #d73a49;
+  --red-bg: #fdeaec;
+  --orange: #e36209;
+  --orange-bg: #fef3e2;
+  --purple: #8250df;
+  --purple-bg: #f0e8ff;
+  --border: #d2d2d7;
+  --border-light: #e8e8ed;
+  --sidebar-w: 260px;
+  --header-h: 52px;
+  --content-max: 860px;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-img: 0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  font-size: 15px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ========= TOP HEADER ========= */
+.top-header {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  height: var(--header-h);
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid var(--border-light);
+  display: flex; align-items: center;
+  padding: 0 24px;
+}
+.top-header .logo {
+  font-size: 17px; font-weight: 700; letter-spacing: -0.3px;
+  color: var(--text);
+  display: flex; align-items: center; gap: 8px;
+}
+.top-header .logo span { opacity: 0.4; font-weight: 400; }
+.top-header .header-right {
+  margin-left: auto;
+  font-size: 12px; color: var(--text-tertiary);
+}
+.top-header .header-right a {
+  color: var(--accent); text-decoration: none;
+}
+
+/* ========= SIDEBAR ========= */
+.sidebar {
+  position: fixed; top: var(--header-h); left: 0; bottom: 0;
+  width: var(--sidebar-w);
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border-light);
+  overflow-y: auto;
+  padding: 20px 0;
+  z-index: 100;
+  -webkit-overflow-scrolling: touch;
+}
+.sidebar::-webkit-scrollbar { width: 0; }
+
+.sidebar .nav-group { margin-bottom: 24px; }
+.sidebar .nav-group-title {
+  padding: 0 20px;
+  font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1.2px;
+  color: var(--text-tertiary);
+  margin-bottom: 6px;
+}
+.sidebar .nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 20px;
+  font-size: 13px; font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+  transition: all 0.15s;
+}
+.sidebar .nav-item:hover {
+  color: var(--text);
+  background: rgba(0,0,0,0.03);
+}
+.sidebar .nav-item.active {
+  color: var(--accent);
+  background: var(--accent-bg);
+  border-left-color: var(--accent);
+  font-weight: 600;
+}
+.sidebar .nav-item .nav-icon {
+  width: 20px; text-align: center; font-size: 14px;
+}
+
+/* ========= MAIN CONTENT ========= */
+.main {
+  margin-left: var(--sidebar-w);
+  padding-top: var(--header-h);
+  min-height: 100vh;
+}
+.content {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 48px 40px 120px;
+}
+
+/* ========= HERO / LANDING ========= */
+.hero-landing {
+  padding: 80px 40px 60px;
+  max-width: var(--content-max);
+  margin: 0 auto;
+}
+.hero-landing .eyebrow {
+  font-size: 16px; font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+.hero-landing h1 {
+  font-size: 48px; font-weight: 800;
+  letter-spacing: -1px; line-height: 1.1;
+  margin-bottom: 20px;
+}
+.hero-landing .hero-desc {
+  font-size: 19px; color: var(--text-secondary);
+  line-height: 1.6; max-width: 640px;
+  margin-bottom: 32px;
+}
+.hero-landing .hero-meta {
+  display: flex; gap: 24px;
+  font-size: 13px; color: var(--text-tertiary);
+}
+.hero-landing .hero-meta a { color: var(--accent); text-decoration: none; }
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin-top: 40px;
+}
+.overview-card {
+  padding: 20px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: var(--text);
+  transition: all 0.2s;
+}
+.overview-card:hover {
+  border-color: var(--border);
+  box-shadow: var(--shadow-card);
+  transform: translateY(-1px);
+}
+.overview-card .oc-icon { font-size: 24px; margin-bottom: 10px; }
+.overview-card .oc-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.overview-card .oc-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+
+/* ========= COMPONENT PAGE SECTIONS ========= */
+.component-page { display: none; }
+.component-page.active { display: block; }
+
+.component-hero {
+  margin-bottom: 48px;
+  padding-bottom: 40px;
+  border-bottom: 1px solid var(--border-light);
+}
+.component-hero .breadcrumb {
+  font-size: 12px; color: var(--text-tertiary);
+  margin-bottom: 12px;
+}
+.component-hero .breadcrumb a {
+  color: var(--text-tertiary); text-decoration: none;
+}
+.component-hero .breadcrumb a:hover { color: var(--accent); }
+.component-hero h1 {
+  font-size: 40px; font-weight: 800;
+  letter-spacing: -0.8px; line-height: 1.15;
+  margin-bottom: 12px;
+}
+.component-hero .hero-summary {
+  font-size: 17px; color: var(--text-secondary);
+  line-height: 1.6; max-width: 600px;
+  margin-bottom: 20px;
+}
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 11px; font-weight: 600;
+}
+.badge.governor { background: var(--purple-bg); color: var(--purple); }
+.badge.surface { background: var(--accent-bg); color: var(--accent); }
+.badge.trust { background: var(--green-bg); color: var(--green); }
+.badge.identity { background: var(--orange-bg); color: var(--orange); }
+
+/* Hero illustration */
+.hero-illustration {
+  margin-top: 28px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-img);
+  border: 1px solid var(--border-light);
+}
+.hero-illustration img {
+  width: 100%; display: block;
+}
+.hero-illustration img[src^="images/"] {
+  min-height: 180px;
+  background: linear-gradient(135deg, #f0f0f5 0%, #e8e8f0 100%);
+  position: relative;
+}
+.hero-illustration img[src^="images/"]::after {
+  content: attr(alt);
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px; text-align: center;
+  font-size: 12px; color: var(--text-tertiary);
+  background: linear-gradient(135deg, #f0f0f5 0%, #e8e8f0 100%);
+  border-radius: var(--radius);
+}
+
+/* ========= SECTION HEADING ========= */
+.section-title {
+  font-size: 24px; font-weight: 700;
+  letter-spacing: -0.3px;
+  margin: 48px 0 16px;
+  padding-top: 32px;
+  border-top: 1px solid var(--border-light);
+}
+.section-title:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+
+.subsection-title {
+  font-size: 17px; font-weight: 700;
+  margin: 32px 0 10px;
+}
+
+p.body-text {
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin-bottom: 16px;
+}
+
+/* ========= DO / DON'T ========= */
+.do-dont-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  margin: 20px 0 32px;
+}
+.do-card, .dont-card {
+  padding: 20px;
+  border-radius: var(--radius);
+  border: 1px solid;
+}
+.do-card {
+  background: var(--green-bg); border-color: rgba(40,167,69,0.2);
+}
+.dont-card {
+  background: var(--red-bg); border-color: rgba(215,58,73,0.2);
+}
+.do-card .dd-label, .dont-card .dd-label {
+  font-size: 12px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+.do-card .dd-label { color: var(--green); }
+.dont-card .dd-label { color: var(--red); }
+.do-card .dd-text, .dont-card .dd-text {
+  font-size: 13px; line-height: 1.6;
+  color: var(--text);
+}
+
+/* ========= GUIDELINES LIST ========= */
+.guideline-list { list-style: none; margin: 16px 0 32px; }
+.guideline-list li {
+  display: flex; gap: 14px; align-items: flex-start;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+.guideline-list li:last-child { border-bottom: none; }
+.guideline-list .gl-num {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: var(--text-secondary);
+  flex-shrink: 0;
+}
+.guideline-list .gl-content { flex: 1; }
+.guideline-list .gl-title {
+  font-size: 14px; font-weight: 700; margin-bottom: 2px;
+}
+.guideline-list .gl-desc {
+  font-size: 13px; color: var(--text-secondary); line-height: 1.6;
+}
+
+/* ========= CALLOUT BOX ========= */
+.callout {
+  padding: 20px 24px;
+  border-radius: var(--radius-sm);
+  margin: 24px 0;
+  display: flex; gap: 14px; align-items: flex-start;
+}
+.callout.info { background: var(--accent-bg); }
+.callout.warning { background: var(--orange-bg); }
+.callout.tip { background: var(--green-bg); }
+.callout .callout-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.callout .callout-content { flex: 1; }
+.callout .callout-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.callout .callout-body { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+
+/* ========= EXAMPLE SCREENSHOTS ========= */
+.examples-section { margin: 24px 0 40px; }
+.example-item {
+  margin-bottom: 32px;
+}
+.example-item .example-img {
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-img);
+  border: 1px solid var(--border-light);
+  margin-bottom: 12px;
+  background: var(--bg-secondary);
+}
+.example-item .example-img img {
+  width: 100%; display: block;
+  cursor: zoom-in;
+  transition: opacity 0.15s;
+}
+.example-item .example-img img:hover {
+  opacity: 0.92;
+}
+
+/* Hero images also zoomable */
+.hero-illustration img {
+  cursor: zoom-in;
+  transition: opacity 0.15s;
+}
+.hero-illustration img:hover { opacity: 0.92; }
+
+/* ========= LIGHTBOX OVERLAY ========= */
+.lightbox-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  cursor: zoom-out;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s, visibility 0.25s;
+}
+.lightbox-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+.lightbox-overlay img {
+  max-width: 95vw;
+  max-height: 92vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 8px 48px rgba(0,0,0,0.5);
+  transform: scale(0.95);
+  transition: transform 0.3s cubic-bezier(0.16,1,0.3,1);
+}
+.lightbox-overlay.active img {
+  transform: scale(1);
+}
+.lightbox-hint {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  z-index: 10000;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #fff;
+  font-size: 12px; font-weight: 500;
+  padding: 6px 16px;
+  border-radius: 100px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.lightbox-overlay.active .lightbox-hint {
+  opacity: 1;
+  transition-delay: 0.5s;
+}
+.example-item .example-caption {
+  display: flex; align-items: center; gap: 10px;
+}
+.example-item .example-product {
+  font-size: 13px; font-weight: 700; color: var(--text);
+}
+.example-item .example-desc {
+  font-size: 13px; color: var(--text-secondary);
+}
+.example-item .product-logo {
+  width: 24px; height: 24px;
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800;
+  flex-shrink: 0;
+}
+
+/* Example grid — full-width for clear detail viewing */
+.examples-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+  margin: 24px 0;
+}
+.examples-grid .example-item { margin-bottom: 0; }
+
+/* ========= RELATED PATTERNS ========= */
+.related-patterns {
+  display: flex; gap: 12px; flex-wrap: wrap;
+  margin: 16px 0 32px;
+}
+.related-pill {
+  padding: 6px 16px;
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  font-size: 12px; font-weight: 600;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: all 0.15s;
+  cursor: pointer;
+}
+.related-pill:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+
+/* ========= VARIANT CARDS ========= */
+.variant-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin: 16px 0 32px;
+}
+.variant-card {
+  padding: 16px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.15s;
+}
+.variant-card:hover { border-color: var(--border); }
+.variant-card .vc-name { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+.variant-card .vc-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+
+/* ========= SPECS TABLE ========= */
+.specs-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0 32px;
+  font-size: 13px;
+}
+.specs-table th {
+  text-align: left;
+  padding: 10px 16px;
+  background: var(--bg-secondary);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-light);
+}
+.specs-table td {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-secondary);
+}
+.specs-table td:first-child { color: var(--text); font-weight: 500; }
+
+/* ========= FOOTER ========= */
+.page-footer {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 40px 40px 80px;
+  border-top: 1px solid var(--border-light);
+  font-size: 12px; color: var(--text-tertiary);
+  line-height: 1.7;
+}
+.page-footer a { color: var(--accent); text-decoration: none; }
+
+/* ========= RESPONSIVE ========= */
+@media (max-width: 960px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; }
+  .do-dont-grid, .examples-grid { grid-template-columns: 1fr; }
+  .hero-landing h1 { font-size: 36px; }
+  .component-hero h1 { font-size: 32px; }
+  .content, .hero-landing { padding-left: 24px; padding-right: 24px; }
+}
+
+/* ========= LANGUAGE TOGGLE ========= */
+.lang-toggle {
+  display: flex; align-items: center; gap: 2px;
+  background: var(--bg-secondary);
+  border-radius: 100px;
+  padding: 2px;
+  margin-left: 8px;
+  margin-right: 16px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.lang-toggle button {
+  border: none; background: none;
+  padding: 4px 12px;
+  border-radius: 100px;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.lang-toggle button.active {
+  background: white;
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+body.lang-zh .en { display: none !important; }
+body.lang-en .zh { display: none !important; }
+
+</style>
+</head>
+<body class="lang-en">
+
+<!-- ======== TOP HEADER ======== -->
+<header class="top-header">
+  <div class="logo">Agent Design <span>· UX Component Library</span></div>
+    <div class="lang-toggle">
+      <button data-lang="zh">中文</button>
+      <button class="active" data-lang="en">EN</button>
+    </div>
+  <div class="header-right"></div>
+</header>
+
+<!-- ======== SIDEBAR ======== -->
+<aside class="sidebar">
+  <div class="nav-group">
+    <div class="nav-group-title"><span class="zh">概览</span><span class="en">Overview</span></div>
+    <a class="nav-item active" href="#" data-page="home">
+      <span class="nav-icon">🏠</span> <span class="zh">首页</span><span class="en">Home</span>
+    </a>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-title"><span class="zh">流程 Surface</span><span class="en">Surface</span></div>
+    <a class="nav-item" href="#" data-page="workflow">
+      <span class="nav-icon">🔗</span> <span class="zh">Workflow 工作流</span><span class="en">Workflow</span>
+    </a>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-title"><span class="zh">治理层 Governors</span><span class="en">Governors</span></div>
+    <a class="nav-item" href="#" data-page="action-plan">
+      <span class="nav-icon">📋</span> <span class="zh">Action Plan 行动计划</span><span class="en">Action Plan</span>
+    </a>
+    <a class="nav-item" href="#" data-page="stream-of-thought">
+      <span class="nav-icon">💭</span> <span class="zh">Stream of Thought 思维链</span><span class="en">Stream of Thought</span>
+    </a>
+    <a class="nav-item" href="#" data-page="verification">
+      <span class="nav-icon">🛡️</span> <span class="zh">Verification 验证确认</span><span class="en">Verification</span>
+    </a>
+    <a class="nav-item" href="#" data-page="memory">
+      <span class="nav-icon">🧠</span> <span class="zh">Memory 记忆系统</span><span class="en">Memory</span>
+    </a>
+    <a class="nav-item" href="#" data-page="shared-vision">
+      <span class="nav-icon">👁️</span> <span class="zh">Shared Vision 共享视野</span><span class="en">Shared Vision</span>
+    </a>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-title"><span class="zh">调节器 Tuners</span><span class="en">Tuners</span></div>
+    <a class="nav-item" href="#" data-page="connectors">
+      <span class="nav-icon">🔌</span> <span class="zh">Connectors 连接器</span><span class="en">Connectors</span>
+    </a>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-title"><span class="zh">信任层 Trust</span><span class="en">Trust</span></div>
+    <a class="nav-item" href="#" data-page="trust">
+      <span class="nav-icon">🤝</span> <span class="zh">Trust Builders 信任构建</span><span class="en">Trust Builders</span>
+    </a>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-title"><span class="zh">运维层 Operations</span><span class="en">Operations</span></div>
+    <a class="nav-item" href="#" data-page="inspector">
+      <span class="nav-icon">🔍</span> <span class="zh">Inspector Panel 检查面板</span><span class="en">Inspector Panel</span>
+    </a>
+    <a class="nav-item" href="#" data-page="dashboard">
+      <span class="nav-icon">📊</span> <span class="zh">Operations Dashboard 运营仪表盘</span><span class="en">Operations Dashboard</span>
+    </a>
+  </div>
+</aside>
+
+<!-- ======== MAIN ======== -->
+<div class="main">
+
+<!-- ================================================
+     HOME PAGE
+     ================================================ -->
+<div class="component-page active" id="page-home">
+  <div class="hero-landing">
+    <div class="eyebrow">AI Agent UX Component Library</div>
+    <h1><span class="zh">Agent 设计<br>组件库指南</span><span class="en">Agent Design<br>Component Library</span></h1>
+    <p class="hero-desc">
+      <span class="zh">当 AI 从对话工具演变为自主行动的 Agent，用户体验设计面临全新挑战。本指南以组件库的形式，系统化地梳理 Agent 设计中的核心 UX 模式——每个组件都附带真实产品截图、设计原则与最佳实践。</span><span class="en">As AI evolves from conversational tools to autonomous agents, UX design faces entirely new challenges. This guide systematically organizes the core UX patterns in agent design as a component library — each pattern includes real product screenshots, design principles, and best practices.</span>
+    </p>
+    <div class="hero-meta">
+      <span><span class="zh">10 个核心组件</span><span class="en">10 Core Components</span></span>
+    </div>
+
+    <div class="overview-grid">
+      <a class="overview-card" href="#" data-page="workflow">
+        <div class="oc-icon">🔗</div>
+        <div class="oc-title"><span class="zh">Workflow 工作流</span><span class="en">Workflow</span></div>
+        <div class="oc-desc"><span class="zh">将多个操作组合为可复用、可预测的自动化流程</span><span class="en">Combine multiple actions into reusable, predictable automated processes</span></div>
+      </a>
+      <a class="overview-card" href="#" data-page="action-plan">
+        <div class="oc-icon">📋</div>
+        <div class="oc-title"><span class="zh">Action Plan 行动计划</span><span class="en">Action Plan</span></div>
+        <div class="oc-desc"><span class="zh">执行前展示 AI 的计划步骤，确认后再行动</span><span class="en">Display AI's planned steps before execution, act only after confirmation</span></div>
+      </a>
+      <a class="overview-card" href="#" data-page="stream-of-thought">
+        <div class="oc-icon">💭</div>
+        <div class="oc-title"><span class="zh">Stream of Thought 思维链</span><span class="en">Stream of Thought</span></div>
+        <div class="oc-desc"><span class="zh">让 AI 的推理过程、工具调用、决策可见可审计</span><span class="en">Make AI's reasoning process, tool calls, and decisions visible and auditable</span></div>
+      </a>
+      <a class="overview-card" href="#" data-page="verification">
+        <div class="oc-icon">🛡️</div>
+        <div class="oc-title"><span class="zh">Verification 验证确认</span><span class="en">Verification</span></div>
+        <div class="oc-desc"><span class="zh">按操作风险等级匹配对应的确认摩擦力度</span><span class="en">Match confirmation friction to the risk level of each operation</span></div>
+      </a>
+      <a class="overview-card" href="#" data-page="memory">
+        <div class="oc-icon">🧠</div>
+        <div class="oc-title"><span class="zh">Memory 记忆系统</span><span class="en">Memory</span></div>
+        <div class="oc-desc"><span class="zh">跨会话的持久化上下文，让 AI 成为持久助手</span><span class="en">Persistent context across sessions, transforming AI into a lasting assistant</span></div>
+      </a>
+      <a class="overview-card" href="#" data-page="connectors">
+        <div class="oc-icon">🔌</div>
+        <div class="oc-title"><span class="zh">Connectors 连接器</span><span class="en">Connectors</span></div>
+        <div class="oc-desc"><span class="zh">安全透明地连接外部数据源与第三方应用</span><span class="en">Securely and transparently connect external data sources and third-party apps</span></div>
+      </a>
+      <a class="overview-card" href="#" data-page="shared-vision">
+        <div class="oc-icon">👁️</div>
+        <div class="oc-title"><span class="zh">Shared Vision 共享视野</span><span class="en">Shared Vision</span></div>
+        <div class="oc-desc"><span class="zh">实时展示 Agent 的视野与操作状态</span><span class="en">Display the agent's view and operational status in real time</span></div>
+      </a>
+      <a class="overview-card" href="#" data-page="trust">
+        <div class="oc-icon">🤝</div>
+        <div class="oc-title"><span class="zh">Trust Builders 信任构建</span><span class="en">Trust Builders</span></div>
+        <div class="oc-desc"><span class="zh">引用、足迹、披露——层层叠加的信任机制</span><span class="en">Citations, footprints, disclosure — layered trust mechanisms</span></div>
+      </a>
+      <a class="overview-card" href="#" data-page="inspector">
+        <div class="oc-icon">🔍</div>
+        <div class="oc-title"><span class="zh">Inspector Panel 检查面板</span><span class="en">Inspector Panel</span></div>
+        <div class="oc-desc"><span class="zh">任务进度、工具上下文、文件产出——Agent 运行状态的实时侧边栏</span><span class="en">Task progress, tool context, file outputs — a real-time sidebar for agent runtime state</span></div>
+      </a>
+      <a class="overview-card" href="#" data-page="dashboard">
+        <div class="oc-icon">📊</div>
+        <div class="oc-title"><span class="zh">Operations Dashboard 运营仪表盘</span><span class="en">Operations Dashboard</span></div>
+        <div class="oc-desc"><span class="zh">多 Agent 集群的健康度、用量、任务队列与预算的全局监控</span><span class="en">Global monitoring of multi-agent fleet health, usage, task queues, and budgets</span></div>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================
+     WORKFLOW PAGE
+     ================================================ -->
+<div class="component-page" id="page-workflow">
+<div class="content">
+  <div class="component-hero">
+    <div class="breadcrumb"><a href="#" data-page="home"><span class="zh">首页</span><span class="en">Home</span></a> / Surface /</div>
+    <h1><span class="zh">Workflow 工作流</span><span class="en">Workflow</span></h1>
+    <p class="hero-summary"><span class="zh">工作流将多个操作组合为可复用、可预测的流程。在 Agent 场景中，它以用户构建的流程链和 Agent 自主生成的任务步骤两种形式出现。</span><span class="en">Workflows combine multiple actions into reusable, predictable processes. In agent scenarios, they appear in two forms: user-built process chains and agent-generated task steps.</span></p>
+    <span class="badge surface">Surface · 流程</span>
+    <div class="hero-illustration">
+      <img src="/agent-design-images/68ec422118ea4b8aa232a25f_workflows_card.webp" alt="Workflow pattern illustration">
+    </div>
+  </div>
+
+  <!-- Overview -->
+  <h2 class="section-title"><span class="zh">概述</span><span class="en">Overview</span></h2>
+  <p class="body-text"><span class="zh">工作流减少碎片化——不同团队不再各自编写 prompt，而是由单一流程定义者为所有人设定步骤，这些流程可被复用、改编或模板化。工作流的使用还改善了数据在系统间流动的控制方式，prompt 可以从第三方工具拉取信息、进行转换，然后传递给序列中的下一阶段。</span><span class="en">Workflows reduce fragmentation — instead of different teams writing their own prompts, a single process author defines steps for everyone. These processes can be reused, adapted, or templatized. Workflows also improve how data flows between systems, as prompts can pull information from third-party tools, transform it, and pass it to the next stage.</span></p>
+
+  <div class="callout info">
+    <span class="callout-icon">💡</span>
+    <div class="callout-content">
+      <div class="callout-title"><span class="zh">Agent 场景下的双模式</span><span class="en">Dual Modes for Agents</span></div>
+      <div class="callout-body"><span class="zh">随着 Agent 能力增长，工作流界面需要同时支持 <strong>「编排模式 Authoring」</strong>（用户定义可复用流程）和 <strong>「报告模式 Reporting」</strong>（Agent 展示自己的逻辑供用户审查或修改）。</span><span class="en">As agent capabilities grow, workflow interfaces need to support both <strong>"Authoring Mode"</strong> (users define reusable processes) and <strong>"Reporting Mode"</strong> (agents present their logic for user review or modification).</span></div>
+    </div>
+  </div>
+
+  <!-- Variants -->
+  <h2 class="section-title"><span class="zh">工作流操作类型</span><span class="en">Workflow Actions</span></h2>
+  <div class="variant-grid">
+    <div class="variant-card">
+      <div class="vc-name"><span class="zh">综合 / 摘要</span><span class="en">Synthesize / Summarize</span></div>
+      <div class="vc-desc"><span class="zh">合成或总结信息，需考虑引用和参考来源的传递以便验证。</span><span class="en">Synthesize or summarize information, with consideration for passing citations and references for verification.</span></div>
+    </div>
+    <div class="variant-card">
+      <div class="vc-name"><span class="zh">重塑 / 重构</span><span class="en">Reshape / Restructure</span></div>
+      <div class="vc-desc"><span class="zh">确保工作流有足够的上下文和参考来定义最终输出的目标样式。</span><span class="en">Ensure the workflow has sufficient context and references to define the target style of the final output.</span></div>
+    </div>
+    <div class="variant-card">
+      <div class="vc-name"><span class="zh">媒介转换</span><span class="en">Media Conversion</span></div>
+      <div class="vc-desc"><span class="zh">可以是简单转换（语音转文字），也可以是复杂操作（构建图片）。</span><span class="en">Can be simple conversions (speech-to-text) or complex operations (image generation).</span></div>
+    </div>
+    <div class="variant-card">
+      <div class="vc-name"><span class="zh">验证细节</span><span class="en">Verify Details</span></div>
+      <div class="vc-desc"><span class="zh">添加显式步骤让用户在发送或分享前验证生成内容的形式或实质。</span><span class="en">Add explicit steps for users to verify the form or substance of generated content before sending or sharing.</span></div>
+    </div>
+  </div>
+
+  <!-- Do / Don't -->
+  <h2 class="section-title"><span class="zh">最佳实践</span><span class="en">Best Practices</span></h2>
+  <div class="do-dont-grid">
+    <div class="do-card">
+      <div class="dd-label">✓ Do</div>
+      <div class="dd-text"><span class="zh">允许用户用自然语言描述意图，AI 据此生成结构化流程草稿供编辑。清晰区分人类创建的步骤和 Agent 生成的步骤。</span><span class="en">Allow users to describe intent in natural language, then AI generates a structured process draft for editing. Clearly distinguish between human-created and agent-generated steps.</span></div>
+    </div>
+    <div class="dont-card">
+      <div class="dd-label">✗ Don't</div>
+      <div class="dd-text"><span class="zh">不要隐藏工作流的执行成本（token 用量、API 调用次数）。不要在执行失败后强制用户从头重启整个流程。</span><span class="en">Don't hide workflow execution costs (token usage, API call counts). Don't force users to restart the entire process from scratch after a failure.</span></div>
+    </div>
+  </div>
+  <div class="do-dont-grid">
+    <div class="do-card">
+      <div class="dd-label">✓ Do</div>
+      <div class="dd-text"><span class="zh">当工作流涉及外部平台交互时（发送邮件、写入数据库），明确显示数据去向、目标端点和授权方式。</span><span class="en">When workflows involve external platform interactions (sending emails, writing to databases), clearly show data destinations, target endpoints, and authorization methods.</span></div>
+    </div>
+    <div class="dont-card">
+      <div class="dd-label">✗ Don't</div>
+      <div class="dd-text"><span class="zh">不要让 Agent 构建的步骤与用户手动创建的步骤在视觉上无法区分——混合归属是信任流失的根源。</span><span class="en">Don't make agent-built steps visually indistinguishable from user-created ones — mixed attribution is the root cause of trust erosion.</span></div>
+    </div>
+  </div>
+
+  <!-- Design Considerations -->
+  <h2 class="section-title"><span class="zh">设计要点</span><span class="en">Design Considerations</span></h2>
+  <ul class="guideline-list">
+    <li>
+      <div class="gl-num">1</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">锚定用户意图</span><span class="en">Anchor in User Intent</span></div>
+        <div class="gl-desc"><span class="zh">允许用户从自然语言描述出发，然后起草一个用户可以编辑的结构化流程。</span><span class="en">Allow users to start from natural language descriptions, then draft a structured process they can edit.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">2</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">暴露执行成本</span><span class="en">Expose Execution Costs</span></div>
+        <div class="gl-desc"><span class="zh">在工作流和步骤层级展示预估的 token 用量、运行时间或 API 调用次数。</span><span class="en">Show estimated token usage, runtime, or API call counts at both workflow and step levels.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">3</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">步骤级验证</span><span class="en">Step-Level Validation</span></div>
+        <div class="gl-desc"><span class="zh">提供测试或采样输出选项，允许在不提交完整流程的情况下快速验证。</span><span class="en">Provide test or sample output options, allowing quick validation without committing to the full workflow.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">4</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">标记步骤归属</span><span class="en">Mark Ownership</span></div>
+        <div class="gl-desc"><span class="zh">视觉标记、分组或标签区分用户创建的步骤和 Agent 生成的步骤。</span><span class="en">Use visual markers, grouping, or labels to distinguish user-created steps from agent-generated ones.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">5</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">可配置检查点</span><span class="en">Configurable Checkpoints</span></div>
+        <div class="gl-desc"><span class="zh">长时间运行或高风险的工作流需要设置 Agent 主动让渡控制权给人类的门控。</span><span class="en">Long-running or high-risk workflows need gates where agents proactively hand control back to humans.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">6</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">内联干预</span><span class="en">Inline Intervention</span></div>
+        <div class="gl-desc"><span class="zh">允许用户暂停、跳过或就地调整参数，从修改点继续而非强制重启。</span><span class="en">Allow users to pause, skip, or adjust parameters in place, continuing from the modification point instead of forcing a restart.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">7</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">标注跨系统边界</span><span class="en">Cross-System Boundaries</span></div>
+        <div class="gl-desc"><span class="zh">明确高亮所有涉及外部平台的数据传递，展示数据去向和权限信息。</span><span class="en">Clearly highlight all data transfers involving external platforms, showing data destinations and permission information.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">8</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">展示推理过程</span><span class="en">Expose Reasoning</span></div>
+        <div class="gl-desc"><span class="zh">当 AI 自行构建工作流时，确保每个步骤附带元数据描述其选择原因。</span><span class="en">When AI builds workflows on its own, ensure each step includes metadata describing why it was chosen.</span></div>
+      </div>
+    </li>
+  </ul>
+
+  <!-- Real Product Examples -->
+  <h2 class="section-title"><span class="zh">产品案例</span><span class="en">Examples</span></h2>
+  <div class="examples-section">
+    <div class="example-item">
+      <div class="example-img">
+        <img src="/agent-design-images/68c5a93b3ea09a5347417d48_cofounder.png" alt="Cofounder workflow" loading="lazy">
+      </div>
+      <div class="example-caption">
+        <div class="product-logo">Co</div>
+        <div>
+          <div class="example-product">Cofounder</div>
+          <div class="example-desc"><span class="zh">工作流以纯文本结构化，AI 自行在后台拆解为可执行步骤。</span><span class="en">Workflows structured as plain text, AI breaks them into executable steps behind the scenes.</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="examples-grid">
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68c5a4fa3ea09a53473e4126_copyai.png" alt="Copy.ai workflow" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">C</div>
+          <div>
+            <div class="example-product">Copy.ai</div>
+            <div class="example-desc"><span class="zh">支持在直接编辑、AI 对话、预览三种模式间切换。</span><span class="en">Supports switching between direct editing, AI conversation, and preview modes.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68c5a538eb18a66f96fe4398_eachlabs.png" alt="Eachlabs workflow" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">E</div>
+          <div>
+            <div class="example-product">Eachlabs</div>
+            <div class="example-desc"><span class="zh">透明展示处理工作流的平均成本，随复杂度实时更新。</span><span class="en">Transparently displays average workflow processing costs, updating in real-time with complexity.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68c5a60e206ae92437d4cc78_lindy2.png" alt="Lindy workflow" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">L</div>
+          <div>
+            <div class="example-product">Lindy</div>
+            <div class="example-desc"><span class="zh">集成提示词增强、token 消耗追踪和富文本编辑器。</span><span class="en">Integrates prompt enhancement, token consumption tracking, and rich text editor.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68c5a68a1ba3c9c60ece16fc_relay4.png" alt="Relay workflow" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">R</div>
+          <div>
+            <div class="example-product">Relay</div>
+            <div class="example-desc"><span class="zh">默认以可读的对话文本展示工作流。</span><span class="en">Displays workflows as readable conversational text by default.</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Related Patterns -->
+  <h2 class="section-title"><span class="zh">关联模式</span><span class="en">Related Patterns</span></h2>
+  <div class="related-patterns">
+    <span class="related-pill" data-page="action-plan">📋 Action Plan</span>
+    <span class="related-pill" data-page="verification">🛡️ Verification</span>
+    <span class="related-pill" data-page="stream-of-thought">💭 Stream of Thought</span>
+    <span class="related-pill" data-page="connectors">🔌 Connectors</span>
+  </div>
+</div>
+</div>
+
+<!-- ================================================
+     ACTION PLAN PAGE
+     ================================================ -->
+<div class="component-page" id="page-action-plan">
+<div class="content">
+  <div class="component-hero">
+    <div class="breadcrumb"><a href="#" data-page="home">首页</a> / Governors /</div>
+    <h1><span class="zh">Action Plan 行动计划</span><span class="en">Action Plan</span></h1>
+    <p class="hero-summary"><span class="zh">当 AI 承担复杂任务时，行动计划提供关键检查点——AI 在执行前先展示其计划步骤，给用户确认或调整的机会，让执行透明且可预测。</span><span class="en">When AI takes on complex tasks, action plans provide critical checkpoints — AI presents its planned steps before execution, giving users the opportunity to confirm or adjust, making execution transparent and predictable.</span></p>
+    <span class="badge governor">Governor · 治理层</span>
+    <div class="hero-illustration">
+      <img src="/agent-design-images/68ecfa45de17cec38b919446_plan_of_action_card.webp" alt="Action Plan illustration">
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">概述</span><span class="en">Overview</span></h2>
+  <p class="body-text">Action Plan 的核心权衡在于速度与安全：确认步骤增加了延迟，但也在高风险领域充当了安全阀。设计者需要校准阈值——何时阻塞进度直到计划被批准，何时只是展示思维链作为参考。</span><span class="en">The core trade-off of Action Plans is speed vs. safety: confirmation steps add latency, but also serve as safety valves in high-risk areas. Designers need to calibrate thresholds — when to block progress until a plan is approved, and when to simply display the chain of thought as reference.</span></p>
+
+  <h2 class="section-title">变体形式 Variants</h2>
+  <div class="variant-grid">
+    <div class="variant-card">
+      <div class="vc-name"><span class="zh">步骤列表</span><span class="en">Step Lists</span></div>
+      <div class="vc-desc"><span class="zh">线性动作大纲，需快速确认。如 Claude Projects 生成前展示步骤。</span><span class="en">Linear action outlines requiring quick confirmation. E.g., Claude Projects showing steps before generation.</span></div>
+    </div>
+    <div class="variant-card">
+      <div class="vc-name"><span class="zh">执行预览</span><span class="en">Execution Previews</span></div>
+      <div class="vc-desc"><span class="zh">与代码/自动化关联，带显式审批门控。如 Replit、Devin。</span><span class="en">Linked to code/automation, with explicit approval gates. E.g., Replit, Devin.</span></div>
+    </div>
+    <div class="variant-card">
+      <div class="vc-name"><span class="zh">内容大纲</span><span class="en">Content Outlines</span></div>
+      <div class="vc-desc"><span class="zh">文档骨架，可选确认。如 Gamma 展示大纲但不阻塞生成。</span><span class="en">Document skeletons with optional confirmation. E.g., Gamma shows outlines without blocking generation.</span></div>
+    </div>
+    <div class="variant-card">
+      <div class="vc-name"><span class="zh">自适应计划</span><span class="en">Adaptive Plans</span></div>
+      <div class="vc-desc"><span class="zh">过程中演化的计划。如 Perplexity Labs 随信息源变化调整。</span><span class="en">Plans that evolve during execution. E.g., Perplexity Labs adapts as information sources change.</span></div>
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">最佳实践</span><span class="en">Best Practices</span></h2>
+  <div class="do-dont-grid">
+    <div class="do-card">
+      <div class="dd-label">✓ Do</div>
+      <div class="dd-text"><span class="zh">保持计划可浏览性——用户应在几秒内理解意图。允许对单个步骤进行编辑和纠错，而非要求重新生成整个计划。</span><span class="en">Keep plans skimmable — users should understand intent within seconds. Allow editing and correction of individual steps rather than requiring full plan regeneration.</span></div>
+    </div>
+    <div class="dont-card">
+      <div class="dd-label">✗ Don't</div>
+      <div class="dd-text"><span class="zh">不要让执行无声地偏离计划——如果偏差发生必须更新或解释。不要将计划作为纯装饰展示而无法修改。</span><span class="en">Don't let execution silently deviate from the plan — deviations must be updated or explained. Don't display plans as pure decoration that can't be modified.</span></div>
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">设计要点</span><span class="en">Design Considerations</span></h2>
+  <ul class="guideline-list">
+    <li>
+      <div class="gl-num">1</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">可浏览性</span><span class="en">Keep Plans Skimmable</span></div>
+        <div class="gl-desc"><span class="zh">用户应该能在几秒内理解计划意图，避免过于冗长的技术细节。</span><span class="en">Users should understand plan intent within seconds, avoiding overly verbose technical details.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">2</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">支持局部编辑</span><span class="en">Make Plans Modifiable</span></div>
+        <div class="gl-desc"><span class="zh">允许用户针对单个步骤编辑和纠错，提供有针对性的工具来发现和修正错误。</span><span class="en">Allow users to edit and correct individual steps, providing targeted tools for finding and fixing errors.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">3</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">计划执行保真度</span><span class="en">Plan-Execution Fidelity</span></div>
+        <div class="gl-desc"><span class="zh">计划只有在系统忠实执行时才有价值。无声的偏差会快速侵蚀信任。</span><span class="en">Plans are only valuable when the system faithfully executes them. Silent deviations quickly erode trust.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">4</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">允许折叠/跳过</span><span class="en">Let Users Collapse or Bypass</span></div>
+        <div class="gl-desc"><span class="zh">经验丰富的用户信任系统后更重视速度，但始终保留查看计划的入口。</span><span class="en">Experienced users who trust the system prioritize speed, but always preserve access to view plans.</span></div>
+      </div>
+    </li>
+  </ul>
+
+  <h2 class="section-title"><span class="zh">产品案例</span><span class="en">Examples</span></h2>
+  <div class="examples-section">
+    <div class="examples-grid">
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68d806050cc04d76d8bab0f4_governors_plan_of_action_cursor.webp" alt="Cursor Action Plan" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">C</div>
+          <div>
+            <div class="example-product">Cursor</div>
+            <div class="example-desc"><span class="zh">Plan of Action 功能在设置中可选开启。</span><span class="en">Plan of Action feature can be optionally enabled in settings.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68d805f01b595aca6d7ce1a3_governors_plan_of_action_gamma.webp" alt="Gamma Action Plan" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">G</div>
+          <div>
+            <div class="example-product">Gamma</div>
+            <div class="example-desc"><span class="zh">生成大纲视图，需用户确认后继续。</span><span class="en">Generates outline view, requiring user confirmation before proceeding.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68d806050cc04d76d8bab0f1_governors_plan_of_action_zapier.webp" alt="Zapier Action Plan" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">Z</div>
+          <div>
+            <div class="example-product">Zapier Copilot</div>
+            <div class="example-desc"><span class="zh">AI 生成 Zap 大纲，展示触发器和步骤序列。</span><span class="en">AI generates Zap outlines, showing triggers and step sequences.</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">关联模式</span><span class="en">Related Patterns</span></h2>
+  <div class="related-patterns">
+    <span class="related-pill" data-page="stream-of-thought">💭 Stream of Thought</span>
+    <span class="related-pill" data-page="verification">🛡️ Verification</span>
+    <span class="related-pill" data-page="workflow">🔗 Workflow</span>
+  </div>
+</div>
+</div>
+
+<!-- ================================================
+     STREAM OF THOUGHT PAGE
+     ================================================ -->
+<div class="component-page" id="page-stream-of-thought">
+<div class="content">
+  <div class="component-hero">
+    <div class="breadcrumb"><a href="#" data-page="home">首页</a> / Governors /</div>
+    <h1><span class="zh">Stream of Thought 思维链</span><span class="en">Stream of Thought</span></h1>
+    <p class="hero-summary"><span class="zh">展示 AI 从输入到输出的可见轨迹——包括制定的计划、调用的工具、执行的代码，以及做出的决策。让系统更易读、更值得信任。</span><span class="en">Display AI's visible trail from input to output — including plans formulated, tools invoked, code executed, and decisions made. Making the system more readable and trustworthy.</span></p>
+    <span class="badge governor">Governor · 治理层</span>
+    <div class="hero-illustration">
+      <img src="/agent-design-images/68e3cc630b054d5e2bd461b0_images_stream_of_thought_card.webp" alt="Stream of Thought illustration">
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">概述</span><span class="en">Overview</span></h2>
+  <p class="body-text">Stream of Thought 揭示了 AI 如何从输入导航到答案的可见轨迹。这可能包括它形成的计划、调用的工具、代表你执行的代码，以及沿途做出的检查和决策。</p>
+
+  <h2 class="section-title"><span class="zh">三种表达形式</span><span class="en">Three Expressions</span></h2>
+  <div class="variant-grid">
+    <div class="variant-card">
+      <div class="vc-name"><span class="zh">人类可读计划</span><span class="en">Human-Readable Plans</span></div>
+      <div class="vc-desc"><span class="zh">预览 AI 将要做什么，让用户在执行前了解意图。</span><span class="en">Preview what AI will do, letting users understand intent before execution.</span></div>
+    </div>
+    <div class="variant-card">
+      <div class="vc-name"><span class="zh">执行日志</span><span class="en">Execution Logs</span></div>
+      <div class="vc-desc"><span class="zh">记录工具调用、代码执行和结果的详细审计轨迹。</span><span class="en">Detailed audit trail of tool calls, code execution, and results.</span></div>
+    </div>
+    <div class="variant-card">
+      <div class="vc-name"><span class="zh">紧凑摘要</span><span class="en">Compact Summaries</span></div>
+      <div class="vc-desc"><span class="zh">精简总结逻辑推理和关键决策点。</span><span class="en">Concise summaries of logical reasoning and key decision points.</span></div>
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">最佳实践</span><span class="en">Best Practices</span></h2>
+  <div class="do-dont-grid">
+    <div class="do-card">
+      <div class="dd-label">✓ Do</div>
+      <div class="dd-text"><span class="zh">将思维链显示在有边界的容器中，默认折叠。根据任务复杂度调整可见性深度——简单对话需要少量展示，复杂任务需要完整轨迹。</span><span class="en">Display chain of thought in bounded containers, collapsed by default. Adjust visibility depth based on task complexity — simple conversations need minimal display, complex tasks need full trails.</span></div>
+    </div>
+    <div class="dont-card">
+      <div class="dd-label">✗ Don't</div>
+      <div class="dd-text"><span class="zh">不要让思维链信息淹没主要输出内容。不要在用户无法暂停或停止 AI 处理的情况下展示实时思考过程。</span><span class="en">Don't let chain of thought information overwhelm the main output. Don't show real-time thinking processes when users can't pause or stop AI processing.</span></div>
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">设计要点</span><span class="en">Design Considerations</span></h2>
+  <ul class="guideline-list">
+    <li>
+      <div class="gl-num">1</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">有界容器</span><span class="en">Bounded Display</span></div>
+        <div class="gl-desc"><span class="zh">使用可折叠的区域展示思维过程，避免与最终输出混淆。</span><span class="en">Use collapsible areas to display thought processes, avoiding confusion with final output.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">2</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">渐进式披露</span><span class="en">Progressive Disclosure</span></div>
+        <div class="gl-desc"><span class="zh">提供概要层和详情层，让用户按需深入，不被一次性展示的信息淹没。</span><span class="en">Provide summary and detail layers, allowing users to dive deeper as needed without being overwhelmed.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">3</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">保持用户控制</span><span class="en">User Agency</span></div>
+        <div class="gl-desc"><span class="zh">允许用户在处理过程中查看思维链，并提供停止、暂停、修改的控制。</span><span class="en">Allow users to view chain of thought during processing, with controls to stop, pause, and modify.</span></div>
+      </div>
+    </li>
+  </ul>
+
+  <h2 class="section-title"><span class="zh">产品案例</span><span class="en">Examples</span></h2>
+  <div class="examples-section">
+    <div class="examples-grid">
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68d1f794a2b737f8841f551c_chain_of_thought_chatgptinline.webp" alt="ChatGPT thinking" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">G</div>
+          <div>
+            <div class="example-product">ChatGPT</div>
+            <div class="example-desc"><span class="zh">内联展示推理过程，可展开查看详情。</span><span class="en">Inline display of reasoning process, expandable for details.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68d213acad14c16e94828cb8_chain_of_thought_perplexity.webp" alt="Perplexity thinking" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">P</div>
+          <div>
+            <div class="example-product">Perplexity</div>
+            <div class="example-desc"><span class="zh">深度研究模式下展示完整搜索与推理轨迹。</span><span class="en">Full search and reasoning trails in deep research mode.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68d20bb80af5518175274dee_chain_of_thought_grok.webp" alt="Grok thinking" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">G</div>
+          <div>
+            <div class="example-product">Grok</div>
+            <div class="example-desc"><span class="zh">展示 AI 的推理过程和思考链条。</span><span class="en">Shows AI's reasoning process and chain of thought.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68d213b1f76f1df3a74c53d2_chain_of_thought_lovable2.webp" alt="Lovable thinking" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">L</div>
+          <div>
+            <div class="example-product">Lovable</div>
+            <div class="example-desc"><span class="zh">代码生成过程中的思维链展示。</span><span class="en">Chain of thought display during code generation.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68d213f13d583c030d44e5f7_chain_of_thought_vo2.webp" alt="V0 thinking" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">V</div>
+          <div>
+            <div class="example-product">V0</div>
+            <div class="example-desc"><span class="zh">UI 生成时的思维链可视化。</span><span class="en">Chain of thought visualization during UI generation.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68e8205d0b4ecb44115fe7b7_chain_of_thought_accio.webp" alt="Accio thinking" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">A</div>
+          <div>
+            <div class="example-product">Accio</div>
+            <div class="example-desc"><span class="zh">搜索过程中的推理展示。</span><span class="en">Reasoning display during search.</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">关联模式</span><span class="en">Related Patterns</span></h2>
+  <div class="related-patterns">
+    <span class="related-pill" data-page="action-plan">📋 Action Plan</span>
+    <span class="related-pill" data-page="verification">🛡️ Verification</span>
+    <span class="related-pill" data-page="workflow">🔗 Workflow</span>
+  </div>
+</div>
+</div>
+
+<!-- ================================================
+     VERIFICATION PAGE
+     ================================================ -->
+<div class="component-page" id="page-verification">
+<div class="content">
+  <div class="component-hero">
+    <div class="breadcrumb"><a href="#" data-page="home">首页</a> / Governors /</div>
+    <h1><span class="zh">Verification 验证确认</span><span class="en">Verification</span></h1>
+    <p class="hero-summary"><span class="zh">AI 越来越独立地运行。伴随自主性而来的是错误决定可能产生负面后果的关键时刻。验证模式根据潜在危害、范围和可逆性来匹配摩擦力度。</span><span class="en">AI operates increasingly independently. With autonomy come critical moments where wrong decisions can have negative consequences. Verification patterns match friction levels to potential harm, scope, and reversibility.</span></p>
+    <span class="badge governor">Governor · 治理层</span>
+    <div class="hero-illustration">
+      <img src="/agent-design-images/68e9c6f3c84c6b92a95512bd_verification_card.webp" alt="Verification illustration">
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">核心原则</span><span class="en">Core Principle</span></h2>
+  <div class="callout warning">
+    <span class="callout-icon">⚖️</span>
+    <div class="callout-content">
+      <div class="callout-title">摩擦力匹配风险 Match Friction to Risk</div>
+      <div class="callout-body"><span class="zh">高影响力或不可逆的操作需要强确认机制；常规或可轻松撤销的任务使用轻量检查。关键是根据操作的潜在危害、范围和可逆性来校准验证力度。</span><span class="en">High-impact or irreversible operations need strong confirmation mechanisms; routine or easily undone tasks use lightweight checks. The key is calibrating verification intensity based on potential harm, scope, and reversibility.</span></div>
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">风险等级对照</span><span class="en">Risk Matrix</span></h2>
+  <table class="specs-table">
+    <thead>
+      <tr>
+        <th>风险等级</th>
+        <th>操作示例</th>
+        <th>验证方式</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>🟢 低风险</td>
+        <td>搜索、浏览、草稿编辑</td>
+        <td>无需验证</td>
+      </tr>
+      <tr>
+        <td>🟡 中风险</td>
+        <td>内容修改、文件重命名</td>
+        <td>行内确认（Accept/Reject）</td>
+      </tr>
+      <tr>
+        <td>🟠 高风险</td>
+        <td>发送邮件、提交表单</td>
+        <td>带预览的模态确认</td>
+      </tr>
+      <tr>
+        <td>🔴 关键风险</td>
+        <td>支付、删除数据、API 写入</td>
+        <td>多步验证 + 撤销窗口</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 class="section-title"><span class="zh">最佳实践</span><span class="en">Best Practices</span></h2>
+  <div class="do-dont-grid">
+    <div class="do-card">
+      <div class="dd-label">✓ Do</div>
+      <div class="dd-text"><span class="zh">对高影响力操作默认启用验证。允许用户通过设置跳过，但确保跳过时有明确的风险提示。</span><span class="en">Enable verification by default for high-impact operations. Allow users to skip via settings, but ensure clear risk warnings when skipping.</span></div>
+    </div>
+    <div class="dont-card">
+      <div class="dd-label">✗ Don't</div>
+      <div class="dd-text"><span class="zh">不要对低风险操作（搜索、浏览）添加验证——过度确认会训练用户条件反射地点击"确认"，反而降低安全性。</span><span class="en">Don't add verification to low-risk operations (search, browse) — over-confirmation trains users to reflexively click "confirm", actually reducing security.</span></div>
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">产品案例</span><span class="en">Examples</span></h2>
+  <div class="examples-section">
+    <div class="examples-grid">
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68d805d21d5940c7a7771e27_governors_plan_of_action_chronicle.webp" alt="Chronicle verification" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">C</div>
+          <div>
+            <div class="example-product">Chronicle</div>
+            <div class="example-desc"><span class="zh">生成大纲后需用户验证才创建演示文稿。</span><span class="en">Requires user verification after generating outline before creating presentation.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68e9bd0b6a4cd46527be4d37_dovetail---verify.png" alt="Dovetail verification" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">D</div>
+          <div>
+            <div class="example-product">Dovetail</div>
+            <div class="example-desc"><span class="zh">AI 分析结果需确认后才应用到研究项目。</span><span class="en">AI analysis results need confirmation before applying to research project.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68ad2c66ecb89de7bfb5b3c7_68ab2544e34446dfca05e7c9_Chatgpt_20_3a3c0c17.png" alt="ChatGPT Operator verification" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">O</div>
+          <div>
+            <div class="example-product">ChatGPT Operator</div>
+            <div class="example-desc"><span class="zh">Agent 遇到需要确认的操作时暂停等待。</span><span class="en">Agent pauses and waits when encountering operations requiring confirmation.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68e9be54c9fb45999235f52b_CleanShot-2025-09-12-at-17.15.21-2x.png" alt="Cofounder verification" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">Co</div>
+          <div>
+            <div class="example-product">Cofounder</div>
+            <div class="example-desc"><span class="zh">验证确认界面示例。</span><span class="en">Verification confirmation interface example.</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">关联模式</span><span class="en">Related Patterns</span></h2>
+  <div class="related-patterns">
+    <span class="related-pill" data-page="action-plan">📋 Action Plan</span>
+    <span class="related-pill" data-page="stream-of-thought">💭 Stream of Thought</span>
+    <span class="related-pill" data-page="shared-vision">👁️ Shared Vision</span>
+  </div>
+</div>
+</div>
+
+<!-- ================================================
+     MEMORY PAGE
+     ================================================ -->
+<div class="component-page" id="page-memory">
+<div class="content">
+  <div class="component-hero">
+    <div class="breadcrumb"><a href="#" data-page="home">首页</a> / Governors /</div>
+    <h1><span class="zh">Memory 记忆系统</span><span class="en">Memory</span></h1>
+    <p class="hero-summary"><span class="zh">赋予 AI 跨交互保留和复用信息的能力，系统可以回忆先前的上下文、偏好或事实——将 AI 从事务性工具转变为持久的个人助手。</span><span class="en">Empowering AI to retain and reuse information across interactions, the system can recall prior context, preferences, or facts — transforming AI from a transactional tool into a persistent personal assistant.</span></p>
+    <span class="badge governor">Governor · 治理层</span>
+    <div class="hero-illustration">
+      <img src="/agent-design-images/68e79fb53ca4efccd6bf2bf1_Memory_card.png" alt="Memory illustration">
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">设计要点</span><span class="en">Design Considerations</span></h2>
+  <ul class="guideline-list">
+    <li>
+      <div class="gl-num">1</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">记忆绝不能是黑箱</span><span class="en">Never a Black Box</span></div>
+        <div class="gl-desc"><span class="zh">当新记忆被添加时应通知用户，展示 AI 记住了什么以及这些记忆如何影响输出。</span><span class="en">Users should be notified when new memories are added, showing what AI remembers and how those memories affect output.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">2</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">可管理和控制</span><span class="en">Manageable & Controllable</span></div>
+        <div class="gl-desc"><span class="zh">让用户轻松查看、编辑、锁定重要信息以及清除不正确或敏感的记忆。</span><span class="en">Let users easily view, edit, lock important information, and clear incorrect or sensitive memories.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">3</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">知识图谱</span><span class="en">Knowledge Map</span></div>
+        <div class="gl-desc"><span class="zh">展示已保留信息及其对输出的影响关系，使记忆系统的运作方式一目了然。</span><span class="en">Display retained information and its impact relationships on output, making the memory system's operation clear at a glance.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">4</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">适当的作用域</span><span class="en">Scope Appropriately</span></div>
+        <div class="gl-desc"><span class="zh">不是所有记忆都应是全局的——支持项目级、工作区级和对话级的记忆保留。</span><span class="en">Not all memories should be global — support project-level, workspace-level, and conversation-level memory retention.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">5</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">支持遗忘和保存</span><span class="en">Forgetting & Saving</span></div>
+        <div class="gl-desc"><span class="zh">支持清除不正确/敏感信息（遗忘）和锁定重要事实（显式保存）两种操作。</span><span class="en">Support both clearing incorrect/sensitive information (forgetting) and locking important facts (explicit saving).</span></div>
+      </div>
+    </li>
+  </ul>
+
+  <h2 class="section-title"><span class="zh">产品案例</span><span class="en">Examples</span></h2>
+  <div class="examples-section">
+    <div class="examples-grid">
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68bd032f837d84f1d4dfa224_memory_chatmemory-1.webp" alt="ChatGPT memory" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">G</div>
+          <div>
+            <div class="example-product">ChatGPT</div>
+            <div class="example-desc"><span class="zh">记忆管理面板，可查看和删除每条记忆。</span><span class="en">Memory management panel for viewing and deleting individual memories.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68bd041824008192b0d55fac_memory_claudechats-1.webp" alt="Claude memory" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">C</div>
+          <div>
+            <div class="example-product">Claude</div>
+            <div class="example-desc"><span class="zh">对话级别的记忆与上下文管理。</span><span class="en">Conversation-level memory and context management.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68bd03dc824f81cd50b493f3_memory_geminimemory.webp" alt="Gemini memory" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">G</div>
+          <div>
+            <div class="example-product">Gemini</div>
+            <div class="example-desc"><span class="zh">记忆系统的用户界面。</span><span class="en">Memory system user interface.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68bd041a83a927505afbcf39_memory_perplexintro.webp" alt="Perplexity memory" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">P</div>
+          <div>
+            <div class="example-product">Perplexity</div>
+            <div class="example-desc"><span class="zh">记忆功能的引导介绍。</span><span class="en">Guided introduction to memory features.</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">关联模式</span><span class="en">Related Patterns</span></h2>
+  <div class="related-patterns">
+    <span class="related-pill" data-page="connectors">🔌 Connectors</span>
+    <span class="related-pill" data-page="shared-vision">👁️ Shared Vision</span>
+    <span class="related-pill" data-page="trust">🤝 Trust Builders</span>
+  </div>
+</div>
+</div>
+
+<!-- ================================================
+     CONNECTORS PAGE
+     ================================================ -->
+<div class="component-page" id="page-connectors">
+<div class="content">
+  <div class="component-hero">
+    <div class="breadcrumb"><a href="#" data-page="home">首页</a> / Tuners /</div>
+    <h1><span class="zh">Connectors 连接器</span><span class="en">Connectors</span></h1>
+    <p class="hero-summary"><span class="zh">设计良好的连接器让作用域显而易见：哪些数据源已连接、适用什么权限、AI 是在读取内容还是在执行修改。</span><span class="en">Well-designed connectors make scope obvious: which data sources are connected, what permissions apply, and whether AI is reading content or making modifications.</span></p>
+    <span class="badge surface">Tuner · 调节器</span>
+    <div class="hero-illustration">
+      <img src="/agent-design-images/68e983e10d03dc12cdcccedc_connectors_card.webp" alt="Connectors illustration">
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">三种连接场景</span><span class="en">Where Connectors Appear</span></h2>
+  <div class="variant-grid">
+    <div class="variant-card">
+      <div class="vc-name"><span class="zh">账户级同步</span><span class="en">Account-Level Sync</span></div>
+      <div class="vc-desc"><span class="zh">索引数据源用于对话问答，如 ChatGPT 的 Google Drive 集成。</span><span class="en">Index data sources for conversational Q&A, e.g., ChatGPT's Google Drive integration.</span></div>
+    </div>
+    <div class="variant-card">
+      <div class="vc-name"><span class="zh">应用侧边栏</span><span class="en">App Sidebar</span></div>
+      <div class="vc-desc"><span class="zh">从应用套件中拉取上下文，如 Gemini 在 Gmail/Docs 中。</span><span class="en">Pull context from app suites, e.g., Gemini within Gmail/Docs.</span></div>
+    </div>
+    <div class="variant-card">
+      <div class="vc-name"><span class="zh">企业级连接器</span><span class="en">Enterprise Connectors</span></div>
+      <div class="vc-desc"><span class="zh">管理员配置的组织级连接，如 Microsoft Graph。</span><span class="en">Admin-configured organization-level connections, e.g., Microsoft Graph.</span></div>
+    </div>
+  </div>
+
+  <div class="callout warning">
+    <span class="callout-icon">⚠️</span>
+    <div class="callout-content">
+      <div class="callout-title"><span class="zh">安全警示：隐藏指令风险</span><span class="en">Security Alert: Hidden Instruction Risk</span></div>
+      <div class="callout-body"><span class="zh">AI 读取内容时可能遇到邮件、日历、文档中嵌入的隐藏指令。设计时应先解析和摘要，再将工具操作置于用户明确意图之后。当模型即将根据检索内容中的指令行动时，必须展示人类可读预览并要求确认。</span><span class="en">AI may encounter hidden instructions embedded in emails, calendars, and documents when reading content. Design should parse and summarize first, then place tool actions behind explicit user intent. When the model is about to act on instructions from retrieved content, it must show a human-readable preview and request confirmation.</span></div>
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">设计要点</span><span class="en">Design Considerations</span></h2>
+  <ul class="guideline-list">
+    <li>
+      <div class="gl-num">1</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">数据源选择器</span><span class="en">Source Pickers</span></div>
+        <div class="gl-desc"><span class="zh">允许用户精确控制 AI 可以访问哪些工作区、频道或文件夹。</span><span class="en">Allow users precise control over which workspaces, channels, or folders AI can access.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">2</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">引用深链接</span><span class="en">Deep Links in Citations</span></div>
+        <div class="gl-desc"><span class="zh">引用中使用深链接到源记录，让用户可以验证事实和探索上下文。</span><span class="en">Use deep links to source records in citations, allowing users to verify facts and explore context.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">3</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">优雅的错误处理</span><span class="en">Graceful Failures</span></div>
+        <div class="gl-desc"><span class="zh">连接器失败时在流程中直接告知用户，提供重试、重新连接或手动上传等操作。</span><span class="en">When connectors fail, inform users directly within the flow, offering retry, reconnect, or manual upload options.</span></div>
+      </div>
+    </li>
+  </ul>
+
+  <h2 class="section-title"><span class="zh">产品案例</span><span class="en">Examples</span></h2>
+  <div class="examples-section">
+    <div class="examples-grid">
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68db1050ef4e5a882f5d6c20_connectors_chatgpt.webp" alt="ChatGPT connectors" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">G</div>
+          <div>
+            <div class="example-product">ChatGPT</div>
+            <div class="example-desc"><span class="zh">Google Drive 数据源连接面板。</span><span class="en">Google Drive data source connection panel.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68db197b385559d60a965aa2_connectors_claude_connectors_panel.webp" alt="Claude connectors" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">C</div>
+          <div>
+            <div class="example-product">Claude</div>
+            <div class="example-desc"><span class="zh">连接器配置面板。</span><span class="en">Connector configuration panel.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68db1cc1fde965989cbf6b32_connectors_cofounder.webp" alt="Cofounder connectors" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">Co</div>
+          <div>
+            <div class="example-product">Cofounder</div>
+            <div class="example-desc"><span class="zh">外部服务连接配置。</span><span class="en">External service connection configuration.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68db1d1a405a93b3d24b6552_connectors_perplexty.webp" alt="Perplexity connectors" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">P</div>
+          <div>
+            <div class="example-product">Perplexity</div>
+            <div class="example-desc"><span class="zh">数据源连接界面。</span><span class="en">Data source connection interface.</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">关联模式</span><span class="en">Related Patterns</span></h2>
+  <div class="related-patterns">
+    <span class="related-pill" data-page="verification">🛡️ Verification</span>
+    <span class="related-pill" data-page="memory">🧠 Memory</span>
+    <span class="related-pill" data-page="workflow">🔗 Workflow</span>
+  </div>
+</div>
+</div>
+
+<!-- ================================================
+     SHARED VISION PAGE
+     ================================================ -->
+<div class="component-page" id="page-shared-vision">
+<div class="content">
+  <div class="component-hero">
+    <div class="breadcrumb"><a href="#" data-page="home">首页</a> / Governors /</div>
+    <h1><span class="zh">Shared Vision 共享视野</span><span class="en">Shared Vision</span></h1>
+    <p class="hero-summary"><span class="zh">环境线索让用户感知 AI 正在看什么、正在做什么。设计上吸引注意力、展示 AI 视野范围，明确用户可以随时介入。</span><span class="en">Ambient cues let users perceive what AI is seeing and doing. Design attracts attention, shows AI's field of view, and makes clear that users can intervene at any time.</span></p>
+    <span class="badge governor">Governor · 治理层</span>
+    <div class="hero-illustration">
+      <img src="/agent-design-images/68e93bc507502ea3ba05e8be_human_in_the_loop_card.webp" alt="Shared Vision illustration">
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">设计要点</span><span class="en">Design Considerations</span></h2>
+  <ul class="guideline-list">
+    <li>
+      <div class="gl-num">1</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">微妙的环境信号</span><span class="en">Subtle Ambient Cues</span></div>
+        <div class="gl-desc"><span class="zh">用颜色、光晕或细微动画传达 AI 状态，不干扰用户焦点。类似自动驾驶系统的状态指示。</span><span class="en">Use colors, glows, or subtle animations to convey AI status without disrupting user focus. Similar to autonomous driving system status indicators.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">2</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">实时操作窗口</span><span class="en">Live Action Window</span></div>
+        <div class="gl-desc"><span class="zh">展示 AI 在多个网站/应用间导航的实时画面，让用户始终了解 Agent 的所作所为。</span><span class="en">Show live footage of AI navigating across websites/apps, keeping users informed of agent actions at all times.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">3</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">关键时刻的验证</span><span class="en">Verification at Key Moments</span></div>
+        <div class="gl-desc"><span class="zh">在敏感数据共享或产生费用的操作前设置人工检查点。</span><span class="en">Set human checkpoints before operations involving sensitive data sharing or incurring costs.</span></div>
+      </div>
+    </li>
+  </ul>
+
+  <h2 class="section-title"><span class="zh">产品案例</span><span class="en">Examples</span></h2>
+  <div class="examples-section">
+    <div class="example-item">
+      <div class="example-img">
+        <img src="/agent-design-images/68ab346cbb73ed211a9e92f1_Openai_operator_-_clip_-_humanintheloop.png" alt="OpenAI Operator" loading="lazy">
+      </div>
+      <div class="example-caption">
+        <div class="product-logo">O</div>
+        <div>
+          <div class="example-product">OpenAI Operator</div>
+          <div class="example-desc">通过窗口展示 AI 在网站和应用间导航操作的实时画面，全程可视可控。</div>
+        </div>
+      </div>
+    </div>
+    <div class="examples-grid">
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68ad2c65ecb89de7bfb5b3b1_68ab05ecda9af2f6b9df6ad1_Perplexity_20glow.png" alt="Perplexity Comet glow" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">P</div>
+          <div>
+            <div class="example-product">Perplexity Comet</div>
+            <div class="example-desc">AI 工作时标签页使用内嵌光效(glow)。</div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68ad2c65ecb89de7bfb5b3ab_68aa95e2ea8e96c73c268989_Autonomous_20vehicles.png" alt="Autonomous vehicles reference" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">🚗</div>
+          <div>
+            <div class="example-product">物理先例：自动驾驶</div>
+            <div class="example-desc">用颜色、声音或灯光传达 AI 自主运行状态。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">关联模式</span><span class="en">Related Patterns</span></h2>
+  <div class="related-patterns">
+    <span class="related-pill" data-page="verification">🛡️ Verification</span>
+    <span class="related-pill" data-page="action-plan">📋 Action Plan</span>
+    <span class="related-pill" data-page="stream-of-thought">💭 Stream of Thought</span>
+  </div>
+</div>
+</div>
+
+<!-- ================================================
+     TRUST BUILDERS PAGE
+     ================================================ -->
+<div class="component-page" id="page-trust">
+<div class="content">
+  <div class="component-hero">
+    <div class="breadcrumb"><a href="#" data-page="home">首页</a> / Trust /</div>
+    <h1><span class="zh">Trust Builders 信任构建</span><span class="en">Trust Builders</span></h1>
+    <p class="hero-summary"><span class="zh">让用户确信 AI 的结果是合乎伦理、准确且可信赖的。信任不是单一功能，而是多种模式层层叠加的结果。</span><span class="en">Assure users that AI results are ethical, accurate, and trustworthy. Trust is not a single feature, but the result of multiple patterns layered together.</span></p>
+    <span class="badge trust">Trust · 信任层</span>
+  </div>
+
+  <h2 class="section-title"><span class="zh">信任构建模式一览</span><span class="en">Pattern Overview</span></h2>
+  <table class="specs-table">
+    <thead>
+      <tr>
+        <th>模式</th>
+        <th>描述</th>
+        <th>作用</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>📎 Citations 引用</td>
+        <td>让 AI 给出行内标注来引用信息来源</td>
+        <td>可验证性</td>
+      </tr>
+      <tr>
+        <td>👣 Footprints 足迹</td>
+        <td>让用户追溯 AI 从提示到结果的步骤</td>
+        <td>可追溯性</td>
+      </tr>
+      <tr>
+        <td>⚠️ Caveat 声明</td>
+        <td>告知用户模型或技术的局限和风险</td>
+        <td>期望管理</td>
+      </tr>
+      <tr>
+        <td>✅ Consent 同意</td>
+        <td>仅在他人知情和同意的情况下采集数据</td>
+        <td>伦理合规</td>
+      </tr>
+      <tr>
+        <td>🔒 Data Ownership 数据所有权</td>
+        <td>控制模型如何记忆和使用你的数据</td>
+        <td>隐私控制</td>
+      </tr>
+      <tr>
+        <td>🏷️ Disclosure 披露</td>
+        <td>明确标记由 AI 引导或交付的内容和交互</td>
+        <td>透明度</td>
+      </tr>
+      <tr>
+        <td>🕶️ Incognito 隐身模式</td>
+        <td>在 AI 记忆之外进行交互</td>
+        <td>隐私保护</td>
+      </tr>
+      <tr>
+        <td>🔖 Watermark 水印</td>
+        <td>AI 生成内容上的标识符，供人类或程序识别</td>
+        <td>内容溯源</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 class="section-title"><span class="zh">身份标识</span><span class="en">Identifiers</span></h2>
+  <p class="body-text"><span class="zh">AI 可以在品牌或模型层面进行修改的独特品质，帮助它脱颖而出并建立辨识度。</span><span class="en">Unique qualities that AI can modify at the brand or model level, helping it stand out and build recognition.</span></p>
+  <div class="variant-grid">
+    <div class="variant-card">
+      <div class="vc-name">🎨 <span class="zh">Avatar 头像</span><span class="en">Avatar</span></div>
+      <div class="vc-desc"><span class="zh">AI 的视觉标识符，帮助它被识别、被记住和贴合品牌。</span><span class="en">AI's visual identifier, helping it be recognized, remembered, and aligned with brand.</span></div>
+    </div>
+    <div class="variant-card">
+      <div class="vc-name">🎨 <span class="zh">Color 颜色</span><span class="en">Color</span></div>
+      <div class="vc-desc"><span class="zh">视觉线索帮助用户识别 AI 驱动的功能或内容。</span><span class="en">Visual cues helping users identify AI-powered features or content.</span></div>
+    </div>
+    <div class="variant-card">
+      <div class="vc-name">✨ <span class="zh">Iconography 图标</span><span class="en">Iconography</span></div>
+      <div class="vc-desc"><span class="zh">贯穿界面的图标代表 AI 驱动的操作。</span><span class="en">Icons throughout the interface representing AI-powered actions.</span></div>
+    </div>
+    <div class="variant-card">
+      <div class="vc-name">📛 <span class="zh">Name 名称</span><span class="en">Name</span></div>
+      <div class="vc-desc"><span class="zh">AI 在产品中被如何称呼，传达品牌价值。</span><span class="en">How AI is referred to in the product, conveying brand values.</span></div>
+    </div>
+    <div class="variant-card">
+      <div class="vc-name">💬 <span class="zh">Personality 个性</span><span class="en">Personality</span></div>
+      <div class="vc-desc"><span class="zh">区分 AI 性格特征——友好/正式、主动/被动。</span><span class="en">Distinguish AI personality traits — friendly/formal, proactive/passive.</span></div>
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">关联模式</span><span class="en">Related Patterns</span></h2>
+  <div class="related-patterns">
+    <span class="related-pill" data-page="verification">🛡️ Verification</span>
+    <span class="related-pill" data-page="memory">🧠 Memory</span>
+    <span class="related-pill" data-page="stream-of-thought">💭 Stream of Thought</span>
+  </div>
+</div>
+</div>
+
+<!-- ================================================
+     INSPECTOR PANEL PAGE
+     ================================================ -->
+<div class="component-page" id="page-inspector">
+<div class="content">
+  <div class="component-hero">
+    <div class="breadcrumb"><a href="#" data-page="home"><span class="zh">首页</span><span class="en">Home</span></a> / Operations /</div>
+    <h1><span class="zh">Inspector Panel 检查面板</span><span class="en">Inspector Panel</span></h1>
+    <p class="hero-summary"><span class="zh">当 Agent 在后台执行多步任务时，检查面板作为持久化侧边栏，实时展示任务进度、可用工具、文件产出和上下文来源——让用户在不打断 Agent 工作的前提下保持态势感知。</span><span class="en">When agents execute multi-step tasks in the background, the inspector panel serves as a persistent sidebar, displaying task progress, available tools, file outputs, and context sources in real time — keeping users situationally aware without interrupting agent work.</span></p>
+    <span class="badge surface">Surface · <span class="zh">运维</span><span class="en">Operations</span></span>
+    <div class="hero-illustration" style="display:flex;gap:12px;flex-wrap:wrap;">
+      <img src="/agent-design-images/Copilot-Cowork-hero.webp" alt="Inspector Panel — Microsoft Copilot Cowork showing Progress tracking, Output folder, Input folder, and Skills · 2026.03" style="flex:1;min-width:220px;max-width:320px;border-radius:12px;object-fit:cover;">
+      <img src="/agent-design-images/699e2a825db36326599a999e_Screenshot_2026-02-24_at_2.47.24_PM.png" alt="Inspector Panel — Claude Cowork showing Progress steps, Workspace folder, Scratchpad, Context with Connectors and Skills · 2026.04" style="flex:1;min-width:220px;max-width:320px;border-radius:12px;object-fit:cover;">
+      <img src="/agent-design-images/3613f360926fae004521197488623465eb0cd751-1920x1035.png" alt="Inspector Panel — Claude Code terminal UX showing tool calls (Read/Write/Edit/Bash), file changes, and execution progress in real time · 2025.09" style="flex:1;min-width:280px;border-radius:12px;">
+      <img src="/agent-design-images/ad_4nxezl0v700n2foryqam87cyjls9ijhvx4x1xtoaqfvoybgyt2kdemhsp_3804ac82.png" alt="Inspector Panel — Devin workspace showing session tools with Shell, IDE, Browser panels and step-by-step execution · 2025.04" style="flex:1;min-width:280px;border-radius:12px;">
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">概述</span><span class="en">Overview</span></h2>
+  <p class="body-text"><span class="zh">检查面板是 Agent 运行时的「仪表侧栏」。传统聊天界面仅展示对话流，但当 Agent 调用工具、生成文件、连接外部服务时，用户需要一个结构化的视图来了解当前状态。检查面板将这些元信息从对话流中抽离，以独立面板的形式常驻，使用户能一眼掌握 Agent 正在做什么、已经完成了什么、手头有哪些资源。</span><span class="en">The inspector panel is a "dashboard sidebar" for agent runtime. Traditional chat interfaces only show conversation flow, but when agents invoke tools, generate files, and connect to external services, users need a structured view of the current state. The inspector panel extracts this meta-information from the conversation flow into a persistent independent panel, enabling users to grasp at a glance what the agent is doing, what it has completed, and what resources it has at hand.</span></p>
+
+  <div class="callout info">
+    <span class="callout-icon">💡</span>
+    <div class="callout-content">
+      <div class="callout-title"><span class="zh">设计定位：伴随而非取代</span><span class="en">Design Position: Accompany, Not Replace</span></div>
+      <div class="callout-body"><span class="zh">检查面板不替代对话界面，而是作为补充——用户在对话中与 Agent 互动、下达指令，同时通过检查面板监控全局状态。两者互补而非互斥。</span><span class="en">The inspector panel doesn't replace the conversation interface but supplements it — users interact with agents and give instructions through conversation while monitoring overall status through the inspector panel. The two complement rather than compete with each other.</span></div>
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">核心模块</span><span class="en">Core Modules</span></h2>
+  <div class="variant-grid">
+    <div class="variant-card">
+      <div class="vc-name"><span class="zh">📋 任务进度 Progress</span><span class="en">📋 Task Progress</span></div>
+      <div class="vc-desc"><span class="zh">带百分比和状态图标的任务清单，展示已完成、进行中和待处理的步骤。</span><span class="en">Task checklist with percentages and status icons, showing completed, in-progress, and pending steps.</span></div>
+    </div>
+    <div class="variant-card">
+      <div class="vc-name"><span class="zh">📂 文件产出 Outputs</span><span class="en">📂 File Outputs</span></div>
+      <div class="vc-desc"><span class="zh">Agent 生成的文件列表，支持直接预览、下载或在关联应用中打开。</span><span class="en">List of agent-generated files, supporting direct preview, download, or opening in associated applications.</span></div>
+    </div>
+    <div class="variant-card">
+      <div class="vc-name"><span class="zh">🔌 上下文连接器 Context</span><span class="en">🔌 Context Connectors</span></div>
+      <div class="vc-desc"><span class="zh">当前已连接的数据源、MCP 服务器、浏览器扩展等外部工具的状态展示。</span><span class="en">Status display of currently connected data sources, MCP servers, browser extensions, and other external tools.</span></div>
+    </div>
+    <div class="variant-card">
+      <div class="vc-name"><span class="zh">🛠️ 技能面板 Skills</span><span class="en">🛠️ Skills Panel</span></div>
+      <div class="vc-desc"><span class="zh">Agent 当前可用的技能和能力标签，帮助用户理解 Agent 的能力边界。</span><span class="en">Labels for currently available agent skills and capabilities, helping users understand agent capability boundaries.</span></div>
+    </div>
+    <div class="variant-card">
+      <div class="vc-name"><span class="zh">📥 输入来源 Inputs</span><span class="en">📥 Input Sources</span></div>
+      <div class="vc-desc"><span class="zh">用户上传的文件、选中的文件夹和指令文件的引用列表。</span><span class="en">Reference list of user-uploaded files, selected folders, and instruction files.</span></div>
+    </div>
+    <div class="variant-card">
+      <div class="vc-name"><span class="zh">🧠 记忆摘要 Memory</span><span class="en">🧠 Memory Summary</span></div>
+      <div class="vc-desc"><span class="zh">当前会话中 Agent 记住的关键上下文快照。</span><span class="en">Key context snapshots that the agent remembers in the current session.</span></div>
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">最佳实践</span><span class="en">Best Practices</span></h2>
+  <div class="do-dont-grid">
+    <div class="do-card">
+      <div class="dd-label">✓ Do</div>
+      <div class="dd-text"><span class="zh">让任务进度实时更新，每完成一步立即反映。文件产出区域提供一键打开/下载操作，减少用户查找成本。</span><span class="en">Update task progress in real time, reflecting each completed step immediately. Provide one-click open/download for file outputs, reducing user search costs.</span></div>
+    </div>
+    <div class="dont-card">
+      <div class="dd-label">✗ Don't</div>
+      <div class="dd-text"><span class="zh">不要让检查面板占据过多屏幕空间——它应该是可折叠的辅助视图。不要在面板中重复对话内容，保持信息的互补性。</span><span class="en">Don't let the inspector panel take up too much screen space — it should be a collapsible auxiliary view. Don't repeat conversation content in the panel — keep information complementary.</span></div>
+    </div>
+  </div>
+  <div class="do-dont-grid">
+    <div class="do-card">
+      <div class="dd-label">✓ Do</div>
+      <div class="dd-text"><span class="zh">在连接器状态异常时（断开、权限不足）提供明确的视觉警告和重新连接入口。标注每个技能/工具的来源和版本。</span><span class="en">Provide clear visual warnings and reconnection entry points when connector status is abnormal (disconnected, insufficient permissions). Label the source and version of each skill/tool.</span></div>
+    </div>
+    <div class="dont-card">
+      <div class="dd-label">✗ Don't</div>
+      <div class="dd-text"><span class="zh">不要混淆「进度」和「日志」——进度是用户关心的高层概要，日志是开发者级别的详细记录，两者应分层展示。</span><span class="en">Don't confuse "progress" with "logs" — progress is the high-level summary users care about, logs are developer-level detailed records. They should be displayed in separate layers.</span></div>
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">设计要点</span><span class="en">Design Considerations</span></h2>
+  <ul class="guideline-list">
+    <li>
+      <div class="gl-num">1</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">持久化但不干扰</span><span class="en">Persistent but Non-Intrusive</span></div>
+        <div class="gl-desc"><span class="zh">检查面板应始终可访问（侧边栏或底部抽屉），但不强制显示。用户可以选择何时查看，何时收起。</span><span class="en">The inspector panel should always be accessible (sidebar or bottom drawer) but not forced to display. Users choose when to view and when to collapse.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">2</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">分区清晰的信息架构</span><span class="en">Clear Information Architecture</span></div>
+        <div class="gl-desc"><span class="zh">进度、文件、连接器、技能等模块应有明确的视觉分区。每个模块可独立折叠/展开，避免信息过载。</span><span class="en">Progress, files, connectors, skills, and other modules should have clear visual separation. Each module can be independently collapsed/expanded to avoid information overload.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">3</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">可操作的文件卡片</span><span class="en">Actionable File Cards</span></div>
+        <div class="gl-desc"><span class="zh">产出文件不应只是列表——提供预览缩略图、文件类型图标、大小信息，以及一键打开/下载/分享的操作。</span><span class="en">Output files shouldn't just be a list — provide preview thumbnails, file type icons, size information, and one-click open/download/share actions.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">4</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">连接状态的实时反馈</span><span class="en">Real-Time Connection Status Feedback</span></div>
+        <div class="gl-desc"><span class="zh">外部连接器的在线/离线/错误状态应使用颜色编码实时展示。断开时提供内联重连操作，而非跳转到设置页。</span><span class="en">Online/offline/error status of external connectors should be displayed in real time using color coding. When disconnected, provide inline reconnection actions rather than navigating to settings.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">5</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">进度与预期管理</span><span class="en">Progress and Expectation Management</span></div>
+        <div class="gl-desc"><span class="zh">除了完成百分比，还应展示预估剩余时间或步骤数。当 Agent 陷入重试或意外暂停时，进度条应明确反映异常状态。</span><span class="en">Beyond completion percentage, show estimated remaining time or step count. When agents enter retry loops or unexpected pauses, the progress bar should clearly reflect abnormal status.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">6</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">技能透明度</span><span class="en">Skill Transparency</span></div>
+        <div class="gl-desc"><span class="zh">展示 Agent 当前加载的技能/插件列表，让用户理解为什么 Agent 能（或不能）处理某些类型的任务。</span><span class="en">Display the list of currently loaded agent skills/plugins, helping users understand why agents can (or cannot) handle certain types of tasks.</span></div>
+      </div>
+    </li>
+  </ul>
+
+  <h2 class="section-title"><span class="zh">产品案例</span><span class="en">Examples</span></h2>
+  <div class="examples-section">
+    <div class="example-item">
+      <div class="example-img">
+        <img src="/agent-design-images/3613f360926fae004521197488623465eb0cd751-1920x1035.png" alt="Claude Code — terminal UX showing structured task execution with tool calls, file edits, and progress tracking" loading="lazy">
+      </div>
+      <div class="example-caption">
+        <div class="product-logo">C</div>
+        <div>
+          <div class="example-product">Claude Code · Terminal UX · 2025.09</div>
+          <div class="example-desc"><span class="zh">Claude Code 终端界面——Agent 在终端中执行多步编码任务时，实时展示工具调用（Read/Write/Edit/Bash）、文件变更和执行进度。终端本身即是一个 Inspector Panel：用户可见每一步操作的输入输出、耗时和状态，实现「完全可追溯」的透明度。v2.0 版本增加了可视化刷新和检查点（Checkpoints）回滚功能。</span><span class="en">Claude Code terminal interface — when executing multi-step coding tasks, displays tool calls (Read/Write/Edit/Bash), file changes, and execution progress in real time. The terminal itself is an Inspector Panel: every operation's I/O, duration, and status is visible. V2.0 added visual refresh and checkpoint rollback.</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="examples-grid">
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/copilot-workspace.png" alt="GitHub Copilot Workspace — full workspace with plan, code diff and integrated terminal" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">GH</div>
+          <div>
+            <div class="example-product">GitHub Copilot Workspace · 2024.04</div>
+            <div class="example-desc"><span class="zh">完整工作区视图——左侧检查面板展示 Issue→Specification→Plan→Code 的完整协作流程，用户在每个阶段都可审查和修改 Agent 的输出；右侧 PR Diff 视图显示代码变更（Agent 产出的文档）；底部集成终端可运行测试验证结果。三区联动让用户全程参与从问题定义到代码交付的协作链路，是复杂任务 Inspector Panel 的典范布局。</span><span class="en">Full workspace view — left inspector panel shows the complete Issue→Specification→Plan→Code collaboration flow where users can review and modify agent output at each stage; right panel displays PR Diff view (agent-produced artifacts); bottom terminal runs tests for result verification. Three-zone coordination enables full participation in the problem-to-delivery collaboration chain.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/699e2a825db36326599a999e_Screenshot_2026-02-24_at_2.47.24_PM.png" alt="Claude Cowork — right sidebar with Progress steps, Workspace folder (Instructions + output files), Scratchpad, Context (Connectors + Skills) · 2026.04" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">C</div>
+          <div>
+            <div class="example-product">Claude Cowork · 2026.04</div>
+            <div class="example-desc"><span class="zh">Cowork 模式协作面板——右侧常驻面板由四个可折叠模块组成：① Progress（任务进度）：带 ✓ 的步骤清单，实时反映 Agent 执行到哪一步；② Workspace Folder（工作区文件夹）：分为用户提供的指令文件和 Agent 产出的文件两部分，附带 Scratchpad 展示临时工作文件；③ Connectors（连接器）：当前会话中已激活的外部工具，如浏览器扩展、MCP 服务器；④ Skills（技能）：Agent 在本次任务中加载的技能标签。四个模块分别对应「过程」「交付物」「工具」「能力」，构成用户理解协作状态的完整信息架构。</span><span class="en">Cowork mode collaboration panel — the persistent right sidebar consists of four collapsible modules: ① Progress: checkmarked step list reflecting real-time agent execution status; ② Workspace Folder: split into user-provided instruction files and agent-produced outputs, with a Scratchpad for temporary working files; ③ Connectors: active external tools in the session (browser extensions, MCP servers); ④ Skills: skill tags loaded for the current task. These four modules map to "process," "deliverables," "tools," and "capabilities" — forming a complete information architecture for understanding collaboration state.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/Copilot-Cowork-hero.webp" alt="Microsoft Copilot Cowork — right sidebar showing Progress (100% + step checklist), Output folder (3 files with download), Input folder, and Skills (6 tags) · 2026.03" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">M</div>
+          <div>
+            <div class="example-product">Microsoft Copilot Cowork · 2026.03</div>
+            <div class="example-desc"><span class="zh">Copilot Cowork 协作面板——右侧面板由四个结构化模块组成，与本文档定义的核心模块一一对应：① Progress（进度条 + 百分比 + 步骤清单）：展示 Agent 的执行链路和当前状态，用户可在检查点暂停或修改；② Output folder（文件产出）：列出 Agent 生成的交付物，每个文件带类型图标和下载入口；③ Input folder（输入来源）：展示用户上传的上下文资料；④ Skills（技能标签云）：展示本次任务调用的技能集合，帮助用户理解 Agent 为何能完成跨应用协作。四个模块形成「意图 → 执行 → 交付」的完整协作链路，是目前覆盖度最高的 Inspector Panel 实现。</span><span class="en">Copilot Cowork collaboration panel — the right sidebar consists of four structured modules mapping 1:1 to this document's core modules: ① Progress (progress bar + percentage + step checklist): shows agent execution chain and current status, users can pause or modify at checkpoints; ② Output folder: lists agent-generated deliverables with file type icons and download entry points; ③ Input folder: displays user-uploaded context materials; ④ Skills (tag cloud): shows the skill set invoked for the current task, helping users understand cross-application collaboration capabilities. These four modules form the complete "intent → execution → delivery" collaboration chain — the most comprehensive Inspector Panel implementation to date.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68d806050cc04d76d8bab0f4_governors_plan_of_action_cursor.webp" alt="Cursor Plan Mode — task decomposition with editable checklist" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">Cu</div>
+          <div>
+            <div class="example-product">Cursor · Plan Mode · 2025.10</div>
+            <div class="example-desc"><span class="zh">Plan Mode 任务面板——Agent 将复杂编码任务拆解为 Markdown 格式的步骤清单（含文件路径和代码引用），用户可直接编辑、增减步骤。「Prepared plan」状态标签 + Build 按钮构成从规划到执行的清晰转换。</span><span class="en">Plan Mode task panel — Agent decomposes complex coding tasks into Markdown-format step checklists with file paths and code references, users can directly edit steps. "Prepared plan" + Build button creates a clear planning-to-execution transition.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68db197b385559d60a965aa2_connectors_claude_connectors_panel.webp" alt="Claude Desktop connectors panel" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">C</div>
+          <div>
+            <div class="example-product">Claude Desktop · 2025.06</div>
+            <div class="example-desc"><span class="zh">连接器面板——列出当前会话中已激活的 MCP 服务器、文件系统和外部工具，每个连接器显示在线/离线状态并提供内联重连入口。用户通过此面板理解 Agent 能调用哪些外部资源（如 Slack、Google Drive、GitHub），从而预判 Agent 的协作边界。当连接器断开时，面板即时警告并解释对任务的影响，确保用户始终掌握协作的基础设施状态。</span><span class="en">Connectors panel — lists activated MCP servers, file systems, and external tools, each showing online/offline status with inline reconnection. Users understand which external resources (Slack, Google Drive, GitHub) the agent can access, setting expectations for collaboration boundaries. When connectors disconnect, the panel warns immediately and explains task impact.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/ad_4nxezl0v700n2foryqam87cyjls9ijhvx4x1xtoaqfvoybgyt2kdemhsp_3804ac82.png" alt="Devin — workspace interface showing session tools with Shell, IDE, Browser panels · 2025.04" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">D</div>
+          <div>
+            <div class="example-product">Devin · Session Tools · 2025.04</div>
+            <div class="example-desc"><span class="zh">Devin Shell 面板——Inspector 的核心视图之一。左侧 Progress Tab 展示任务拆解步骤（含文件编辑记录），右侧 Shell 面板实时显示 Agent 正在执行的命令和输出。用户可查看每一步的详细日志、命令历史，甚至直接接管终端。Progress/Shell/Code/Browser 四个 Tab 联动，是多面板 Inspector 的典范实现。</span><span class="en">Devin Shell panel — a core Inspector view. Left Progress Tab shows task step decomposition (with file edit records), right Shell panel shows real-time command execution and output. Users can view detailed logs, command history, and even take over the terminal. Progress/Shell/Code/Browser tabs work together as a model multi-panel Inspector.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68d96ce5a307a85d88ee7199_tuners_sources_chatgpt_panel.webp" alt="ChatGPT sources panel" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">G</div>
+          <div>
+            <div class="example-product">ChatGPT · Deep Research · 2025.03</div>
+            <div class="example-desc"><span class="zh">来源引用面板——侧边栏结构化展示 Agent 在 Deep Research 过程中参考的所有信息来源，每条来源带有链接和摘要。用户通过此面板审查 Agent 的信息采集过程：哪些网站被访问、哪些文档被引用、每条来源与最终结论的关系。这不仅是透明度展示，更是用户参与质量把控的协作入口——用户可据此判断 Agent 的研究是否全面、来源是否可靠。</span><span class="en">Sources panel — sidebar displays all information sources referenced during Deep Research, each with links and summaries. Users audit the agent's information gathering process: which sites were visited, which documents were cited, and how each source relates to final conclusions. This is not just transparency but a quality control collaboration entry point — users can assess research comprehensiveness and source reliability.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68d8065049407e57ea53d880_governors_plan_of_action_replit.webp" alt="Replit Agent task progress panel" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">R</div>
+          <div>
+            <div class="example-product">Replit Agent · 2025.02</div>
+            <div class="example-desc"><span class="zh">任务进度面板——Agent 将开发任务拆解为步骤清单，实时标记已完成（✓）和进行中的步骤。用户通过此面板全程参与协作：在任务进行中可预判剩余工作量，在某步骤失败时快速定位问题位置，在 Agent 完成后一目了然地回顾整个执行链路。面板设计遵循「持久化但不干扰」原则——侧边常驻但不遮挡主编辑区。</span><span class="en">Task progress panel — Agent decomposes tasks into step checklists, marking completed (✓) and in-progress steps in real time. Users collaborate throughout: predicting remaining work mid-task, quickly locating failures, and reviewing the complete execution chain afterward. Follows the "persistent but non-intrusive" principle — always present but never blocking the main editor.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/1" alt="Manus — left sidebar with task list, center replay timeline showing step-by-step execution with todo.md checklist, browser, shell, and file outputs · 2025.06" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">Ma</div>
+          <div>
+            <div class="example-product">Manus · Session Replay · 2025.06</div>
+            <div class="example-desc"><span class="zh">Manus 会话回放面板——左侧任务列表展示所有历史任务，中央区域以时间轴形式回放 Agent 的完整执行过程：每一步打开了什么页面、运行了什么搜索、创建了什么文件。Agent 内部使用 todo.md 作为活动清单实时追踪进度。用户不仅能实时监控当前任务，还能回溯任意历史会话的每个操作细节——将 Inspector 从「实时监控」扩展为「事后审计」，是唯一同时支持实时与回放两种 Inspector 模式的产品。</span><span class="en">Manus session replay panel — left sidebar lists all historical tasks, center area replays the agent's complete execution as a timeline: each page visited, search run, and file created. The agent uses an internal todo.md as a live checklist for progress tracking. Users can monitor tasks in real time AND replay any historical session step by step — extending the Inspector from "live monitoring" to "post-hoc audit," uniquely supporting both modes.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/cascade_ide.png" alt="Windsurf — Cascade panel with plan.md task list, file edits, terminal output, and MCP tool connections · 2026.02" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">W</div>
+          <div>
+            <div class="example-product">Windsurf · Cascade Plan Mode · 2026.02</div>
+            <div class="example-desc"><span class="zh">Windsurf Cascade Plan Mode——Agent 在执行复杂编码任务前先生成 plan.md 文件，包含任务分解、当前目标和完成状态。随着执行推进，Cascade 实时更新 plan.md（勾选已完成项、新增发现的子任务），用户可在侧边 Cascade 面板中查看进度、文件编辑记录和终端输出。2026 版本引入多 Agent 并行会话和 MCP 一键连接（Figma、Slack、Stripe 等），将 Inspector 从单一进度追踪扩展为跨工具协作的全局视图。</span><span class="en">Windsurf Cascade Plan Mode — the agent generates a plan.md file before executing complex coding tasks, containing task decomposition, current goals, and completion status. As execution progresses, Cascade updates plan.md in real time (checking off completed items, adding discovered subtasks). Users view progress, file edit history, and terminal output in the Cascade side panel. The 2026 version adds multi-agent parallel sessions and one-click MCP connections (Figma, Slack, Stripe), extending the Inspector from progress tracking to a cross-tool collaboration overview.</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">关联模式</span><span class="en">Related Patterns</span></h2>
+  <div class="related-patterns">
+    <span class="related-pill" data-page="stream-of-thought">💭 Stream of Thought</span>
+    <span class="related-pill" data-page="connectors">🔌 Connectors</span>
+    <span class="related-pill" data-page="shared-vision">👁️ Shared Vision</span>
+    <span class="related-pill" data-page="dashboard">📊 Operations Dashboard</span>
+  </div>
+</div>
+</div>
+
+<!-- ================================================
+     OPERATIONS DASHBOARD PAGE
+     ================================================ -->
+<div class="component-page" id="page-dashboard">
+<div class="content">
+  <div class="component-hero">
+    <div class="breadcrumb"><a href="#" data-page="home"><span class="zh">首页</span><span class="en">Home</span></a> / Operations /</div>
+    <h1><span class="zh">Operations Dashboard 运营仪表盘</span><span class="en">Operations Dashboard</span></h1>
+    <p class="hero-summary"><span class="zh">当组织运行多个 Agent 时，需要一个全局控制中心——监控系统健康度、AI 用量与成本、任务队列、Worker 状态和预算风险，让运维团队在单一视图中掌控 Agent 集群的全貌。</span><span class="en">When organizations run multiple agents, they need a global control center — monitoring system health, AI usage and costs, task queues, worker status, and budget risks, giving operations teams a complete view of the agent fleet in a single view.</span></p>
+    <span class="badge governor">Governor · <span class="zh">运维</span><span class="en">Operations</span></span>
+    <div class="hero-illustration">
+      <img src="/agent-design-images/image5.png" alt="Operations Dashboard — Anthropic Console usage tracking dashboard with token consumption, request counts, and model breakdown">
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">概述</span><span class="en">Overview</span></h2>
+  <p class="body-text"><span class="zh">运营仪表盘是 Agent 系统的「指挥中心」。当 Agent 从单一助手扩展为多实例集群——多个 Worker 并行执行不同任务、消耗不同量级的 Token、连接不同的外部服务——管理者需要一个全局视图来回答四个核心问题：系统是否正常？哪里需要人工介入？谁在忙？AI 用量是否在预算内？</span><span class="en">The operations dashboard is the "command center" for agent systems. When agents scale from a single assistant to multi-instance clusters — multiple workers executing different tasks in parallel, consuming varying amounts of tokens, connecting to different external services — managers need a global view to answer four core questions: Is the system healthy? Where does human intervention needed? Who is busy? Is AI usage within budget?</span></p>
+
+  <div class="callout warning">
+    <span class="callout-icon">⚠️</span>
+    <div class="callout-content">
+      <div class="callout-title"><span class="zh">从个人工具到组织基础设施</span><span class="en">From Personal Tool to Organizational Infrastructure</span></div>
+      <div class="callout-body"><span class="zh">随着 Agent 从个人助手演变为企业级基础设施，仪表盘设计需要同时服务两类用户：<strong>日常操作者</strong>（关注当前任务和即时问题）和 <strong>管理者/运维</strong>（关注趋势、成本和系统级健康度）。单一仪表盘需要通过信息层级和视图切换来满足双重需求。</span><span class="en">As agents evolve from personal assistants to enterprise infrastructure, dashboard design needs to serve two user types: <strong>daily operators</strong> (focused on current tasks and immediate issues) and <strong>managers/operations</strong> (focused on trends, costs, and system-level health). A single dashboard needs information hierarchy and view switching to meet both needs.</span></div>
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">核心仪表盘模块</span><span class="en">Core Dashboard Modules</span></h2>
+  <div class="variant-grid">
+    <div class="variant-card">
+      <div class="vc-name"><span class="zh">🟢 系统健康度 Health Score</span><span class="en">🟢 System Health Score</span></div>
+      <div class="vc-desc"><span class="zh">综合评分（如 100 分制）汇总审核队列、运行异常、停滞执行和预算风险，一眼判断系统状态。</span><span class="en">Composite score (e.g., out of 100) summarizing review queues, runtime anomalies, stalled executions, and budget risks for instant system assessment.</span></div>
+    </div>
+    <div class="variant-card">
+      <div class="vc-name"><span class="zh">📊 AI 用量追踪 Usage Tracking</span><span class="en">📊 AI Usage Tracking</span></div>
+      <div class="vc-desc"><span class="zh">Token 消耗量、预估费用、请求次数的实时计数和趋势图表，带预算阈值警告。</span><span class="en">Real-time counts and trend charts for token consumption, estimated costs, and request counts, with budget threshold warnings.</span></div>
+    </div>
+    <div class="variant-card">
+      <div class="vc-name"><span class="zh">👥 Worker 状态 Worker Status</span><span class="en">👥 Worker Status</span></div>
+      <div class="vc-desc"><span class="zh">每个 Agent Worker 的当前任务、会话数、Cron 任务数、最后活跃时间和实时/离线状态。</span><span class="en">Each agent worker's current task, session count, cron job count, last active time, and online/offline status.</span></div>
+    </div>
+    <div class="variant-card">
+      <div class="vc-name"><span class="zh">🚨 需要介入 Needs Attention</span><span class="en">🚨 Needs Attention</span></div>
+      <div class="vc-desc"><span class="zh">聚合所有需要人工审核、被阻塞或触发风险规则的事项到一个「待办」视图。</span><span class="en">Aggregate all items needing human review, blocked tasks, or triggered risk rules into a single "to-do" view.</span></div>
+    </div>
+    <div class="variant-card">
+      <div class="vc-name"><span class="zh">📅 任务排程 Task Scheduling</span><span class="en">📅 Task Scheduling</span></div>
+      <div class="vc-desc"><span class="zh">下一批 Cron 任务、定时心跳和计划执行的时间线视图。</span><span class="en">Timeline view of upcoming cron tasks, scheduled heartbeats, and planned executions.</span></div>
+    </div>
+    <div class="variant-card">
+      <div class="vc-name"><span class="zh">💰 预算与订阅 Budget & Billing</span><span class="en">💰 Budget & Billing</span></div>
+      <div class="vc-desc"><span class="zh">AI 费用占预算比例、用量趋势、剩余额度和超支预警的财务视图。</span><span class="en">Financial view showing AI cost-to-budget ratio, usage trends, remaining quota, and overspend alerts.</span></div>
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">最佳实践</span><span class="en">Best Practices</span></h2>
+  <div class="do-dont-grid">
+    <div class="do-card">
+      <div class="dd-label">✓ Do</div>
+      <div class="dd-text"><span class="zh">首屏聚焦「四个核心问题」——系统健康吗？哪里需要我介入？谁在忙？费用安全吗？进阶信息放在二级视图。</span><span class="en">Focus the first screen on "four core questions" — Is the system healthy? Where do I need to intervene? Who is busy? Is spending safe? Advanced info goes in secondary views.</span></div>
+    </div>
+    <div class="dont-card">
+      <div class="dd-label">✗ Don't</div>
+      <div class="dd-text"><span class="zh">不要在仪表盘首屏堆砌原始日志或低层级指标——管理者需要汇总和趋势，不是逐行日志。不要让健康评分成为不可解释的黑箱数字。</span><span class="en">Don't pile raw logs or low-level metrics on the dashboard's first screen — managers need summaries and trends, not line-by-line logs. Don't let health scores become unexplainable black-box numbers.</span></div>
+    </div>
+  </div>
+  <div class="do-dont-grid">
+    <div class="do-card">
+      <div class="dd-label">✓ Do</div>
+      <div class="dd-text"><span class="zh">为每个 Worker 提供快速入口查看其当前任务详情和对话历史。预算数据要实时且带趋势预测——不只是当前费用，还要预估月底费用。</span><span class="en">Provide quick entry for each worker to view current task details and conversation history. Budget data should be real-time with trend forecasting — not just current costs, but projected end-of-month costs.</span></div>
+    </div>
+    <div class="dont-card">
+      <div class="dd-label">✗ Don't</div>
+      <div class="dd-text"><span class="zh">不要让「需要介入」的通知淹没在其他信息中——这是仪表盘最重要的信号，应有最高优先级的视觉权重。</span><span class="en">Don't let "needs attention" notifications drown in other information — this is the dashboard's most important signal and should have the highest visual priority.</span></div>
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">设计要点</span><span class="en">Design Considerations</span></h2>
+  <ul class="guideline-list">
+    <li>
+      <div class="gl-num">1</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">健康评分可解释</span><span class="en">Explainable Health Scores</span></div>
+        <div class="gl-desc"><span class="zh">综合健康分数下方应拆解为子指标（审核队列 0、运行异常 0、停滞执行 0、预算风险 0），让用户快速定位问题来源。</span><span class="en">Below the composite health score, break down into sub-metrics (review queue 0, runtime anomalies 0, stalled executions 0, budget risk 0), enabling users to quickly locate problem sources.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">2</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">多语言与本地化</span><span class="en">Multilingual & Localization</span></div>
+        <div class="gl-desc"><span class="zh">Agent 运营团队可能分布全球，仪表盘应支持语言切换，并使用 locale-aware 的日期/时间/货币格式。</span><span class="en">Agent operations teams may be globally distributed. Dashboards should support language switching and use locale-aware date/time/currency formats.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">3</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">实时 vs. 定期刷新</span><span class="en">Real-Time vs. Periodic Refresh</span></div>
+        <div class="gl-desc"><span class="zh">关键指标（健康分、需要介入数）应使用 WebSocket 实时推送；历史趋势和汇总报表可定期刷新以减轻服务器压力。</span><span class="en">Critical metrics (health score, attention-needed count) should use WebSocket real-time push; historical trends and summary reports can refresh periodically to reduce server load.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">4</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">从概览到详情的钻取</span><span class="en">Overview-to-Detail Drill-Down</span></div>
+        <div class="gl-desc"><span class="zh">仪表盘的每个卡片都应支持点击钻取——从概要数字进入详情列表，再从列表进入单个任务/Worker/会话的完整视图。</span><span class="en">Every card on the dashboard should support click-through drill-down — from summary numbers to detail lists, then from lists to the full view of individual tasks/workers/sessions.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">5</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">预算护栏与告警</span><span class="en">Budget Guardrails & Alerts</span></div>
+        <div class="gl-desc"><span class="zh">支持设置预算阈值（如日限/月限），接近阈值时渐变警告（黄→橙→红），超出时自动暂停低优先级任务并通知管理员。</span><span class="en">Support budget threshold settings (e.g., daily/monthly limits), gradient warnings when approaching thresholds (yellow→orange→red), and automatic low-priority task suspension with admin notification when exceeded.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">6</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">多 Agent 身份区分</span><span class="en">Multi-Agent Identity Distinction</span></div>
+        <div class="gl-desc"><span class="zh">每个 Agent Worker 应有独特的名称、头像或颜色标识，让运维人员在密集的任务列表中快速辨认是哪个 Agent 在执行。</span><span class="en">Each agent worker should have a unique name, avatar, or color identifier, enabling operations staff to quickly identify which agent is executing in dense task lists.</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="gl-num">7</div>
+      <div class="gl-content">
+        <div class="gl-title"><span class="zh">审计日志与回溯</span><span class="en">Audit Logs & Retrospection</span></div>
+        <div class="gl-desc"><span class="zh">仪表盘应保留历史快照，支持回溯到任意时间点查看当时的系统状态、活跃 Agent 和执行记录。</span><span class="en">Dashboards should retain historical snapshots, supporting retrospection to any point in time to view system state, active agents, and execution records.</span></div>
+      </div>
+    </li>
+  </ul>
+
+  <h2 class="section-title"><span class="zh">仪表盘布局参考</span><span class="en">Dashboard Layout Reference</span></h2>
+  <table class="specs-table">
+    <thead>
+      <tr>
+        <th><span class="zh">区域</span><span class="en">Area</span></th>
+        <th><span class="zh">内容</span><span class="en">Content</span></th>
+        <th><span class="zh">刷新频率</span><span class="en">Refresh Rate</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="zh">顶部总览</span><span class="en">Top Overview</span></td>
+        <td><span class="zh">健康评分 + 四大子指标</span><span class="en">Health score + four sub-metrics</span></td>
+        <td><span class="zh">实时推送</span><span class="en">Real-time push</span></td>
+      </tr>
+      <tr>
+        <td><span class="zh">左侧导航</span><span class="en">Left Navigation</span></td>
+        <td><span class="zh">总览、用量、员工、记忆、文档、任务、设置</span><span class="en">Overview, Usage, Workers, Memory, Docs, Tasks, Settings</span></td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td><span class="zh">中间主区域</span><span class="en">Center Main Area</span></td>
+        <td><span class="zh">需要介入 + Worker 状态 + 用量图表</span><span class="en">Needs attention + Worker status + Usage charts</span></td>
+        <td><span class="zh">5-15 秒</span><span class="en">5-15 seconds</span></td>
+      </tr>
+      <tr>
+        <td><span class="zh">右侧摘要栏</span><span class="en">Right Summary Bar</span></td>
+        <td><span class="zh">当前状态 + 用量摘要 + 活跃 Agent 列表 + 定时任务</span><span class="en">Current status + Usage summary + Active agents list + Scheduled tasks</span></td>
+        <td><span class="zh">实时推送</span><span class="en">Real-time push</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 class="section-title"><span class="zh">产品案例</span><span class="en">Examples</span></h2>
+  <div class="examples-section">
+    <div class="example-item">
+      <div class="example-img">
+        <img src="/agent-design-images/image5.png" alt="Anthropic Console — Usage Dashboard with daily token consumption charts" loading="lazy">
+      </div>
+      <div class="example-caption">
+        <div class="product-logo">A</div>
+        <div>
+          <div class="example-product">Anthropic Console · 2025.06</div>
+          <div class="example-desc"><span class="zh">用量追踪仪表盘——展示按日/周/月维度的 Token 消耗量、请求次数、输入/输出 Token 拆分图表。支持按模型、Workspace 过滤，并提供 CSV 导出。对应运营仪表盘核心模块中的「AI 用量追踪」，是平台级 API 用量监控的标准实现。</span><span class="en">Usage tracking dashboard — displays token consumption, request counts, and input/output token breakdown by day/week/month. Supports filtering by model and workspace with CSV export. A standard implementation of platform-level API usage monitoring.</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="examples-grid">
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/CleanShot2025-06-23at08_54_402x.png" alt="Anthropic Console — Cost and billing breakdown" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">A</div>
+          <div>
+            <div class="example-product">Anthropic Console · 2025.06</div>
+            <div class="example-desc"><span class="zh">费用与账单视图——按模型拆分的费用明细、每日成本趋势、预估月度账单。设置支出限额并在接近阈值时告警，对应仪表盘的「预算与订阅」模块，实现预算护栏的可视化管理。</span><span class="en">Cost and billing view — cost breakdown by model, daily cost trends, projected monthly bills. Set spending limits with threshold alerts, implementing visual budget guardrail management.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/ratelimitedrequests.png" alt="Anthropic Console — Rate limited requests monitoring" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">A</div>
+          <div>
+            <div class="example-product">Anthropic Console · 2025.06</div>
+            <div class="example-desc"><span class="zh">速率限制监控——实时展示被限流的请求数量和趋势，帮助运维团队识别流量峰值和容量瓶颈。对应仪表盘「系统健康度」子指标中的异常监测模块。</span><span class="en">Rate limit monitoring — real-time display of rate-limited request counts and trends, helping ops teams identify traffic spikes and capacity bottlenecks. Corresponds to anomaly detection in the "System Health" sub-metrics.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68adec60065170c1c3bf3844_68ab38625155f6bce0840687_operator_mode_controls.png" alt="OpenAI Operator control center" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">O</div>
+          <div>
+            <div class="example-product">OpenAI Operator · 2025.01</div>
+            <div class="example-desc"><span class="zh">Agent 运行控制中心——展示当前任务状态、执行模式和人工介入入口。「Pause」和「Stop」按钮提供即时干预能力，是仪表盘「需要介入」模块在单任务场景的典型实现。</span><span class="en">Agent runtime control center — displays task status, execution mode, and human intervention entry. "Pause" and "Stop" buttons provide immediate intervention capability, a typical implementation of the "Needs Attention" module.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68cef5367834dbfa7e8db717_controls_replit_queue_2.webp" alt="Replit agent task queue dashboard" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">R</div>
+          <div>
+            <div class="example-product">Replit · 2025.03</div>
+            <div class="example-desc"><span class="zh">Agent 任务队列视图——展示排队中、执行中和已完成的任务状态，对应仪表盘的 Worker 状态模块。多任务并行管理让运维团队快速识别阻塞和异常任务。</span><span class="en">Agent task queue view — showing queued, executing, and completed task status, corresponding to the Worker Status module. Multi-task parallel management helps ops teams quickly identify blocked and abnormal tasks.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68dc4f3cf59a6162f56266aa_cost_transparency_elevenlabs.webp" alt="ElevenLabs usage tracking dashboard" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">E</div>
+          <div>
+            <div class="example-product">ElevenLabs · 2025.04</div>
+            <div class="example-desc"><span class="zh">用量追踪仪表盘——实时展示字符消耗量、剩余额度和用量趋势图。进度条式的额度可视化（已用/总量）是「预算护栏」最直观的交互模式。</span><span class="en">Usage tracking dashboard — real-time display of character consumption, remaining quota, and usage trends. Progress-bar quota visualization (used/total) is the most intuitive interaction pattern for "budget guardrails".</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="example-item">
+        <div class="example-img">
+          <img src="/agent-design-images/68dc4fd7f8f325287c4f8278_cost_transparency_florafauna.webp" alt="Flora Fauna cost confirmation dialog" loading="lazy">
+        </div>
+        <div class="example-caption">
+          <div class="product-logo">F</div>
+          <div>
+            <div class="example-product">Flora Fauna · 2025.03</div>
+            <div class="example-desc"><span class="zh">操作前费用预估与确认——在执行高成本 AI 操作前展示预估费用并要求用户确认。这种「确认门」机制是预算护栏的前置防线：在资源消耗之前拦截，而非事后补救。</span><span class="en">Pre-operation cost estimation and confirmation — shows estimated cost before high-cost AI operations and requires user confirmation. This "confirmation gate" mechanism is a proactive budget guardrail: intercepting before resource consumption, not remediating after.</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="section-title"><span class="zh">关联模式</span><span class="en">Related Patterns</span></h2>
+  <div class="related-patterns">
+    <span class="related-pill" data-page="inspector">🔍 Inspector Panel</span>
+    <span class="related-pill" data-page="shared-vision">👁️ Shared Vision</span>
+    <span class="related-pill" data-page="verification">🛡️ Verification</span>
+    <span class="related-pill" data-page="trust">🤝 Trust Builders</span>
+  </div>
+</div>
+</div>
+
+<!-- ======== FOOTER ======== -->
+<footer class="page-footer">
+  <p>
+    内容参考自 <a href="https://www.shapeof.ai" target="_blank">The Shape of AI</a> — Emily Campbell · CC-BY-NC-SA<br>
+    产品截图版权归各产品所有方所有，仅供学习研究使用 · 2026
+  </p>
+</footer>
+
+</div><!-- end .main -->
+
+<!-- ======== NAVIGATION SCRIPT ======== -->
+<script>
+
+// Language toggle
+const langBtns = document.querySelectorAll('.lang-toggle button');
+langBtns.forEach(btn => {
+  btn.addEventListener('click', function() {
+    const lang = this.dataset.lang;
+    document.body.classList.remove('lang-zh', 'lang-en');
+    document.body.classList.add('lang-' + lang);
+    langBtns.forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+// Default to English
+document.body.classList.add('lang-en');
+
+
+(function() {
+  const pages = document.querySelectorAll('.component-page');
+  const navItems = document.querySelectorAll('.nav-item, .overview-card, .related-pill, .breadcrumb a');
+
+  function showPage(pageId) {
+    pages.forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+    const target = document.getElementById('page-' + pageId);
+    if (target) {
+      target.classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    document.querySelectorAll('.nav-item').forEach(n => {
+      if (n.dataset.page === pageId) n.classList.add('active');
+    });
+  }
+
+  document.addEventListener('click', function(e) {
+    const el = e.target.closest('[data-page]');
+    if (el) {
+      e.preventDefault();
+      showPage(el.dataset.page);
+    }
+  });
+})();
+</script>
+
+<script>
+/* Broken-image placeholder */
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('img').forEach(function(img) {
+    img.addEventListener('error', function() {
+      var alt = this.alt || 'Image not found';
+      var ph = document.createElement('div');
+      ph.style.cssText = 'min-height:160px;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;font-size:12px;color:#86868b;background:linear-gradient(135deg,#f5f5f7,#eaeaf0);border-radius:12px;border:1px dashed #d2d2d7;line-height:1.5;';
+      ph.textContent = alt;
+      this.parentNode.replaceChild(ph, this);
+    });
+  });
+});
+
+/* ========= LIGHTBOX — Click to view full size ========= */
+(function() {
+  // Create overlay
+  var overlay = document.createElement('div');
+  overlay.className = 'lightbox-overlay';
+  var lbImg = document.createElement('img');
+  var hint = document.createElement('div');
+  hint.className = 'lightbox-hint';
+  hint.textContent = '点击关闭 · Click to close · ESC';
+  overlay.appendChild(lbImg);
+  overlay.appendChild(hint);
+  document.body.appendChild(overlay);
+
+  function openLightbox(src, alt) {
+    lbImg.src = src;
+    lbImg.alt = alt || '';
+    overlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeLightbox() {
+    overlay.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  // Click overlay to close
+  overlay.addEventListener('click', closeLightbox);
+  // ESC to close
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeLightbox();
+  });
+
+  // Attach to all example-img and hero-illustration images
+  document.addEventListener('click', function(e) {
+    var img = e.target;
+    if (img.tagName !== 'IMG') return;
+    var parent = img.closest('.example-img, .hero-illustration');
+    if (!parent) return;
+    e.preventDefault();
+    e.stopPropagation();
+    openLightbox(img.src, img.alt);
+  });
+})();
+</script>
+
+</body>
+</html>

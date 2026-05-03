@@ -137,7 +137,6 @@ function defaultProjects(): Project[] {
 // stay scripted instead of hitting OpenAI on the Vercel demo project.
 const DEMO_CHAT_IDS = [
   'alcohol-delivery',
-  'ux-meeting',
   'my-workpal',
   ...(IS_DEMO ? DEMO_EXTRA_CHAT_IDS : []),
 ];
@@ -639,6 +638,7 @@ export default function App() {
     | { kind: 'preview'; name: string; content: string; renderAs: 'markdown' | 'html' | 'plaintext'; path: string }
     | { kind: 'unsupported'; name: string; path: string }
     | { kind: 'inaccessible'; name: string }
+    | { kind: 'iframe'; name: string; url: string }
     | null;
   const [chatPreviewArtifact, setChatPreviewArtifact] = useState<PreviewArtifactState>(null);
   const [projectPreviewArtifact, setProjectPreviewArtifact] = useState<PreviewArtifactState>(null);
@@ -657,8 +657,19 @@ export default function App() {
   // failure also falls through to the same placeholder so the user gets an
   // explicit choice instead of a silent open-with-default-app.
   const handleArtifactPreview = useCallback(async (artifact: ArtifactRef, which: 'chat' | 'project') => {
-    if (!artifact.path) return;
     const setPreview = which === 'chat' ? setChatPreviewArtifact : setProjectPreviewArtifact;
+    // Same-origin href (seeded showcase under /public) → embed in DetailPanel
+    // iframe; no backend read-file needed. Used by demo chats that surface a
+    // hosted Web artifact instead of a Claude-Code-written file.
+    if (artifact.href && artifact.href.startsWith('/')) {
+      setDetailCard(null);
+      setDetailMessageId(null);
+      setDetailOpen(false);
+      setContextPanelOpen(false);
+      setPreview({ kind: 'iframe', name: artifact.name, url: artifact.href });
+      return;
+    }
+    if (!artifact.path) return;
     const lower = artifact.name.toLowerCase();
     const BINARY_EXT = /\.(pdf|docx?|xlsx?|pptx?|png|jpe?g|gif|webp|svg|mp4|mov|zip|tar|gz)$/i;
     setDetailCard(null);
@@ -703,12 +714,22 @@ export default function App() {
     onClose: () => void,
   ) => (
     <DetailPanel
-      key={state.kind === 'inaccessible' ? state.name : state.path}
+      key={
+        state.kind === 'inaccessible' ? state.name
+        : state.kind === 'iframe' ? state.url
+        : state.path
+      }
       title={state.name}
       content={state.kind === 'preview' ? state.content : ''}
       renderAs={state.kind === 'preview' ? state.renderAs : 'plaintext'}
-      mode={state.kind === 'preview' ? 'preview' : state.kind === 'inaccessible' ? 'inaccessible' : 'unsupported'}
-      filePath={state.kind === 'inaccessible' ? undefined : state.path}
+      mode={
+        state.kind === 'preview' ? 'preview'
+        : state.kind === 'inaccessible' ? 'inaccessible'
+        : state.kind === 'iframe' ? 'iframe'
+        : 'unsupported'
+      }
+      filePath={state.kind === 'inaccessible' || state.kind === 'iframe' ? undefined : state.path}
+      srcUrl={state.kind === 'iframe' ? state.url : undefined}
       onClose={onClose}
       fullScreen={overlay}
       onResize={setDetailPanelWidth}
@@ -2392,17 +2413,6 @@ export default function App() {
     }
   }, [chats, projects, addMessage]);
 
-  // Auto-respond when opening ux-meeting chat with only the user message
-  useEffect(() => {
-    if (!activeChat) return;
-    const msgs = activeChat.messages;
-    // Only auto-respond if last message is from user and no assistant reply yet
-    if (msgs.length >= 1 && msgs[msgs.length - 1].role === 'user' && activeChat.id === 'ux-meeting') {
-      const responses = generateResponse(msgs[msgs.length - 1].content);
-      showTypingThenRespond(activeChat.id, responses, 1200);
-    }
-  }, [activeChatId]); // eslint-disable-line react-hooks/exhaustive-deps
-
   // Custom multi-step flow for the Alcohol Delivery Issues demo chat.
   // Phase 4: between step 1 and step 2 we pop a PermissionPrompt asking to
   // read an external file. Allow → flow resumes; Cancel → flow halts with a
@@ -3605,6 +3615,16 @@ export default function App() {
               sidebarOpen={sidebarOpen || !isMobile}
               onToggleSidebar={() => setSidebarOpen(o => !o)}
               onOutputPreview={(output) => {
+                // Same-origin static URL (e.g. seeded showcase under /public)
+                // → embed in DetailPanel iframe; no backend read-file needed.
+                if (output.href && output.href.startsWith('/')) {
+                  setDetailCard(null);
+                  setDetailMessageId(null);
+                  setDetailOpen(false);
+                  setContextPanelOpen(false);
+                  setProjectPreviewArtifact({ kind: 'iframe', name: output.name, url: output.href });
+                  return;
+                }
                 if (!output.path) return;
                 void handleArtifactPreview(
                   { name: output.name, fileType: output.type, path: output.path, source: 'claude-code' },
