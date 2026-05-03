@@ -40,6 +40,10 @@ strong, b {
   /* Chat input inner fill — light mode: #142740 at 5% (same overlay as bg-hover).
      Dark mode override below uses #000000 at 30% so the shell gradient reads through. */
   --color-input-bg: rgba(20, 39, 64, 0.05);
+  /* Chat input ACTIVE inner fill — light mode: pure white so the gradient
+     border reads as a clean composer surface. Dark mode override below keeps
+     the same darkened overlay as the idle state. */
+  --color-input-bg-active: #FFFFFF;
 
   /* Status / semantic accents — used for tags, badges, callouts */
   --color-accent-blue: #3171ff;
@@ -187,6 +191,9 @@ strong, b {
   --color-card-panel-bg: rgba(226, 243, 255, 0.1);
   /* Dark mode chat input inner fill: 20% black. */
   --color-input-bg: rgba(0, 0, 0, 0.2);
+  /* Dark mode active fill matches idle — pure white reads as glare on the
+     dark shell. */
+  --color-input-bg-active: rgba(0, 0, 0, 0.2);
   --color-progress-bar: #3171ff;
 
   --color-warning: #FDB022;
@@ -218,16 +225,6 @@ html, body, #root {
     --input-btn-size: 24px;
     /* Desktop: shrink detail from 16px (mobile) down to 14px */
     --font-detail-size: 14px;
-  }
-}
-
-/* Scale toolbar icons: 24px on mobile (1.5× of 16px base), 16px on desktop (1×) */
-.toolbar-icon-scale {
-  transform: scale(1.5);
-}
-@media (min-width: 768px) {
-  .toolbar-icon-scale {
-    transform: scale(1);
   }
 }
 

@@ -697,7 +697,7 @@ export function ToolbarIconButton({
   className?: string;
 }) {
   const base =
-    'flex items-center justify-center rounded-full border border-stroke-outline hover:bg-bg-hover toolbar-gradient-hover transition-all shrink-0 cursor-pointer text-text-primary';
+    'flex items-center justify-center rounded-full hover:bg-bg-hover toolbar-gradient-hover transition-all shrink-0 cursor-pointer text-text-primary';
   const merged = [base, className].filter(Boolean).join(' ');
   return (
     <button

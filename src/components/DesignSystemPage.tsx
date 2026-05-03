@@ -292,7 +292,12 @@ const SURFACE_TOKENS: ColorToken[] = [
   {
     name: 'Background · Input',
     cssVar: '--color-input-bg',
-    usage: 'Input field fill — ChatInput textarea, inline search surfaces, DarkToggle outer pill in dark. #142740 at 5% in light (same overlay as bg-hover); 20% black in dark so the shell gradient reads through',
+    usage: 'Input field idle fill + tinted card surfaces — ChatInput unfocused state, DarkToggle outer pill in dark, OverviewPage greeting card and health verdict button. #142740 at 5% in light (same overlay as bg-hover); 20% black in dark so the shell gradient reads through',
+  },
+  {
+    name: 'Background · Input Active',
+    cssVar: '--color-input-bg-active',
+    usage: 'Input field active fill — ChatInput when focused or composing. Pure white in light so the gradient border reads as a clean composer surface; mirrors the idle 20% black in dark to avoid glare on the dark shell',
   },
   {
     name: 'Background · Outer',

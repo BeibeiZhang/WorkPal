@@ -302,7 +302,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
           {attachments.map(att => (
             <div
               key={att.id}
-              className="relative group flex items-center gap-2 pr-2 rounded-lg border border-stroke-outline bg-bg-message overflow-hidden"
+              className="relative group flex items-center gap-2 pr-2 rounded-lg border border-bg-card bg-bg-message overflow-hidden"
             >
               {att.kind === 'image' ? (
                 <img
@@ -311,8 +311,8 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
                   className="w-12 h-12 object-cover shrink-0"
                 />
               ) : (
-                <div className="w-12 h-12 shrink-0 flex items-center justify-center bg-bg-hover text-text-secondary">
-                  <FileText size={22} />
+                <div className="w-12 h-12 shrink-0 flex items-center justify-center bg-bg-hover text-text-primary">
+                  <FileText size={22} strokeWidth={1.5} />
                 </div>
               )}
               <div className="min-w-0 max-w-[160px] pr-1">
@@ -375,9 +375,14 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
 
       {/* Text field — follows Figma component library states.
           When the textarea content wraps to more than one line, the wrapper
-          animates from a pill (rounded-full) into a rounded rectangle. */}
+          animates from a pill (rounded-full) into a rounded rectangle. The
+          attach `+` button sits inside the wrapper on the left so it
+          bottom-aligns with the Send/Voice button on the right when text
+          wraps. */}
       <div
-        className={`px-4 py-2 flex items-center transition-[border-radius,background-color,box-shadow] duration-200 ease-out ${
+        className={`px-3 py-2 flex gap-2 transition-[border-radius,background-color,box-shadow] duration-200 ease-out ${
+          isMultiline ? 'items-end' : 'items-center'
+        } ${
           isActive
             ? `input-gradient-border ${isMultiline ? 'rounded-lg' : 'rounded-full'}`
             : 'rounded-full input-gradient-hover'
@@ -386,12 +391,54 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
           isActive
             ? {
                 border: '2px solid transparent',
-                backgroundColor: 'var(--color-input-bg)',
+                backgroundColor: 'var(--color-input-bg-active)',
                 backgroundClip: 'padding-box',
               }
             : { border: '2px solid transparent', background: 'var(--color-bg-message)' }
         }
       >
+        {/* Attach `+` button — left, inside input. Menu pops upward via
+            bottom-full so the rounded-pill / rounded-lg surface stays clean. */}
+        <div ref={attachRef} className="relative shrink-0">
+          <Tooltip label="Attach">
+            <ToolbarIconButton
+              ariaLabel="Attach"
+              onClick={() => setShowAttachMenu(v => !v)}
+            >
+              <IconImg src={iconAdd} alt="Add" size={24} />
+            </ToolbarIconButton>
+          </Tooltip>
+          {showAttachMenu && (
+            <div
+              role="menu"
+              className="panel-border absolute bottom-full left-0 mb-2 min-w-[220px] py-1 rounded-xl overflow-hidden z-50"
+              style={{
+                background: 'var(--color-bg-page)',
+                boxShadow: 'var(--shadow-popup)',
+              }}
+            >
+              {([
+                { Icon: AtSign, label: 'Mention', action: 'mention' },
+                { Icon: Image,  label: 'Photo',   action: 'photo'   },
+                { Icon: Camera, label: 'Camera',  action: 'camera'  },
+                { Icon: FileUp, label: 'Upload File', action: 'file' },
+              ] as const).map(({ Icon, label, action }) => (
+                <button
+                  key={label}
+                  role="menuitem"
+                  onClick={() => {
+                    if (action === 'mention') { setShowAttachMenu(false); return; }
+                    openPicker(action);
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-bg-hover"
+                >
+                  <Icon size={16} strokeWidth={2} className="shrink-0 text-text-primary" />
+                  <span className="type-detail text-text-primary">{label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <textarea
           ref={textareaRef}
           value={value}
@@ -410,10 +457,10 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
           onBlur={() => setFocused(false)}
           placeholder={placeholder}
           rows={1}
-          className="w-full bg-transparent resize-none outline-none type-h2 text-text-primary placeholder-text-tertiary chat-textarea py-[11px]"
+          className="flex-1 min-w-0 bg-transparent resize-none outline-none type-h2 text-text-primary placeholder-text-tertiary chat-textarea py-[11px]"
         />
         {/* Mic / Voice / Send — inside input, right-aligned, 24×24 buttons */}
-        <div className="flex items-center gap-4 md:gap-2 shrink-0 ml-2">
+        <div className="flex items-center gap-4 md:gap-2 shrink-0">
           {/* Show Send when focused/typing, Voice icon when idle (not in voice mode).
               forceSendActive also triggers the Send render (e.g. Onboarding's
               "3 selected" state) so the gradient active button shows up even
@@ -471,55 +518,6 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
         </div>
       </div>
 
-      {/* Toolbar — single attach button. The mode selector + folder / branch /
-          worktree pickers used to live here; they were removed so that chat is
-          the only input surface and the AI decides when to escalate to a full
-          task (see App.tsx → inspector panel auto-opens on the first tool
-          call). */}
-      <div className="flex items-center relative">
-        <div className="flex items-center gap-3 md:gap-2 flex-wrap min-w-0">
-          <div ref={attachRef} className="relative">
-            <Tooltip label="Attach">
-              <ToolbarIconButton
-                ariaLabel="Attach"
-                onClick={() => setShowAttachMenu(v => !v)}
-              >
-                <span className="toolbar-icon-scale"><IconImg src={iconAdd} alt="Add" size={16} /></span>
-              </ToolbarIconButton>
-            </Tooltip>
-            {showAttachMenu && (
-              <div
-                role="menu"
-                className="panel-border absolute bottom-full left-0 mb-2 min-w-[220px] py-1 rounded-xl overflow-hidden z-50"
-                style={{
-                  background: 'var(--color-bg-page)',
-                  boxShadow: 'var(--shadow-popup)',
-                }}
-              >
-                {([
-                  { Icon: AtSign, label: 'Mention', action: 'mention' },
-                  { Icon: Image,  label: 'Photo',   action: 'photo'   },
-                  { Icon: Camera, label: 'Camera',  action: 'camera'  },
-                  { Icon: FileUp, label: 'Upload File', action: 'file' },
-                ] as const).map(({ Icon, label, action }) => (
-                  <button
-                    key={label}
-                    role="menuitem"
-                    onClick={() => {
-                      if (action === 'mention') { setShowAttachMenu(false); return; }
-                      openPicker(action);
-                    }}
-                    className="w-full flex items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-bg-hover"
-                  >
-                    <Icon size={16} strokeWidth={2} className="shrink-0 text-text-primary" />
-                    <span className="type-detail text-text-primary">{label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
