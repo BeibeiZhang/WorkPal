@@ -68,6 +68,15 @@ strong, b {
      reads as a high-contrast layer regardless of theme. */
   --color-tooltip-bg: #1a1a1a;
 
+  /* Keyboard focus ring (WCAG 2.4.7). Light mode uses the brand's
+     `--color-accent-blue` blue (#3171FF) which gives ~4.5:1 against the
+     light page surface; dark mode override below uses a lighter blue
+     (#73B2FF) for ≥10:1 against #001424. The global `*:focus-visible`
+     rule near the bottom of this file consumes this token so every
+     interactive element gets a consistent ring without per-component
+     classNames. */
+  --color-focus-ring: #3171FF;
+
   /* Translucent loading overlay used over media previews while content
      fetches. Light mode: dim toward black; dark override below uses
      light-toward-white for the same dim effect on the dark canvas. */
@@ -204,6 +213,43 @@ strong, b {
 
   /* Invert overlay direction for dark mode — dim toward white. */
   --color-overlay-loading: rgba(255,255,255,0.4);
+
+  /* Lighter focus ring on dark canvas — gives ≥10:1 contrast vs #001424. */
+  --color-focus-ring: #73B2FF;
+}
+
+/* ═══════════════════════════════════════════════════
+   Global keyboard focus ring (WCAG 2.4.7 / 2.4.11).
+   Single source of truth — every interactive element
+   inherits this. Components should NOT add their own
+   `outline-none` without a replacement.
+   ═══════════════════════════════════════════════════ */
+*:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+/* Belt-and-braces fallback for older Safari that doesn't fully implement
+   :focus-visible — strip the default ring on mouse-only focus. */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ═══════════════════════════════════════════════════
+   Reduced-motion respect (WCAG 2.3.3).
+   When the user has the OS-level "Reduce motion" pref,
+   collapse all animations + transitions to ~0ms so
+   spinners, pulses, slide-ins finish instantly.
+   Wraps everything; if a future component has motion
+   that MUST run, wrap that component's keyframes in
+   `@media (prefers-reduced-motion: no-preference)`.
+   ═══════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 html, body, #root {

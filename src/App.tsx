@@ -587,6 +587,19 @@ export default function App() {
     : location.pathname === '/software-update' ? 'software-update'
     : location.pathname === '/about' ? 'about'
     : 'chat';
+  // WCAG 4.1.3 — SPA route changes are silent for screen readers by default.
+  // Pipe the friendly view name into a polite live region so AT announces
+  // "Overview page" / "Library page" etc. on each navigation.
+  const routeLabel: Record<ViewName, string> = {
+    'chat': 'Chat',
+    'connectors': 'Connectors',
+    'design-system': 'Design system',
+    'overview': 'Overview',
+    'library': 'Library',
+    'memory': 'Memory',
+    'software-update': 'Software update',
+    'about': 'About',
+  };
   const activeChatId = chatMatch?.params.chatId ?? rootChatId;
   const activeProjectId = projectMatch?.params.projectId ?? null;
   const [newProjectOpen, setNewProjectOpen] = useState(false);
@@ -3504,6 +3517,17 @@ export default function App() {
 
   return (
     <div className="flex h-full w-full overflow-hidden" style={{ background: 'var(--color-outer-bg)' }}>
+      {/* WCAG 2.4.1 — bypass blocks. Visible only on keyboard focus, jumps to <main>. */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:px-3 focus:py-2 focus:bg-text-primary focus:text-bg-page focus:rounded type-detail-emphasized"
+      >
+        Skip to main content
+      </a>
+      {/* WCAG 4.1.3 — SPA route announcer. Hidden visually but read by AT. */}
+      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+        {routeLabel[activeView]} page
+      </div>
       {/* Outer rounded container */}
       <div className="flex-1 flex overflow-hidden relative app-shell-bg p-2 md:p-4">
         {/* ─── NavPanel (priority 3: collapses first) ───
@@ -3585,7 +3609,11 @@ export default function App() {
           );
         })()}
 
-        {/* Main Content */}
+        {/* Main Content — wrapped in <main> landmark (WCAG 1.3.1 / 2.4.1).
+            `className="contents"` keeps the existing flex layout untouched
+            while the `<main>` element still registers as the page's primary
+            landmark for screen readers + the skip-link target. */}
+        <main id="main-content" className="contents">
         {activeProjectId && projects.find(p => p.id === activeProjectId) ? (
           // §23: ProjectPage docks the §23 DetailPanel preview on its right
           // edge via an outer SplitView. ProjectPage's existing internal
@@ -3913,6 +3941,7 @@ export default function App() {
             </SplitView>
           );
         })()}
+        </main>
       </div>
 
       {/* New Project Dialog — doubles as the "Promote to Project" dialog when

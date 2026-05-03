@@ -33,6 +33,9 @@ export default {
         stroke: {
           outline: 'var(--color-stroke-outline)',
         },
+        focus: {
+          ring: 'var(--color-focus-ring)',
+        },
         warning: 'var(--color-warning)',
         error: 'var(--color-error)',
         accent: {

@@ -664,12 +664,21 @@ export function ToolbarPill({
  * Dark-background hover tooltip — black bg, white text, appears above the
  * trigger. Used on icon-only controls in the ChatInput toolbar (attach, mic,
  * unselected mode-selector segments) to surface their labels.
+ *
+ * Visibility triggers:
+ *   - `group-hover` for mouse users
+ *   - `group-focus-within` for keyboard users (WCAG 1.4.13 Content on
+ *     Hover or Focus) — when the inner trigger receives focus, the tooltip
+ *     shows; when focus leaves, it hides
  */
 export function Tooltip({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="relative group">
       {children}
-      <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded-md bg-tooltip text-white type-footnote whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-50">
+      <div
+        role="tooltip"
+        className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded-md bg-tooltip text-white type-footnote whitespace-nowrap opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity z-50"
+      >
         {label}
       </div>
     </div>
@@ -958,18 +967,29 @@ export function ProgressBar({
   color = 'var(--color-progress-bar, #142740)',
   height = 6,
   showLabel = false,
+  ariaLabel = 'Progress',
 }: {
   value: number;
   color?: string;
   height?: number;
   showLabel?: boolean;
+  ariaLabel?: string;
 }) {
+  const clamped = Math.min(100, Math.max(0, value));
   return (
     <div className="flex items-center gap-3">
-      <div className="flex-1 rounded-full bg-bg-hover overflow-hidden" style={{ height }}>
+      <div
+        className="flex-1 rounded-full bg-bg-hover overflow-hidden"
+        style={{ height }}
+        role="progressbar"
+        aria-valuenow={Math.round(clamped)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={ariaLabel}
+      >
         <div
           className="h-full rounded-full transition-[width] duration-700"
-          style={{ width: `${Math.min(100, Math.max(0, value))}%`, background: color }}
+          style={{ width: `${clamped}%`, background: color }}
         />
       </div>
       {showLabel && <span className="type-detail-emphasized text-text-primary shrink-0">{value}%</span>}
@@ -1096,6 +1116,8 @@ export function StatusTag({
       } ${tooltip ? 'cursor-help' : ''}`}
       style={surface}
       title={tooltip}
+      tabIndex={tooltip ? 0 : undefined}
+      role={tooltip ? 'note' : undefined}
     >
       {showIcon && <Icon size={isSmall ? 12 : 14} strokeWidth={2} />}
       {label}
@@ -1441,6 +1463,7 @@ export function NavItem({
       type="button"
       onClick={onClick}
       title={title}
+      aria-current={active ? 'page' : undefined}
       className={`flex items-center gap-4 w-full ${padX} py-2 rounded-full transition-colors text-left ${stateClass} ${extra}`}
     >
       {icon}

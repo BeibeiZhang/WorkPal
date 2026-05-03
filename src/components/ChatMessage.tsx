@@ -336,11 +336,16 @@ function FeedbackBar({ text }: { text: string }) {
     { src: iconThumbsUp, label: 'Bad', flip: true },
     { src: iconRefresh, label: 'Retry' },
   ];
+  // WCAG 1.1.1 / 3.3.2 — icon-only buttons need an explicit aria-label so
+  // screen readers announce the action. `title` keeps the visible browser
+  // tooltip on mouse hover, but is unreliable as the sole accessible name.
   return (
-    <div className="flex items-center gap-1.5 md:gap-1 mt-2 text-text-primary">
+    <div className="flex items-center gap-1.5 md:gap-1 mt-2 text-text-primary" role="toolbar" aria-label="Message actions">
       {/* TTS play/stop button */}
       <button
         title={isSpeaking ? 'Stop reading' : 'Read aloud'}
+        aria-label={isSpeaking ? 'Stop reading' : 'Read aloud'}
+        aria-pressed={isSpeaking}
         onClick={toggleSpeak}
         className={`w-10 h-10 md:w-7 md:h-7 flex items-center justify-center rounded-lg transition-colors ${isSpeaking ? 'bg-accent-blue-faint hover:bg-accent-blue-faint-hover' : 'hover:bg-bg-hover'}`}
       >
@@ -350,11 +355,12 @@ function FeedbackBar({ text }: { text: string }) {
         <button
           key={label}
           title={label}
+          aria-label={label}
           className="w-10 h-10 md:w-7 md:h-7 flex items-center justify-center rounded-lg hover:bg-bg-hover transition-colors"
         >
           <img
             src={src}
-            alt={label}
+            alt=""
             className={`w-5 h-5 md:w-4 md:h-4 object-contain opacity-40 hover:opacity-70 icon-theme ${flip ? 'scale-y-[-1]' : ''}`}
           />
         </button>
@@ -365,12 +371,17 @@ function FeedbackBar({ text }: { text: string }) {
 
 function TypingIndicator() {
   return (
-    <div className="flex items-center gap-1 py-3 px-1">
+    <div
+      className="flex items-center gap-1 py-3 px-1"
+      role="status"
+      aria-label="AI is responding"
+    >
       {[0, 1, 2].map(i => (
         <div
           key={i}
           className="w-2 h-2 rounded-full loading-dot"
           style={{ animationDelay: `${i * 0.2}s` }}
+          aria-hidden="true"
         />
       ))}
     </div>

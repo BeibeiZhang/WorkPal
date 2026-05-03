@@ -442,7 +442,8 @@ export function MiniSidebar({ activeView, activeChatId, onChatSelect, onViewChan
   ];
 
   return (
-    <div
+    <nav
+      aria-label="Primary"
       className="flex flex-col h-full w-[64px] select-none shrink-0 items-center bg-bg-sidebar dark:bg-transparent"
       style={{
         backgroundImage: 'linear-gradient(to bottom, transparent 0%, var(--color-stroke-outline) 20%, var(--color-stroke-outline) 80%, transparent 100%)',
@@ -456,6 +457,7 @@ export function MiniSidebar({ activeView, activeChatId, onChatSelect, onViewChan
         <button
           onClick={onToggleSidebar}
           title="Open sidebar"
+          aria-label="Open sidebar"
           className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-bg-hover transition-colors"
           style={{ color: 'var(--color-icon-primary)' }}
         >
@@ -470,6 +472,8 @@ export function MiniSidebar({ activeView, activeChatId, onChatSelect, onViewChan
             key={id}
             onClick={onClick}
             title={label}
+            aria-label={label}
+            aria-current={active ? 'page' : undefined}
             className={`w-11 h-11 flex items-center justify-center rounded-full transition-colors ${
               active ? 'gradient-ring' : 'hover:bg-bg-hover'
             }`}
@@ -489,7 +493,7 @@ export function MiniSidebar({ activeView, activeChatId, onChatSelect, onViewChan
           onChatSelect={onChatSelect}
         />
       </div>
-    </div>
+    </nav>
   );
 }
 
@@ -511,7 +515,8 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
   const isNewSessionActive = activeView === 'chat' && !!activeChat && isDraftLike(activeChat) && !activeProjectId;
 
   return (
-    <div
+    <nav
+      aria-label="Primary"
       className="flex flex-col h-full w-[300px] select-none shrink-0 bg-bg-sidebar dark:bg-transparent"
       style={{
         backgroundImage: 'linear-gradient(to bottom, transparent 0%, var(--color-stroke-outline) 20%, var(--color-stroke-outline) 80%, transparent 100%)',
@@ -526,7 +531,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
         <span className="type-h1 text-text-primary">
           WorkPal
         </span>
-        <button onClick={onToggleSidebar} title="Close sidebar" className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-bg-hover transition-colors" style={{ color: 'var(--color-icon-primary)' }}>
+        <button onClick={onToggleSidebar} title="Close sidebar" aria-label="Close sidebar" className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-bg-hover transition-colors" style={{ color: 'var(--color-icon-primary)' }}>
           <PanelLeft size={20} />
         </button>
       </div>
@@ -563,10 +568,12 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
         <div className="px-4 py-4 flex flex-col gap-1">
           <button
             onClick={() => setProjectsOpen(!projectsOpen)}
+            aria-expanded={projectsOpen}
+            aria-controls="sidebar-projects-list"
             className="px-4 flex items-center justify-between hover:bg-bg-hover rounded-full transition-colors"
             style={{ height: 32 }}
           >
-            <p className="type-h2-emphasized text-text-primary">Projects</p>
+            <h2 className="type-h2-emphasized text-text-primary">Projects</h2>
             <ChevronDown
               size={16}
               className={`text-text-primary transition-transform ${projectsOpen ? '' : '-rotate-90'}`}
@@ -574,7 +581,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
           </button>
 
           {projectsOpen && (
-            <>
+            <div id="sidebar-projects-list" className="contents">
               {/* New Project */}
               <NavItem
                 onClick={onNewProject}
@@ -593,7 +600,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
                   {onDeleteProject && <RowMoreMenu onDelete={() => onDeleteProject(proj.id)} />}
                 </div>
               ))}
-            </>
+            </div>
           )}
         </div>
 
@@ -601,16 +608,19 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
         <div className="px-4 py-4 flex flex-col gap-1">
           <button
             onClick={() => setRecentsOpen(!recentsOpen)}
+            aria-expanded={recentsOpen}
+            aria-controls="sidebar-recents-list"
             className="px-4 flex items-center justify-between hover:bg-bg-hover rounded-full transition-colors"
             style={{ height: 32 }}
           >
-            <p className="type-h2-emphasized text-text-primary">Recents</p>
+            <h2 className="type-h2-emphasized text-text-primary">Recents</h2>
             <ChevronDown
               size={16}
               className={`text-text-primary transition-transform ${recentsOpen ? '' : '-rotate-90'}`}
             />
           </button>
 
+          <div id="sidebar-recents-list" className="contents">
           {recentsOpen && filteredChats.map(chat => {
             const isActive = activeChatId === chat.id && activeView === 'chat';
             const isThinking = chat.messages.some(m => m.isLoading);
@@ -653,6 +663,7 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
               </div>
             );
           })}
+          </div>
         </div>
 
       </div>
@@ -677,6 +688,6 @@ export default function Sidebar({ chats, activeChatId, activeView, activeProject
         {/* Dark/Light toggle */}
         <DarkToggle isDark={isDark} onToggle={onToggleDark} />
       </div>
-    </div>
+    </nav>
   );
 }

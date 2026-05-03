@@ -63,9 +63,9 @@ export default function NewProjectDialog({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="new-project-title">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} aria-hidden="true" />
 
       {/* Dialog */}
       <div
@@ -78,7 +78,7 @@ export default function NewProjectDialog({
         </HeaderIconButton>
 
         {/* Header */}
-        <h2 className="type-h1--emphasized text-text-primary mb-2">
+        <h2 id="new-project-title" className="type-h1--emphasized text-text-primary mb-2">
           {isPromote ? 'Promote to Project' : 'New Project'}
         </h2>
         {isPromote && (

@@ -338,8 +338,17 @@ export default function ChatPanel({
         onNewChat={onNewChat}
       />
 
-      {/* Messages area */}
-      <div className="flex-1 overflow-y-auto min-h-0 px-8 py-4">
+      {/* Messages area — `role="log"` + `aria-live="polite"` so streamed AI
+          replies are announced as they append (WCAG 4.1.3). `aria-relevant`
+          limits announcements to additions, avoiding chatter when DOM nodes
+          rearrange during streaming token splits. */}
+      <div
+        className="flex-1 overflow-y-auto min-h-0 px-8 py-4"
+        role="log"
+        aria-live="polite"
+        aria-relevant="additions"
+        aria-label="Conversation"
+      >
         <div className={`max-w-[863px] mx-auto ${isNewChat ? 'h-full flex flex-col justify-center' : ''}`}>
           {isNewChat ? (
             <WelcomeState isDark={isDark} selectedAvatarId={selectedAvatarId} onAvatarChange={onAvatarChange} />
