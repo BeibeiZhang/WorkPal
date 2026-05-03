@@ -2159,8 +2159,8 @@ export function EmptyState({
 }) {
   return (
     <div className={`flex flex-col items-center justify-center gap-2 py-8 px-4 text-center ${className}`}>
-      <div className="w-10 h-10 flex items-center justify-center rounded-full bg-bg-hover text-text-secondary">
-        <Icon size={20} strokeWidth={1.5} className="icon-theme" />
+      <div className="w-10 h-10 flex items-center justify-center rounded-full bg-bg-hover text-text-primary">
+        <Icon size={20} strokeWidth={1.5} />
       </div>
       <div className="type-detail-emphasized text-text-primary">{title}</div>
       {description && (
@@ -2246,7 +2246,7 @@ export function AgentRequiredHint({
         role="status"
         className="inline-flex items-start gap-2 rounded-lg bg-bg-message px-3 py-2 max-w-full"
       >
-        <Smartphone size={14} strokeWidth={1.5} className="icon-theme shrink-0 mt-0.5 text-text-secondary" />
+        <Smartphone size={14} strokeWidth={1.5} className="shrink-0 mt-0.5 text-text-primary" />
         <div className="min-w-0">
           <p className="type-caption text-text-primary">{en}</p>
         </div>
@@ -2259,8 +2259,8 @@ export function AgentRequiredHint({
       className="panel-border rounded-[12px] p-4 flex items-start gap-3 max-w-[480px]"
       style={{ background: 'var(--color-card-panel-bg)' }}
     >
-      <div className="w-8 h-8 shrink-0 flex items-center justify-center rounded-full bg-bg-message text-text-secondary">
-        <Smartphone size={16} strokeWidth={1.5} className="icon-theme" />
+      <div className="w-8 h-8 shrink-0 flex items-center justify-center rounded-full bg-bg-message text-text-primary">
+        <Smartphone size={16} strokeWidth={1.5} />
       </div>
       <div className="min-w-0">
         <p className="type-detail-emphasized text-text-primary">{en}</p>
