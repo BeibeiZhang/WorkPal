@@ -2873,7 +2873,7 @@ function AgentVideosTab() {
           <Video size={16} className="text-text-primary" />
           <span className="type-h1--emphasized text-text-primary">Welcome-state avatar videos</span>
         </div>
-        <p className="type-caption text-text-primary mb-3">
+        <p className="type-detail text-text-primary mb-3">
           Each agent has a pool of idle videos that play in the welcome state of a new chat. One is picked at random per
           session (separately for light / dark mode). The toggle on each row flips between <strong>Active</strong>{' '}
           (in rotation) and <strong>Inactive</strong> (skipped). State syncs across browsers and across deployments via
@@ -3116,7 +3116,7 @@ function ReviewTab() {
           <span className="type-body">🧪</span>
           <span className="type-h1--emphasized text-text-primary">How the review queue works</span>
         </div>
-        <ol className="list-decimal pl-5 type-caption text-text-primary space-y-1">
+        <ol className="list-decimal pl-5 type-detail text-text-primary space-y-1">
           <li>When building a feature, I always check the <strong>Component Library</strong> first.</li>
           <li>Whenever possible, I reuse an existing shared component.</li>
           <li>If nothing fits, I build a new component and <strong>add it here</strong> so you can review.</li>
