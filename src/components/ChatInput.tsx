@@ -163,7 +163,9 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
     setIsMultiline(ta.scrollHeight > 30);
   }, [value]);
 
-  // Close the attach popup on outside click
+  // Close the attach popup on outside click — and on Escape (WCAG 2.1.2 +
+  // WAI-ARIA menu pattern). Esc returns focus to the trigger so keyboard
+  // users can re-open the menu without re-tabbing.
   useEffect(() => {
     if (!showAttachMenu) return;
     const handleClick = (e: MouseEvent) => {
@@ -171,8 +173,17 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
         setShowAttachMenu(false);
       }
     };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowAttachMenu(false);
+      }
+    };
     document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKey);
+    };
   }, [showAttachMenu]);
 
   const handleSend = () => {
@@ -279,6 +290,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
         multiple
         className="hidden"
         onChange={handleFileInput}
+        aria-label="Attach photos"
       />
       <input
         ref={cameraInputRef}
@@ -287,6 +299,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
         capture="environment"
         className="hidden"
         onChange={handleFileInput}
+        aria-label="Take a photo with camera"
       />
       <input
         ref={fileInputRef}
@@ -294,6 +307,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
         multiple
         className="hidden"
         onChange={handleFileInput}
+        aria-label="Attach files"
       />
 
       {/* Attachment preview strip — above the input when any files are staged */}
@@ -456,6 +470,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           placeholder={placeholder}
+          aria-label="Chat message — type a message and press Enter to send"
           rows={1}
           className="flex-1 min-w-0 bg-transparent resize-none outline-none type-h2 text-text-primary placeholder-text-tertiary chat-textarea py-[11px]"
         />
@@ -473,6 +488,8 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
                 <Tooltip label="Send">
                   <button
                     onClick={isClickable ? handleSend : undefined}
+                    aria-label="Send message"
+                    aria-disabled={!isClickable}
                     className={`flex items-center justify-center shrink-0 rounded-full transition-all ${
                       isClickable
                         ? 'cursor-pointer hover:shadow-[0_2px_15px_rgba(1,44,197,0.3)]'
@@ -486,9 +503,9 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
                     } as React.CSSProperties}
                   >
                     {isSendActive ? (
-                      <IconImg src={iconSendActive} alt="Send" noTheme size={16} />
+                      <IconImg src={iconSendActive} alt="" noTheme size={16} />
                     ) : (
-                      <IconImg src={iconSend} alt="Send" size={16} />
+                      <IconImg src={iconSend} alt="" size={16} />
                     )}
                   </button>
                 </Tooltip>
@@ -498,6 +515,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
             <Tooltip label="Voice mode">
               <button
                 onClick={onVoiceMode}
+                aria-label="Start voice mode"
                 className="flex items-center justify-center shrink-0 cursor-pointer rounded-full hover:bg-bg-hover transition-all text-text-primary"
                 style={{ width: 'var(--input-btn-size)', height: 'var(--input-btn-size)' } as React.CSSProperties}
               >
@@ -508,10 +526,12 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
             <Tooltip label="Send">
               <button
                 onClick={canSend ? handleSend : undefined}
+                aria-label="Send message"
+                aria-disabled={!canSend}
                 className="flex items-center justify-center shrink-0 rounded-full transition-all cursor-default hover:bg-bg-hover"
                 style={{ width: 'var(--input-btn-size)', height: 'var(--input-btn-size)' } as React.CSSProperties}
               >
-                <IconImg src={iconSend} alt="Send" size={16} />
+                <IconImg src={iconSend} alt="" size={16} />
               </button>
             </Tooltip>
           )}

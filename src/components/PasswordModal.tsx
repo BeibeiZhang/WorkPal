@@ -42,8 +42,8 @@ export default function PasswordModal({ open, error, busy, message, onSubmit, on
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="password-modal-title">
+      <div className="absolute inset-0 bg-black/40" onClick={onCancel} aria-hidden="true" />
       <div
         className="panel-border relative w-[400px] max-w-[90vw] rounded-[12px] p-7 shadow-2xl"
         style={{ background: 'var(--color-bg-page)' }}
@@ -61,10 +61,10 @@ export default function PasswordModal({ open, error, busy, message, onSubmit, on
             className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
             style={{ background: 'var(--color-bg-message)' }}
           >
-            <Lock size={18} className="text-text-primary" />
+            <Lock size={18} className="text-text-primary" aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <h2 className="type-h2-emphasized text-text-primary">Confirm with password</h2>
+            <h2 id="password-modal-title" className="type-h2-emphasized text-text-primary">Confirm with password</h2>
             <p className="type-detail text-text-secondary mt-0.5">
               {message ?? 'Saving memory edits requires the password you set.'}
             </p>
