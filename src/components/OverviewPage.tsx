@@ -262,7 +262,20 @@ function computeHealth(spend: UsageSummary | null, rangeDays: number): HealthRep
 /* ── Main Component ── */
 
 export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, onOpenChat, onOpenProject }: OverviewPageProps) {
-  const videoSrc = '/animations/white-man-coffee.mp4';
+  // Greeting hero video — different framing per viewport. Mobile gets a
+  // square portrait clip designed for the stacked aspect-square slot;
+  // desktop keeps the original landscape clip that fills the 240px column.
+  const [isMobileHero, setIsMobileHero] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const update = () => setIsMobileHero(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+  const videoSrc = isMobileHero
+    ? '/animations/morning-hero-mobile.mp4'
+    : '/animations/white-man-coffee.mp4';
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   const GREETING_TEXT = "Good morning, Beibei! Today feels like a steady day. Your life commitments are all locked in — 2 hours family time, 7 hours sleep, check. I've protected your 9 to 11am focus block, and today's workload is light. I finished your meeting notes and drafted 3 tickets — review them whenever you're ready.";
@@ -348,16 +361,17 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
           <div className="rounded-2xl mb-[48px] relative overflow-hidden bg-input-bg">
             {/* Desktop: video column fixed at 240px so the text column always has
                 room to breathe. Stretch makes the video fill the row height;
-                object-cover trims to fit. Mobile stacks with a square video. */}
+                object-cover trims to fit. Mobile stacks; video keeps its
+                native aspect ratio (no forced square crop). */}
             <div className="flex flex-col md:flex-row md:items-stretch relative">
-              <div className="relative w-full aspect-square md:w-[240px] md:aspect-auto md:shrink-0 overflow-hidden">
+              <div className="relative w-full md:w-[240px] md:shrink-0 overflow-hidden">
                 <video
                   src={videoSrc}
                   autoPlay
                   loop
                   muted
                   playsInline
-                  className="absolute inset-0 w-full h-full object-cover"
+                  className="block w-full h-auto md:absolute md:inset-0 md:h-full md:object-cover"
                 />
               </div>
               <div className="min-w-0 flex-1 p-6 md:p-8 flex flex-col justify-center">
