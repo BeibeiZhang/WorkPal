@@ -24,6 +24,7 @@ export default {
           message: 'var(--color-bg-message)',
           hover: 'var(--color-bg-hover)',
           sidebar: 'var(--color-sidebar-bg)',
+          card: 'var(--color-card-panel-bg)',
         },
         input: {
           bg: 'var(--color-input-bg)',
