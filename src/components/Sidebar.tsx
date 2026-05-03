@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Chat, Attachment, OutputItem } from '../types';
-import { ArrowUpCircle, LayoutDashboard, SquarePen, Link, BookOpen, Brain, FolderPlus, ChevronDown, Search, Palette, PanelLeft, MoreHorizontal, Trash2, FolderInput, Check, Sparkles, LogOut, User } from 'lucide-react';
+import { ArrowUpCircle, LayoutDashboard, SquarePen, Link, BookOpen, Brain, FolderPlus, ChevronDown, Search, Palette, PanelLeft, MoreHorizontal, Trash2, FolderInput, Check, Sparkles, LogOut, User, Info } from 'lucide-react';
 import { iconSun, iconMoon } from '../assets';
 import { NavItem } from './shared';
 import { useAuth } from '../lib/useAuth';
@@ -270,7 +270,9 @@ function AvatarMenu({ compact = false, activeView, activeChatId, onViewChange, o
     { id: 'connectors',    label: 'Connectors',            Icon: Link,     onClick: () => onViewChange?.('connectors'),    active: activeView === 'connectors' },
     { id: 'library',       label: 'Library',               Icon: BookOpen, onClick: () => onViewChange?.('library'),       active: activeView === 'library' },
     { id: 'memory',          label: 'Memory',                Icon: Brain,          onClick: () => onViewChange?.('memory'),          active: activeView === 'memory' },
-    { id: 'software-update', label: 'Software Update',       Icon: ArrowUpCircle,  onClick: () => onViewChange?.('software-update'), active: activeView === 'software-update' },
+    // Software Update is local-agent maintenance — hidden in the public demo build (my-workpal.vercel.app) where there's no agent to update.
+    ...(IS_DEMO ? [] : [{ id: 'software-update', label: 'Software Update',       Icon: ArrowUpCircle,  onClick: () => onViewChange?.('software-update'), active: activeView === 'software-update' }]),
+    { id: 'about',           label: 'About',                 Icon: Info,           onClick: () => onViewChange?.('about'),           active: activeView === 'about' },
     { id: 'onboarding',      label: 'Onboarding Experience', Icon: Sparkles,       onClick: () => onChatSelect?.('my-workpal'),      active: activeChatId === 'my-workpal' && activeView === 'chat' },
     { id: 'design-system',   label: 'Design System',         Icon: Palette,        onClick: () => onViewChange?.('design-system'),   active: activeView === 'design-system' },
   ];
@@ -370,14 +372,14 @@ export interface Project {
 interface SidebarProps {
   chats: Chat[];
   activeChatId: string;
-  activeView?: 'chat' | 'connectors' | 'design-system' | 'overview' | 'library' | 'memory' | 'software-update';
+  activeView?: 'chat' | 'connectors' | 'design-system' | 'overview' | 'library' | 'memory' | 'software-update' | 'about';
   activeProjectId?: string | null;
   projects: Project[];
   onChatSelect: (id: string) => void;
   onNewChat: () => void;
   onNewProject: () => void;
   onProjectSelect: (id: string) => void;
-  onViewChange?: (view: 'chat' | 'connectors' | 'design-system' | 'overview' | 'library' | 'memory' | 'software-update') => void;
+  onViewChange?: (view: 'chat' | 'connectors' | 'design-system' | 'overview' | 'library' | 'memory' | 'software-update' | 'about') => void;
   onDeleteChat?: (id: string) => void;
   onDeleteProject?: (id: string) => void;
   /** File a chat into a project, or pass null to remove it from any project. */

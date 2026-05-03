@@ -228,8 +228,9 @@ export function PageLayout({
   rightSlot?: ReactNode;
   /** Filter chip row rendered below the title. */
   filters?: ReactNode;
-  /** `'full'` = page-wide content. `'reading'` = capped at 863px, centered. */
-  maxWidth?: 'full' | 'reading';
+  /** `'full'` = page-wide content. `'reading'` = capped at 863px, centered.
+   *  `'wide'` = capped at 1040px, centered (case-study / marketing surfaces). */
+  maxWidth?: 'full' | 'reading' | 'wide';
   sidebarOpen?: boolean;
   onToggleSidebar?: () => void;
   /** Right-aligned content in the top toggle bar (e.g. panel toggle). */
@@ -250,7 +251,10 @@ export function PageLayout({
   bgClass?: string;
   children: ReactNode;
 }) {
-  const widthClass = maxWidth === 'reading' ? 'max-w-[863px] mx-auto w-full' : '';
+  const widthClass =
+    maxWidth === 'reading' ? 'max-w-[863px] mx-auto w-full'
+    : maxWidth === 'wide' ? 'max-w-[1040px] mx-auto w-full'
+    : '';
   return (
     <div
       className={`flex-1 flex flex-col min-w-0 h-full ${bgClass ?? ''}`}
