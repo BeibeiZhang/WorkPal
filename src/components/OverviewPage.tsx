@@ -503,15 +503,19 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
               object-position) + content on the right. White card surface,
               no outline. Title is uppercase 22px (.type-h1--emphasized). */}
           <div className="mb-[48px]">
-            <div className="flex flex-wrap items-center justify-between mb-4 [&>*]:mb-0">
-              <SectionTitle emoji="" title="Your Positive Impact This Week" size={20} />
-              <span className="type-detail text-text-primary">Apr 7 – 13, 2026 · 7 days</span>
-            </div>
-
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
               {/* Work */}
               <div className="bg-bg-card rounded-2xl flex flex-col lg:flex-row items-stretch gap-4 overflow-clip">
-                <div className="impact-img impact-img--work shrink-0" aria-hidden />
+                <video
+                  src="/animations/impact-work.mp4"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  aria-hidden
+                  className="impact-img object-cover shrink-0"
+                />
                 <div className="flex-1 min-w-0 flex flex-col gap-4 p-5">
                   <div className="flex items-center gap-1">
                     <span className="type-h1--emphasized text-text-primary uppercase">Work</span>
@@ -542,7 +546,16 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
 
               {/* Family */}
               <div className="bg-bg-card rounded-2xl flex flex-col lg:flex-row items-stretch gap-4 overflow-clip">
-                <div className="impact-img impact-img--family shrink-0" aria-hidden />
+                <video
+                  src="/animations/impact-family.mp4"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  aria-hidden
+                  className="impact-img object-cover shrink-0"
+                />
                 <div className="flex-1 min-w-0 flex flex-col gap-4 p-5">
                   <span className="type-h1--emphasized text-text-primary uppercase">Family</span>
                   <MetricCard title="Emotional value to hubby" value={String(IMPACT_FAMILY.husbandMood)} subtitle="/10 — Perfect!" />
@@ -564,7 +577,16 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
 
               {/* Self */}
               <div className="bg-bg-card rounded-2xl flex flex-col lg:flex-row items-stretch gap-4 overflow-clip">
-                <div className="impact-img impact-img--self shrink-0" aria-hidden />
+                <video
+                  src="/animations/impact-self.mp4"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  aria-hidden
+                  className="impact-img object-cover shrink-0"
+                />
                 <div className="flex-1 min-w-0 flex flex-col gap-4 p-5">
                   <span className="type-h1--emphasized text-text-primary uppercase">Self</span>
                   <MetricCard title="Extra disposable time" value={`+${IMPACT_SELF.extraHours}h`} subtitle="this week gained back" />

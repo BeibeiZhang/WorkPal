@@ -542,21 +542,16 @@ html, body, #root {
   border: 1px solid var(--color-stroke-outline);
 }
 
-/* Positive Impact card hero — figma 6770:24151. One square 1254×1254 PNG
+/* Positive Impact card hero — figma 6770:24151. One looping muted video
    per dimension (Work / Family / Self). Mobile: 200px-tall banner on top,
-   image cover-fits and centers. Desktop (≥lg): 152px-wide column on left,
+   video cover-fits and centers. Desktop (≥lg): 152px-wide column on left,
    height auto-stretches to sibling content height (parent items-stretch);
-   image cover-fits the stretched box. */
+   video cover-fits the stretched box. Cover behaviour comes from Tailwind
+   object-cover on the <video> element. */
 .impact-img {
-  background-repeat: no-repeat;
-  background-position: 50% 50%;
-  background-size: cover;
   width: 100%;
   height: 200px;
 }
-.impact-img--work { background-image: url('/icons/impact-work.png'); }
-.impact-img--family { background-image: url('/icons/impact-family.png'); }
-.impact-img--self { background-image: url('/icons/impact-self.png'); }
 @media (min-width: 1024px) {
   .impact-img {
     width: 152px;
