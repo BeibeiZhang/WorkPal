@@ -208,10 +208,8 @@ function LibraryCard({ item }: { item: LibraryItem }) {
             {/* Bottom title overlay for thumbnail items */}
             <div className="absolute inset-x-0 bottom-0 px-3 pb-3 pointer-events-none">
               <p
-                className="type-detail-emphasized text-white"
+                className="type-h2-emphasized text-white"
                 style={{
-                  lineHeight: '18px',
-                  letterSpacing: '-0.16px',
                   display: '-webkit-box',
                   WebkitLineClamp: 2,
                   WebkitBoxOrient: 'vertical',
@@ -231,10 +229,8 @@ function LibraryCard({ item }: { item: LibraryItem }) {
             >
               <TypeIcon size={24} strokeWidth={1.6} className="text-white" />
               <p
-                className="type-detail-emphasized text-white"
+                className="type-h2-emphasized text-white"
                 style={{
-                  lineHeight: '18px',
-                  letterSpacing: '-0.16px',
                   display: '-webkit-box',
                   WebkitLineClamp: 3,
                   WebkitBoxOrient: 'vertical',
@@ -247,9 +243,8 @@ function LibraryCard({ item }: { item: LibraryItem }) {
 
             {item.summary && (
               <p
-                className="type-footnote"
+                className="type-detail"
                 style={{
-                  lineHeight: '15px',
                   color: 'rgba(255,255,255,0.9)',
                   display: '-webkit-box',
                   WebkitLineClamp: 8,

@@ -4,7 +4,7 @@
  * Single source of truth — used by both app pages and the Design System page.
  * Update a component here → it updates everywhere in the app.
  */
-import { AlertTriangle, ArrowLeft, ArrowUpRight, AudioLines, BadgeCheck, Check, ChevronDown, ChevronRight, Clock, FileCode2, FileImage, FileText, FolderClosed, GitMerge, Info, LayoutDashboard, Loader2, Mail, MonitorPlay, PanelLeft, PanelRight, Presentation, Smartphone, Ticket, Play, Plus, Search, Send, Smile, SquarePen, Timer, User, Sparkles, X, XCircle, type LucideIcon } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowUpRight, AudioLines, BadgeCheck, Check, ChevronDown, ChevronRight, Clock, FileCode2, FileImage, FileText, FolderClosed, GitMerge, Info, LayoutDashboard, Loader2, Mail, MonitorPlay, PanelLeft, PanelRight, Presentation, Smartphone, Ticket, Play, Plus, Search, Send, Smile, SquarePen, User, Sparkles, X, XCircle, type LucideIcon } from 'lucide-react';
 import { type MouseEvent as ReactMouseEvent, type ReactNode, useEffect, useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { IS_DEMO } from '../lib/demoMode';
@@ -1773,7 +1773,7 @@ export function MetricCard({
   subtitle: string;
 }) {
   return (
-    <div className="text-left mb-3.5">
+    <div className="text-left">
       <div className="text-[14px] font-bold text-text-primary capitalize tracking-[0.5px] mb-1">{title}</div>
       <div className="type-display-xl text-text-primary">{value}</div>
       <div className="type-detail text-text-primary">{subtitle}</div>
@@ -1900,7 +1900,6 @@ export function AreaChart({
 export function TaskProgressCard({
   title,
   progress,
-  eta,
   steps,
   icon: IconComp,
   expanded = false,
@@ -1908,7 +1907,6 @@ export function TaskProgressCard({
 }: {
   title: string;
   progress: number;
-  eta: string;
   steps: string[];
   icon?: LucideIcon;
   expanded?: boolean;
@@ -1925,7 +1923,6 @@ export function TaskProgressCard({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-3.5">
           <div className="flex-1 min-w-0 type-detail-emphasized text-text-primary">{title}</div>
-          <StatusTag variant="submitted" size="sm" icon={Timer} label={eta} tooltip={`Agent estimates ${eta} to complete this task`} />
         </div>
         <div className="flex items-center gap-3 mt-1.5">
           <div className="flex-1"><ProgressBar value={progress} height={6} /></div>
@@ -2012,7 +2009,6 @@ export function ReviewItemCard({
   title,
   type,
   time,
-  humanTime,
   done = false,
   icon,
 }: {
@@ -2020,7 +2016,6 @@ export function ReviewItemCard({
   source?: string;
   type: string;
   time: string;
-  humanTime: string;
   done?: boolean;
   onToggle?: () => void;
   icon?: LucideIcon;
@@ -2039,7 +2034,6 @@ export function ReviewItemCard({
           {type} · {time}
         </div>
       </div>
-      <TimePill time={humanTime} tooltip={`Estimated ${humanTime} for you to review`} />
       <ChevronRight size={16} className="text-text-primary shrink-0" />
     </div>
   );

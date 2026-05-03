@@ -38,15 +38,15 @@ interface OverviewPageProps {
 type SourceKind = 'chat' | 'project';
 type Source = { kind: SourceKind; id: string; label: string };
 
-const REVIEW_ITEMS: Array<{ title: string; source: string; type: string; time: string; urgent: boolean; humanTime: string; from?: Source }> = [
-  { title: 'UX meeting summary — 6 action items extracted', source: 'Zoom → Docs', type: 'Document', time: 'Ready 3 min ago', urgent: true, humanTime: '~5 min', from: { kind: 'chat', id: 'ux-meeting', label: 'UX Meeting Minutes' } },
-  { title: '3 Jira tickets drafted from design feedback', source: 'Docs → Jira', type: 'Tickets', time: 'Ready 1h ago', urgent: false, humanTime: '~8 min', from: { kind: 'chat', id: 'alcohol-delivery', label: 'Alcohol Delivery Issues' } },
-  { title: 'Weekly stakeholder email draft', source: 'Gmail', type: 'Email', time: 'Ready 2h ago', urgent: false, humanTime: '~3 min', from: { kind: 'project', id: 'proj-1', label: 'Agent Design' } },
+const REVIEW_ITEMS: Array<{ title: string; source: string; type: string; time: string; urgent: boolean; from?: Source }> = [
+  { title: 'UX meeting summary — 6 action items extracted', source: 'Zoom → Docs', type: 'Document', time: 'Ready 3 min ago', urgent: true, from: { kind: 'chat', id: 'ux-meeting', label: 'UX Meeting Minutes' } },
+  { title: '3 Jira tickets drafted from design feedback', source: 'Docs → Jira', type: 'Tickets', time: 'Ready 1h ago', urgent: false, from: { kind: 'chat', id: 'alcohol-delivery', label: 'Alcohol Delivery Issues' } },
+  { title: 'Weekly stakeholder email draft', source: 'Gmail', type: 'Email', time: 'Ready 2h ago', urgent: false, from: { kind: 'project', id: 'proj-1', label: 'Agent Design' } },
 ];
 
-const IN_PROGRESS: Array<{ title: string; progress: number; eta: string; steps: string; icon: LucideIcon; from?: Source }> = [
-  { title: 'Analyzing Q2 design metrics report', progress: 62, eta: '~8 min', steps: 'Pulling data from Sheets → Building charts → Formatting', icon: BarChart3, from: { kind: 'project', id: 'proj-1', label: 'Agent Design' } },
-  { title: 'Researching competitor onboarding flows', progress: 35, eta: '~20 min', steps: 'Scanning 4 competitor apps → Extracting screenshots → Compiling', icon: Search, from: { kind: 'chat', id: 'alcohol-delivery', label: 'Alcohol Delivery Issues' } },
+const IN_PROGRESS: Array<{ title: string; progress: number; steps: string; icon: LucideIcon; from?: Source }> = [
+  { title: 'Analyzing Q2 design metrics report', progress: 62, steps: 'Pulling data from Sheets → Building charts → Formatting', icon: BarChart3, from: { kind: 'project', id: 'proj-1', label: 'Agent Design' } },
+  { title: 'Researching competitor onboarding flows', progress: 35, steps: 'Scanning 4 competitor apps → Extracting screenshots → Compiling', icon: Search, from: { kind: 'chat', id: 'alcohol-delivery', label: 'Alcohol Delivery Issues' } },
 ];
 
 /** Mock scheduled automations. Not persisted, not real cron — the dashboard
@@ -413,7 +413,6 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                       source="WorkPal"
                       type="Webpage"
                       time={`New${count > 0 ? ` · ${count} items` : ''}`}
-                      humanTime="~3 min"
                       icon={Globe}
                     />
                   </button>
@@ -439,7 +438,6 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                       source={item.source}
                       type={item.type}
                       time={item.time}
-                      humanTime={item.humanTime}
                       done={reviewDone[i] || false}
                       onToggle={() => setReviewDone(p => ({ ...p, [i]: !p[i] }))}
                     />
@@ -466,7 +464,6 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                     key={i}
                     title={task.title}
                     progress={task.progress}
-                    eta={task.eta}
                     steps={task.steps.split(' → ')}
                     icon={task.icon}
                     onClick={openFrom}
