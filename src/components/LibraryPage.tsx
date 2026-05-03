@@ -80,16 +80,6 @@ const DEMO_ITEMS: LibraryItem[] = [
     summary: 'Quarterly review: dwell-time -18%, mispick rate down to 2.1%, V4 rollout readiness.',
   },
   {
-    id: 'a3',
-    title: 'UX Meeting Minutes — Action Items',
-    type: 'note',
-    source: 'UX Meeting Minutes',
-    createdAt: 'Yesterday',
-    pages: 3,
-    ratio: '1/1',
-    summary: '7 action items assigned — owners, due dates, linked tickets.',
-  },
-  {
     id: 'a5',
     title: 'Driver onboarding walkthrough',
     type: 'video',

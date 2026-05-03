@@ -288,6 +288,10 @@ interface RecentItem {
   description: string;
   time: string;
   outputTag?: string;
+  /** When set, clicking the row opens this chat (typically a scripted
+   *  demo chat seeded in `DEMO_EXTRA_CHATS`). Real chats — surfaced via
+   *  `realRecents` — use their own id and don't need this. */
+  chatId?: string;
 }
 
 /** Seeded content for a demo project — kept so the original `proj-1`
@@ -306,62 +310,14 @@ const PROJECT_CONTENT: Record<string, ProjectContent> = {
   'proj-1': {
     objective: 'To study and track the evolution of interface design norms and interaction patterns of mainstream AI products.',
     outputs: [
-      { id: '1', name: 'Agent Design Component', type: 'Web' },
-      { id: '2', name: 'AI Product Info Architecture', type: 'Web' },
-      { id: '3', name: 'Agent UIUX Research', type: 'Video' },
-      { id: '4', name: 'Agent UIUX Research', type: 'Slides' },
-      { id: '5', name: 'competitive analysis', type: 'Web' },
+      { id: '1', name: 'Agent Design Component', type: 'Web', href: '/agent-design-guide.html' },
     ],
-    recents: [
-      {
-        id: '1',
-        title: 'Compare UX architecture of four AI tools',
-        description: 'Analyzed Grok, ChatGPT, Claude and Gemini UX patterns for navigation, onbo',
-        time: '5 hour ago',
-        outputTag: 'Agent Design Component Library',
-      },
-      {
-        id: '2',
-        title: 'Find AI product interface screenshots',
-        description: 'Collected product screenshots for AI information architecture flow diagram ar',
-        time: '18hour ago',
-        outputTag: 'AI product info flow',
-      },
-      {
-        id: '3',
-        title: 'Refactor agent response parser module',
-        description: 'Restructured the streaming response handler to support multi-turn agent conversations and tool calls...',
-        time: '1 day ago',
-      },
-      {
-        id: '4',
-        title: 'Build component variant matrix for agent cards',
-        description: 'Created a reusable matrix of agent card variants covering status, size, and interaction states...',
-        time: '1 day ago',
-        outputTag: 'Agent Design Component Library',
-      },
-      {
-        id: '5',
-        title: 'Fix streaming indicator z-index in chat panel',
-        description: 'Resolved layering issue where the typing indicator overlapped the action chip bar during long responses...',
-        time: '2 days ago',
-      },
-      {
-        id: '6',
-        title: 'Summarize competitive analysis of AI agent UIs',
-        description: 'Reviewed interaction patterns across 6 AI agent products including reasoning visibility and tool use flows...',
-        time: '3 days ago',
-        outputTag: 'competitive analysis',
-      },
-      {
-        id: '7',
-        title: 'Implement dark mode token mapping for agent cards',
-        description: 'Added CSS variable overrides and Tailwind config for all agent card components in dark theme...',
-        time: '4 days ago',
-      },
-    ],
+    // Recents are sourced from real chats with `projectId === 'proj-1'`
+    // (see `realRecents` below). The seeded `demo-compare-ux-architecture`
+    // chat surfaces here automatically — no static row needed.
+    recents: [],
     contextLabel: 'Agent Design',
-    defaultSelectedOutputId: '2',
+    defaultSelectedOutputId: '1',
   },
 };
 
@@ -746,6 +702,10 @@ export default function ProjectPage({
                             : selectedOutputId === o.id;
                           // Hosted artifacts (candidate #3) carry an href; the
                           // card opens the /artifact/<slug> page in a new tab.
+                          // Same-origin href (starts with '/') is a seeded
+                          // showcase under /public — open inside DetailPanel
+                          // instead of jumping to a new tab. Mobile keeps the
+                          // new-tab path since the side panel doesn't dock there.
                           // §23: claude-code outputs with a known path →
                           // dispatch to App so DetailPanel previews the file.
                           // Mobile + path-less / legacy entries fall through
@@ -753,7 +713,12 @@ export default function ProjectPage({
                           // panel surface on phone, no path nothing to read).
                           const handleClick = () => {
                             if (o.href) {
-                              window.open(o.href, '_blank', 'noopener,noreferrer');
+                              if (o.href.startsWith('/') && !isMobile && onOutputPreview) {
+                                setSelectedOutputId(o.id);
+                                onOutputPreview(o);
+                              } else {
+                                window.open(o.href, '_blank', 'noopener,noreferrer');
+                              }
                             } else if (o.path && !isMobile && onOutputPreview) {
                               onOutputPreview(o);
                             } else {
@@ -813,15 +778,17 @@ export default function ProjectPage({
                     ) : (
                     <div className="flex flex-col">
                       {filteredRecents.map(r => {
-                        // Only real chats are wired up for now. Demo rows stay
-                        // visual-only so the page keeps its showcase content.
+                        // Real chats use their own id; seed rows with a
+                        // `chatId` jump to a scripted demo chat. The rest
+                        // stay visual-only.
                         const isReal = r.isReal === true;
+                        const targetChatId = isReal ? r.id : r.chatId;
                         return (
                           <button
                             key={r.id}
-                            onClick={isReal ? () => onOpenChat(r.id) : undefined}
+                            onClick={targetChatId ? () => onOpenChat(targetChatId) : undefined}
                             className={`flex items-start gap-3 w-full px-5 py-4 transition-colors text-left dashed-border-b last:bg-none ${
-                              isReal ? 'hover:bg-bg-hover cursor-pointer' : 'hover:bg-bg-hover'
+                              targetChatId ? 'hover:bg-bg-hover cursor-pointer' : 'hover:bg-bg-hover'
                             }`}
                           >
                             <div className="flex items-center justify-center shrink-0 mt-px text-text-primary">

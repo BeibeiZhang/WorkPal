@@ -28,18 +28,4 @@ export const INITIAL_CHATS: Chat[] = [
     sessionFolder: '~/WorkPal/2026-04-18-alcohol-delivery-issues/',
     folderMaterialized: true,
   },
-  {
-    id: 'ux-meeting',
-    title: 'UX Meeting Minutes',
-    lastMessage: 'Can you write a summary of yesterday\'s meeting?',
-    timestamp: new Date(Date.now() - 7200000),
-    messages: [
-      {
-        id: '1',
-        role: 'user',
-        content: 'Can you write a summary of yesterday\'s meeting about alcohol delivery?',
-        timestamp: new Date(Date.now() - 7200000),
-      },
-    ],
-  },
 ];
