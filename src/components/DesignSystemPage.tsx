@@ -392,7 +392,7 @@ function Swatch({ token, withBorder = true }: { token: ColorToken; withBorder?: 
   const resolved = useResolvedColor(token.cssVar);
   const opacityPct = resolved ? Math.round(resolved.opacity * 100) : null;
   return (
-    <div className="rounded-xl border border-stroke-outline overflow-hidden" style={{ background: 'var(--color-bg-page)' }}>
+    <div className="rounded-xl border border-stroke-outline overflow-hidden">
       <div
         className={`h-16 w-full ${withBorder ? 'border-b border-stroke-outline' : ''}`}
         style={{ background: `var(${token.cssVar})` }}
@@ -1122,10 +1122,7 @@ function SearchResults({
 
   if (matches.length === 0) {
     return (
-      <div
-        className="rounded-2xl border border-dashed border-stroke-outline p-8 text-center"
-        style={{ background: 'var(--color-bg-page)' }}
-      >
+      <div className="rounded-2xl border border-dashed border-stroke-outline p-8 text-center">
         <p className="type-detail text-text-primary mb-1">No matches for &ldquo;{query}&rdquo;</p>
         <p className="type-caption text-text-secondary">
           Try a token name (<code className="font-mono">--color-text-primary</code>), a component name (<code className="font-mono">StatusTag</code>), or a principle keyword (<code className="font-mono">gradient</code>).
@@ -1148,11 +1145,7 @@ function SearchResults({
       {grouped.map(({ tab, entries }) => {
         const tabMeta = TABS.find(t => t.id === tab)!;
         return (
-          <div
-            key={tab}
-            className="rounded-2xl border border-stroke-outline p-5"
-            style={{ background: 'var(--color-bg-page)' }}
-          >
+          <div key={tab} className="rounded-2xl border border-stroke-outline p-5">
             <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
               <div className="flex items-baseline gap-2">
                 <span className="type-footnote font-semibold uppercase tracking-[0.5px] text-text-secondary">Tab</span>
@@ -1195,13 +1188,10 @@ function PrinciplesTab() {
   return (
     <div>
       {/* Intro card */}
-      <div
-        className="mb-6 rounded-2xl border p-5"
-        style={{ background: 'var(--color-bg-hover)', borderColor: 'var(--color-stroke-outline)' }}
-      >
+      <div className="mb-6 rounded-2xl bg-bg-hover p-5">
         <div className="flex items-center gap-2 mb-2">
           <span className="type-body">📏</span>
-          <span className="type-body-emphasized text-text-primary">The rules, and only the rules</span>
+          <span className="type-h1--emphasized text-text-primary">The rules, and only the rules</span>
         </div>
         <p className="type-detail text-text-secondary">
           These are the 11 principles that govern every WorkPal UI decision. Tokens live in
@@ -1214,11 +1204,7 @@ function PrinciplesTab() {
       {/* Principle list */}
       <ol className="space-y-3">
         {PRINCIPLES.map((p) => (
-          <li
-            key={p.n}
-            className="rounded-xl border p-5"
-            style={{ borderColor: 'var(--color-stroke-outline)', background: 'var(--color-bg-page)' }}
-          >
+          <li key={p.n} className="rounded-xl border border-stroke-outline p-5">
             <div className="flex items-start gap-4">
               <div
                 className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center type-detail-emphasized"
@@ -1256,10 +1242,10 @@ function FoundationsTab() {
   return (
     <div>
       {/* Intro card */}
-      <div className="mb-6 rounded-2xl border p-5" style={{ background: 'var(--color-bg-hover)', borderColor: 'var(--color-stroke-outline)' }}>
+      <div className="mb-6 rounded-2xl bg-bg-hover p-5">
         <div className="flex items-center gap-2 mb-2">
           <span className="type-body">🎨</span>
-          <span className="type-body-emphasized text-text-primary">Single source of truth</span>
+          <span className="type-h1--emphasized text-text-primary">Single source of truth</span>
         </div>
         <p className="type-detail text-text-primary">
           Every color, font size, spacing step, and radius below is a <strong>token</strong>, not a hardcoded value.
@@ -1273,14 +1259,14 @@ function FoundationsTab() {
       {/* ─── Color palette ─── */}
       <SectionTitle id="ds-foundation-color">Color Palette</SectionTitle>
 
-      <div className="mb-5 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+      <div className="mb-5 rounded-2xl border border-stroke-outline p-5">
         <div className="type-detail-emphasized text-text-primary mb-3">Surface & Text — bound to <code className="type-caption font-mono">--color-*</code>, mode-aware (light/dark)</div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {SURFACE_TOKENS.map(t => <Swatch key={t.cssVar} token={t} />)}
         </div>
       </div>
 
-      <div className="mb-5 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+      <div className="mb-5 rounded-2xl border border-stroke-outline p-5">
         <div className="type-detail-emphasized text-text-primary mb-1">Accent / Status — semantic callouts</div>
         <p className="type-detail text-text-secondary mb-3">Use for tags, badges, and single-purpose callouts. Do NOT use for headlines or primary actions.</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -1288,7 +1274,7 @@ function FoundationsTab() {
         </div>
       </div>
 
-      <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+      <div className="mb-6 rounded-2xl border border-stroke-outline p-5">
         <div className="type-detail-emphasized text-text-primary mb-1">Brand Gradient</div>
         <p className="type-detail text-text-secondary mb-3">
           The identity accent — <strong>1–2% of any page</strong>. Reserved for the primary CTA, onboarding title, first-time states, and loading dots.
@@ -1313,7 +1299,7 @@ function FoundationsTab() {
       {/* ─── Typography scale ─── */}
       <SectionTitle id="ds-foundation-type">Typography Scale</SectionTitle>
 
-      <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+      <div className="mb-6 rounded-2xl border border-stroke-outline p-5">
         <p className="type-detail text-text-secondary mb-4">
           Eight canonical styles — every text surface in the app picks one. Use the <code className="type-caption font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: 'var(--color-accent-blue)' }}>type-*</code> utility classes — never inline <code className="type-caption font-mono">text-[Xpx]</code>. Editing the <code className="type-caption font-mono">--font-*</code> variables in <code className="type-caption font-mono">src/index.css</code> updates every usage app-wide. Each row lists all the surfaces that share the same parameters. <strong>Responsive rule:</strong> detail scales up to 16px on mobile (&lt;768px) so the smallest tier stays readable on phones.
         </p>
@@ -1342,7 +1328,7 @@ function FoundationsTab() {
       {/* ─── Typography outliers ─── */}
       <SectionTitle id="ds-foundation-type-outliers">Typography Outliers</SectionTitle>
 
-      <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+      <div className="mb-6 rounded-2xl border border-stroke-outline p-5">
         <p className="type-detail text-text-secondary mb-4">
           Non-canonical styles that intentionally depart from the 11 tokens. Everything else must map to a row in <strong>Typography Scale</strong> above. If a new design needs a style that isn&apos;t there, add it here (or as a new token) — never inline a one-off size.
         </p>
@@ -1371,7 +1357,7 @@ function FoundationsTab() {
       {/* ─── Spacing scale ─── */}
       <SectionTitle id="ds-foundation-space">Spacing Scale</SectionTitle>
 
-      <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+      <div className="mb-6 rounded-2xl border border-stroke-outline p-5">
         <p className="type-detail text-text-secondary mb-4">
           Mirrors the Tailwind spacing scale. Always snap to a step — never <code className="type-caption font-mono">gap-[9px]</code> or <code className="type-caption font-mono">p-[17px]</code>.
         </p>
@@ -1396,7 +1382,7 @@ function FoundationsTab() {
       {/* ─── Border radius ─── */}
       <SectionTitle id="ds-foundation-radius">Border Radius</SectionTitle>
 
-      <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+      <div className="mb-6 rounded-2xl border border-stroke-outline p-5">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {RADIUS_SCALE.map(r => (
             <div key={r.token} className="flex flex-col items-start">
@@ -1416,7 +1402,7 @@ function FoundationsTab() {
       {/* ─── Icon library ─── */}
       <SectionTitle id="ds-foundation-icons">Icon Library</SectionTitle>
 
-      <div className="mb-4 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+      <div className="mb-4 rounded-2xl border border-stroke-outline p-5">
         <p className="type-detail text-text-primary mb-1"><strong>Library:</strong> <code className="type-caption font-mono" style={{ color: 'var(--color-accent-blue)' }}>lucide-react</code> — the single icon source.</p>
         <p className="type-detail text-text-secondary">
           Never import from any other icon library, and never inline custom SVGs in components. Icons inherit <code className="type-caption font-mono">currentColor</code> — size with the <code className="type-caption font-mono">size</code> prop; color via parent text color or a direct <code className="type-caption font-mono">color</code> style. Default stroke width is <code className="type-caption font-mono">2</code>.
@@ -1424,7 +1410,7 @@ function FoundationsTab() {
       </div>
 
       {/* Size ramp — real SVG rendered at every ramp step */}
-      <div className="mb-4 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+      <div className="mb-4 rounded-2xl border border-stroke-outline p-5">
         <div className="type-detail-emphasized text-text-primary mb-1">Size ramp</div>
         <p className="type-detail text-text-secondary mb-4">
           Preferred sizes. Snap to one of these; avoid arbitrary values. Showcasing <code className="type-caption font-mono">&lt;Search /&gt;</code> at each step.
@@ -1446,7 +1432,7 @@ function FoundationsTab() {
       </div>
 
       {/* Color showcase — real SVG rendered with semantic tokens */}
-      <div className="mb-4 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+      <div className="mb-4 rounded-2xl border border-stroke-outline p-5">
         <div className="type-detail-emphasized text-text-primary mb-1">Color</div>
         <p className="type-detail text-text-secondary mb-4">
           Icons render with <code className="type-caption font-mono">currentColor</code> — color comes from the text color of the parent, or an inline <code className="type-caption font-mono">color</code> style pointing at a token. Showcasing <code className="type-caption font-mono">&lt;BadgeCheck /&gt;</code>, <code className="type-caption font-mono">&lt;AlertTriangle /&gt;</code>, <code className="type-caption font-mono">&lt;XCircle /&gt;</code>, <code className="type-caption font-mono">&lt;Clock /&gt;</code>, <code className="type-caption font-mono">&lt;Sparkles /&gt;</code>.
@@ -1484,7 +1470,7 @@ function FoundationsTab() {
       </div>
 
       {/* Stroke weight showcase */}
-      <div className="mb-4 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+      <div className="mb-4 rounded-2xl border border-stroke-outline p-5">
         <div className="type-detail-emphasized text-text-primary mb-1">Stroke weight</div>
         <p className="type-detail text-text-secondary mb-4">
           Default is <code className="type-caption font-mono">2</code>. Heavier weights read better at very small sizes; lighter weights at large display sizes.
@@ -1505,7 +1491,7 @@ function FoundationsTab() {
       </div>
 
       {/* In-context samples — icon + label pairings that actually ship in the app */}
-      <div className="mb-4 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+      <div className="mb-4 rounded-2xl border border-stroke-outline p-5">
         <div className="type-detail-emphasized text-text-primary mb-1">In context</div>
         <p className="type-detail text-text-secondary mb-4">Real icon-plus-label pairings as they appear in the app.</p>
         <div className="flex flex-wrap gap-2">
@@ -1552,7 +1538,7 @@ function FoundationsTab() {
       </div>
 
       {/* Catalog — every icon, grouped */}
-      <div className="mb-4 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+      <div className="mb-4 rounded-2xl border border-stroke-outline p-5">
         <div className="type-detail-emphasized text-text-primary mb-1">Catalog</div>
         <p className="type-detail text-text-secondary mb-4">
           Every lucide icon currently used across the WorkPal codebase, rendered as the real SVG component.
@@ -1593,7 +1579,7 @@ function FoundationsTab() {
       </div>
 
       {/* ─── Usage checklist ─── */}
-      <div className="mb-6 rounded-2xl border p-5" style={{ background: 'var(--color-bg-hover)', borderColor: 'var(--color-stroke-outline)' }}>
+      <div className="mb-6 rounded-2xl border border-stroke-outline p-5">
         <div className="type-body-emphasized text-text-primary mb-2">Foundation usage checklist</div>
         <ul className="list-disc pl-5 type-detail text-text-primary space-y-1">
           <li>Colors: use <code className="type-caption font-mono">text-text-*</code> / <code className="type-caption font-mono">bg-bg-*</code> / <code className="type-caption font-mono">border-stroke-outline</code>, or <code className="type-caption font-mono">var(--color-*)</code> inline. Never a raw hex.</li>
@@ -1616,9 +1602,9 @@ function LayoutCard({
   name, pagesUsing, children,
 }: { name: string; pagesUsing: string[]; children: React.ReactNode }) {
   return (
-    <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+    <div className="mb-6 rounded-2xl border border-stroke-outline p-5">
       <div className="flex items-center gap-2 mb-1">
-        <span className="type-h2-emphasized text-text-primary">{name}</span>
+        <span className="type-h1--emphasized text-text-primary">{name}</span>
         <span className="type-caption px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
       </div>
       <div className="mt-3">{children}</div>
@@ -1639,9 +1625,9 @@ function LayoutsTab() {
   return (
     <div>
       {/* ─── App shell: the three-panel structure every surface plugs into ─── */}
-      <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+      <div className="mb-6 rounded-2xl border border-stroke-outline p-5">
         <div className="flex items-center gap-2 mb-1">
-          <span className="type-h2-emphasized text-text-primary">App Shell — Three-Panel Structure</span>
+          <span className="type-h1--emphasized text-text-primary">App Shell — Three-Panel Structure</span>
           <span className="type-caption px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">App.tsx</span>
         </div>
         <p className="type-caption text-text-primary mt-2 mb-4">
@@ -1729,7 +1715,7 @@ function LayoutsTab() {
               <div className="text-[10px] font-semibold uppercase tracking-[0.5px] text-text-secondary mb-1">Code</div>
               <div className="flex flex-wrap gap-1 mb-3">
                 {p.components.map(c => (
-                  <code key={c} className="type-caption font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-page)', color: 'var(--color-accent-blue)' }}>{c}</code>
+                  <code key={c} className="type-caption font-mono px-1.5 py-0.5 rounded" style={{ background: 'var(--color-bg-hover)', color: 'var(--color-accent-blue)' }}>{c}</code>
                 ))}
               </div>
               <pre className="type-caption font-mono text-text-secondary whitespace-pre-wrap">{p.sizing}</pre>
@@ -2135,7 +2121,7 @@ function LivePermissionPrompt() {
 
 function LibraryEntry({ entry }: { entry: LibEntry }) {
   return (
-    <div className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+    <div className="rounded-2xl border border-stroke-outline p-5">
       <div className="flex items-center gap-2 mb-1">
         <span className="type-detail-emphasized text-text-primary">{entry.name}</span>
         <span className="type-caption px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
@@ -2719,14 +2705,20 @@ function ComponentsTab() {
 
   return (
     <div>
-      <p className="type-caption text-text-primary mb-5">
-        All components below are <strong>rendered live</strong> from the real WorkPal codebase — not screenshots or mocks.
-        Foundations changes (colors, typography, spacing, radius) propagate here automatically. Shared primitives live in
-        <code className="type-caption font-mono px-1.5 py-0.5 rounded mx-1" style={{ background: 'var(--color-bg-hover)', color: 'var(--color-accent-blue)' }}>src/components/shared.tsx</code>;
-        feature components (chat, panels, pages) live next to them in
-        <code className="type-caption font-mono px-1.5 py-0.5 rounded mx-1" style={{ background: 'var(--color-bg-hover)', color: 'var(--color-accent-blue)' }}>src/components/*</code>.
-        <strong> Always check this library first</strong> before building anything new.
-      </p>
+      <div className="mb-6 rounded-2xl bg-bg-hover p-5">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="type-body">📚</span>
+          <span className="type-h1--emphasized text-text-primary">Live from the codebase</span>
+        </div>
+        <p className="type-detail text-text-primary">
+          All components below are <strong>rendered live</strong> from the real WorkPal codebase — not screenshots or mocks.
+          Foundations changes (colors, typography, spacing, radius) propagate here automatically. Shared primitives live in
+          <code className="type-caption font-mono px-1.5 py-0.5 rounded mx-1" style={{ background: 'var(--color-bg-page)', color: 'var(--color-accent-blue)' }}>src/components/shared.tsx</code>;
+          feature components (chat, panels, pages) live next to them in
+          <code className="type-caption font-mono px-1.5 py-0.5 rounded mx-1" style={{ background: 'var(--color-bg-page)', color: 'var(--color-accent-blue)' }}>src/components/*</code>.
+          <strong> Always check this library first</strong> before building anything new.
+        </p>
+      </div>
 
       <SectionTitle id="ds-lib-foundations">Foundations · Shared Primitives</SectionTitle>
       <div className="flex flex-col gap-4 mb-8">
@@ -2794,10 +2786,7 @@ function AgentVideoRow({
   }, [isActive]);
 
   return (
-    <div
-      className="rounded-2xl border border-stroke-outline p-4 flex flex-col sm:flex-row sm:items-center gap-4"
-      style={{ background: 'var(--color-bg-page)' }}
-    >
+    <div className="rounded-2xl border border-stroke-outline p-4 flex flex-col sm:flex-row sm:items-center gap-4">
       {/* Video + metadata cluster — always horizontal, takes the leading
        *  space. Below the sm breakpoint the controls drop to a second row,
        *  so this cluster can keep its natural `gap-4` without competing
@@ -2879,12 +2868,12 @@ function AgentVideosTab() {
   return (
     <div>
       {/* Intro card */}
-      <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+      <div className="mb-6 rounded-2xl bg-bg-hover p-5">
         <div className="flex items-center gap-2 mb-2">
-          <Video size={16} className="text-text-primary" />
-          <span className="type-h2-emphasized text-text-primary">Welcome-state avatar videos</span>
+          <span className="type-body">📹</span>
+          <span className="type-h1--emphasized text-text-primary">Welcome-state avatar videos</span>
         </div>
-        <p className="type-caption text-text-primary mb-3">
+        <p className="type-detail text-text-primary mb-3">
           Each agent has a pool of idle videos that play in the welcome state of a new chat. One is picked at random per
           session (separately for light / dark mode). The toggle on each row flips between <strong>Active</strong>{' '}
           (in rotation) and <strong>Inactive</strong> (skipped). State syncs across browsers and across deployments via
@@ -3122,12 +3111,12 @@ function ReviewTab() {
 
   return (
     <div>
-      <div className="mb-6 rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+      <div className="mb-6 rounded-2xl bg-bg-hover p-5">
         <div className="flex items-center gap-2 mb-2">
           <span className="type-body">🧪</span>
-          <span className="type-h2-emphasized text-text-primary">How the review queue works</span>
+          <span className="type-h1--emphasized text-text-primary">How the review queue works</span>
         </div>
-        <ol className="list-decimal pl-5 type-caption text-text-primary space-y-1">
+        <ol className="list-decimal pl-5 type-detail text-text-primary space-y-1">
           <li>When building a feature, I always check the <strong>Component Library</strong> first.</li>
           <li>Whenever possible, I reuse an existing shared component.</li>
           <li>If nothing fits, I build a new component and <strong>add it here</strong> so you can review.</li>
@@ -3136,16 +3125,16 @@ function ReviewTab() {
       </div>
 
       {/* Pending */}
-      <SharedSectionTitle emoji="⏳" title="Pending review" count={pending.length} />
+      <SharedSectionTitle emoji="⏳" title="Pending review" count={pending.length} size={20} />
       {pending.length === 0 ? (
-        <div className="mb-6 rounded-2xl border border-dashed border-stroke-outline p-8 text-center" style={{ background: 'var(--color-bg-page)' }}>
+        <div className="mb-6 rounded-2xl border border-dashed border-stroke-outline p-8 text-center">
           <p className="type-detail text-text-primary mb-1">No components awaiting review</p>
           <p className="type-caption text-text-secondary">When I build something new that isn't in the library yet, it will show up here for your approval.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-4 mb-6">
           {pending.map(item => (
-            <div key={item.id} className="rounded-2xl border border-stroke-outline p-5" style={{ background: 'var(--color-bg-page)' }}>
+            <div key={item.id} className="rounded-2xl border border-stroke-outline p-5">
               <div className="flex items-center gap-2 mb-1">
                 <span className="type-detail-emphasized text-text-primary">{item.name}</span>
                 <StatusTag variant="in-review" label="Pending review" size="sm" />
@@ -3166,10 +3155,10 @@ function ReviewTab() {
       {/* Approved */}
       {approved.length > 0 && (
         <>
-          <SharedSectionTitle emoji="✅" title="Approved (promoted to shared.tsx)" count={approved.length} />
+          <SharedSectionTitle emoji="✅" title="Approved (promoted to shared.tsx)" count={approved.length} size={20} />
           <div className="flex flex-col gap-3 mb-6">
             {approved.map(item => (
-              <div key={item.id} className="rounded-2xl border border-stroke-outline p-4 flex items-center gap-3" style={{ background: 'var(--color-bg-page)' }}>
+              <div key={item.id} className="rounded-2xl border border-stroke-outline p-4 flex items-center gap-3">
                 <StatusTag variant="success" label="Approved" size="sm" />
                 <span className="type-detail-emphasized text-text-primary">{item.name}</span>
                 <span className="type-caption text-text-secondary flex-1">{item.builtFor}</span>
@@ -3183,10 +3172,10 @@ function ReviewTab() {
       {/* Rejected */}
       {rejected.length > 0 && (
         <>
-          <SharedSectionTitle emoji="🗑️" title="Rejected" count={rejected.length} />
+          <SharedSectionTitle emoji="🗑️" title="Rejected" count={rejected.length} size={20} />
           <div className="flex flex-col gap-3">
             {rejected.map(item => (
-              <div key={item.id} className="rounded-2xl border border-stroke-outline p-4 flex items-center gap-3" style={{ background: 'var(--color-bg-page)' }}>
+              <div key={item.id} className="rounded-2xl border border-stroke-outline p-4 flex items-center gap-3">
                 <StatusTag variant="failed" label="Rejected" size="sm" />
                 <span className="type-detail-emphasized text-text-primary">{item.name}</span>
                 <span className="type-caption text-text-secondary flex-1">Switched back to: {item.closestExisting}</span>
