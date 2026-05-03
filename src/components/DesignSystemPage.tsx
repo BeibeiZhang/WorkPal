@@ -2427,7 +2427,7 @@ function ComponentsTab() {
       description: 'Clickable card with progress bar. Expands to show step list.',
       usedIn: ['Overview "Agents at Work" section'],
       preview: (
-        <TaskProgressCard title="Analyzing Q2 metrics" progress={62} eta="~8 min" steps={['Pulling data from Sheets', 'Building charts', 'Formatting']} expanded />
+        <TaskProgressCard title="Analyzing Q2 metrics" progress={62} steps={['Pulling data from Sheets', 'Building charts', 'Formatting']} expanded />
       ),
     },
     {
