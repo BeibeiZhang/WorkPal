@@ -1191,7 +1191,7 @@ function PrinciplesTab() {
       <div className="mb-6 rounded-2xl bg-bg-hover p-5">
         <div className="flex items-center gap-2 mb-2">
           <span className="type-body">📏</span>
-          <span className="type-body-emphasized text-text-primary">The rules, and only the rules</span>
+          <span className="type-h1--emphasized text-text-primary">The rules, and only the rules</span>
         </div>
         <p className="type-detail text-text-secondary">
           These are the 11 principles that govern every WorkPal UI decision. Tokens live in
@@ -1245,7 +1245,7 @@ function FoundationsTab() {
       <div className="mb-6 rounded-2xl bg-bg-hover p-5">
         <div className="flex items-center gap-2 mb-2">
           <span className="type-body">🎨</span>
-          <span className="type-body-emphasized text-text-primary">Single source of truth</span>
+          <span className="type-h1--emphasized text-text-primary">Single source of truth</span>
         </div>
         <p className="type-detail text-text-primary">
           Every color, font size, spacing step, and radius below is a <strong>token</strong>, not a hardcoded value.
@@ -2708,7 +2708,7 @@ function ComponentsTab() {
       <div className="mb-6 rounded-2xl bg-bg-hover p-5">
         <div className="flex items-center gap-2 mb-2">
           <span className="type-body">📚</span>
-          <span className="type-body-emphasized text-text-primary">Live from the codebase</span>
+          <span className="type-h1--emphasized text-text-primary">Live from the codebase</span>
         </div>
         <p className="type-detail text-text-primary">
           All components below are <strong>rendered live</strong> from the real WorkPal codebase — not screenshots or mocks.
@@ -3125,7 +3125,7 @@ function ReviewTab() {
       </div>
 
       {/* Pending */}
-      <SharedSectionTitle emoji="⏳" title="Pending review" count={pending.length} />
+      <SharedSectionTitle emoji="⏳" title="Pending review" count={pending.length} size={20} />
       {pending.length === 0 ? (
         <div className="mb-6 rounded-2xl border border-dashed border-stroke-outline p-8 text-center">
           <p className="type-detail text-text-primary mb-1">No components awaiting review</p>
@@ -3155,7 +3155,7 @@ function ReviewTab() {
       {/* Approved */}
       {approved.length > 0 && (
         <>
-          <SharedSectionTitle emoji="✅" title="Approved (promoted to shared.tsx)" count={approved.length} />
+          <SharedSectionTitle emoji="✅" title="Approved (promoted to shared.tsx)" count={approved.length} size={20} />
           <div className="flex flex-col gap-3 mb-6">
             {approved.map(item => (
               <div key={item.id} className="rounded-2xl border border-stroke-outline p-4 flex items-center gap-3">
@@ -3172,7 +3172,7 @@ function ReviewTab() {
       {/* Rejected */}
       {rejected.length > 0 && (
         <>
-          <SharedSectionTitle emoji="🗑️" title="Rejected" count={rejected.length} />
+          <SharedSectionTitle emoji="🗑️" title="Rejected" count={rejected.length} size={20} />
           <div className="flex flex-col gap-3">
             {rejected.map(item => (
               <div key={item.id} className="rounded-2xl border border-stroke-outline p-4 flex items-center gap-3">
