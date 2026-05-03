@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   ChevronRight, ChevronDown, ChevronUp,
-  Volume2, Briefcase, Home, Smile,
+  Volume2, Smile,
   Gauge, BarChart3, Search,
   CalendarClock, Globe, Download,
   Rocket, MessageCircle,
@@ -81,10 +81,10 @@ const IMPACT_SELF = {
   detail: 'AI handled emails, meeting notes, and research → you got 2h back for yourself',
 };
 
-const TYPE_CONFIG: Record<string, { icon: LucideIcon; classes: string }> = {
-  feature: { icon: Rocket, classes: '' },
-  metric: { icon: BarChart3, classes: '' },
-  feedback: { icon: MessageCircle, classes: '' },
+const TYPE_CONFIG: Record<string, { icon: LucideIcon }> = {
+  feature: { icon: Rocket },
+  metric: { icon: BarChart3 },
+  feedback: { icon: MessageCircle },
 };
 
 /* ── Subscription Health Check ──
@@ -262,7 +262,20 @@ function computeHealth(spend: UsageSummary | null, rangeDays: number): HealthRep
 /* ── Main Component ── */
 
 export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, onOpenChat, onOpenProject }: OverviewPageProps) {
-  const videoSrc = '/animations/white-man-coffee.mp4';
+  // Greeting hero video — different framing per viewport. Mobile gets a
+  // square portrait clip designed for the stacked aspect-square slot;
+  // desktop keeps the original landscape clip that fills the 240px column.
+  const [isMobileHero, setIsMobileHero] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const update = () => setIsMobileHero(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+  const videoSrc = isMobileHero
+    ? '/animations/morning-hero-mobile.mp4'
+    : '/animations/white-man-coffee.mp4';
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   const GREETING_TEXT = "Good morning, Beibei! Today feels like a steady day. Your life commitments are all locked in — 2 hours family time, 7 hours sleep, check. I've protected your 9 to 11am focus block, and today's workload is light. I finished your meeting notes and drafted 3 tickets — review them whenever you're ready.";
@@ -348,16 +361,17 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
           <div className="rounded-2xl mb-[48px] relative overflow-hidden bg-input-bg">
             {/* Desktop: video column fixed at 240px so the text column always has
                 room to breathe. Stretch makes the video fill the row height;
-                object-cover trims to fit. Mobile stacks with a square video. */}
+                object-cover trims to fit. Mobile stacks; video keeps its
+                native aspect ratio (no forced square crop). */}
             <div className="flex flex-col md:flex-row md:items-stretch relative">
-              <div className="relative w-full aspect-square md:w-[240px] md:aspect-auto md:shrink-0 overflow-hidden">
+              <div className="relative w-full md:w-[240px] md:shrink-0 overflow-hidden">
                 <video
                   src={videoSrc}
                   autoPlay
                   loop
                   muted
                   playsInline
-                  className="absolute inset-0 w-full h-full object-cover"
+                  className="block w-full h-auto md:absolute md:inset-0 md:h-full md:object-cover"
                 />
               </div>
               <div className="min-w-0 flex-1 p-6 md:p-8 flex flex-col justify-center">
@@ -498,102 +512,111 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
           </div>
 
           {/* ━━━ 6. POSITIVE IMPACT — 7 DAY, THREE DIMENSIONS ━━━ */}
+          {/* Figma 6770:24151. Each card is a horizontal split: a 152×322
+              hero image on the left (one shared 1536×1024 PNG sliced via
+              object-position) + content on the right. White card surface,
+              no outline. Title is uppercase 22px (.type-h1--emphasized). */}
           <div className="mb-[48px]">
-            <div className="flex flex-wrap items-center justify-between mb-4 [&>*]:mb-0">
-              <SectionTitle emoji="" title="Your Positive Impact This Week" size={20} />
-              <span className="type-detail text-text-primary">Apr 7 – 13, 2026 · 7 days</span>
-            </div>
-
-            {/* ── WORK · FAMILY · SELF — 3-up on wide pages, stacked on narrow ── */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-3.5">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
               {/* Work */}
-              <div className="border border-stroke-outline rounded-2xl p-5">
-                <div className="flex items-center gap-[4px] mb-3.5">
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center">
-                    <Briefcase size={16} className="text-text-primary" />
+              <div className="bg-bg-card rounded-2xl flex flex-col lg:flex-row items-stretch gap-4 overflow-clip">
+                <video
+                  src="/animations/impact-work.mp4"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  aria-hidden
+                  className="impact-img object-cover shrink-0"
+                />
+                <div className="flex-1 min-w-0 flex flex-col gap-4 p-5">
+                  <div className="flex items-center gap-1">
+                    <span className="type-h1--emphasized text-text-primary uppercase">Work</span>
+                    <div className="flex-1" />
+                    <GhostPillButton
+                      onClick={() => { /* cosmetic — no real export yet */ }}
+                      icon={<Download size={14} />}
+                    >
+                      Export
+                    </GhostPillButton>
                   </div>
-                  <span className="type-h2-emphasized text-text-primary">Work</span>
-                  <GhostPillButton
-                    onClick={() => { /* cosmetic — no real export yet */ }}
-                    icon={<Download size={14} />}
-                    className="ml-auto"
-                  >
-                    Export report
-                  </GhostPillButton>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-0">
-                  {IMPACT_WORK.map((item, i) => {
-                    const tc = TYPE_CONFIG[item.type];
-                    const Icon = tc.icon;
-                    return (
-                      <div key={i} className={`p-3.5 rounded-[8px] ${tc.classes}`}>
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <Icon size={16} className="text-text-primary shrink-0" />
-                          <span className="type-detail-emphasized text-text-primary">{item.label}</span>
+                  <div className="flex flex-col">
+                    {IMPACT_WORK.map((item, i) => {
+                      const Icon = TYPE_CONFIG[item.type].icon;
+                      return (
+                        <div key={i} className="flex flex-col gap-1 py-3.5">
+                          <div className="flex items-center gap-1.5">
+                            <Icon size={16} className="text-text-primary shrink-0" />
+                            <span className="type-detail-emphasized text-text-primary">{item.label}</span>
+                          </div>
+                          <div className="type-detail text-text-primary">{item.detail}</div>
                         </div>
-                        <div className="type-detail text-text-primary">{item.detail}</div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
               {/* Family */}
-              <div className="border border-stroke-outline rounded-2xl p-5">
-                <div className="flex items-center gap-[4px] mb-3.5">
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center">
-                    <Home size={16} className="text-text-primary" />
+              <div className="bg-bg-card rounded-2xl flex flex-col lg:flex-row items-stretch gap-4 overflow-clip">
+                <video
+                  src="/animations/impact-family.mp4"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  aria-hidden
+                  className="impact-img object-cover shrink-0"
+                />
+                <div className="flex-1 min-w-0 flex flex-col gap-4 p-5">
+                  <span className="type-h1--emphasized text-text-primary uppercase">Family</span>
+                  <MetricCard title="Emotional value to hubby" value={String(IMPACT_FAMILY.husbandMood)} subtitle="/10 — Perfect!" />
+                  <p className="type-detail text-text-primary">{IMPACT_FAMILY.detail}</p>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {[
+                      { icon: Smile, label: 'Relaxed evenings' },
+                      { icon: Dice5, label: 'Board game night' },
+                      { icon: Baby, label: 'Co-bedtime routine' },
+                    ].map(({ icon: Icon, label }, i) => (
+                      <Tag key={i}>
+                        <Icon size={12} className="shrink-0" />
+                        {label}
+                      </Tag>
+                    ))}
                   </div>
-                  <span className="type-h2-emphasized text-text-primary">Family</span>
-                </div>
-
-                <MetricCard title="Emotional value to hubby" value={String(IMPACT_FAMILY.husbandMood)} subtitle="/10 — Perfect!" />
-
-                <div className="py-2.5 type-detail text-text-primary">
-                  {IMPACT_FAMILY.detail}
-                </div>
-
-                <div className="flex gap-1.5 mt-2.5 flex-wrap">
-                  {[
-                    { icon: Smile, label: 'Relaxed evenings' },
-                    { icon: Dice5, label: 'Board game night' },
-                    { icon: Baby, label: 'Co-bedtime routine' },
-                  ].map(({ icon: Icon, label }, i) => (
-                    <Tag key={i}>
-                      <Icon size={12} className="shrink-0" />
-                      {label}
-                    </Tag>
-                  ))}
                 </div>
               </div>
 
               {/* Self */}
-              <div className="border border-stroke-outline rounded-2xl p-5">
-                <div className="flex items-center gap-[4px] mb-3.5">
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center">
-                    <Smile size={16} className="text-text-primary" />
+              <div className="bg-bg-card rounded-2xl flex flex-col lg:flex-row items-stretch gap-4 overflow-clip">
+                <video
+                  src="/animations/impact-self.mp4"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  aria-hidden
+                  className="impact-img object-cover shrink-0"
+                />
+                <div className="flex-1 min-w-0 flex flex-col gap-4 p-5">
+                  <span className="type-h1--emphasized text-text-primary uppercase">Self</span>
+                  <MetricCard title="Extra disposable time" value={`+${IMPACT_SELF.extraHours}h`} subtitle="this week gained back" />
+                  <p className="type-detail text-text-primary">{IMPACT_SELF.detail}</p>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {[
+                      { icon: Gamepad2, label: 'Gaming time' },
+                      { icon: BookOpen, label: 'Reading' },
+                      { icon: Footprints, label: 'Morning walk' },
+                    ].map(({ icon: Icon, label }, i) => (
+                      <Tag key={i}>
+                        <Icon size={12} className="shrink-0" />
+                        {label}
+                      </Tag>
+                    ))}
                   </div>
-                  <span className="type-h2-emphasized text-text-primary">Self</span>
-                </div>
-
-                <MetricCard title="Extra disposable time" value={`+${IMPACT_SELF.extraHours}h`} subtitle="this week gained back" />
-
-                <div className="py-2.5 type-detail text-text-primary">
-                  {IMPACT_SELF.detail}
-                </div>
-
-                <div className="flex gap-1.5 mt-2.5 flex-wrap">
-                  {[
-                    { icon: Gamepad2, label: 'Gaming time' },
-                    { icon: BookOpen, label: 'Reading' },
-                    { icon: Footprints, label: 'Morning walk' },
-                  ].map(({ icon: Icon, label }, i) => (
-                    <Tag key={i}>
-                      <Icon size={12} className="shrink-0" />
-                      {label}
-                    </Tag>
-                  ))}
                 </div>
               </div>
             </div>

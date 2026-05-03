@@ -1770,7 +1770,7 @@ export function MetricCard({
 }) {
   return (
     <div className="text-left mb-3.5">
-      <div className="text-[14px] font-bold text-text-primary uppercase tracking-[0.5px] mb-1">{title}</div>
+      <div className="text-[14px] font-bold text-text-primary capitalize tracking-[0.5px] mb-1">{title}</div>
       <div className="type-display-xl text-text-primary">{value}</div>
       <div className="type-detail text-text-primary">{subtitle}</div>
     </div>
