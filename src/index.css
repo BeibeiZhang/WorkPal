@@ -296,6 +296,11 @@ html, body, #root {
   background-clip: text;
 }
 
+/* Vertical brand gradient bar — used for timeline / progress lines */
+.gradient-bar-y {
+  background: linear-gradient(180deg, #7652B9 0%, #B46470 50%, #CA9D8C 100%);
+}
+
 .gradient-btn {
   background: linear-gradient(35.85deg, #7652B9 0%, #B46470 51.92%, #CA9D8C 100%);
   box-shadow:

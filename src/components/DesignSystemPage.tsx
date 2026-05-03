@@ -1973,7 +1973,7 @@ const DEMO_PROJECTS = [
 
 function LiveSidebar() {
   const [activeChatId, setActiveChatId] = useState('alcohol-delivery');
-  const [activeView, setActiveView]     = useState<'chat' | 'connectors' | 'design-system' | 'overview' | 'library' | 'memory' | 'software-update'>('chat');
+  const [activeView, setActiveView]     = useState<'chat' | 'connectors' | 'design-system' | 'overview' | 'library' | 'memory' | 'software-update' | 'about'>('chat');
   const [isDark, setIsDark]             = useState(false);
   return (
     <div className="w-[260px] h-full relative">
@@ -1997,7 +1997,7 @@ function LiveSidebar() {
 }
 
 function LiveMiniSidebar() {
-  const [activeView, setActiveView] = useState<'chat' | 'connectors' | 'design-system' | 'overview' | 'library' | 'memory' | 'software-update'>('design-system');
+  const [activeView, setActiveView] = useState<'chat' | 'connectors' | 'design-system' | 'overview' | 'library' | 'memory' | 'software-update' | 'about'>('design-system');
   return (
     <div className="w-[64px] h-full relative">
       <MiniSidebar
