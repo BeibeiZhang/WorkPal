@@ -2870,7 +2870,7 @@ function AgentVideosTab() {
       {/* Intro card */}
       <div className="mb-6 rounded-2xl bg-bg-hover p-5">
         <div className="flex items-center gap-2 mb-2">
-          <Video size={16} className="text-text-primary" />
+          <span className="type-body">📹</span>
           <span className="type-h1--emphasized text-text-primary">Welcome-state avatar videos</span>
         </div>
         <p className="type-detail text-text-primary mb-3">
