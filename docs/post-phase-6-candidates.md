@@ -193,6 +193,40 @@ Hidden in `IS_DEMO` builds (no debug for HR audience).
 
 ---
 
+## 55. `decided-next` — Subscription Health Check 锁 30d (跟 Range tab 解耦)
+
+**Surfaced**: 2026-05-04 conversation. Beibei 看 OverviewPage 发现 Voice mode "past 30d 326 min / past 7d 1398 min" 看着反逻辑 (30d 累计 < 7d 累计不可能). 实际真相: `computeHealth(spend, rangeDays)` 用 `scaleToMonth(value, rangeDays) = value/rangeDays * 30` 推算月预估, 跟月 quota 比对; **不是累计**. UX 心智矛盾 — Range tab "past N days" 暗示累计, 但 Health Check 段实际显示月预估, 切 range 数字看着违反"30 ≥ 7"直觉.
+
+**Goal**: Health Check section 锁死 30 天累计 (= 月数, 直接跟月 quota 比). Range tab 改只动 API Spend section, 不动 Health Check section. Voice mode / chat / images 等显示永远稳定 = 过去 30 天实际用量.
+
+**Scope (locked 2026-05-04, Option A)**:
+
+- 加独立 `spend30d` useState + mount-once `fetchUsage(30)` useEffect (cancelled flag 防 unmount race)
+- `computeHealth(spend30d, 30)` 替换 `computeHealth(spend, spendRange)` callsite (line ~349). `scaleToMonth(value, 30) === value`, 所以 voiceMin / chatTurns / monthlyApiCost 等显示 = 30d 累计原值 (no projection scaling)
+- API Spend section 不动 (仍 `spend` / `spendRange` driven, 提供累计 per range)
+- Voice mode 显示 = 过去 30 天累计 (Beibei case 应该 326 min stable, 不再 1398)
+
+**Non-goals**:
+- 修 voice_minutes token-based 估算精度 (`audio_tokens / 600` 不动, 另 § 候选)
+- Subscription quota 数字 refresh (`SUBSCRIPTION_PLANS` table 不动, 另 § 候选)
+- Range tab UI / 行为修改 (1d / 7d / 30d 三 tab 不动)
+- IS_DEMO 路径修改 (现状 sticky)
+
+**Effort**: 30min-1h.
+
+**Risk classification**: low — frontend-only, hook 重构不动 backend / 业务逻辑 / agent shared. Vercel auto-deploy 即时 verify.
+
+**Test plan**:
+- Range tab 1d / 7d / 30d 切换: API Spend 数字随 range 变, Health Check 数字 **stable**
+- Voice mode 显示 = past 30d 实际累计 (no projection scaling)
+- Health verdict + monthlyApiCost stable across range tabs
+- Vitest (per §28 Standard rule): pin `scaleToMonth(value, 30) === value` (防未来 signature 改动退化)
+- IS_DEMO 路径行为不变
+
+**Why ship now (vs §54 一起)**: §55 数字反逻辑直接威胁 case study + HR live demo 的可信度 — HR 看到 "30d 326 / 7d 1398" 第一反应是 "这 product 数据不靠谱", cost transparency 演示就废了. 演示前必修. §54 是 enhancement 暂缓.
+
+---
+
 ## 50.2. `candidate` — Delete isDraft field entirely (cleanup)
 
 **Surfaced**: §50 + §50.1 ship 后, `isDraft` field 已被 display + sync 两层取消依赖. 真正彻底清理是删 field from `Chat` type / Supabase schema.
