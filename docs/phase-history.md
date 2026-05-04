@@ -217,7 +217,7 @@ Phase 5 一路踩下的坑和形成的宗旨，**沉淀在 `docs/principles.md`*
 
 ---
 
-## 当前状态（2026-05-02）
+## 当前状态（2026-05-03）
 
 **Phase 7 完整收官 + v0.1.13 production launched + Save to Knowledge UX 真完美闭环 + Software Update page + Reference folders 整链路 + AI 主动用项目历史**：
 
@@ -237,9 +237,9 @@ Phase 5 一路踩下的坑和形成的宗旨，**沉淀在 `docs/principles.md`*
 | v0.1.12 | 2026-05-01 | §52 file path multi-candidate resolve chain |
 | v0.1.13 | 2026-05-02 | §53 button reactive + backend graceful for reaped branch |
 
-Plus frontend-only (Vercel auto, 不需 dmg)：§29 ChatInput multi-Enter race · §31/§32 Output legacy backfill · §50 chat isDraft display · §50.1 cross-device sync · §51 sidebar 双 highlight · 多个 fast-lane UI polish PRs。
+Plus frontend-only (Vercel auto, 不需 dmg)：§29 ChatInput multi-Enter race · §31/§32 Output legacy backfill · §50 chat isDraft display · §50.1 cross-device sync · §51 sidebar 双 highlight · **§28 Test infra vitest Phase 1 (PR #182, 2026-05-03)** · 多个 fast-lane UI polish PRs。
 
-**最近 batch ships**（compressed，详见 `docs/post-phase-6-candidates.md` § entries）：
+**最近 batch ships**（compressed，详见 `docs/post-phase-6-archive.md` § entries — pending 见 `post-phase-6-candidates.md`）：
 
 - **§41** ref folder fallback (PR #160) — `git status` 漏 Phase 5.5 auto-committed 文件 → 改 `git diff base...session --diff-filter=A`，三态语义 (`undefined` 走旧 path / `[]` truly empty)
 - **§42** Software Update page (PR #166) — 6 行实时 dashboard。**首次 surface "agent shared mirror is impl-mandatory" pattern**（memory `feedback_agent_shared_mirror.md`）
@@ -252,9 +252,9 @@ Plus frontend-only (Vercel auto, 不需 dmg)：§29 ChatInput multi-Enter race �
 - **§52** file path fallback chain (PR #175) — `read-file` 加 fallbackPaths。**第二次 catch agent mirror 缺失**（memory pattern 起作用）
 - **§53** Save to Knowledge reactive + backend graceful (PR #178) — Revert §43.2 simpler approach; `git rev-parse --verify refs/heads/<branch>` pre-flight 防 ambiguous argument error
 
-**当前 backlog 状态**（53 candidate · ~45 shipped · 8 pending）：
+**当前 backlog 状态**（53 candidate · ~46 shipped · 7 pending）：
 - **#3** Artifact 生成（decided-next，5-7 天，**最大产品扩面**，下一阶段重点）
-- **#6** CN→EN translate fix · **#13C** Apple Developer 签名 · **#24** Progress 面板路由透出 · **#25** Debug overlay · **#28** Test infra vitest（all candidate）
+- **#6** CN→EN translate fix · **#13C** Apple Developer 签名 · **#24** Progress 面板路由透出 · **#25** Debug overlay（all candidate）
 - **#4** Bilingual scaffold（parked，principle #8 翻转后过期）
 - **§50.2** delete isDraft field（cleanup defer）
 
@@ -275,6 +275,7 @@ Plus frontend-only (Vercel auto, 不需 dmg)：§29 ChatInput multi-Enter race �
 - **`docs/phase-5-requirements.md`** — Phase 5 living doc，每个 sub-step 的 scope / context / acceptance tests
 - **`docs/phase-6-requirements.md`** — Phase 6 living doc，worktree + merge-ff-only 全流程
 - **`docs/phase-7-requirements.md`** — Phase 7 living doc，5 个 sub-phase + locked decisions + Context from blocks
-- **`docs/post-phase-6-candidates.md`** — **28 个 candidate** 的 living backlog（**21 已 shipped，7 pending**：#3 #4 #6 #13C #24 #25 #28，加 in-flight #29 #30，加 triggered-only #26 #27）
+- **`docs/post-phase-6-candidates.md`** — pending backlog（10 entries: #3 #4 #6 #13C #24 #25 #26 #27 #50.2，#26/#27 triggered-only）
+- **`docs/post-phase-6-archive.md`** — shipped backlog（36 entries 详细 root cause + 修法 + plan-quality observations，2026-04-19 → now）
 - **`docs/principles.md`** — 15 条开发宗旨（Phase 5 形成、6/7 验证）
 - **MEMORY.md** — planning/testing Claude 自动加载的 cross-session context

@@ -882,3 +882,27 @@ Prompt 文字关键: "Glob and Read the matching file in your working directory 
 
 ---
 
+## 28. `shipped` — Test infra (vitest unit Phase 1)
+
+**Shipped**: 2026-05-03 (PR [#182](https://github.com/BeibeiZhang/WorkPal/pull/182), frontend dev infra — no dmg). 736+/22- in 8 files.
+
+**Surfaced**: 2026-04-28 Beibei reflection: *"我们花了很多时间在测试，现在有没有更好的办法？"* Routing-layer changes (§17 / §19 / §21 / §22) historically required Beibei manual-test in browser per PR.
+
+**Implemented**:
+- **vitest dev infra**: `vitest` + `@vitest/ui` dev deps + `npm run test` / `test:run` scripts. `vitest.config.ts` scope `src/**/*.test.ts` only — server's existing 141 node:test stay separate.
+- **`src/lib/intentRouter.test.ts`** — 12 cases (a1-a3 / b / c / e1-e2 / f1-f3 / r1-r2) promoted from `/tmp/verify-pr150.ts`, by-construction branch coverage of every `if`-arm in `getAgentRouteIntent` (IS_DEMO short-circuit / §21 refDirs+reachable / keyword path / mobile fallback §15 / Mac silent-degrade).
+- **`src/lib/referencePrompt.test.ts`** — §22 "ONLY these folders" guard + 4 invariants (sentence + bullet rendering + `find ~` guard + `<cwd>/outputs/` contract) — stronger than spec's single-string assertion.
+- **`REFERENCE_FOLDERS_PROMPT` extracted** to zero-dep `server/src/lib/referencePrompt.ts` so frontend test can import without dragging express/SDK/node deps. Single source of truth — `claudeChat.ts` imports from here. Agent mirror via `SHARED_LIB` list in `scripts/sync-agent-shared.sh` — `agent/src/shared/lib/referencePrompt.ts` byte-identical.
+- **`.github/workflows/test.yml`** — Node 20, `npm ci`, `npm run test:run` per PR + push to main. `concurrency` group cancel-stale (impl self-review add).
+- **`tsconfig.json`** excludes `**/*.test.ts` so cross-tree import in `referencePrompt.test.ts` doesn't break prod tsc build.
+
+**Plan-quality**: impl 选 spec option (a) export REFERENCE_FOLDERS_PROMPT but **超 spec 抽到独立 zero-dep 模块** (better single-source-of-truth than just exporting from claudeChat.ts). Agent mirror handled correctly first try (`feedback_agent_shared_mirror` 教训内化, 不像 §42 / §52 需 follow-up commit). `vi.hoisted` + getter pattern correctly handles `IS_DEMO` const live-binding. `beforeEach` resets mock flags防 test order coupling.
+
+**CI verify**: 16/16 vitest pass ~200ms · server's 141/141 node:test untouched · `tsc --noEmit` clean · CI green on first PR run (test job 20s).
+
+**Standard rule going forward** (folded into impl prompt footer mental model — surfaced in PR description): 改 `intentRouter.ts` / `REFERENCE_FOLDERS_PROMPT` 字串 → 同 PR 必须加 vitest case 钉新行为.
+
+**Phase 2 Playwright e2e (4-6h)** deferred per spec — only启动 if first UI-layer regression escapes to prod.
+
+---
+

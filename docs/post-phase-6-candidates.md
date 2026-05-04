@@ -193,30 +193,6 @@ Hidden in `IS_DEMO` builds (no debug for HR audience).
 
 ---
 
-## 28. `candidate` — Test infra (vitest unit-only first, Playwright e2e later)
-
-**Surfaced**: 2026-04-28 Beibei reflection: *"我们花了很多时间在测试，现在有没有更好的办法？"* Routing-layer changes (§17 / §19 / §21 / §22) historically required Beibei manual-test in browser per PR. ROI is high to invest in automation.
-
-**Phase 1 — vitest unit (1-2h, recommended first)**:
-- `src/lib/intentRouter.test.ts` — 12 routing cases already verified ad-hoc in `/tmp/verify-pr150.ts` during §21 planning review; promote to repo
-- Add §22 prompt assertion case — verify SDK call payload includes `appendSystemPrompt` containing "ONLY these folders" string when `referenceDirectories.length > 0`
-- `package.json` adds `"test": "vitest"`, `.github/workflows/test.yml` runs per PR
-- **Coverage**: routing layer ~100%, UI 0%
-
-**Phase 2 — Playwright e2e (4-6h, deferred until needed)**:
-- Mock agent (Express HTTPS server :3001) + localStorage seed (skip Supabase)
-- Real DOM tests: §17 ref folder add → SDK call payload check, §23 click → DetailPanel render verification, §15 mobile graceful
-- **Coverage**: UI flow + routing
-- **Defer rationale**: today's pain mostly routing-layer that vitest covers; Playwright value emerges when first UI-layer regression escapes to production
-
-**E2E blind spots (won't be covered even by Playwright)**: production HTTPS cert handshake cold-start slowness (today's §21 boot probe issue lived in this gap), real Claude SDK / Anthropic API behavior (mock LLM doesn't validate prompt effectiveness), browser cache distinguishing main vs preview, cross-device Supabase sync.
-
-**Recommendation**: ship Phase 1 vitest unit first as standalone PR. ~80% of "did §X really fire?" debugging time covered. Phase 2 Playwright deferred.
-
-**Effort**: Phase 1 = ~1-2h. **Risk**: low — adding tests doesn't change production behavior.
-
----
-
 ## 50.2. `candidate` — Delete isDraft field entirely (cleanup)
 
 **Surfaced**: §50 + §50.1 ship 后, `isDraft` field 已被 display + sync 两层取消依赖. 真正彻底清理是删 field from `Chat` type / Supabase schema.
