@@ -123,6 +123,27 @@ export default function AboutPage({ sidebarOpen, onToggleSidebar, onNewChat }: A
           </div>
         </section>
 
+        {/* Price & Transparency — standalone section. Card chrome mirrors a Four-things card
+            (white bg, rounded-12, p-7 / sm:px-8, items-center row, copy-left + illust-right);
+            illust is widened to fit the horizontal Usage→Person→Providers infographic. */}
+        <section>
+          <h2 className="type-h1--emphasized text-text-primary mb-6">Price & Transparency</h2>
+          <div className="bg-white dark:bg-bg-hover rounded-[12px] flex overflow-hidden min-h-[220px]">
+            <div className="flex flex-row items-center gap-4 p-7 sm:px-8 w-full">
+              <div className="flex-1 min-w-0 flex flex-col gap-2.5 pr-4">
+                <p className="type-h2-emphasized text-text-primary">Access top AI experiences — no subscription required.</p>
+                <p className="type-detail text-text-secondary">Your usage is billed directly by the model providers (e.g., OpenAI, Anthropic), with no markup.</p>
+              </div>
+              <img
+                src="/about/adv-pricing.png"
+                alt="Your usage flows directly to model providers (OpenAI, Anthropic). Access top AI experiences with no subscription required — you pay them, not us."
+                loading="lazy"
+                className="w-[560px] max-w-[55%] h-auto shrink-0 block pointer-events-none select-none dark:invert dark:hue-rotate-180"
+              />
+            </div>
+          </div>
+        </section>
+
         {/* Milestones — 9 phases, vertical timeline with brand-gradient line and colored circles */}
         <section>
           <h2 className="type-h1--emphasized text-text-primary mb-2">Milestones</h2>
