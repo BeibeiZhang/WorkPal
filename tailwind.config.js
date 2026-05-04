@@ -43,6 +43,7 @@ export default {
           'blue-faint': 'var(--color-accent-blue-faint)',
           'blue-faint-hover': 'var(--color-accent-blue-faint-hover)',
           green: 'var(--color-accent-green)',
+          'green-bg': 'var(--color-accent-green-bg)',
           red: 'var(--color-accent-red)',
           amber: 'var(--color-accent-amber)',
           orange: 'var(--color-accent-orange)',

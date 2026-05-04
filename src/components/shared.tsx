@@ -1919,7 +1919,13 @@ export function AreaChart({
   );
 }
 
-/* ─── 13. TaskProgressCard ─── */
+/* ─── 13. TaskProgressCard ───
+ * Two variants:
+ *   - 'progress' (default): renders a numeric progress bar + "X%" text
+ *   - 'streaming': renders Loader2 spinner + "Streaming" text. Used for live
+ *     Claude SDK responses where no real progress signal exists; spec §54
+ *     bans fake numbers, so the spinner conveys "in flight" without lying.
+ */
 export function TaskProgressCard({
   title,
   progress,
@@ -1927,15 +1933,18 @@ export function TaskProgressCard({
   icon: IconComp,
   expanded = false,
   onClick,
+  variant = 'progress',
 }: {
   title: string;
-  progress: number;
+  progress?: number;
   steps: string[];
   icon?: LucideIcon;
   expanded?: boolean;
   onClick?: () => void;
+  variant?: 'progress' | 'streaming';
 }) {
   const Ic = IconComp || Play;
+  const pct = progress ?? 0;
   return (
     <button
       onClick={onClick}
@@ -1947,10 +1956,17 @@ export function TaskProgressCard({
         <div className="flex items-center gap-3.5">
           <div className="flex-1 min-w-0 type-detail-emphasized text-text-primary">{title}</div>
         </div>
-        <div className="flex items-center gap-3 mt-1.5">
-          <div className="flex-1"><ProgressBar value={progress} height={6} /></div>
-          <span className="type-detail text-text-primary shrink-0">{progress}%</span>
-        </div>
+        {variant === 'streaming' ? (
+          <div className="flex items-center gap-2 mt-1.5">
+            <Loader2 size={14} className="animate-spin text-text-primary shrink-0" />
+            <span className="type-detail text-text-primary">Streaming</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 mt-1.5">
+            <div className="flex-1"><ProgressBar value={pct} height={6} /></div>
+            <span className="type-detail text-text-primary shrink-0">{pct}%</span>
+          </div>
+        )}
       </div>
       <ChevronRight size={16} className="text-text-primary shrink-0" />
       {expanded && (
@@ -2265,6 +2281,28 @@ export function AgentRequiredHint({
       <div className="min-w-0">
         <p className="type-detail-emphasized text-text-primary">{en}</p>
       </div>
+    </div>
+  );
+}
+
+/* ─── 19. OverviewClearBanner ───
+ * §54 Overview empty-state footer. Shown beneath the three-section region
+ * (Needs Your Eyes / Agents at Work / Scheduled) when ≥1 section is hidden,
+ * conveying "did good job, take a break" rather than corporate emptiness.
+ *
+ * Tone-positive (Banner, not Hint) — Hint convention is reserved for
+ * warning/required-action surfaces (e.g. AgentRequiredHint). The message
+ * already includes its own ✓/🎉 glyph (see getOverviewBannerCopy 8-case
+ * lookup); this primitive renders the message verbatim and provides the
+ * soft accent-green background that signals "celebration / rest".
+ */
+export function OverviewClearBanner({ message }: { message: string }) {
+  return (
+    <div
+      role="status"
+      className="rounded-[12px] bg-accent-green-bg px-4 py-3 flex justify-center"
+    >
+      <p className="type-detail-emphasized text-text-primary">{message}</p>
     </div>
   );
 }

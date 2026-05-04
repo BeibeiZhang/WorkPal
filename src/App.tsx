@@ -887,6 +887,30 @@ export default function App() {
   const tombstoneChatsRef = useRef<Set<string>>(new Set());
   const chatsUpdatedAtMapRef = useRef<Record<string, string>>(loadChatsUpdatedAtMap());
   const streamingChatIdsRef = useRef<Set<string>>(new Set());
+  // §54: state mirror for OverviewPage real-data subscription. Refs alone
+  // don't trigger re-renders; without this mirror the Agents-at-Work section
+  // would never reflect streaming start/stop. Both ref and state are kept
+  // in sync via add/removeStreamingChat helpers below — flushChats keeps
+  // reading the ref synchronously inside its interval callback.
+  const [streamingChatIds, setStreamingChatIds] = useState<Set<string>>(() => new Set());
+  const addStreamingChat = useCallback((id: string) => {
+    streamingChatIdsRef.current.add(id);
+    setStreamingChatIds(prev => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  }, []);
+  const removeStreamingChat = useCallback((id: string) => {
+    streamingChatIdsRef.current.delete(id);
+    setStreamingChatIds(prev => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  }, []);
   const flushChatsTimerRef = useRef<number | null>(null);
   const inFlightChatFlushesRef = useRef<Map<string, AbortController>>(new Map());
   const chatsHydratedRef = useRef<boolean>(false);
@@ -1895,7 +1919,7 @@ export default function App() {
     // Mark streaming so the persistence layer skips this chat for the
     // duration of the run — the trailing scheduleChatFlush() in finally
     // catches the final state once the stream stabilizes.
-    streamingChatIdsRef.current.add(chatId);
+    addStreamingChat(chatId);
     // Collect conversation history for context
     // We pass userText/attachments explicitly because setChats hasn't committed yet.
     // Historical messages forward their own image attachments too so the model keeps
@@ -2077,10 +2101,10 @@ export default function App() {
         };
       }));
     } finally {
-      streamingChatIdsRef.current.delete(chatId);
+      removeStreamingChat(chatId);
       scheduleChatFlush();
     }
-  }, [chats, projects, memories, addMessage, openInspector, scheduleChatFlush]);
+  }, [chats, projects, memories, addMessage, openInspector, scheduleChatFlush, addStreamingChat, removeStreamingChat]);
 
   // Phase 5.4b/5.4c — Claude Agent SDK path. Picked by src/lib/intentRouter
   // when the user's message contains a code/file keyword. 5.4b: text streaming.
@@ -2109,7 +2133,7 @@ export default function App() {
     // callsite — rule stays "user shared something → SDK can touch local".
     hasAttachedFiles = false,
   ) => {
-    streamingChatIdsRef.current.add(chatId);
+    addStreamingChat(chatId);
     const chat = chats.find(c => c.id === chatId);
     const previousMessages = (chat?.messages || [])
       .filter(m => !m.isLoading)
@@ -2349,10 +2373,10 @@ export default function App() {
         };
       }));
     } finally {
-      streamingChatIdsRef.current.delete(chatId);
+      removeStreamingChat(chatId);
       scheduleChatFlush();
     }
-  }, [chats, projects, addMessage, openInspector, addChange, stampCommit, scheduleChatFlush]);
+  }, [chats, projects, addMessage, openInspector, addChange, stampCommit, scheduleChatFlush, addStreamingChat, removeStreamingChat]);
 
   // Candidate #3 — artifact generation path. Picked by shouldGenerateArtifact
   // when the user's message combines an artifact noun ("周刊", "digest") with
@@ -3708,6 +3732,9 @@ export default function App() {
             onNewChat={isMobile ? handleNewChat : undefined}
             onOpenChat={handleChatSelect}
             onOpenProject={handleProjectSelect}
+            chats={chats}
+            chatHasUnsavedChanges={hasUnsavedChanges}
+            streamingChatIds={streamingChatIds}
           />
         ) : activeView === 'library' ? (
           <LibraryPage

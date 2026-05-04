@@ -13,10 +13,14 @@ import {
   Tag, SummaryFooter, PrimaryButton, GhostPillButton,
   MetricCard, TaskProgressCard, ReviewItemCard,
   PageLayout, CategoryBreakdown,
+  OverviewClearBanner,
 } from './shared';
 import { fetchUnreadArtifacts, markArtifactViewed, artifactItemCount, type Artifact } from '../lib/artifacts';
 import { fetchUsage, formatUsd, type UsageSummary } from '../lib/usage';
 import { IS_DEMO } from '../lib/demoMode';
+import { getOverviewBannerCopy } from '../lib/overviewBanner';
+import { formatTimeAgo } from '../lib/timeAgo';
+import type { Chat } from '../types';
 
 /* ═══════════════════════════════════════════════════════════════
    Overview Page — "Morning Briefing" dashboard
@@ -31,6 +35,14 @@ interface OverviewPageProps {
    *  small source chip. */
   onOpenChat?: (chatId: string) => void;
   onOpenProject?: (projectId: string) => void;
+  /** §54: real-data subscription. In `IS_DEMO=false` the dashboard renders
+   *  pending-review chats (chats with `chatHasUnsavedChanges[id] === true`)
+   *  + currently-streaming chats (chats whose id is in `streamingChatIds`)
+   *  alongside the existing `unreadArtifacts` query. All three are optional
+   *  to keep demo / older callers ABI-compatible. */
+  chats?: Chat[];
+  chatHasUnsavedChanges?: Record<string, boolean | undefined>;
+  streamingChatIds?: Set<string>;
 }
 
 /* ── Data ── */
@@ -260,7 +272,7 @@ function computeHealth(spend: UsageSummary | null, rangeDays: number): HealthRep
 
 /* ── Main Component ── */
 
-export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, onOpenChat, onOpenProject }: OverviewPageProps) {
+export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, onOpenChat, onOpenProject, chats, chatHasUnsavedChanges, streamingChatIds }: OverviewPageProps) {
   // Greeting hero video — different framing per viewport. Mobile gets a
   // square portrait clip designed for the stacked aspect-square slot;
   // desktop keeps the original landscape clip that fills the 240px column.
@@ -299,11 +311,18 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
   // localStorage, not Supabase) are filtered out so reading the shared URL
   // on any device makes the row disappear here next visit.
   const [unreadArtifacts, setUnreadArtifacts] = useState<Artifact[]>([]);
+  // §54: tri-state fetch-in-flight gate (matches §53 chatHasUnsavedChanges
+  // === undefined pattern). Without this, the initial render sees
+  // unreadArtifacts=[] before the fetch resolves, which would briefly mark
+  // the NYE section as empty and flash the clear-state banner. We keep
+  // sections visible (and suppress the banner) until the first fetch
+  // completes, then re-evaluate.
+  const [unreadArtifactsLoaded, setUnreadArtifactsLoaded] = useState(false);
   useEffect(() => {
     let cancelled = false;
-    fetchUnreadArtifacts(3).then((rows) => {
-      if (!cancelled) setUnreadArtifacts(rows);
-    });
+    fetchUnreadArtifacts(3)
+      .then((rows) => { if (!cancelled) setUnreadArtifacts(rows); })
+      .finally(() => { if (!cancelled) setUnreadArtifactsLoaded(true); });
     return () => { cancelled = true; };
   }, []);
 
@@ -348,6 +367,44 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
   const [spendDetailsOpen, setSpendDetailsOpen] = useState(false);
   const health = useMemo(() => computeHealth(spend, spendRange), [spend, spendRange]);
 
+  // ─── §54 real-data derivation ───
+  // Three section sources are computed here so the JSX render pass is a
+  // straight projection. IS_DEMO short-circuits at the data-shaping layer
+  // (matches §15/§21 pattern), avoiding a top-of-component fork that would
+  // duplicate the unrelated greeting/impact sections below.
+  const unsavedChats = useMemo(
+    () => (chats ?? []).filter(c => chatHasUnsavedChanges?.[c.id] === true),
+    [chats, chatHasUnsavedChanges],
+  );
+  const streamingChats = useMemo(
+    () => (chats ?? []).filter(c => streamingChatIds?.has(c.id)),
+    [chats, streamingChatIds],
+  );
+  const realReviewItems = useMemo(
+    () => unsavedChats.map(c => ({
+      title: c.title || 'Untitled chat',
+      source: 'Chat',
+      type: 'Pending review',
+      time: formatTimeAgo(c.timestamp),
+      onOpen: () => onOpenChat?.(c.id),
+    })),
+    [unsavedChats, onOpenChat],
+  );
+  // Hide gating: in demo mode nothing hides; in real mode each section
+  // hides once its source is empty. NYE additionally waits for the
+  // unreadArtifacts fetch to settle to prevent a boot-time banner flash
+  // (the initial empty state is fetch-in-flight, not "truly empty").
+  const nyeHidden = !IS_DEMO && unreadArtifactsLoaded
+    && realReviewItems.length === 0 && unreadArtifacts.length === 0;
+  const aawHidden = !IS_DEMO && streamingChats.length === 0;
+  // TODO §3: query artifact_subscriptions table when shipped. Until then
+  // real mode shows nothing scheduled (already-shipped automations live in
+  // a future backend), so the section hides and the banner mentions it.
+  const scheduledHidden = !IS_DEMO;
+  const bannerCopy = !IS_DEMO && unreadArtifactsLoaded
+    ? getOverviewBannerCopy({ nyeHidden, aawHidden, schedHidden: scheduledHidden })
+    : null;
+
   return (
     <PageLayout
       title="Overview"
@@ -389,123 +446,185 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
           </div>
 
           {/* ━━━ 3. NEEDS YOUR EYES ━━━ */}
-          <div className="mb-[48px]">
-            <div className="flex flex-wrap items-center justify-between mb-4 [&>*]:mb-0">
-              <SectionTitle emoji="" title="Needs Your Eyes" count={unreadArtifacts.length + REVIEW_ITEMS.filter((_, i) => !reviewDone[i]).length} size={20} />
-              <SummaryFooter>
-                Total review time: <strong className="text-text-primary">~16 min</strong> for 3 items
-              </SummaryFooter>
-            </div>
+          {!nyeHidden && (
+            <div className="mb-[48px]">
+              <div className="flex flex-wrap items-center justify-between mb-4 [&>*]:mb-0">
+                <SectionTitle
+                  emoji=""
+                  title="Needs Your Eyes"
+                  count={
+                    IS_DEMO
+                      ? unreadArtifacts.length + REVIEW_ITEMS.filter((_, i) => !reviewDone[i]).length
+                      : unreadArtifacts.length + realReviewItems.length
+                  }
+                  size={20}
+                />
+                {IS_DEMO && (
+                  <SummaryFooter>
+                    Total review time: <strong className="text-text-primary">~16 min</strong> for 3 items
+                  </SummaryFooter>
+                )}
+              </div>
 
-            <div className="flex flex-col">
-              {unreadArtifacts.map((a) => {
-                const title = a.contentEn?.title || a.topic || a.templateId;
-                const count = artifactItemCount(a, 'en');
-                return (
-                  <button
-                    key={a.slug}
-                    onClick={() => openArtifact(a)}
-                    className="text-left dashed-border-b last:bg-none hover:bg-bg-hover transition-colors"
-                  >
-                    <ReviewItemCard
-                      title={title}
-                      source="WorkPal"
-                      type="Webpage"
-                      time={`New${count > 0 ? ` · ${count} items` : ''}`}
-                      icon={Globe}
-                    />
-                  </button>
-                );
-              })}
-              {REVIEW_ITEMS.map((item, i) => {
-                const openFrom = item.from
-                  ? () => {
-                      if (item.from!.kind === 'project') onOpenProject?.(item.from!.id);
-                      else onOpenChat?.(item.from!.id);
-                    }
-                  : undefined;
-                return (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={openFrom}
-                    disabled={!openFrom}
-                    className="text-left w-full dashed-border-b last:bg-none hover:bg-bg-hover transition-colors disabled:cursor-default disabled:hover:bg-transparent"
-                  >
-                    <ReviewItemCard
-                      title={item.title}
-                      source={item.source}
-                      type={item.type}
-                      time={item.time}
-                      done={reviewDone[i] || false}
-                      onToggle={() => setReviewDone(p => ({ ...p, [i]: !p[i] }))}
-                    />
-                  </button>
-                );
-              })}
+              <div className="flex flex-col">
+                {unreadArtifacts.map((a) => {
+                  const title = a.contentEn?.title || a.topic || a.templateId;
+                  const count = artifactItemCount(a, 'en');
+                  return (
+                    <button
+                      key={a.slug}
+                      onClick={() => openArtifact(a)}
+                      className="text-left dashed-border-b last:bg-none hover:bg-bg-hover transition-colors"
+                    >
+                      <ReviewItemCard
+                        title={title}
+                        source="WorkPal"
+                        type="Webpage"
+                        time={`New${count > 0 ? ` · ${count} items` : ''}`}
+                        icon={Globe}
+                      />
+                    </button>
+                  );
+                })}
+                {IS_DEMO
+                  ? REVIEW_ITEMS.map((item, i) => {
+                      const openFrom = item.from
+                        ? () => {
+                            if (item.from!.kind === 'project') onOpenProject?.(item.from!.id);
+                            else onOpenChat?.(item.from!.id);
+                          }
+                        : undefined;
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={openFrom}
+                          disabled={!openFrom}
+                          className="text-left w-full dashed-border-b last:bg-none hover:bg-bg-hover transition-colors disabled:cursor-default disabled:hover:bg-transparent"
+                        >
+                          <ReviewItemCard
+                            title={item.title}
+                            source={item.source}
+                            type={item.type}
+                            time={item.time}
+                            done={reviewDone[i] || false}
+                            onToggle={() => setReviewDone(p => ({ ...p, [i]: !p[i] }))}
+                          />
+                        </button>
+                      );
+                    })
+                  : realReviewItems.map((item, i) => (
+                      <button
+                        key={`real-${i}`}
+                        type="button"
+                        onClick={item.onOpen}
+                        className="text-left w-full dashed-border-b last:bg-none hover:bg-bg-hover transition-colors"
+                      >
+                        <ReviewItemCard
+                          title={item.title}
+                          source={item.source}
+                          type={item.type}
+                          time={item.time}
+                          icon={MessageCircle}
+                        />
+                      </button>
+                    ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* ━━━ 4. STEPHEN IS WORKING ON ━━━ */}
-          <div className="mb-[48px]">
-            <SectionTitle emoji="" title="Agents at Work" count={IN_PROGRESS.length} size={20} />
+          {/* ━━━ 4. AGENTS AT WORK ━━━ */}
+          {!aawHidden && (
+            <div className="mb-[48px]">
+              <SectionTitle
+                emoji=""
+                title="Agents at Work"
+                count={IS_DEMO ? IN_PROGRESS.length : streamingChats.length}
+                size={20}
+              />
 
-            <div className="flex flex-col">
-              {IN_PROGRESS.map((task, i) => {
-                const openFrom = task.from
-                  ? () => {
-                      if (task.from!.kind === 'project') onOpenProject?.(task.from!.id);
-                      else onOpenChat?.(task.from!.id);
-                    }
-                  : undefined;
-                return (
-                  <TaskProgressCard
-                    key={i}
-                    title={task.title}
-                    progress={task.progress}
-                    steps={task.steps.split(' → ')}
-                    icon={task.icon}
-                    onClick={openFrom}
-                  />
-                );
-              })}
+              <div className="flex flex-col">
+                {IS_DEMO
+                  ? IN_PROGRESS.map((task, i) => {
+                      const openFrom = task.from
+                        ? () => {
+                            if (task.from!.kind === 'project') onOpenProject?.(task.from!.id);
+                            else onOpenChat?.(task.from!.id);
+                          }
+                        : undefined;
+                      return (
+                        <TaskProgressCard
+                          key={i}
+                          title={task.title}
+                          progress={task.progress}
+                          steps={task.steps.split(' → ')}
+                          icon={task.icon}
+                          onClick={openFrom}
+                        />
+                      );
+                    })
+                  : streamingChats.map(c => (
+                      <TaskProgressCard
+                        key={c.id}
+                        title={c.title || 'Untitled chat'}
+                        steps={[]}
+                        icon={MessageCircle}
+                        variant="streaming"
+                        onClick={() => onOpenChat?.(c.id)}
+                      />
+                    ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* ━━━ 4b. SCHEDULED ━━━ */}
-          <div className="mb-[48px]">
-            <SectionTitle emoji="" title="Scheduled" count={SCHEDULED.length} size={20} />
-            <div className="flex flex-col">
-              {SCHEDULED.map(job => {
-                const openFrom = job.from
-                  ? () => {
-                      if (job.from!.kind === 'project') onOpenProject?.(job.from!.id);
-                      else onOpenChat?.(job.from!.id);
-                    }
-                  : undefined;
-                return (
-                  <button
-                    key={job.id}
-                    type="button"
-                    onClick={openFrom}
-                    disabled={!openFrom}
-                    className="px-5 py-4 dashed-border-b last:bg-none text-left hover:bg-bg-hover transition-colors disabled:cursor-default disabled:hover:bg-transparent"
-                  >
-                    <div className="flex items-center gap-3.5">
-                      <CalendarClock size={22} strokeWidth={1.75} className="shrink-0 icon-theme text-text-primary" />
-                      <div className="flex-1 min-w-0">
-                        <div className="type-detail-emphasized text-text-primary">{job.name}</div>
-                        <div className="type-detail text-text-primary mt-0.5">
-                          {job.cron}
+          {/* TODO §3: query artifact_subscriptions table when shipped — until
+              then real mode shows nothing scheduled and the section hides. */}
+          {!scheduledHidden && (
+            <div className="mb-[48px]">
+              <SectionTitle emoji="" title="Scheduled" count={SCHEDULED.length} size={20} />
+              <div className="flex flex-col">
+                {SCHEDULED.map(job => {
+                  const openFrom = job.from
+                    ? () => {
+                        if (job.from!.kind === 'project') onOpenProject?.(job.from!.id);
+                        else onOpenChat?.(job.from!.id);
+                      }
+                    : undefined;
+                  return (
+                    <button
+                      key={job.id}
+                      type="button"
+                      onClick={openFrom}
+                      disabled={!openFrom}
+                      className="px-5 py-4 dashed-border-b last:bg-none text-left hover:bg-bg-hover transition-colors disabled:cursor-default disabled:hover:bg-transparent"
+                    >
+                      <div className="flex items-center gap-3.5">
+                        <CalendarClock size={22} strokeWidth={1.75} className="shrink-0 icon-theme text-text-primary" />
+                        <div className="flex-1 min-w-0">
+                          <div className="type-detail-emphasized text-text-primary">{job.name}</div>
+                          <div className="type-detail text-text-primary mt-0.5">
+                            {job.cron}
+                          </div>
                         </div>
+                        <ChevronRight size={16} className="text-text-primary shrink-0" />
                       </div>
-                      <ChevronRight size={16} className="text-text-primary shrink-0" />
-                    </div>
-                  </button>
-                );
-              })}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* §54 single banner — shown beneath the three-section region when
+              ≥1 section is hidden. Banner copy is dynamic (8-case lookup,
+              `getOverviewBannerCopy`) and tone-positive ("did good job, take
+              a break"). Suppressed during fetch-in-flight to avoid boot flash. */}
+          {bannerCopy && (
+            <div className="mb-[48px]">
+              <OverviewClearBanner message={bannerCopy} />
+            </div>
+          )}
 
           {/* ━━━ 6. POSITIVE IMPACT — 7 DAY, THREE DIMENSIONS ━━━ */}
           {/* Figma 6770:24151. Each card is a horizontal split: a 152×322
