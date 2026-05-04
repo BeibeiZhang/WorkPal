@@ -170,14 +170,14 @@ function DemoExplainerModal({ open, onClose }: { open: boolean; onClose: () => v
             className="pt-3 type-detail text-text-secondary"
             style={{ borderTop: '1px solid var(--color-stroke-outline)' }}
           >
-            Voice chat and search are live in this demo. Full task execution requires local setup—
+            Voice chat and search are live in this demo. Real file editing requires local installation—
             <a
-              href="#"
-              className="underline hover:text-text-primary"
+              href="mailto:beibeizhang1122@gmail.com?subject=Request%3A%20Production%20Walkthrough%20for%20WorkPal"
+              className="type-detail-emphasized text-accent-blue underline"
             >
-              schedule a live demo
+              schedule a production walkthrough
             </a>
-            {' '}to see it in action.
+            .
           </div>
         </div>
       </div>
