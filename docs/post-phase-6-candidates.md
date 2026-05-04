@@ -203,6 +203,56 @@ Hidden in `IS_DEMO` builds (no debug for HR audience).
 
 ---
 
+## 54. `decided-next` — Overview real-data + IS_DEMO 分流 (NYE / AAW / Scheduled)
+
+**Surfaced**: 2026-05-03 conversation. `OverviewPage.tsx:41-65` 三个 section (`REVIEW_ITEMS` / `IN_PROGRESS` / `SCHEDULED`) 全 mock data. Beibei: "demo URL 给 HR 看 + workpal-beibei.vercel.app 自用" — 两个观众都要服务好.
+
+**Goal**: `IS_DEMO=true` 现状不动 (mock 精致 demo); `IS_DEMO=false` 走真实数据, 空 section hide, **统一一个 banner** 表达 "X clear", 文案动态.
+
+**Scope (locked 2026-05-03)**:
+
+- **Needs Your Eyes**: 真实 = `unreadArtifacts` (existing) + `chats.filter(c => chatHasUnsavedChanges[c.id] === true)` (跟 §53 三态对齐, button enabled = pending review). 数据空 → hide section.
+- **Agents at Work**: 真实 = `chats.filter(c => streamingChatIds.has(c.id))`. **No progress bar** — Claude SDK 不报进度, 用 spinner + "Streaming" 替代 (Beibei 明确反对 fake number). 数据空 → hide section.
+- **Scheduled**: 现在没 backend (§3 才 ship `artifact_subscriptions`) → empty array → hide section. 注释标 `// TODO §3: query artifact_subscriptions table when shipped`.
+- **Single banner** (real 模式 only): 任 ≥1 section hide → 三 section 区域**底部**显示一行 ✓ banner, 文案 lookup table 8 cases:
+
+| Hidden | Banner copy |
+|---|---|
+| 0 | (no banner) |
+| NYE only | "✓ Inbox zero — all reviews caught up" |
+| AAW only | "✓ AI's resting — nothing running" |
+| Scheduled only | "✓ Open runway — no automations queued" |
+| NYE + AAW | "✓ All caught up — your AI's taking a break" |
+| NYE + Scheduled | "✓ Inbox zero · nothing scheduled" |
+| AAW + Scheduled | "✓ All quiet · agents idle, nothing scheduled" |
+| All 3 | "🎉 Nothing pending, nothing running, nothing scheduled. Nice work — take a break." |
+
+**Tone**: positive + supportive, not corporate clean. Beibei feedback 2026-05-03: "让他感觉 did good job, everything done 可以休息了之类". Banner shouldn't lean punish-tone (avoid "no X / nothing X" framing where possible); prefer "caught up", "resting", "open runway", "✨ done" wording. If a phrase feels wrong on second read, revisit during PR review.
+
+**Non-goals (impl 不要 scope-creep)**:
+- 不动 demo branch (`IS_DEMO=true` 行为现状一字不变)
+- 不写 progress bar fake number (spinner-only)
+- 不动 §3 backend (Scheduled real wire 等 §3 ship 后 follow-up)
+
+**Open for impl change-list**:
+- Banner 视觉用 design system 哪个 primitive (Hint / SuccessBanner / 新建?) — impl 选
+- `streamingChatIds` 怎么 lift 进 OverviewPage (props vs context vs internal mirror) — impl 选
+- Test infra (per §28 Standard rule, ship 2026-05-03): banner 8-case matrix 加 vitest test
+
+**Effort**: 1-2 hours.
+
+**Risk classification**: low — frontend-only, `IS_DEMO` build-time inline 已有 pattern, chats / chatHasUnsavedChanges / streamingChatIds props pattern 跟 §53 一致, banner read-only UI. Mobile 自动 fall-through (mobile 没 agent → AAW 永远空 → banner 自然 mention).
+
+**Test plan**:
+- Demo URL: 三 section 全显 mock 不变
+- Self-use + 三 section 全有数据: 不显 banner
+- Self-use + 任 1 section 空: 该 section hide, banner 显示对应 case 文案
+- Self-use + 三 section 全空 (新装 user, 没 unsaved chat, 没 streaming, §3 未 ship): banner = full clear copy
+- Mobile: AAW 永远空 → banner mention "no agents running"
+- Vitest: 8-case banner copy lookup matrix (per §28 Standard rule)
+
+---
+
 ## How to revisit / add candidates
 
 When a candidate ships → **move the full § entry to [`post-phase-6-archive.md`](./post-phase-6-archive.md)** with `shipped` status + ship date + PR ref. Don't leave shipped entries in this file — the whole point of the split is keeping pending work surface small.
