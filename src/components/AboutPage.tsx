@@ -1,5 +1,6 @@
 import { Mail, ExternalLink } from 'lucide-react';
 import { PageLayout, StatusTag } from './shared';
+import { IS_DEMO } from '../lib/demoMode';
 
 interface AboutPageProps {
   sidebarOpen: boolean;
@@ -20,6 +21,18 @@ export default function AboutPage({ sidebarOpen, onToggleSidebar, onNewChat }: A
       <div className="space-y-16 pb-10">
         {/* Hero — image, big gradient headline, CTAs, 4-cell glance (matches workpal.html ordering) */}
         <section className="space-y-6">
+          {IS_DEMO && (
+            <div className="bg-bg-hover rounded-[12px] px-5 py-3.5 type-detail text-text-secondary">
+              Voice chat and search are live in this demo. Real file editing requires local installation—
+              <a
+                href="mailto:beibeizhang1122@gmail.com?subject=Request%3A%20Production%20Walkthrough%20for%20WorkPal"
+                className="type-detail-emphasized text-accent-blue underline"
+              >
+                schedule a production walkthrough
+              </a>
+              .
+            </div>
+          )}
           <img
             src="https://beibeizhang.github.io/workpal-hero.jpg"
             alt="WorkPal 2.0 — Chat + Tasks in the Same Project, Voice-Enabled Rich Input, Selective Knowledge Output, Overview page."
