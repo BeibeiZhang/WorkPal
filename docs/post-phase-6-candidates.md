@@ -323,6 +323,73 @@ Beibei 主用 chat (api/chat.ts) → null → bucket "unknown". Voice 偶尔用 
 
 ---
 
+## 61. `decided-next` — OG link preview + iOS home-screen icon + PWA manifest
+
+**Surfaced**: 2026-05-05 conversation. 分享 `https://workpal-beibei.vercel.app` 到 iMessage / LinkedIn / Slack 抓到 bare "WorkPal" 文本无图; iOS Safari "Add to Home Screen" 没 W logo. `index.html` 完全无 OG / Twitter Card metadata, `public/` 无 og-image / apple-touch-icon asset.
+
+**Goal**:
+1. Link preview 渲染 banner thumbnail (iMessage / LinkedIn / Slack / Twitter 通用)
+2. iOS Safari "Add to Home Screen" 显 W logo + "WorkPal" label + standalone display mode
+
+**Source assets** (已在 disk, **不可 mv / 改名**, 只读复制副本到 `public/`):
+- `~/Library/Mobile Documents/com~apple~CloudDocs/beibeidesign/WorkPal/Logo/Property 1=110.pdf` — 1080×1080 W mark on brand gradient (purple→pink→peach), source for ALL icon sizes
+- `~/github/beibeizhang.github.io/workpal-hero.jpg` — 3840×2160 banner ("WorkPal 2.0" + 4 features + iPhone + Overview screenshot), Beibei portfolio assets folder; source for OG
+
+**Scope (locked 2026-05-05)**:
+
+- **5 个 output asset to `public/`** (macOS `sips` conversion, no ImageMagick available — verified):
+  - `og-image.jpg` (1200×630, center-crop from 3840×2160, 上下各裁 72px)
+  - `apple-touch-icon.png` (180×180 PNG)
+  - `icon-192.png` / `icon-512.png` (PWA, Android Chrome / 高 DPI iOS)
+  - `manifest.json` (name / short_name / start_url:/ / display:standalone / theme_color:#7652B9 / background_color:#F3F4F5 / icons[])
+
+- **`index.html` 在 `<title>` 下方插入 ~24 行 meta + link tags**:
+  - `<meta name="description">` page description fallback
+  - OG block (og:type / og:url / og:title / og:description / og:image with width:1200 height:630 type:image/jpeg)
+  - Twitter Card block (summary_large_image / twitter:title/description/image)
+  - `<link rel="apple-touch-icon" sizes="180x180">` + 3 个 apple-mobile-web-app-* meta
+  - `<link rel="manifest">`
+
+- **OG copy**:
+  - Title: "WorkPal — your AI workplace assistant"
+  - Description: "Chat + tasks in the same project, voice-enabled rich input, selective knowledge output."
+
+- **`og:image` hardcode 到 production URL** (`https://workpal-beibei.vercel.app/og-image.jpg`) per OG spec absolute-URL 要求. Trade-off: PR preview 上 opengraph.xyz 会假阴性 — preview HTML 的 og:image 指向 production, merge 前 production 没 .jpg → 404 → 空 banner. Verify 拆 cowork merge-前 (curl -sI + grep dist/index.html metadata) / Beibei post-merge (opengraph.xyz on production).
+
+**Non-goals**:
+- HR demo URL (my-workpal.vercel.app) 分流不同 banner — 同一份 build, 共享同张 og-image 一张图通吃
+- 改 `favicon.svg` (已存在, 不动)
+- 加 `twitter:url` (会 fallback 到 og:url, 无视觉差)
+- Server-side conditional OG (Vercel SPA build-time inline only, runtime detect 是 over-engineer)
+
+**Effort**: ~1.5 hr.
+
+**Risk classification**: low — frontend-only, `sips` 是 macOS native 无新 dep, **0 文件 overlap with §60** (§60 改 `api/`+`server/`+`agent/shared`+`OverviewPage`+Supabase backend; §61 改 `index.html`+`public/` static asset). 可与 §60 并行 ship.
+
+**Test plan**:
+
+Cowork merge-前 自验:
+- 4 image 维度 sips verify (og 1200×630 / apple-touch 180 / icon-192 192 / icon-512 512)
+- `cat public/manifest.json | python3 -m json.tool` valid JSON
+- `npx tsc --noEmit` + `npm run build` clean
+- `grep -E 'og:image|og:title|twitter:card|apple-touch-icon|manifest.json' dist/index.html` 全部命中
+- Vercel preview URL `curl -sI` 5 个静态 asset 都 200 + 正确 Content-Type
+- 视觉打开 og-image.jpg + apple-touch-icon.png (banner 主体未 crop, W logo 填满 frame)
+- **不在 preview URL 跑 opengraph.xyz** (假阴性已知)
+
+Beibei post-merge production 真机验:
+- iMessage 给自己发 vercel.app URL → preview 显 banner thumbnail
+- iOS Safari → 添加到主屏幕 → 显 W logo + "WorkPal" 标题 + standalone mode
+- opengraph.xyz on `https://workpal-beibei.vercel.app` → 完整 banner render
+
+**Verify path**: frontend-only Vercel auto-deploy (no dmg, no agent shared mirror, no Supabase change).
+
+**Plan file**: `~/.claude/plans/61-og-link-preview-misty-meadow.md`.
+
+**Why parallel with §60**: 0 文件 overlap. Phase 6 worktree 隔离设计就为此种独立并行 ship — 两个 cowork session 同时跑不互相 block.
+
+---
+
 ## 50.2. `candidate` — Delete isDraft field entirely (cleanup)
 
 **Surfaced**: §50 + §50.1 ship 后, `isDraft` field 已被 display + sync 两层取消依赖. 真正彻底清理是删 field from `Chat` type / Supabase schema.
