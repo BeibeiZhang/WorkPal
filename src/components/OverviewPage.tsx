@@ -332,7 +332,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                       />
                     </button>
                     {isExpanded && (
-                      <div className="px-5 pb-4 pt-2 border-t border-stroke-outline flex flex-col gap-2">
+                      <div className="px-5 pb-4 pt-4 border-t border-stroke-outline flex flex-col gap-4">
                         {err.stack ? (
                           <pre className="type-footnote text-text-secondary bg-bg-message rounded-lg p-3 overflow-x-auto whitespace-pre-wrap break-words max-h-64">
                             {err.stack}
