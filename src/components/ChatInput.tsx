@@ -475,7 +475,7 @@ export default function ChatInput({ onSend, placeholder = 'Message WorkPal', qui
           placeholder={placeholder}
           aria-label="Chat message — type a message and press Enter to send"
           rows={1}
-          className="flex-1 min-w-0 bg-transparent resize-none outline-none type-h2 text-text-primary placeholder-text-tertiary chat-textarea py-[11px]"
+          className="flex-1 min-w-0 bg-transparent resize-none outline-none focus-visible:outline-none type-h2 text-text-primary placeholder-text-tertiary chat-textarea py-[11px]"
         />
         {/* Mic / Voice / Send — inside input, right-aligned, 24×24 buttons */}
         <div className="flex items-center gap-4 md:gap-2 shrink-0">
