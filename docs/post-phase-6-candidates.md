@@ -242,6 +242,49 @@ Hidden in `IS_DEMO` builds (no debug for HR audience).
 
 ---
 
+## 58. `decided-next` — Production error logging → Overview "Needs Your Eyes"
+
+**Surfaced**: 2026-05-04 conversation. Beibei 撞 bug (chat 丢失 / 文字错位 / file URL 不 truncate 等) 时只能靠 daily use 自己撞到 surface. 数据类 bug (chat 丢 / fetch 失败 / JS exception) 可以**自动 catch + 推到 Overview Needs Your Eyes**, 不用切 tool. 视觉 bug 类 (字超框 / 错位) 用 `docs/demo-checklist.md` 演示前手动过 (并行做, doc-only ship).
+
+**Goal**: 用户 (主要 Beibei + 偶尔 HR / 朋友) 在 workpal-beibei.vercel.app 撞 JS 报错 / network failure → 自动写 Supabase → Overview 页 Needs Your Eyes section 显示新 bug entry → Beibei 点开看 message + stack → 复制给 planning → 开 § candidate 修. 全程不切 tool, WorkPal 内部闭环.
+
+**Scope (locked 2026-05-04)**:
+
+- **Frontend `src/lib/errorLogger.ts` (new)** — ~60-80 行. listen `window.error` + `window.unhandledrejection` → POST `/api/log-error`. 在 `src/main.tsx` mount 时 setup. **`IS_DEMO=true` 短路** (demo URL 不 log production error).
+- **Vercel serverless `api/log-error.ts` (new)** — POST endpoint. body validate (msg 必填, stack 截断 8KB, url + ua 可选, source 自动从 hostname 推 'workpal-beibei' / 'my-workpal' / 'localhost'). 写 Supabase `error_log` table.
+- **Vercel serverless `api/error-summary.ts` (new)** — GET endpoint. Query Supabase 过去 7 天 unreviewed error, dedup by msg, return top 20.
+- **Supabase migration**: new `error_log` table `{ id uuid pk, msg text, stack text, url text, ua text, source text, ts timestamptz default now(), reviewed boolean default false }`. RLS open (API gate by password 同 chat-store pattern).
+- **Overview NYE wiring**: `OverviewPage.tsx` 现 NYE section 加新数据源 — `unreadArtifacts` (existing) + **`unreviewedErrors` (本 §58 新加)** + chats with hasUnsavedChanges (§54 待 ship 后再加). fetch `/api/error-summary` mount 时 + 切 page 时. NYE entry 渲染: error.msg + 短 timestamp + click expand 显示 stack. **`IS_DEMO=true` 短路** (demo URL 不显示 error).
+
+**Non-goals**:
+- Sidebar Overview tab 红点 (defer; NYE 自身 count 已 serve)
+- "Mark reviewed" / dismiss UI (defer; bug 修后自然不再 fire = entry 自然消失)
+- Dedup 算法复杂化 (v1 直接全存, summary endpoint group by msg)
+- Sentry / LogRocket SaaS 集成 (over-engineer for 1-designer scale)
+- 视觉错位 / 字超框类 bug (这种自动 catch 不到, 用 `docs/demo-checklist.md` 兜底)
+- Backend Express server / agent shared mirror (errorLogger 只 POST Vercel serverless, 不走本地 agent — production user 不一定有本地 agent)
+
+**Effort**: 3-4 hr.
+- errorLogger.ts (frontend, 30min)
+- api/log-error.ts + api/error-summary.ts (Vercel serverless, 1h)
+- Supabase migration (15min, impl apply via MCP per §17 precedent)
+- OverviewPage NYE 加新数据源 wiring (1-1.5h)
+- Manual verify + Vitest case (30-45min)
+
+**Risk classification**: medium — Supabase schema 改动 + Vercel serverless 新 endpoint + frontend mount-time hook + OverviewPage NYE 改动. 各部分独立, 不互相 cascade.
+
+**Test plan**:
+- 手动触发 JS error (`console` 跑 `throw new Error('test §58')`) → 验 `/api/log-error` 200 + Supabase 一行
+- 手动 fetch failure (mock failed network call) → 验同上
+- Overview NYE: 'test §58' entry 显示 + click expand 显 stack
+- IS_DEMO=true (`my-workpal.vercel.app`): errorLogger 不 fire / NYE 不显 error / network panel 无 `/api/log-error` 请求
+- 多次同样 error fire: dedup group by msg, 显示 count 累加
+- Vitest (per §28 Standard rule): pin errorLogger 的 hostname → source 推断 logic + IS_DEMO 短路
+
+**Why §58 跟 §54 互不冲突**: §54 改 NYE 加 chats with `hasUnsavedChanges` source. §58 加新 `unreviewedErrors` source. 两个独立 source 加进 NYE list, IS_DEMO branch 各自 short-circuit. §58 不卡 §54 (Beibei thinking 中), §54 不卡 §58.
+
+---
+
 ## 50.2. `candidate` — Delete isDraft field entirely (cleanup)
 
 **Surfaced**: §50 + §50.1 ship 后, `isDraft` field 已被 display + sync 两层取消依赖. 真正彻底清理是删 field from `Chat` type / Supabase schema.
