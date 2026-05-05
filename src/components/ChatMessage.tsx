@@ -5,6 +5,7 @@ import MessageCard from './MessageCard';
 import { AgentRequiredHint, ArtifactCard } from './shared';
 import { useIsMobile } from '../lib/useIsMobile';
 import { renderMarkdownBlocks } from '../lib/markdown';
+import { timeAgo } from '../lib/timeAgo';
 import { iconCopy, iconShare, iconThumbsUp, iconRefresh } from '../assets';
 
 /** Extract a clean display host from a URL — strips leading "www." and falls
@@ -162,27 +163,6 @@ function ImageResultsGrid({ images }: { images: ImageResult[] }) {
       ))}
     </div>
   );
-}
-
-/** Human-friendly "N ago" label for a YouTube publishedAt ISO string. */
-function timeAgo(iso?: string): string {
-  if (!iso) return '';
-  const then = new Date(iso).getTime();
-  if (Number.isNaN(then)) return '';
-  const secs = Math.max(1, Math.floor((Date.now() - then) / 1000));
-  const units: [number, string][] = [
-    [60 * 60 * 24 * 365, 'y'],
-    [60 * 60 * 24 * 30, 'mo'],
-    [60 * 60 * 24 * 7, 'w'],
-    [60 * 60 * 24, 'd'],
-    [60 * 60, 'h'],
-    [60, 'm'],
-  ];
-  for (const [size, label] of units) {
-    const n = Math.floor(secs / size);
-    if (n >= 1) return `${n}${label} ago`;
-  }
-  return 'just now';
 }
 
 /** YouTube video cards rendered under an assistant message. Thumbnail on the

@@ -6,6 +6,7 @@ import {
   CalendarClock, Globe, Download,
   Rocket, MessageCircle,
   Dice5, Baby, Gamepad2, BookOpen, Footprints,
+  Copy, Check,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -18,6 +19,9 @@ import { fetchUnreadArtifacts, markArtifactViewed, artifactItemCount, type Artif
 import { fetchUsage, formatUsd, type UsageSummary } from '../lib/usage';
 import { computeHealth } from '../lib/health';
 import { IS_DEMO } from '../lib/demoMode';
+import { fetchErrorSummary, type ErrorSummaryItem } from '../lib/errors';
+import { timeAgo } from '../lib/timeAgo';
+import { useAuth } from '../lib/useAuth';
 
 /* ═══════════════════════════════════════════════════════════════
    Overview Page — "Morning Briefing" dashboard
@@ -148,6 +152,40 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
     window.open(`/artifact/${a.slug}`, '_blank', 'noopener,noreferrer');
   };
 
+  // §58 — unreviewed errors from the past 7 days, grouped by msg server-side.
+  // Mount-once fetch (no polling — errors are rare enough that page refresh
+  // is the right cadence; constant polling would distract during demos).
+  // IS_DEMO short-circuits inside fetchErrorSummary; password is null on the
+  // demo branch (synthetic auth), which the helper also skips on.
+  const { getCachedPassword } = useAuth();
+  const [unreviewedErrors, setUnreviewedErrors] = useState<ErrorSummaryItem[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    fetchErrorSummary(getCachedPassword()).then((items) => {
+      if (!cancelled) setUnreviewedErrors(items);
+    });
+    return () => { cancelled = true; };
+  }, [getCachedPassword]);
+
+  // Inline expand for stack inspection. Per §58 plan Option A: click error
+  // entry → toggle stack panel; Copy button writes the full untruncated stack
+  // to the clipboard (the panel itself shows the truncated 8KB sample).
+  const [expandedErrorId, setExpandedErrorId] = useState<string | null>(null);
+  const [copiedErrorId, setCopiedErrorId] = useState<string | null>(null);
+  const copyErrorStack = useCallback(async (err: ErrorSummaryItem) => {
+    if (!err.stack) return;
+    try {
+      await navigator.clipboard.writeText(err.stack);
+      setCopiedErrorId(err.sample_id);
+      window.setTimeout(() => {
+        setCopiedErrorId(prev => (prev === err.sample_id ? null : prev));
+      }, 1500);
+    } catch {
+      // Clipboard API unavailable / permission denied — silently no-op.
+      // The user can still read the stack from the expanded panel.
+    }
+  }, []);
+
   // API Spend — live OpenAI + Anthropic + Tavily usage logged to Supabase
   // after every call. Re-fetches on range change (with loading state) and
   // also polls every 60s in the background so the card stays roughly live
@@ -241,13 +279,64 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
           {/* ━━━ 3. NEEDS YOUR EYES ━━━ */}
           <div className="mb-[48px]">
             <div className="flex flex-wrap items-center justify-between mb-4 [&>*]:mb-0">
-              <SectionTitle emoji="" title="Needs Your Eyes" count={unreadArtifacts.length + REVIEW_ITEMS.filter((_, i) => !reviewDone[i]).length} size={20} />
+              <SectionTitle emoji="" title="Needs Your Eyes" count={unreviewedErrors.length + unreadArtifacts.length + REVIEW_ITEMS.filter((_, i) => !reviewDone[i]).length} size={20} />
               <SummaryFooter>
                 Total review time: <strong className="text-text-primary">~16 min</strong> for 3 items
               </SummaryFooter>
             </div>
 
             <div className="flex flex-col">
+              {/* §58 — production errors at the top: highest urgency in NYE
+                  (real prod breakage signal). Click toggles inline expand
+                  with the truncated stack sample + Copy-to-clipboard. */}
+              {unreviewedErrors.map((err) => {
+                const isExpanded = expandedErrorId === err.sample_id;
+                const isCopied = copiedErrorId === err.sample_id;
+                const title = err.msg.length > 80 ? err.msg.slice(0, 80) + '…' : err.msg;
+                const countSuffix = err.count > 1 ? ` · ${err.count}×` : '';
+                return (
+                  <div key={err.sample_id} className="dashed-border-b last:bg-none">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedErrorId(prev => prev === err.sample_id ? null : err.sample_id)}
+                      aria-expanded={isExpanded}
+                      className="text-left w-full hover:bg-bg-hover transition-colors"
+                    >
+                      <ReviewItemCard
+                        title={title}
+                        source={err.source ?? 'unknown'}
+                        type="Error"
+                        time={`${timeAgo(err.last_seen) || 'just now'}${countSuffix}`}
+                      />
+                    </button>
+                    {isExpanded && (
+                      <div className="px-5 pb-4 -mt-1 flex flex-col gap-2">
+                        {err.stack ? (
+                          <pre className="type-footnote text-text-secondary bg-bg-message rounded-lg p-3 overflow-x-auto whitespace-pre-wrap break-words max-h-64">
+                            {err.stack}
+                          </pre>
+                        ) : (
+                          <div className="type-detail text-text-secondary">No stack available.</div>
+                        )}
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); copyErrorStack(err); }}
+                            disabled={!err.stack}
+                            className="inline-flex items-center gap-1.5 type-footnote text-text-primary hover:text-text-primary disabled:text-text-tertiary disabled:cursor-not-allowed"
+                          >
+                            {isCopied ? <Check size={14} /> : <Copy size={14} />}
+                            {isCopied ? 'Copied' : 'Copy stack'}
+                          </button>
+                          {err.url && (
+                            <span className="type-footnote text-text-secondary truncate">at {err.url}</span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
               {unreadArtifacts.map((a) => {
                 const title = a.contentEn?.title || a.topic || a.templateId;
                 const count = artifactItemCount(a, 'en');
