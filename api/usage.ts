@@ -8,6 +8,7 @@ import {
 } from './_lib/usage-store.js';
 import {
   insertError,
+  markReviewedByMsg,
   summarizeUnreviewed,
   ValidationError,
   type ErrorPayload,
@@ -22,11 +23,12 @@ import { checkPassword } from './_lib/chat-store.js';
  *                                         over WebRTC, never through us, so
  *                                         the browser is the only place that
  *                                         can price those turns).
- *    POST /api/log-error               → §58 anonymous error capture
- *    GET  /api/error-summary           → §58 password-gated dedup top-20
+ *    POST  /api/log-error              → §58 anonymous error capture
+ *    GET   /api/error-summary          → §58 password-gated dedup top-20
+ *    PATCH /api/errors                 → §59 password-gated mark-reviewed
  *
  *  vercel.json rewrites map the human-readable URLs to ?endpoint=… params
- *  so this single function covers all four paths and we stay under the
+ *  so this single function covers all five paths and we stay under the
  *  Hobby-plan 12-function cap. The two telemetry domains (usage + errors)
  *  are co-located here because they share the same wire pattern (anonymous
  *  POST + GET-with-summary) and live next to each other on the Overview
@@ -90,6 +92,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!checkPassword(req, res)) return;
       const items = await summarizeUnreviewed();
       res.status(200).json({ items });
+      return;
+    }
+
+    // PATCH /api/errors → endpoint=mark-error-reviewed  (password-gated write)
+    // markReviewedByMsg collapses stale-id / multi-tab-race / RLS-denied
+    // into marked=0 — the helper + UI treat that as success (entry is gone
+    // in DB either way), so no separate 404 branch here.
+    if (endpoint === 'mark-error-reviewed') {
+      if (req.method !== 'PATCH') {
+        res.setHeader('Allow', 'PATCH');
+        res.status(405).json({ error: 'Method not allowed' });
+        return;
+      }
+      if (!checkPassword(req, res)) return;
+      const body = req.body as { sample_id?: unknown } | undefined;
+      if (!body || typeof body.sample_id !== 'string' || !body.sample_id) {
+        res.status(400).json({ error: 'sample_id required' });
+        return;
+      }
+      const { marked } = await markReviewedByMsg(body.sample_id);
+      res.status(200).json({ ok: true, marked });
       return;
     }
 
