@@ -71,6 +71,12 @@ const IMPACT_WORK = [
   { label: 'User feedback score', detail: 'NPS +8 this week across 3 features', type: 'feedback' as const },
 ];
 
+const IMPACT_WORK_HERO = {
+  wins: 3,
+  subtitle: '1 launch, 2 metric jumps',
+  detail: 'Delivery Flow shipped Tuesday, Onboarding V2 lifted activation by 18%, and NPS climbed +8 across the three features the team touched. The numbers back the work.',
+};
+
 const IMPACT_FAMILY = {
   husbandMood: 10,
   detail: 'Came home relaxed 5/7 days, helped with bedtime routine, weekend board game night',
@@ -357,47 +363,52 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
               object-position) + content on the right. White card surface,
               no outline. Title is uppercase 22px (.type-h1--emphasized). */}
           <div className="mb-[48px]">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-              {/* Work */}
-              <div className="bg-bg-card rounded-2xl flex flex-col lg:flex-row items-stretch gap-4 overflow-clip">
-                <video
-                  src="/animations/impact-work.mp4"
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  preload="metadata"
-                  aria-hidden
-                  className="impact-img object-cover shrink-0"
-                />
-                <div className="flex-1 min-w-0 flex flex-col gap-4 p-5">
-                  <div className="flex items-center gap-1">
-                    <span className="type-h1--emphasized text-text-primary uppercase">Work</span>
-                    <div className="flex-1" />
-                    <GhostPillButton
-                      onClick={() => { /* cosmetic — no real export yet */ }}
-                      icon={<Download size={14} />}
-                    >
-                      Export
-                    </GhostPillButton>
-                  </div>
-                  <div className="flex flex-col">
-                    {IMPACT_WORK.map((item, i) => {
-                      const Icon = TYPE_CONFIG[item.type].icon;
-                      return (
-                        <div key={i} className="flex flex-col gap-1 py-3.5">
-                          <div className="flex items-center gap-1.5">
-                            <Icon size={16} className="text-text-primary shrink-0" />
-                            <span className="type-detail-emphasized text-text-primary">{item.label}</span>
-                          </div>
-                          <div className="type-detail text-text-primary">{item.detail}</div>
+            {/* Row 1 — Work, full-width. Hero metric + description align with
+                the Family/Self pattern; the 3 wins fan out in a 3-col grid
+                that uses the extra horizontal real estate. */}
+            <div className="bg-bg-card rounded-2xl flex flex-col lg:flex-row items-stretch gap-4 overflow-clip mb-5">
+              <video
+                src="/animations/impact-work.mp4"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                aria-hidden
+                className="impact-img object-cover shrink-0"
+              />
+              <div className="flex-1 min-w-0 flex flex-col gap-4 p-5">
+                <div className="flex items-center gap-1">
+                  <span className="type-h1--emphasized text-text-primary uppercase">Work</span>
+                  <div className="flex-1" />
+                  <GhostPillButton
+                    onClick={() => { /* cosmetic — no real export yet */ }}
+                    icon={<Download size={14} />}
+                  >
+                    Export
+                  </GhostPillButton>
+                </div>
+                <MetricCard title="Wins this week" value={String(IMPACT_WORK_HERO.wins)} subtitle={IMPACT_WORK_HERO.subtitle} />
+                <p className="type-detail text-text-primary">{IMPACT_WORK_HERO.detail}</p>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-6">
+                  {IMPACT_WORK.map((item, i) => {
+                    const Icon = TYPE_CONFIG[item.type].icon;
+                    return (
+                      <div key={i} className="flex flex-col gap-1 py-3.5">
+                        <div className="flex items-center gap-1.5">
+                          <Icon size={16} className="text-text-primary shrink-0" />
+                          <span className="type-detail-emphasized text-text-primary">{item.label}</span>
                         </div>
-                      );
-                    })}
-                  </div>
+                        <div className="type-detail text-text-primary">{item.detail}</div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
+            </div>
 
+            {/* Row 2 — Family + Self side by side. */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               {/* Family */}
               <div className="bg-bg-card rounded-2xl flex flex-col lg:flex-row items-stretch gap-4 overflow-clip">
                 <video
