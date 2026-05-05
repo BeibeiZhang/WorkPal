@@ -285,6 +285,47 @@ Hidden in `IS_DEMO` builds (no debug for HR audience).
 
 ---
 
+## 59. `decided-next` — NYE error entry polish: divider + Mark reviewed button
+
+**Surfaced**: 2026-05-04 §58 PR #198 verify 后 Beibei 反馈两件:
+1. **视觉**: expand 状态下 entry header 跟 stack `<pre>` 视觉粘一起, 没分隔线
+2. **Workflow**: 复制 stack 给 planning 处理后, 没法主动 dismiss — entry 留 7 天才自然消失. Beibei 期望"复制完 → 立刻消失"
+
+**Key product call**: 仅 **error type** 加 "Mark reviewed" 按钮. 其他 NYE 类型 (unreadArtifacts / REVIEW_ITEMS mock / 未来 §54 hasUnsavedChanges) **不动** — 它们各自有自然 dismiss action (打开 artifact = viewed / toggle done / save chat → unsaved cleared). Error 类没有自然 dismiss action 才需要 explicit button.
+
+**Goal**:
+- 视觉: expanded state 加 1 行 divider 分 header + stack (跟 NYE 其他 entry 之间分隔线视觉一致)
+- Action: error type entry 加 "Mark reviewed" button, 点完整 msg group (same-msg all rows) mark reviewed=true → entry 立刻消失
+- 一致性: collapsed state 各类视觉一字不差 (都是 icon + title + source/time + chevron); expanded state 才有 type-specific action
+
+**Scope (locked 2026-05-04)**:
+
+- **Visual polish**: `OverviewPage.tsx` error entry expanded `<pre>` className 加 `mt-2 pt-2 border-t border-stroke-outline`. Token 用现有 `--color-stroke-outline`, **不 hex 直写**.
+- **PATCH `/api/errors`** (`api/errors.ts` combined file 加新 method handler): PATCH method, body `{ sample_id: string }`. Server 1) SELECT row by sample_id 拿 msg, 2) UPDATE error_log SET reviewed=true WHERE msg=$1 AND reviewed=false. 一次 mark 同 msg 整 group (跟 GET dedup-by-msg 语义一致). Password gate (跟 GET error-summary 一致 — 写权限).
+- **Frontend `markErrorReviewed(sampleId, password)` helper** in `src/lib/errors.ts` — fetch PATCH + return ok/fail.
+- **Frontend Mark reviewed button** in OverviewPage NYE error entry expanded state — 跟 "Copy stack" button 并排. Click → optimistic `setUnreviewedErrors(prev => prev.filter(e => e.sample_id !== sampleId))` + 调 markErrorReviewed (fail → console.warn, 用户 next refresh 仍能看到 = self-healing).
+
+**Non-goals**:
+- 其他 NYE 类型加 dismiss button (artifacts / mock / future chats) — 各类已有 implicit dismiss
+- Per-occurrence (sample-id 单行) vs per-msg group dismiss 选择 — 简化 v1 always per-msg group
+- "Un-mark" / "重新 review" UI — 真要 un-mark 改 Supabase 直接 query
+- Audit log who/when reviewed — over-engineer for 1-designer scale
+- 视觉 polish 推广到其他 NYE entry expanded state — 仅 error 一类 expandable
+
+**Effort**: 1.5-2 hr.
+
+**Risk classification**: low — 1 行 CSS + 1 PATCH endpoint (mirror §58 GET endpoint pattern) + 1 frontend button + 1 helper. 不动 unreadArtifacts / mock / future chat path.
+
+**Test plan**:
+- Trigger 5x same error → NYE 显示 "test §59 · 5×"
+- Click expand → divider 在 header 跟 stack 之间 (light + dark 都过)
+- Click "Mark reviewed" → entry 立刻 disappear (optimistic) → 刷新 page 不回来 (Supabase 真 marked)
+- Trigger 不同 error msg → 仍 fire 进 NYE (其他 msg 不受影响 — group by msg 隔离)
+- IS_DEMO branch (`my-workpal.vercel.app`): error section 整段不显, button 也不显
+- Vitest (per §28 Standard rule): pin markErrorReviewed helper hostname + IS_DEMO 短路 + group-by-msg PATCH contract
+
+---
+
 ## 50.2. `candidate` — Delete isDraft field entirely (cleanup)
 
 **Surfaced**: §50 + §50.1 ship 后, `isDraft` field 已被 display + sync 两层取消依赖. 真正彻底清理是删 field from `Chat` type / Supabase schema.
