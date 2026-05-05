@@ -906,3 +906,45 @@ Prompt 文字关键: "Glob and Read the matching file in your working directory 
 
 ---
 
+## 55. `shipped` — Subscription Health Check 锁 30d (跟 Range tab 解耦)
+
+**Shipped**: 2026-05-04 (PR [#194](https://github.com/BeibeiZhang/WorkPal/pull/194), commit `7ae30e3`, frontend-only — Vercel auto-deploy). 214+/173- in OverviewPage.tsx + new `src/lib/health.ts` (extracted) + `src/lib/health.test.ts`.
+
+**Surfaced**: 2026-05-04 conversation. Beibei 看 OverviewPage 发现 Voice mode "past 30d 326 min / past 7d 1398 min" 看着反逻辑 (30d 累计 < 7d 累计不可能). 实际真相: `computeHealth(spend, rangeDays)` 用 `scaleToMonth(value, rangeDays) = value/rangeDays * 30` 推算月预估, 跟月 quota 比对; **不是累计**. UX 心智矛盾 — Range tab "past N days" 暗示累计, 但 Health Check 段实际显示月预估, 切 range 数字看着违反"30 ≥ 7"直觉.
+
+**Implemented (Option A locked)**:
+- 加独立 `spend30d` useState + mount-once `fetchUsage(30)` useEffect (cancelled flag 防 unmount race)
+- `computeHealth(spend30d, 30)` 替换 `computeHealth(spend, spendRange)` callsite. `scaleToMonth(value, 30) === value`, voiceMin / chatTurns / monthlyApiCost 等显示 = 30d 累计原值 (no projection scaling)
+- API Spend section 不动 (仍 `spend` / `spendRange` driven, 提供累计 per range)
+- Voice mode 显示 326 min stable across 1d/7d/30d Range tabs
+
+**Plan-quality 加分**: impl plan grep verify spec 后**自抓 critical bug** — planning spec line 19 "改 1 处 callsite 即覆盖" 是错的 (因 `spend` 是 range-filtered, single callsite 改成 `(spend, 30)` 当 spendRange=7 时 value 仍是 7d 累计, 比 monthly quota 反而更错). 必须新增独立 `spend30d` parallel state, surface 给 planning override spec. Plus 抽 `src/lib/health.ts` zero-dep module 跟 `lib/usage.ts` / `lib/intentRouter.ts` pattern 一致 — spec 没要求, impl 自加。
+
+**Plan-quality bar 高分**: PR description 表格 1d/7d/30d × light/dark 真实测 — Health Check 数字 + Verdict (api direct $22.05/mo cheaper than $40/mo combo) **完全 stable** across Range tabs。Vitest 3 cases pin `scaleToMonth(value, 30) === value` invariant + sub-30 projection + invalid range edge.
+
+**No polling 决策**: planning v1 review push "去掉 60s setInterval" — 跟主 spend state 行为对称 + DevTools network panel clean 利于 HR 演示. impl 接受改 mount-once。
+
+---
+
+## 56. `shipped` — Suppress duplicate focus ring on chat textarea
+
+**Shipped**: 2026-05-04 (PR [#197](https://github.com/BeibeiZhang/WorkPal/pull/197), commit `e93b319`, frontend-only — Vercel auto-deploy). 1+/1- in ChatInput.tsx (single line className).
+
+**Surfaced**: 2026-05-04 Beibei 发现 ChatInput 输入框 focus 时画**蓝色 2px outline rectangle** 围着 plus button + textarea 整个 row. 紫粉 gradient (input-gradient-border 自身 active state visual) **跟蓝色 outline 双重指示**, 视觉冗余. 关 Grammarly + 换浏览器后仍存在 → 排除外部插件, 是 WorkPal 自己 CSS.
+
+**Root cause**: `src/index.css:227-228` 全局 a11y rule (WCAG 2.4.7 keyboard focus indicator) 给所有 focus-visible 元素画 2px solid 蓝色 outline. ChatInput textarea 同时触发该 rule + wrapper isActive 紫粉 gradient → 双重视觉指示.
+
+**Implemented**: `src/components/ChatInput.tsx:478` textarea className 加 `focus-visible:outline-none` Tailwind class. CSS specificity (0,0,2,0) 战胜 global rule (0,0,1,0). Pattern precedent: `OverviewPage.tsx:518` 已用同 class. 不动 `src/index.css:227-228` global rule.
+
+**Plan-quality 高分**: 
+- Computed style 真测 (`getComputedStyle()`): light `rgb(49,113,255)` / dark `rgb(115,178,255)` → both `rgba(0,0,0,0)` ✓
+- `:focus-visible` pseudo-class 仍 matches (semantics 不破坏, screen reader 仍知 focus state)
+- 回归测 5 个 sidebar / button 元素仍有 2px solid blue ring (global rule intact)
+- `git diff --name-only` 仅 ChatInput.tsx (global a11y rule 一字不动 verified)
+
+**Self-caught surface during verify**: PR 自抓 ChatInput 内部 Attach (plus) + Send buttons `outline-width: 0px` (pre-existing a11y bug, 完全无 focus ring). 不在 §56 scope, surface 给 §57 audit (planning 已 commit `f49d852` 扩展 §57 scope 加 Type B handling)。
+
+**WCAG 2.4.7 合规保**: textarea focus 三层 indicator (wrapper 紫粉 gradient + cursor blinking + send button reveal) 仍 visible.
+
+---
+

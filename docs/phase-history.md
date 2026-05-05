@@ -217,7 +217,7 @@ Phase 5 一路踩下的坑和形成的宗旨，**沉淀在 `docs/principles.md`*
 
 ---
 
-## 当前状态（2026-05-03）
+## 当前状态（2026-05-04）
 
 **Phase 7 完整收官 + v0.1.13 production launched + Save to Knowledge UX 真完美闭环 + Software Update page + Reference folders 整链路 + AI 主动用项目历史**：
 
@@ -237,7 +237,7 @@ Phase 5 一路踩下的坑和形成的宗旨，**沉淀在 `docs/principles.md`*
 | v0.1.12 | 2026-05-01 | §52 file path multi-candidate resolve chain |
 | v0.1.13 | 2026-05-02 | §53 button reactive + backend graceful for reaped branch |
 
-Plus frontend-only (Vercel auto, 不需 dmg)：§29 ChatInput multi-Enter race · §31/§32 Output legacy backfill · §50 chat isDraft display · §50.1 cross-device sync · §51 sidebar 双 highlight · **§28 Test infra vitest Phase 1 (PR #182, 2026-05-03)** · 多个 fast-lane UI polish PRs。
+Plus frontend-only (Vercel auto, 不需 dmg)：§29 ChatInput multi-Enter race · §31/§32 Output legacy backfill · §50 chat isDraft display · §50.1 cross-device sync · §51 sidebar 双 highlight · **§28 Test infra vitest Phase 1 (PR #182, 2026-05-03)** · **§55 Subscription Health Check 锁 30d (PR #194, 2026-05-04)** · **§56 Suppress duplicate focus ring on chat textarea (PR #197, 2026-05-04)** · 多个 fast-lane UI polish PRs。
 
 **最近 batch ships**（compressed，详见 `docs/post-phase-6-archive.md` § entries — pending 见 `post-phase-6-candidates.md`）：
 
@@ -252,8 +252,10 @@ Plus frontend-only (Vercel auto, 不需 dmg)：§29 ChatInput multi-Enter race �
 - **§52** file path fallback chain (PR #175) — `read-file` 加 fallbackPaths。**第二次 catch agent mirror 缺失**（memory pattern 起作用）
 - **§53** Save to Knowledge reactive + backend graceful (PR #178) — Revert §43.2 simpler approach; `git rev-parse --verify refs/heads/<branch>` pre-flight 防 ambiguous argument error
 
-**当前 backlog 状态**（53 candidate · ~46 shipped · 7 pending）：
+**当前 backlog 状态**（57 candidate · ~48 shipped · 9 pending）：
 - **#3** Artifact 生成（decided-next，5-7 天，**最大产品扩面**，下一阶段重点）
+- **#54** Overview real-data + IS_DEMO 分流 (decided-next, Beibei thinking 中)
+- **#57** Audit a11y focus indicator gap (Type A 9 inputs + Type B 2 toolbar buttons, post-§56 follow-up)
 - **#6** CN→EN translate fix · **#13C** Apple Developer 签名 · **#24** Progress 面板路由透出 · **#25** Debug overlay（all candidate）
 - **#4** Bilingual scaffold（parked，principle #8 翻转后过期）
 - **§50.2** delete isDraft field（cleanup defer）
