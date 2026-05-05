@@ -16,8 +16,8 @@
     { "source": "/api/search-images",        "destination": "/api/search?kind=images" },
     { "source": "/api/search-videos",        "destination": "/api/search?kind=videos" },
     { "source": "/api/search-web",           "destination": "/api/search?kind=web" },
-    { "source": "/api/log-error",            "destination": "/api/errors?endpoint=log" },
-    { "source": "/api/error-summary",        "destination": "/api/errors?endpoint=summary" },
+    { "source": "/api/log-error",            "destination": "/api/usage?endpoint=log-error" },
+    { "source": "/api/error-summary",        "destination": "/api/usage?endpoint=error-summary" },
     { "source": "/((?!api).*)", "destination": "/index.html" }
   ],
   "crons": [

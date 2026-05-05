@@ -6,6 +6,13 @@ import {
   type Provider,
   type Source,
 } from './_lib/usage-store.js';
+import {
+  insertError,
+  summarizeUnreviewed,
+  ValidationError,
+  type ErrorPayload,
+} from './_lib/error-log-store.js';
+import { checkPassword } from './_lib/chat-store.js';
 
 /** Routes:
  *    GET  /api/usage?range=1|7|30      → aggregated UsageSummary for the
@@ -15,14 +22,19 @@ import {
  *                                         over WebRTC, never through us, so
  *                                         the browser is the only place that
  *                                         can price those turns).
+ *    POST /api/log-error               → §58 anonymous error capture
+ *    GET  /api/error-summary           → §58 password-gated dedup top-20
  *
- *  vercel.json rewrites /api/usage/log to /api/usage?endpoint=log so this
- *  single function covers both paths and we stay under the Hobby-plan
- *  12-function cap.
+ *  vercel.json rewrites map the human-readable URLs to ?endpoint=… params
+ *  so this single function covers all four paths and we stay under the
+ *  Hobby-plan 12-function cap. The two telemetry domains (usage + errors)
+ *  are co-located here because they share the same wire pattern (anonymous
+ *  POST + GET-with-summary) and live next to each other on the Overview
+ *  page; the Supabase tables remain separate.
  *
- *  No password gate here: the numbers aren't secret, and the Overview page
- *  needs to load without the memory password dialog. workpal-beibei.vercel
- *  .app is already private-by-obscurity at the URL level. */
+ *  No password gate on /api/usage GET: the spend numbers aren't secret, and
+ *  the Overview page needs to load without the memory password dialog.
+ *  /api/error-summary IS gated because stack traces can leak code paths. */
 
 const ALLOWED_RANGES = new Set([1, 7, 30]);
 const ALLOWED_PROVIDERS: Provider[] = ['openai', 'anthropic', 'tavily'];
@@ -37,6 +49,51 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const endpoint = strParam(req.query.endpoint);
 
+    // POST /api/log-error → endpoint=log-error  (anonymous, public write)
+    // Fail-quiet on insert: error logging that itself errors must not cascade
+    // (would mask the real bug being reported, and the unhandledrejection
+    // listener could re-fire on the failed fetch).
+    if (endpoint === 'log-error') {
+      if (req.method !== 'POST') {
+        res.setHeader('Allow', 'POST');
+        res.status(405).json({ error: 'Method not allowed' });
+        return;
+      }
+      const payload = req.body as ErrorPayload | undefined;
+      if (!payload || typeof payload !== 'object') {
+        res.status(400).json({ error: 'Body must be JSON object' });
+        return;
+      }
+      try {
+        await insertError(payload);
+        res.status(200).json({ ok: true });
+      } catch (err) {
+        if (err instanceof ValidationError) {
+          res.status(400).json({ error: err.message });
+          return;
+        }
+        // Unexpected — log server-side and still return 200 so the client's
+        // logger doesn't loop on a 500.
+        console.warn('/api/log-error insert failed', err);
+        res.status(200).json({ ok: true });
+      }
+      return;
+    }
+
+    // GET /api/error-summary → endpoint=error-summary  (password-gated read)
+    if (endpoint === 'error-summary') {
+      if (req.method !== 'GET') {
+        res.setHeader('Allow', 'GET');
+        res.status(405).json({ error: 'Method not allowed' });
+        return;
+      }
+      if (!checkPassword(req, res)) return;
+      const items = await summarizeUnreviewed();
+      res.status(200).json({ items });
+      return;
+    }
+
+    // POST /api/usage/log → endpoint=log  (existing usage write)
     if (endpoint === 'log') {
       if (req.method !== 'POST') {
         res.setHeader('Allow', 'POST');
@@ -89,6 +146,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
+    // GET /api/usage?range=… (default summary)
     if (req.method !== 'GET') {
       res.setHeader('Allow', 'GET');
       res.status(405).json({ error: 'Method not allowed' });
