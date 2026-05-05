@@ -146,6 +146,20 @@ export function saveChatsCache(chats: Chat[]): void {
   }
 }
 
+/** Insert a freshly-created chat at the front of the list while keeping the
+ *  `my-workpal` welcome chat pinned at the end. Returning users whose
+ *  localStorage cache predates the demo seed (or whose state was rebuilt from
+ *  cloud-only data — DEMO_CHAT_IDS chats never round-trip to Supabase) won't
+ *  have `my-workpal` in `prev`; spreading `prev.find(...)!` would silently
+ *  push `undefined` into the array and crash the dirty-detection useEffect on
+ *  the next commit (`new Map(chats.map(c => [c.id, c]))` → `undefined.id`).
+ *  Guarding the lookup keeps the array sound. */
+export function pinMyWorkPalToEnd(prev: Chat[], newChat: Chat): Chat[] {
+  const others = prev.filter((c) => c.id !== 'my-workpal');
+  const myWorkPal = prev.find((c) => c.id === 'my-workpal');
+  return myWorkPal ? [newChat, ...others, myWorkPal] : [newChat, ...others];
+}
+
 /** Per-id updatedAt map persisted alongside the cache so cross-device
  *  reconciliation has a comparable timestamp on first paint. Server-returned
  *  updatedAt is authoritative; this map gets bumped both when a flush
