@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useEffect } from 'react';
+import { useMemo, useState, useRef, useEffect, Fragment } from 'react';
 import {
   Menu, LayoutDashboard, Plus, Link, BookOpen, Search, ChevronDown,
   ChevronRight, Code2, FileCode2, FileText, FolderOpen, FolderPlus,
@@ -46,6 +46,7 @@ import NewProjectDialog from './NewProjectDialog';
 import PermissionPrompt from './PermissionPrompt';
 import type { PermissionKind, PermissionRequest } from '../types';
 import type { Chat, Message, CardData, ArtifactRef } from '../types';
+import { iconCopy, iconShare, iconThumbsUp, iconRefresh } from '../assets';
 import { AGENTS, useAgentVideoStatus, type AgentVideo, type VideoStatus } from '../agentVideos';
 import { IS_DEMO } from '../lib/demoMode';
 
@@ -55,21 +56,63 @@ interface DesignSystemPageProps {
 }
 
 
-function SectionTitle({ children, id }: { children: React.ReactNode; id?: string }) {
+/** Canonical section title for every DesignSystem tab. The L2 heading
+ *  in this page's information hierarchy:
+ *
+ *    L1 — Intro card (`mb-6 rounded-2xl bg-bg-hover p-5`, type-h1--emphasized title + type-detail body) — every tab opens with one.
+ *    L2 — Section title (this helper, 22px / type-h1--emphasized, mt-12 mb-6 — the mt-12 = 48px matches OverviewPage's `mb-[48px]` inter-section gap so the documentation page breathes the same way as user-facing pages). ALWAYS rendered OUTSIDE any content box.
+ *    L3 — Sub-section title (`type-h2-emphasized mb-3`, 16px) — for FoundationsTab "Surface & Text" / Principles principle name. Rendered IN box (the parent card).
+ *    L4 — Card / row inner title (`type-detail-emphasized`, 14px) — for token names, "Problem" / "Anatomy" labels, file rows. Rendered IN box.
+ *    L5 — Body (`type-h2` 16/22 for body text, `type-detail` 14/22 for compact metadata).
+ *    L6 — Caption / hint (`type-caption text-text-secondary`, 12px).
+ *
+ *  Two structural patterns (see §3 Principle #13):
+ *    Pattern A — Intro card → L2 SectionTitle (OUT of box) → content **wrapped in a border-only box** (rounded-2xl border-stroke-outline p-5). Uniform across all Pattern A tabs.
+ *      Used by: Foundations, Components, Review, Layouts, AI Patterns.
+ *    Pattern B — Intro card → flat list of cards (no L2 wrapper) → each card has in-box L3 title.
+ *      Used by: Principles, Agent Videos, Voice & Tone.
+ *
+ *  Optional props keep one signature for every call site:
+ *    - `emoji`: leading prefix glyph
+ *    - `count`: trailing count badge (Review-style)
+ *    - `trailing`: arbitrary trailing node (e.g. AI Patterns' status pill)
+ *  Replaces the dual SectionTitle / SharedSectionTitle split the page used to have. */
+function SectionTitle({
+  id,
+  emoji,
+  count,
+  trailing,
+  children,
+}: {
+  id?: string;
+  emoji?: string;
+  count?: number;
+  trailing?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
-    <h2 id={id} className="type-h1--emphasized text-text-primary mt-8 mb-6 scroll-mt-[120px]">
-      {children}
+    <h2 id={id} className="type-h1--emphasized text-text-primary mt-12 mb-6 scroll-mt-[120px] flex items-center gap-2">
+      {emoji && <span aria-hidden="true">{emoji}</span>}
+      <span>{children}</span>
+      {count !== undefined && (
+        <span className="type-caption px-2 py-0.5 rounded-[4px] bg-bg-hover text-text-primary tracking-[-0.3px] font-normal">
+          {count}
+        </span>
+      )}
+      {trailing && <span className="ml-auto flex items-center">{trailing}</span>}
     </h2>
   );
 }
 
-type TabId = 'foundations' | 'principles' | 'layouts' | 'components' | 'agent-videos' | 'review';
+type TabId = 'foundations' | 'principles' | 'voice-tone' | 'layouts' | 'components' | 'ai-patterns' | 'agent-videos' | 'review';
 
 const TABS: { id: TabId; label: string; hint: string }[] = [
-  { id: 'foundations',  label: 'Foundations',                 hint: 'Color, typography, spacing, radius, and icons — the single source of truth everything else builds on' },
+  { id: 'foundations',  label: 'Foundations',                 hint: 'Color, typography, spacing, radius, motion, data viz, and icons — the single source of truth everything else builds on' },
   { id: 'principles',   label: 'Principles & Requirements',   hint: 'Rules and guidelines I follow when building' },
+  { id: 'voice-tone',   label: 'Voice & Tone',                hint: 'How WorkPal speaks — baseline personality, tone-by-situation, sample phrases, error templates' },
   { id: 'layouts',      label: 'Layout Templates',            hint: 'Layout shells we use across the app' },
   { id: 'components',   label: 'Component Library',           hint: 'All shared components, states, and where they are used' },
+  { id: 'ai-patterns',  label: 'AI Patterns',                 hint: 'Composed flows: streaming, citation, confirmation, undo, confidence, tool transparency' },
   { id: 'agent-videos', label: 'Agent Videos',                hint: 'Videos used by the welcome-state avatars. Toggle Active/Inactive to skip from rotation.' },
   { id: 'review',       label: 'Review Queue',                hint: 'New components awaiting your approval' },
 ];
@@ -221,9 +264,10 @@ export default function DesignSystemPage({ sidebarOpen, onToggleSidebar }: Desig
 
             {activeTab === 'principles' && <PrinciplesTab />}
 
-
+            {activeTab === 'voice-tone'  && <VoiceToneTab />}
             {activeTab === 'layouts'      && <LayoutsTab />}
             {activeTab === 'components'   && <ComponentsTab />}
+            {activeTab === 'ai-patterns'  && <AIPatternsTab />}
             {activeTab === 'agent-videos' && <AgentVideosTab />}
             {activeTab === 'review'       && <ReviewTab />}
           </>
@@ -287,16 +331,19 @@ const SURFACE_TOKENS: ColorToken[] = [
   {
     name: 'Background · Card',
     cssVar: '--color-card-panel-bg',
+    tailwind: 'bg-bg-card',
     usage: 'Elevated surfaces — CardShell, ArtifactCard, AgentRequiredHint card, VoiceMode panel. White in light; matches bg-hover (10% light blue) in dark so cards lift off the canvas with the same tone as other elevated surfaces',
   },
   {
     name: 'Background · Input',
     cssVar: '--color-input-bg',
+    tailwind: 'bg-input-bg',
     usage: 'Input field idle fill + tinted card surfaces — ChatInput unfocused state, DarkToggle outer pill in dark, OverviewPage greeting card and health verdict button. #142740 at 5% in light (same overlay as bg-hover); 20% black in dark so the shell gradient reads through',
   },
   {
     name: 'Background · Input Active',
     cssVar: '--color-input-bg-active',
+    tailwind: 'bg-input-bg-active',
     usage: 'Input field active fill — ChatInput when focused or composing. Pure white in light so the gradient border reads as a clean composer surface; mirrors the idle 20% black in dark to avoid glare on the dark shell',
   },
   {
@@ -392,12 +439,15 @@ function Swatch({ token, withBorder = true }: { token: ColorToken; withBorder?: 
   const resolved = useResolvedColor(token.cssVar);
   const opacityPct = resolved ? Math.round(resolved.opacity * 100) : null;
   return (
-    <div className="rounded-xl border border-stroke-outline overflow-hidden">
+    <div className="rounded-xl border border-stroke-outline overflow-hidden flex">
+      {/* Color block — fixed width on the left, stretches to row height. */}
       <div
-        className={`h-16 w-full ${withBorder ? 'border-b border-stroke-outline' : ''}`}
+        className={`w-24 shrink-0 self-stretch ${withBorder ? 'border-r border-stroke-outline' : ''}`}
         style={{ background: `var(${token.cssVar})` }}
       />
-      <div className="p-3">
+      {/* Description — flex-1 fills remaining width. min-w-0 lets long
+          token names break-all without pushing the row wider. */}
+      <div className="p-3 flex-1 min-w-0">
         <div className="type-caption font-bold text-text-primary">{token.name}</div>
         {resolved && (
           <div className="mt-1 flex items-center gap-1.5">
@@ -926,7 +976,7 @@ const PRINCIPLES: { n: number; title: string; rule: string; why?: string; refTab
   },
   {
     n: 7,
-    title: '5 text styles only',
+    title: '13 text styles only',
     rule: 'Use .type-display-xl, .type-display, .type-h1, .type-h1--emphasized, .type-body, .type-body-emphasized, .type-h2, .type-h2-emphasized, .type-h3, .type-detail, .type-detail-emphasized, .type-caption, .type-footnote. Forbidden running-text sizes: 9, 10, 13, 17, 18, 24, 28, 32 px. 11/12 are valid only via .type-footnote / .type-caption.',
     refTab: 'Design Foundations',
   },
@@ -952,6 +1002,19 @@ const PRINCIPLES: { n: number; title: string; rule: string; why?: string; refTab
     title: 'Review queue for new components',
     rule: 'If an existing shared component cannot satisfy a need, build the new one in shared.tsx and register it in the Review Queue tab. Approved components get promoted; rejected ones revert to the closest existing primitive.',
     refTab: 'Review Queue',
+  },
+  {
+    n: 12,
+    title: 'Bg fill or border, not both',
+    rule: 'A card / panel uses EITHER a background fill (bg-bg-hover, bg-bg-page, bg-card, etc.) OR a border (border-stroke-outline) — never both on the same surface. Pick whichever creates the right visual separation in the surrounding context. Default for an inline mini-preview, intro card, or hover zone is bg fill; default for a free-standing card on the page background is border-only. Exception: dashed borders (border-dashed) carry placeholder/skeleton/drop-zone semantics and may coexist with bg fills.',
+    why: 'Stacking bg-change + border on the same element produces a redundant double-frame — either signal alone is enough to lift the element from its surroundings. Doubling competes with surrounding chrome and breaks the design\'s quiet hierarchy.',
+  },
+  {
+    n: 13,
+    title: 'Tab structure — Pattern A or Pattern B',
+    rule: 'Documentation tabs follow one of two structures. Pattern A: Intro card → L2 SectionTitle (OUT of box) → content WRAPPED in a single border-only box (rounded-2xl border-stroke-outline p-5). Pattern B: Intro card → flat list of cards (no L2 wrapper) → each card has IN-box L3 title (16px). Same-level content must look identical across tabs: every Pattern A section content uses the same box chrome; every Pattern B card uses the same chrome.',
+    why: 'Without this rule, sections drift between in-box and out-of-box across tabs (cf. App Shell vs Color Palette vs 8.X Pattern), and same-level content uses different sizes (Principles 16px vs Agent Videos 22px). The border-box wrap on Pattern A also gives the section visual closure — a SectionTitle followed by bare paragraphs reads as "loose copy", not "section content".',
+    refTab: 'all',
   },
 ];
 
@@ -1190,7 +1253,7 @@ function PrinciplesTab() {
       {/* Intro card */}
       <div className="mb-6 rounded-2xl bg-bg-hover p-5">
         <div className="flex items-center gap-2 mb-2">
-          <span className="type-body">📏</span>
+          <span className="type-h2">📏</span>
           <span className="type-h1--emphasized text-text-primary">The rules, and only the rules</span>
         </div>
         <p className="type-detail text-text-secondary">
@@ -1216,8 +1279,8 @@ function PrinciplesTab() {
                 {p.n}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="type-body-emphasized text-text-primary mb-1">{p.title}</div>
-                <p className="type-body text-text-primary mb-2">{p.rule}</p>
+                <div className="type-h2-emphasized text-text-primary mb-1">{p.title}</div>
+                <p className="type-detail text-text-primary mb-2">{p.rule}</p>
                 {p.why && (
                   <p className="type-detail text-text-secondary">
                     <span className="type-detail-emphasized text-text-primary">Why: </span>
@@ -1244,7 +1307,7 @@ function FoundationsTab() {
       {/* Intro card */}
       <div className="mb-6 rounded-2xl bg-bg-hover p-5">
         <div className="flex items-center gap-2 mb-2">
-          <span className="type-body">🎨</span>
+          <span className="type-h2">🎨</span>
           <span className="type-h1--emphasized text-text-primary">Single source of truth</span>
         </div>
         <p className="type-detail text-text-primary">
@@ -1260,14 +1323,14 @@ function FoundationsTab() {
       <SectionTitle id="ds-foundation-color">Color Palette</SectionTitle>
 
       <div className="mb-5 rounded-2xl border border-stroke-outline p-5">
-        <div className="type-detail-emphasized text-text-primary mb-3">Surface & Text — bound to <code className="type-caption font-mono">--color-*</code>, mode-aware (light/dark)</div>
+        <div className="type-h2-emphasized text-text-primary mb-3">Surface & Text — bound to <code className="type-caption font-mono">--color-*</code>, mode-aware (light/dark)</div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {SURFACE_TOKENS.map(t => <Swatch key={t.cssVar} token={t} />)}
         </div>
       </div>
 
       <div className="mb-5 rounded-2xl border border-stroke-outline p-5">
-        <div className="type-detail-emphasized text-text-primary mb-1">Accent / Status — semantic callouts</div>
+        <div className="type-h2-emphasized text-text-primary mb-3">Accent / Status — semantic callouts</div>
         <p className="type-detail text-text-secondary mb-3">Use for tags, badges, and single-purpose callouts. Do NOT use for headlines or primary actions.</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {ACCENT_TOKENS.map(t => <Swatch key={t.cssVar} token={t} />)}
@@ -1275,7 +1338,7 @@ function FoundationsTab() {
       </div>
 
       <div className="mb-6 rounded-2xl border border-stroke-outline p-5">
-        <div className="type-detail-emphasized text-text-primary mb-1">Brand Gradient</div>
+        <div className="type-h2-emphasized text-text-primary mb-3">Brand Gradient</div>
         <p className="type-detail text-text-secondary mb-3">
           The identity accent — <strong>1–2% of any page</strong>. Reserved for the primary CTA, onboarding title, first-time states, and loading dots.
         </p>
@@ -1285,11 +1348,11 @@ function FoundationsTab() {
         />
         <div className="grid grid-cols-3 gap-3">
           {BRAND_STOPS.map(s => (
-            <div key={s.cssVar} className="rounded-xl border border-stroke-outline overflow-hidden">
-              <div className="h-12" style={{ background: `var(${s.cssVar})` }} />
-              <div className="p-2">
+            <div key={s.cssVar} className="rounded-xl border border-stroke-outline overflow-hidden flex">
+              <div className="w-20 shrink-0 self-stretch border-r border-stroke-outline" style={{ background: `var(${s.cssVar})` }} />
+              <div className="p-2 flex-1 min-w-0">
                 <div className="type-detail-emphasized text-text-primary">{s.stop}</div>
-                <code className="block type-caption font-mono text-text-secondary">{s.cssVar}</code>
+                <code className="block type-caption font-mono text-text-secondary break-all">{s.cssVar}</code>
               </div>
             </div>
           ))}
@@ -1411,7 +1474,7 @@ function FoundationsTab() {
 
       {/* Size ramp — real SVG rendered at every ramp step */}
       <div className="mb-4 rounded-2xl border border-stroke-outline p-5">
-        <div className="type-detail-emphasized text-text-primary mb-1">Size ramp</div>
+        <div className="type-h2-emphasized text-text-primary mb-3">Size ramp</div>
         <p className="type-detail text-text-secondary mb-4">
           Preferred sizes. Snap to one of these; avoid arbitrary values. Showcasing <code className="type-caption font-mono">&lt;Search /&gt;</code> at each step.
         </p>
@@ -1433,7 +1496,7 @@ function FoundationsTab() {
 
       {/* Color showcase — real SVG rendered with semantic tokens */}
       <div className="mb-4 rounded-2xl border border-stroke-outline p-5">
-        <div className="type-detail-emphasized text-text-primary mb-1">Color</div>
+        <div className="type-h2-emphasized text-text-primary mb-3">Color</div>
         <p className="type-detail text-text-secondary mb-4">
           Icons render with <code className="type-caption font-mono">currentColor</code> — color comes from the text color of the parent, or an inline <code className="type-caption font-mono">color</code> style pointing at a token. Showcasing <code className="type-caption font-mono">&lt;BadgeCheck /&gt;</code>, <code className="type-caption font-mono">&lt;AlertTriangle /&gt;</code>, <code className="type-caption font-mono">&lt;XCircle /&gt;</code>, <code className="type-caption font-mono">&lt;Clock /&gt;</code>, <code className="type-caption font-mono">&lt;Sparkles /&gt;</code>.
         </p>
@@ -1471,7 +1534,7 @@ function FoundationsTab() {
 
       {/* Stroke weight showcase */}
       <div className="mb-4 rounded-2xl border border-stroke-outline p-5">
-        <div className="type-detail-emphasized text-text-primary mb-1">Stroke weight</div>
+        <div className="type-h2-emphasized text-text-primary mb-3">Stroke weight</div>
         <p className="type-detail text-text-secondary mb-4">
           Default is <code className="type-caption font-mono">2</code>. Heavier weights read better at very small sizes; lighter weights at large display sizes.
         </p>
@@ -1492,11 +1555,11 @@ function FoundationsTab() {
 
       {/* In-context samples — icon + label pairings that actually ship in the app */}
       <div className="mb-4 rounded-2xl border border-stroke-outline p-5">
-        <div className="type-detail-emphasized text-text-primary mb-1">In context</div>
+        <div className="type-h2-emphasized text-text-primary mb-3">In context</div>
         <p className="type-detail text-text-secondary mb-4">Real icon-plus-label pairings as they appear in the app.</p>
         <div className="flex flex-wrap gap-2">
           {/* Sidebar nav row */}
-          <div className="inline-flex items-center gap-2 px-3 h-9 rounded-lg border border-stroke-outline text-text-primary" style={{ background: 'var(--color-bg-hover)' }}>
+          <div className="inline-flex items-center gap-2 px-3 h-9 rounded-lg text-text-primary" style={{ background: 'var(--color-bg-hover)' }}>
             <LayoutDashboard size={16} />
             <span className="type-detail-emphasized">Overview</span>
           </div>
@@ -1521,11 +1584,11 @@ function FoundationsTab() {
             In progress
           </div>
           {/* Icon-only toolbar button */}
-          <button className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-stroke-outline text-text-primary" style={{ background: 'var(--color-bg-page)' }} aria-label="Open side panel">
+          <button className="inline-flex items-center justify-center w-9 h-9 rounded-lg text-text-primary" style={{ background: 'var(--color-bg-page)' }} aria-label="Open side panel">
             <PanelRight size={16} />
           </button>
           {/* Search chip */}
-          <div className="inline-flex items-center gap-2 px-3 h-9 rounded-full border border-stroke-outline text-text-secondary" style={{ background: 'var(--color-bg-page)' }}>
+          <div className="inline-flex items-center gap-2 px-3 h-9 rounded-full text-text-secondary" style={{ background: 'var(--color-bg-page)' }}>
             <Search size={16} />
             <span className="type-detail">Search</span>
           </div>
@@ -1539,7 +1602,7 @@ function FoundationsTab() {
 
       {/* Catalog — every icon, grouped */}
       <div className="mb-4 rounded-2xl border border-stroke-outline p-5">
-        <div className="type-detail-emphasized text-text-primary mb-1">Catalog</div>
+        <div className="type-h2-emphasized text-text-primary mb-3">Catalog</div>
         <p className="type-detail text-text-secondary mb-4">
           Every lucide icon currently used across the WorkPal codebase, rendered as the real SVG component.
         </p>
@@ -1580,7 +1643,7 @@ function FoundationsTab() {
 
       {/* ─── Usage checklist ─── */}
       <div className="mb-6 rounded-2xl border border-stroke-outline p-5">
-        <div className="type-body-emphasized text-text-primary mb-2">Foundation usage checklist</div>
+        <div className="type-h2-emphasized text-text-primary mb-2">Foundation usage checklist</div>
         <ul className="list-disc pl-5 type-detail text-text-primary space-y-1">
           <li>Colors: use <code className="type-caption font-mono">text-text-*</code> / <code className="type-caption font-mono">bg-bg-*</code> / <code className="type-caption font-mono">border-stroke-outline</code>, or <code className="type-caption font-mono">var(--color-*)</code> inline. Never a raw hex.</li>
           <li>Typography: one of <code className="type-caption font-mono">type-display</code>, <code className="type-caption font-mono">type-h1</code>, <code className="type-caption font-mono">type-body</code>, <code className="type-caption font-mono">type-body-emphasized</code>, <code className="type-caption font-mono">type-h2</code>, <code className="type-caption font-mono">type-h2-emphasized</code>, <code className="type-caption font-mono">type-detail</code>, <code className="type-caption font-mono">type-detail-emphasized</code>.</li>
@@ -1601,22 +1664,27 @@ function FoundationsTab() {
 function LayoutCard({
   name, pagesUsing, children,
 }: { name: string; pagesUsing: string[]; children: React.ReactNode }) {
+  // Pattern A (per Principle #13): SectionTitle out of box, content wrapped
+  // in a border-only box (matching FoundationsTab convention).
   return (
-    <div className="mb-6 rounded-2xl border border-stroke-outline p-5">
-      <div className="flex items-center gap-2 mb-1">
-        <span className="type-h1--emphasized text-text-primary">{name}</span>
-        <span className="type-caption px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">shared.tsx</span>
-      </div>
-      <div className="mt-3">{children}</div>
-      <div className="mt-4 pt-3 border-t border-stroke-outline">
-        <div className="type-footnote font-semibold text-text-primary uppercase tracking-[0.5px] mb-2">Used by</div>
-        <div className="flex flex-wrap gap-2">
-          {pagesUsing.map(p => (
-            <span key={p} className="type-caption px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">{p}</span>
-          ))}
+    <>
+      <SectionTitle
+        trailing={<span className="type-caption px-2 py-0.5 rounded-full bg-bg-hover text-text-primary font-normal">shared.tsx</span>}
+      >
+        {name}
+      </SectionTitle>
+      <div className="rounded-2xl border border-stroke-outline p-5">
+        <div>{children}</div>
+        <div className="mt-4">
+          <div className="type-footnote font-semibold text-text-primary uppercase tracking-[0.5px] mb-2">Used by</div>
+          <div className="flex flex-wrap gap-2">
+            {pagesUsing.map(p => (
+              <span key={p} className="type-caption px-2 py-0.5 rounded-full bg-bg-hover text-text-primary">{p}</span>
+            ))}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -1624,18 +1692,33 @@ function LayoutsTab() {
   const [sideOpen, setSideOpen] = useState(true);
   return (
     <div>
-      {/* ─── App shell: the three-panel structure every surface plugs into ─── */}
-      <div className="mb-6 rounded-2xl border border-stroke-outline p-5">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="type-h1--emphasized text-text-primary">App Shell — Three-Panel Structure</span>
-          <span className="type-caption px-2 py-0.5 rounded-full border border-stroke-outline text-text-primary">App.tsx</span>
+      {/* Intro card — L1 in the DesignSystemPage hierarchy (see SectionTitle
+          JSDoc). Brings LayoutsTab in line with every other tab. */}
+      <div className="mb-6 rounded-2xl bg-bg-hover p-5">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="type-h2">🧱</span>
+          <span className="type-h1--emphasized text-text-primary">Layout shells we plug into</span>
         </div>
-        <p className="type-caption text-text-primary mt-2 mb-4">
-          Every WorkPal view composes into a single three-panel shell: <strong>NavPanel</strong> (global navigation), <strong>ConversationPanel</strong> (primary working surface), and <strong>InspectorPanel</strong> (contextual detail). Foundations tokens flow through all three; edit a color once and every panel updates.
+        <p className="type-detail text-text-secondary">
+          Three-panel app shell — every feature slots into <span className="type-detail-emphasized text-text-primary">NavPanel</span>, <span className="type-detail-emphasized text-text-primary">ConversationPanel</span>, or <span className="type-detail-emphasized text-text-primary">InspectorPanel</span>. The layouts below are the canonical containers; pages compose them rather than reinvent.
         </p>
+      </div>
 
-        {/* Visual diagram */}
-        <div className="rounded-xl overflow-hidden border border-stroke-outline mb-4" style={{ background: 'var(--color-bg-hover)' }}>
+      {/* ─── App shell: the three-panel structure every surface plugs into.
+          Pattern A (per Principle #13): SectionTitle out of box, content boxes inside. ─── */}
+      <SectionTitle
+        id="ds-layouts-app-shell"
+        trailing={<span className="type-caption px-2 py-0.5 rounded-full bg-bg-hover text-text-primary font-normal">App.tsx</span>}
+      >
+        App Shell — Three-Panel Structure
+      </SectionTitle>
+      <div className="rounded-2xl border border-stroke-outline p-5">
+      <p className="type-caption text-text-primary mb-4">
+        Every WorkPal view composes into a single three-panel shell: <strong>NavPanel</strong> (global navigation), <strong>ConversationPanel</strong> (primary working surface), and <strong>InspectorPanel</strong> (contextual detail). Foundations tokens flow through all three; edit a color once and every panel updates.
+      </p>
+
+      {/* Visual diagram (bg-only per Principle #12) */}
+      <div className="rounded-xl overflow-hidden mb-4" style={{ background: 'var(--color-bg-hover)' }}>
           <div className="grid grid-cols-[110px_1fr_160px] h-[220px] gap-0">
             {/* NavPanel */}
             <div className="relative border-r border-dashed border-stroke-outline p-3 flex flex-col justify-between" style={{ background: 'var(--color-sidebar-bg)' }}>
@@ -1706,7 +1789,7 @@ function LayoutsTab() {
               widthHint: '280 / 504 px',
             },
           ].map(p => (
-            <div key={p.panel} className="rounded-xl border border-stroke-outline p-4" style={{ background: 'var(--color-bg-hover)' }}>
+            <div key={p.panel} className="rounded-xl p-4" style={{ background: 'var(--color-bg-hover)' }}>
               <div className="flex items-center justify-between mb-2">
                 <span className="type-detail-emphasized text-text-primary">{p.panel}</span>
                 <span className="type-caption font-mono text-text-secondary">{p.widthHint}</span>
@@ -1723,18 +1806,16 @@ function LayoutsTab() {
           ))}
         </div>
 
-        <div className="mt-4 pt-3 border-t border-stroke-outline">
-          <p className="type-caption text-text-primary">
-            <strong>Rule:</strong> a new feature is a <em>slot</em> in one of these three panels — never a new top-level chrome element. If you need a new panel primitive, build it in <code className="type-caption font-mono">shared.tsx</code> and register it under the relevant panel here.
-          </p>
-        </div>
+      <p className="mt-4 type-caption text-text-primary">
+        <strong>Rule:</strong> a new feature is a <em>slot</em> in one of these three panels — never a new top-level chrome element. If you need a new panel primitive, build it in <code className="type-caption font-mono">shared.tsx</code> and register it under the relevant panel here.
+      </p>
       </div>
 
       <LayoutCard name="PageLayout" pagesUsing={['OverviewPage', 'LibraryPage', 'ConnectorsPage', 'DesignSystemPage', 'Onboarding', 'ProjectPage', 'ComingSoonPage']}>
         <p className="type-caption text-text-primary mb-3">
           Canonical page shell. Toggle bar + H1 + optional filters + scrollable body. Edit the spec in <code className="type-caption font-mono px-1 rounded text-accent-blue" style={{ background: 'var(--color-bg-hover)' }}>shared.tsx</code> once — every page updates.
         </p>
-        <div className="rounded-lg border border-stroke-outline overflow-hidden" style={{ background: 'var(--color-bg-hover)' }}>
+        <div className="rounded-lg overflow-hidden" style={{ background: 'var(--color-bg-hover)' }}>
           <div className="p-5">
             <div className="rounded border border-dashed border-stroke-outline flex items-center px-3" style={{ height: 40, background: 'var(--color-bg-page)' }}>
               <span className="type-caption font-mono text-text-secondary">Toggle bar · h-12</span>
@@ -2396,10 +2477,10 @@ function ComponentsTab() {
       usedIn: ['Overview metrics row'],
       preview: (
         <div className="flex gap-3">
-          <div className="flex-1 bg-bg-page rounded-xl border border-stroke-outline p-3">
+          <div className="flex-1 bg-bg-page rounded-xl p-3">
             <MetricCard title="Emotional value" value="10" subtitle="/10" />
           </div>
-          <div className="flex-1 bg-bg-page rounded-xl border border-stroke-outline p-3">
+          <div className="flex-1 bg-bg-page rounded-xl p-3">
             <MetricCard title="Time gained" value="+2h" subtitle="this week" />
           </div>
         </div>
@@ -2707,7 +2788,7 @@ function ComponentsTab() {
     <div>
       <div className="mb-6 rounded-2xl bg-bg-hover p-5">
         <div className="flex items-center gap-2 mb-2">
-          <span className="type-body">📚</span>
+          <span className="type-h2">📚</span>
           <span className="type-h1--emphasized text-text-primary">Live from the codebase</span>
         </div>
         <p className="type-detail text-text-primary">
@@ -2870,7 +2951,7 @@ function AgentVideosTab() {
       {/* Intro card */}
       <div className="mb-6 rounded-2xl bg-bg-hover p-5">
         <div className="flex items-center gap-2 mb-2">
-          <span className="type-body">📹</span>
+          <span className="type-h2">📹</span>
           <span className="type-h1--emphasized text-text-primary">Welcome-state avatar videos</span>
         </div>
         <p className="type-detail text-text-primary mb-3">
@@ -2902,7 +2983,7 @@ function AgentVideosTab() {
                 <img src={agent.avatar} alt={agent.name} className="w-full h-full object-cover" />
               </div>
               <div>
-                <h2 className="type-h1--emphasized text-text-primary">{agent.name}</h2>
+                <h2 className="type-h2-emphasized text-text-primary">{agent.name}</h2>
                 <p className="type-caption text-text-secondary">
                   {lightVideos.length} light · {darkVideos.length} dark
                 </p>
@@ -3113,7 +3194,7 @@ function ReviewTab() {
     <div>
       <div className="mb-6 rounded-2xl bg-bg-hover p-5">
         <div className="flex items-center gap-2 mb-2">
-          <span className="type-body">🧪</span>
+          <span className="type-h2">🧪</span>
           <span className="type-h1--emphasized text-text-primary">How the review queue works</span>
         </div>
         <ol className="list-decimal pl-5 type-detail text-text-primary space-y-1">
@@ -3125,7 +3206,7 @@ function ReviewTab() {
       </div>
 
       {/* Pending */}
-      <SharedSectionTitle emoji="⏳" title="Pending review" count={pending.length} size={20} />
+      <SectionTitle emoji="⏳" count={pending.length}>Pending review</SectionTitle>
       {pending.length === 0 ? (
         <div className="mb-6 rounded-2xl border border-dashed border-stroke-outline p-8 text-center">
           <p className="type-detail text-text-primary mb-1">No components awaiting review</p>
@@ -3155,7 +3236,7 @@ function ReviewTab() {
       {/* Approved */}
       {approved.length > 0 && (
         <>
-          <SharedSectionTitle emoji="✅" title="Approved (promoted to shared.tsx)" count={approved.length} size={20} />
+          <SectionTitle emoji="✅" count={approved.length}>Approved (promoted to shared.tsx)</SectionTitle>
           <div className="flex flex-col gap-3 mb-6">
             {approved.map(item => (
               <div key={item.id} className="rounded-2xl border border-stroke-outline p-4 flex items-center gap-3">
@@ -3172,7 +3253,7 @@ function ReviewTab() {
       {/* Rejected */}
       {rejected.length > 0 && (
         <>
-          <SharedSectionTitle emoji="🗑️" title="Rejected" count={rejected.length} size={20} />
+          <SectionTitle emoji="🗑️" count={rejected.length}>Rejected</SectionTitle>
           <div className="flex flex-col gap-3">
             {rejected.map(item => (
               <div key={item.id} className="rounded-2xl border border-stroke-outline p-4 flex items-center gap-3">
@@ -3185,6 +3266,518 @@ function ReviewTab() {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   Tab 7 — Voice & Tone
+   How WorkPal speaks. Two layers: system baseline
+   (this page) + user personalization (Onboarding).
+   Mirrors §9 of DESIGN_SYSTEM.md — keep them in sync.
+   ═══════════════════════════════════════════════════ */
+
+const ONBOARDING_TRAITS_PREVIEW = [
+  '🛟 Stable', '🧠 Organized', '🤗 Kind', '🧘 Calm',
+  '🌱 Open-minded', '🫶 People-first', '😊 Always smiling', '🎭 Has a sense of humor',
+  '⚡ Energetic', '✨ Minimal', '👔 Formal', '🙈 Not sure yet',
+];
+
+const VOICE_TONE_BY_SITUATION: { situation: string; style: string; example: string }[] = [
+  { situation: '✅ Task completed',      style: 'Warm, affirming, lightly celebratory', example: '"All done! You can relax now, I’ve got this 😊"' },
+  { situation: '⚠️ User made a mistake', style: 'Gentle, non-judgmental, supportive',  example: '"Looks like we’re missing a file — no worries, let’s fix it together."' },
+  { situation: '❓ Uncertainty / hesitation', style: 'Clear, helpful, reassuring',     example: '"I’ve got a few options. Want to take a look and choose what fits best?"' },
+  { situation: '📈 Offering suggestions', style: 'Logical, structured, calm',           example: '"Here are three key insights: 1. Time usage, 2. Repetitive tasks, 3. Collaboration gaps."' },
+];
+
+const VOICE_TRAITS: { trait: string; desc: string }[] = [
+  { trait: 'Inclusive',  desc: 'Welcomes users of all levels. Never rushes, never pressures.' },
+  { trait: 'Kind',       desc: 'Speaks like a trusted colleague — professional yet human.' },
+  { trait: 'Structured', desc: 'Provides clarity with clean, step-by-step responses.' },
+  { trait: 'Reliable',   desc: 'Remembers your progress, fills in gaps, never lets you do extra work.' },
+  { trait: 'Calm',       desc: 'Stays steady during chaos, offering logic and composure.' },
+];
+
+const SAMPLE_PHRASES: { context: string; phrase: string }[] = [
+  { context: 'Starting',   phrase: '"Ready when you are."' },
+  { context: 'Task done',  phrase: '"All done. What’s next?"' },
+  { context: 'Processing', phrase: '"I’m on it. Just a sec."' },
+  { context: 'Error hint', phrase: '"Looks like we’re missing a file."' },
+];
+
+const EMPTY_STATE_COPY: { surface: string; title: string; description: string }[] = [
+  { surface: 'No chats yet',          title: 'Ready when you are.',  description: 'Start a conversation — I’ll keep track of where we left off.' },
+  { surface: 'No projects',           title: 'Nothing here yet.',    description: 'Create a project to bring tasks, files, and conversations together.' },
+  { surface: 'No search results',     title: 'Nothing matched.',     description: 'Try a different word, or browse recent items.' },
+  { surface: 'Connector not connected', title: 'Not connected yet.', description: 'Connect to bring your data into WorkPal.' },
+  { surface: 'No tasks pending',      title: 'All caught up. ✨',     description: 'Nothing waiting on you. Take a moment.' },
+  { surface: 'No notifications',      title: 'All quiet.',           description: 'I’ll let you know when something needs your attention.' },
+];
+
+const ERROR_TEMPLATES: { situation: string; avoid: string; use: string }[] = [
+  { situation: 'Required field empty',     avoid: '"This field is required."',  use: '"Add a name so we can save it."' },
+  { situation: 'Network failure',          avoid: '"Network error."',           use: '"Couldn’t reach the network. I’ll retry — or you can."' },
+  { situation: 'Permission denied',        avoid: '"403 Forbidden."',           use: '"I don’t have access to that yet. Connect it on the Connectors page?"' },
+  { situation: 'Model overloaded',         avoid: '"503 Service Unavailable."', use: '"Servers are busy right now. Try again in a moment."' },
+  { situation: 'Unsaved changes',          avoid: '"You have unsaved changes."', use: '"You have unsaved edits — save before leaving?"' },
+  { situation: 'Unknown / catch-all',      avoid: '"Something went wrong."',    use: '"Something didn’t go through. Want me to try again?"' },
+];
+
+/** Helper for Pattern B card title (per Principle #13). Renders the L3
+ *  title row inside a list-item card: emoji + label, type-h2-emphasized. */
+function VoiceToneCardTitle({ emoji, children }: { emoji: string; children: React.ReactNode }) {
+  return (
+    <div className="type-h2-emphasized text-text-primary mb-3 flex items-center gap-2">
+      <span aria-hidden="true">{emoji}</span>
+      <span>{children}</span>
+    </div>
+  );
+}
+
+function VoiceToneTab() {
+  return (
+    <div>
+      {/* Intro card */}
+      <div className="mb-6 rounded-2xl bg-bg-hover p-5">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="type-h2">💬</span>
+          <span className="type-h1--emphasized text-text-primary">How WorkPal speaks</span>
+        </div>
+        <p className="type-detail text-text-secondary">
+          Two layers: the <span className="type-detail-emphasized text-text-primary">system baseline</span> (this page) is the default voice the product ships with — calm, structured, empathetic. The <span className="type-detail-emphasized text-text-primary">user personalization layer</span> applies on top: every user names their agent and selects 3 weighted traits during Onboarding.
+        </p>
+      </div>
+
+      {/* Pattern B (Principle #13): flat list of cards, L3 title inside each card,
+          no L2 SectionTitle wrappers. 9 sections, space-y-4 between cards. */}
+      <div className="space-y-4">
+        {/* 9.1 Brand Philosophy */}
+        <div id="vt-brand-philosophy" className="rounded-2xl border border-stroke-outline p-5">
+          <VoiceToneCardTitle emoji="🧠">Brand Philosophy</VoiceToneCardTitle>
+          <p className="type-detail-emphasized text-text-primary mb-2">Born from the best people you've worked with.</p>
+          <p className="type-detail text-text-primary">
+            WorkPal is a <span className="type-detail-emphasized">calm, structured, and empathetic</span> AI assistant — built not just to execute tasks, but to understand your pace, lighten your load, and always be there when you need support.
+          </p>
+        </div>
+
+        {/* 9.2 Personalization Philosophy — merged from 2 cards into 1 (Pattern B = 1 card per section) */}
+        <div id="vt-personalization" className="rounded-2xl border border-stroke-outline p-5">
+          <VoiceToneCardTitle emoji="🪄">Personalization Philosophy</VoiceToneCardTitle>
+          <p className="type-detail text-text-primary mb-3">
+            Personalization builds on the baseline — it <span className="type-detail-emphasized">enhances</span>, but doesn't replace the core identity.
+          </p>
+          <ul className="list-disc pl-5 space-y-2 type-detail text-text-primary mb-4">
+            <li><span className="type-detail-emphasized">Parasocial bonding.</span> When users assign traits they admire, they project the warmth and trust they associate with real people — deepening trust and acceptance.</li>
+            <li><span className="type-detail-emphasized">Participation builds connection.</span> When users shape the assistant's tone or appearance, that involvement strengthens emotional connection and creates ownership and belonging.</li>
+          </ul>
+          <p className="type-detail-emphasized text-text-primary mb-3">12 personality traits — drag 3 into "important" zone (top-3 carry extra weight; the rest still shape the agent at lower weight). Lives in <span className="font-mono type-caption">src/components/Onboarding.tsx</span>.</p>
+          <div className="flex flex-wrap gap-2">
+            {ONBOARDING_TRAITS_PREVIEW.map(t => (
+              <Tag key={t}>{t}</Tag>
+            ))}
+          </div>
+        </div>
+
+        {/* 9.3 Tone by situation */}
+        <div id="vt-tone-situation" className="rounded-2xl border border-stroke-outline p-5">
+          <VoiceToneCardTitle emoji="🎭">Tone — by situation</VoiceToneCardTitle>
+          <p className="type-detail text-text-secondary mb-3">The baseline shifts subtly with the emotional weight of the moment. Never drop the calm-structured floor; only flex the warmth dial.</p>
+          <SpecTable
+            headers={['Situation', 'Tone style', 'Example response']}
+            rows={VOICE_TONE_BY_SITUATION.map(r => [r.situation, r.style, r.example])}
+            emphasizeCol={2}
+          />
+        </div>
+
+        {/* 9.4 Voice traits */}
+        <div id="vt-voice-traits" className="rounded-2xl border border-stroke-outline p-5">
+          <VoiceToneCardTitle emoji="🧭">Voice Personality Traits</VoiceToneCardTitle>
+          <p className="type-detail text-text-secondary mb-3">The five baseline traits below describe how WorkPal speaks before any user personalization. They are the floor, not the ceiling.</p>
+          <SpecTable
+            headers={['Trait', 'Description']}
+            rows={VOICE_TRAITS.map(r => [r.trait, r.desc])}
+            emphasizeCol={0}
+          />
+        </div>
+
+        {/* 9.5 Style guide */}
+        <div id="vt-style-guide" className="rounded-2xl border border-stroke-outline p-5">
+          <VoiceToneCardTitle emoji="🎨">Style Guide for Language</VoiceToneCardTitle>
+          <ul className="list-disc pl-5 space-y-2 type-detail text-text-primary">
+            <li><span className="type-detail-emphasized">Avoid cold or technical jargon.</span> "Error 404" → "Can't find the file, want to retry?"</li>
+            <li><span className="type-detail-emphasized">Friendly use of emojis (context-dependent):</span> 😊 👍. At most once per message; never in error/warning copy.</li>
+            <li><span className="type-detail-emphasized">Keep sentences short, smart, and clear.</span> One idea per sentence.</li>
+            <li><span className="type-detail-emphasized">Never cutesy or forced</span> — just steady, helpful, and warm.</li>
+          </ul>
+        </div>
+
+        {/* 9.6 Sample phrases */}
+        <div id="vt-sample-phrases" className="rounded-2xl border border-stroke-outline p-5">
+          <VoiceToneCardTitle emoji="📘">Sample Phrases (UI / system surfaces)</VoiceToneCardTitle>
+          <SpecTable
+            headers={['Context', 'Phrase']}
+            rows={SAMPLE_PHRASES.map(r => [r.context, r.phrase])}
+            emphasizeCol={1}
+          />
+        </div>
+
+        {/* 9.7 UX Strategy Matrix */}
+        <div id="vt-ux-strategy" className="rounded-2xl border border-stroke-outline p-5">
+          <VoiceToneCardTitle emoji="📌">UX Strategy Matrix — by task state</VoiceToneCardTitle>
+          <p className="type-detail text-text-secondary mb-3">What the interaction surface does in each state. Decisions ladder up to the AI Patterns tab.</p>
+          <SpecTable
+            headers={['Task state', 'UX interaction strategy']}
+            rows={[
+              ['✅ Task completed', '1. Proactive suggestion of next steps based on inferred intent (uses MessageCard follow-up chips)'],
+              ['❌ Task incomplete / failed', '1. Intent clarification & input reconstruction · 2. Alternative action suggestion · 3. Progressive disclosure (show error reason on demand, not by default)'],
+            ]}
+          />
+        </div>
+
+        {/* 9.8 Empty-state copy templates */}
+        <div id="vt-empty-states" className="rounded-2xl border border-stroke-outline p-5">
+          <VoiceToneCardTitle emoji="🪹">Empty-state copy templates</VoiceToneCardTitle>
+          <p className="type-detail text-text-secondary mb-3">For the <span className="font-mono type-caption">EmptyState</span> component. Title is short and action-oriented; description optional.</p>
+          <SpecTable
+            headers={['Surface', 'Title', 'Description']}
+            rows={EMPTY_STATE_COPY.map(r => [r.surface, r.title, r.description])}
+            emphasizeCol={1}
+          />
+        </div>
+
+        {/* 9.9 Error templates */}
+        <div id="vt-error-templates" className="rounded-2xl border border-stroke-outline p-5">
+          <VoiceToneCardTitle emoji="⚠️">Error message templates</VoiceToneCardTitle>
+          <p className="type-detail text-text-secondary mb-3">Pattern: identify the issue + offer the next step. Never just "Error" or a status code. Never expose HTTP codes, stack traces, or model names to the user.</p>
+          <SpecTable
+            headers={['Situation', 'Avoid', 'Use']}
+            rows={ERROR_TEMPLATES.map(r => [r.situation, r.avoid, r.use])}
+            emphasizeCol={2}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Lightweight spec table — used by both Voice & Tone and AI Patterns tabs.
+ *  No fancy primitives — just a bordered grid that respects design tokens. */
+function SpecTable({ headers, rows, emphasizeCol }: { headers: string[]; rows: string[][]; emphasizeCol?: number }) {
+  return (
+    <div className="rounded-xl border border-stroke-outline overflow-hidden">
+      <div className="grid bg-bg-hover" style={{ gridTemplateColumns: `repeat(${headers.length}, minmax(0, 1fr))` }}>
+        {headers.map((h, i) => (
+          <div key={i} className="px-3 py-2 type-detail-emphasized text-text-primary border-r border-stroke-outline last:border-r-0">{h}</div>
+        ))}
+      </div>
+      {rows.map((row, ri) => (
+        <div key={ri} className="grid border-t border-stroke-outline" style={{ gridTemplateColumns: `repeat(${headers.length}, minmax(0, 1fr))` }}>
+          {row.map((cell, ci) => (
+            <div
+              key={ci}
+              className={`px-3 py-2 type-detail border-r border-stroke-outline last:border-r-0 ${ci === emphasizeCol ? 'text-text-primary type-detail-emphasized' : 'text-text-primary'}`}
+            >
+              {cell}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════
+   Tab 8 — AI Patterns
+   Composed flows that sit one level above components.
+   Mirrors §8 of DESIGN_SYSTEM.md — keep them in sync.
+   ═══════════════════════════════════════════════════ */
+
+type PatternStatus = 'shipped' | 'partial' | 'placeholder';
+
+interface AIPattern {
+  id: string;
+  emoji: string;
+  name: string;
+  status: PatternStatus;
+  problem: string;
+  rules: string[];
+  donts?: string[];
+  anatomy: string;
+}
+
+const AI_PATTERNS: AIPattern[] = [
+  {
+    id: 'streaming',
+    emoji: '🌊',
+    name: 'Streaming',
+    status: 'shipped',
+    problem: 'The model produces tokens incrementally (200ms–10s). Users need to (a) see progress immediately, (b) stop generation, (c) trust that "no movement" means done, not stuck.',
+    rules: [
+      'Render tokens as they arrive (no buffer-then-flush) inside the ChatMessage assistant bubble.',
+      'Show a 3-dot brand-gradient loader (.loading-dot) when the stream hasn’t started yet (network round-trip).',
+      'Token arrival itself signals liveness — no extra blinking caret needed during active streaming.',
+      'Show a Stop affordance in the composer while streaming; collapses to Send when done.',
+      'Entry animation uses var(--motion-duration-normal) var(--motion-ease-decelerate) — see .message-appear.',
+    ],
+    donts: [
+      'Don’t buffer tokens to render whole sentences. Buffering looks frozen and breaks the trust loop.',
+    ],
+    anatomy: 'ChatMessage (assistant variant) + 3-dot loader + Stop button in ChatInput.',
+  },
+  {
+    id: 'citation',
+    emoji: '🔖',
+    name: 'Citation',
+    status: 'partial',
+    problem: 'Model output makes claims that need to be traceable to source material (a doc, an email, a meeting transcript, a URL). Without citations, every AI claim has the same trust level — which means none.',
+    rules: [
+      'Inline citation: a .type-footnote chip with a leading source-type icon (File, Mail, Calendar, Link). Click → opens the source in DetailPanel.',
+      'Multiple citations stack with gap-1, never wrap mid-sentence — push the entire group to end-of-paragraph if needed.',
+      'Source preview: hovering surfaces a Tooltip (dark, --color-tooltip-bg) with the source title + 1-line excerpt.',
+      'Use --color-accent-blue for the citation chip text — consistent with link styling, marks it as a navigation affordance.',
+    ],
+    anatomy: '.type-footnote chip + lucide source icon + Tooltip. Promote to <Citation /> in shared.tsx when a second consumer appears.',
+  },
+  {
+    id: 'confirmation',
+    emoji: '✅',
+    name: 'Confirmation',
+    status: 'shipped',
+    problem: 'The agent is about to take a side-effecting action (create ticket, send email, run script). Doing it silently breaks user agency; asking before every action breaks the autonomy promise.',
+    rules: [
+      'Side-effecting actions render a MessageCard variant (ticket, schedule, meeting) with a preview + explicit confirm/cancel pair.',
+      'Confirm = PrimaryButton (gradient — one per card). Cancel = TertiaryButton.',
+      'Reversible read-only actions (search, summarize, draft) skip confirmation — go directly to result.',
+      'After confirm, the card collapses to a StatusTag row showing the result.',
+      '"Don’t ask again for X" is reserved for repeated identical actions in the same session — never persist across sessions without explicit consent.',
+    ],
+    anatomy: 'MessageCard + PrimaryButton + TertiaryButton + StatusTag.',
+  },
+  {
+    id: 'undo',
+    emoji: '↩️',
+    name: 'Undo',
+    status: 'placeholder',
+    problem: 'Even with confirmation, the agent’s action lands in the real world (ticket created in Linear, email drafted in Gmail). User needs a way to back out within seconds without going to the source system.',
+    rules: [
+      'After a side-effecting action lands, the resulting MessageCard shows an Undo affordance for N seconds (default 10s for low-stakes; 30s for irreversible-ish like sending email).',
+      'Undo countdown uses a token-exempt loop duration (10s/30s — like progressFill bespoke timing).',
+      'Undo collapses the card to "Reverted" StatusTag (neutral variant).',
+      'After the window expires, the Undo affordance is replaced by a permanent link to the action source ("View ticket in Linear").',
+    ],
+    anatomy: 'Placeholder. No component yet — spec reserved here so when the Undo flow ships it converges on this shape.',
+  },
+  {
+    id: 'confidence',
+    emoji: '🏷️',
+    name: 'Confidence / Status',
+    status: 'shipped',
+    problem: 'Not every AI output is a finished result — some are guesses, some are partial, some are awaiting user input. A flat list of messages hides this distinction; users default to either over-trusting or never trusting.',
+    rules: [
+      'Use StatusTag (8 variants) on every AI-produced artifact card to signal where it sits.',
+      'Map: generating → in-progress (blue). Finished, awaiting user → in-review (amber). Approved → success (green). Rejected/failed → failed (red). Sent to external system → submitted (violet). Blocked on missing input → pending (orange).',
+      'Never use raw probability numbers ("87% confident") — they imply false precision. Use the categorical pills.',
+      'Insight-level content uses InsightCard ("Maya’s insight") as a higher-confidence signal — reserved for synthesized observations, not raw output.',
+    ],
+    anatomy: 'StatusTag (semantic) + InsightCard (insight-grade).',
+  },
+  {
+    id: 'tool-transparency',
+    emoji: '🔧',
+    name: 'Tool transparency',
+    status: 'placeholder',
+    problem: 'The agent calls tools (search docs, query Calendar, run code). When something goes wrong — or even when it goes right — the user needs to know what the agent did, not just the final answer. Black-box agents collapse trust the moment they’re wrong once.',
+    rules: [
+      'Every tool call emits a collapsed TaskProgressCard-like row inside the ChatMessage: tool icon + tool name + 1-line input summary + status.',
+      'Default state: collapsed. Expanded view shows full input + output (truncated to 200 lines, "View raw" link for the full payload).',
+      'Multiple tool calls in one turn stack vertically inside a single card with StepIndicator glyphs (done/in-progress/pending).',
+      'Failed tool calls surface inline immediately (red StatusTag), not folded into the agent’s natural-language response.',
+      'Use --color-accent-violet for the agent’s "calling tool X" header to distinguish from user-initiated actions.',
+    ],
+    anatomy: 'Placeholder. TaskProgressCard has the structural pieces (collapsible, step list); needs a tool-call-specific variant.',
+  },
+];
+
+function PatternStatusPill({ status }: { status: PatternStatus }) {
+  if (status === 'shipped')     return <StatusTag variant="success"   label="Shipped"     size="sm" showIcon={false} />;
+  if (status === 'partial')     return <StatusTag variant="in-review" label="Partial"     size="sm" showIcon={false} />;
+  return <StatusTag variant="submitted" label="Placeholder" size="sm" showIcon={false} />;
+}
+
+function AIPatternsTab() {
+  return (
+    <div>
+      {/* Intro card */}
+      <div className="mb-6 rounded-2xl bg-bg-hover p-5">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="type-h2">🪄</span>
+          <span className="type-h1--emphasized text-text-primary">Composed flows for AI surfaces</span>
+        </div>
+        <p className="type-detail text-text-secondary">
+          Where the <span className="type-detail-emphasized text-text-primary">Component Library</span> tab documents atomic UI primitives, this tab documents <span className="type-detail-emphasized text-text-primary">AI-specific interaction patterns</span> — composed flows for streaming output, citing sources, confirming agent actions, etc. Patterns sit one level above components: a pattern says "for problem X, here's the canonical shape we converge on."
+        </p>
+      </div>
+
+      {/* Status legend */}
+      <div className="mb-6 rounded-xl border border-stroke-outline p-4 flex flex-wrap items-center gap-4">
+        <span className="type-detail-emphasized text-text-primary">Pattern status:</span>
+        <span className="flex items-center gap-2"><StatusTag variant="success"   label="Shipped"     size="sm" showIcon={false} /><span className="type-caption text-text-secondary">raw material exists in components</span></span>
+        <span className="flex items-center gap-2"><StatusTag variant="in-review" label="Partial"     size="sm" showIcon={false} /><span className="type-caption text-text-secondary">pieces exist, gaps remain</span></span>
+        <span className="flex items-center gap-2"><StatusTag variant="submitted" label="Placeholder" size="sm" showIcon={false} /><span className="type-caption text-text-secondary">spec reserved, no component yet</span></span>
+      </div>
+
+      {/* §8.1 Conversation layout — Pattern A (per Principle #13):
+          SectionTitle out of box, content blocks below. Figma node 2848:39001. */}
+      <SectionTitle
+        id="ai-pattern-conversation-layout"
+        emoji="🪜"
+        trailing={<StatusTag variant="success" label="Shipped" size="sm" showIcon={false} />}
+      >
+        8.1 Conversation layout — Prompt / Reply / Grow
+      </SectionTitle>
+      <div className="rounded-2xl border border-stroke-outline p-5">
+      <p className="type-detail text-text-primary mb-4">
+        Every AI conversation unit follows a three-segment skeleton. This is the <span className="type-detail-emphasized">macro layout</span> — §8.2–§8.7 are how each segment fills in. All gaps are tokens from §1.4: inter-segment <span className="font-mono type-caption">--space-6</span> (24px), intra-segment <span className="font-mono type-caption">--space-4</span> (16px).
+      </p>
+
+      {/* Live mini-preview of the three-segment skeleton (bg-hover, no border per #12). */}
+      <div className="rounded-xl p-4 bg-bg-hover">
+          {/* Prompt — user message bubble */}
+          <div className="flex justify-end mb-6">
+            <div className="rounded-lg bg-bg-page px-4 py-3 max-w-[280px]">
+              <p className="type-h2 text-text-primary">Summarize the design sync</p>
+            </div>
+          </div>
+          {/* Reply.Text answer */}
+          <div>
+            <p className="type-detail-emphasized text-text-primary mb-1">Meeting Minutes</p>
+            <p className="type-detail text-text-primary">A 3-line summary of what was discussed and what was decided…</p>
+          </div>
+          {/* Reply.Card — bg-only (§3 #12: bg fill OR border, not both).
+              bg-page (whiter than the bg-hover wrapper) gives enough lift. */}
+          <div className="mt-4 rounded-lg bg-bg-page p-3 flex items-center gap-3">
+            <Ticket size={16} className="text-text-secondary" />
+            <span className="type-detail-emphasized text-text-primary flex-1">Illustration Request Ticket</span>
+            <StatusTag variant="success" label="Sent" size="sm" showIcon={false} />
+          </div>
+          {/* Grow.Text suggestion — a markdown paragraph with the offered options
+              bold-emphasized inline. NOT a separate component / button row. */}
+          <p className="mt-4 type-detail text-text-primary">
+            Let me know if you'd like me to <span className="type-detail-emphasized">explore solutions</span> or <span className="type-detail-emphasized">set up a meeting</span> to discuss this further. 🤔
+          </p>
+          {/* Grow.Toolbar — replicates FeedbackBar (ChatMessage.tsx). Real assets,
+              not lucide. SpeakerIcon is a custom SVG; rest are PNG via ../assets. */}
+          <div className="mt-4 flex items-center gap-1 text-text-primary" role="toolbar" aria-label="Message actions">
+            <button className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-bg-hover transition-colors" aria-label="Read aloud" title="Read aloud">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 opacity-40 hover:opacity-70">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+              </svg>
+            </button>
+            <button className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-bg-hover transition-colors" aria-label="Copy" title="Copy">
+              <img src={iconCopy} alt="" className="w-4 h-4 object-contain opacity-40 hover:opacity-70 icon-theme" />
+            </button>
+            <button className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-bg-hover transition-colors" aria-label="Share" title="Share">
+              <img src={iconShare} alt="" className="w-4 h-4 object-contain opacity-40 hover:opacity-70 icon-theme" />
+            </button>
+            <button className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-bg-hover transition-colors" aria-label="Good" title="Good">
+              <img src={iconThumbsUp} alt="" className="w-4 h-4 object-contain opacity-40 hover:opacity-70 icon-theme" />
+            </button>
+            <button className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-bg-hover transition-colors" aria-label="Bad" title="Bad">
+              <img src={iconThumbsUp} alt="" className="w-4 h-4 object-contain opacity-40 hover:opacity-70 icon-theme scale-y-[-1]" />
+            </button>
+            <button className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-bg-hover transition-colors" aria-label="Retry" title="Retry">
+              <img src={iconRefresh} alt="" className="w-4 h-4 object-contain opacity-40 hover:opacity-70 icon-theme" />
+            </button>
+          </div>
+        </div>
+
+        {/* Action chips area — sits ABOVE ChatInput (not inside the message).
+            ChatInput receives Message.chips and renders them as <Chip /> row.
+            Shown here as a separate skeleton block so the layout intent reads. */}
+        <div className="mt-4">
+          <p className="type-caption text-text-secondary mb-2">↓ ChatInput area (separate from the message above) — `Message.chips` renders here automatically:</p>
+          <div className="rounded-xl border border-dashed border-stroke-outline p-4 bg-bg-page">
+            <div className="flex flex-wrap gap-2 mb-3">
+              <Chip label="Explore solutions" active={false} onClick={() => {}} />
+              <Chip label="Set up a meeting" active={false} onClick={() => {}} />
+            </div>
+            <div className="rounded-lg bg-bg-hover h-10 flex items-center px-4">
+              <span className="type-h2 text-text-tertiary">Message WorkPal</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <p className="type-detail-emphasized text-text-primary mb-1">Don't</p>
+          <ul className="list-disc pl-5 space-y-1 type-detail text-text-primary">
+            <li>Stack two MessageCards in one Reply — pick the primary deliverable.</li>
+            <li>Render AI's follow-up <em>options</em> as inline buttons in the message body — write them as <span className="type-detail-emphasized">bold spans</span> inside the markdown, and emit clickable shortcuts via <span className="font-mono type-caption">message.chips: ActionChip[]</span> so ChatInput shows them above the textarea (one canonical interaction pattern).</li>
+            <li>Skip the Toolbar on assistant messages — Retry is the "model misread me" escape hatch.</li>
+          </ul>
+        </div>
+
+      <div className="mt-4">
+        <p className="type-detail-emphasized text-text-primary mb-1">Anatomy</p>
+        <p className="type-detail text-text-secondary">ChatMessage (user + assistant variants) + TypingIndicator + renderMarkdownBlocks + MessageCard / ArtifactCard / WebSourceChips / ImageResultsGrid / VideoResultsGrid + FeedbackBar. Action chips: <span className="font-mono type-caption">message.chips</span> → ChatInput renders via existing <span className="font-mono type-caption">&lt;Chip /&gt;</span> primitive.</p>
+      </div>
+      </div>
+
+      {/* Pattern sections — Pattern A: SectionTitle out of box, content wrapped
+          in a border-only box (matching FoundationsTab convention). */}
+      {AI_PATTERNS.map((p, idx) => (
+        <Fragment key={p.id}>
+          <SectionTitle
+            id={`ai-pattern-${p.id}`}
+            emoji={p.emoji}
+            trailing={<PatternStatusPill status={p.status} />}
+          >
+            {`8.${idx + 2} ${p.name}`}
+          </SectionTitle>
+
+          <div className="rounded-2xl border border-stroke-outline p-5">
+            <div className="mb-4">
+              <p className="type-detail-emphasized text-text-primary mb-1">Problem</p>
+              <p className="type-detail text-text-primary">{p.problem}</p>
+            </div>
+
+            <div className="mb-4">
+              <p className="type-detail-emphasized text-text-primary mb-1">Pattern</p>
+              <ul className="list-disc pl-5 space-y-1 type-detail text-text-primary">
+                {p.rules.map((r, i) => <li key={i}>{r}</li>)}
+              </ul>
+            </div>
+
+            {p.donts && (
+              <div className="mb-4">
+                <p className="type-detail-emphasized text-error mb-1">Don't</p>
+                <ul className="list-disc pl-5 space-y-1 type-detail text-text-primary">
+                  {p.donts.map((d, i) => <li key={i}>{d}</li>)}
+                </ul>
+              </div>
+            )}
+
+            <div>
+              <p className="type-detail-emphasized text-text-primary mb-1">Anatomy</p>
+              <p className="type-detail text-text-secondary">{p.anatomy}</p>
+            </div>
+          </div>
+        </Fragment>
+      ))}
+
+      {/* StatusTag preview — referenced by 8.6 */}
+      <SectionTitle id="ai-status-preview">Live preview — StatusTag variants (referenced by §8.6)</SectionTitle>
+      <div className="rounded-2xl border border-stroke-outline p-5 flex flex-wrap gap-2">
+        <StatusTag variant="pending"     label="pending"     size="md" />
+        <StatusTag variant="in-progress" label="in-progress" size="md" />
+        <StatusTag variant="submitted"   label="submitted"   size="md" />
+        <StatusTag variant="in-review"   label="in-review"   size="md" />
+        <StatusTag variant="success"     label="success"     size="md" />
+        <StatusTag variant="failed"      label="failed"      size="md" />
+        <StatusTag variant="expired"     label="expired"     size="md" />
+        <StatusTag variant="neutral"     label="neutral"     size="md" />
+      </div>
     </div>
   );
 }

@@ -62,7 +62,7 @@ export default function SoftwareUpdatePage({ sidebarOpen, onToggleSidebar, onNew
     return (
       <PageLayout title="Software Update" bgClass="app-bg" sidebarOpen={sidebarOpen} onToggleSidebar={onToggleSidebar} onNewChat={onNewChat}>
         <div className="flex-1 flex items-center justify-center">
-          <p className="type-body text-text-secondary">Demo mode — updates not applicable</p>
+          <p className="type-h2 text-text-secondary">Demo mode — updates not applicable</p>
         </div>
       </PageLayout>
     );

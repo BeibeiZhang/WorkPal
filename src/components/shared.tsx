@@ -371,7 +371,7 @@ export function SearchBox({
               placeholder={placeholder}
               value={value}
               onChange={e => onChange(e.target.value)}
-              className="flex-1 min-w-0 bg-transparent outline-none type-body text-text-primary placeholder-text-secondary"
+              className="flex-1 min-w-0 bg-transparent outline-none type-h2 text-text-primary placeholder-text-secondary"
             />
             {value && (
               <button
@@ -1765,7 +1765,7 @@ export function SolutionRow({
 }) {
   return (
     <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-bg-hover mb-1.5">
-      <span className="type-body">{icon}</span>
+      <span className="type-h2">{icon}</span>
       <div className="flex-1 min-w-0">
         <span className="type-detail-emphasized text-text-primary">{title}</span>
         <span className="type-detail text-text-primary"> — {desc}</span>
