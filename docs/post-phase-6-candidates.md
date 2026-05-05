@@ -242,6 +242,87 @@ Hidden in `IS_DEMO` builds (no debug for HR audience).
 
 ---
 
+## 60. `decided-next` — `usage_log.source` 6 callsite 漏写 + historical backfill + UI copy clarify
+
+**Surfaced**: 2026-05-05 Beibei OverviewPage Range tab "1d" 仍显示 `Unknown / pre-2026-04-28 · $9.31 · 4 calls`. 1d 累计 = 过去 24h, 不应该有 "pre-2026-04-28" 数据 → bug.
+
+**Root cause** (Supabase MCP query verify): 7 天 usage_log row source 分布:
+- `null`: 55 calls / $16.76 — first 2026-04-28 / **last 2026-05-05 04:46** (still firing!)
+- `workpal-beibei`: 8 calls / $0.99 — only 2026-05-04 23:47-23:50 (3 分钟窗口)
+- `localhost`: 1 call / $0.00
+
+7 个 logUsage callsite 中**只有 `api/usage.ts:156`** (voice mode endpoint, frontend 上报 source body) 写了 source 字段. **其他 6 个 callsite 全漏** —— migration `0007_usage_log_source` 加 schema 时只 update 了 voice path:
+- `api/chat.ts:191, 620` (Vercel chat handler 主路径)
+- `server/src/lib/llm.ts:479` (Express dev LLM)
+- `server/src/lib/webSearch.ts:60` (Tavily web search)
+- `server/src/routes/claudeChat.ts:736` (Claude SDK)
+- `server/src/routes/usage.ts:59` (dev usage)
+- `agent/src/shared/...` (mirror of server, 同漏)
+
+Beibei 主用 chat (api/chat.ts) → null → bucket "unknown". Voice 偶尔用 → 唯一正确分类.
+
+**Goal**: 3 件:
+1. 6 callsite 加 `source` 字段写入 (server-side detect from req.origin)
+2. Historical backfill SQL (2026-04-28 之后 null row → workpal-beibei, Beibei confirm 时间段她主从 vercel.app 访问)
+3. UI copy "Unknown / pre-2026-04-28" → "Pre-tracking" (清理 4-28 之前真不知道的部分, 不暗示 unknown=数据出问题)
+
+**Scope (locked 2026-05-05)**:
+
+- **`detectSourceFromRequest(req)` helper** in `api/_lib/usage-store.ts` + mirror `server/src/lib/usageLog.ts` + `agent/src/shared/lib/usageLog.ts`:
+  ```ts
+  export function detectSourceFromRequest(req): Source {
+    const origin = req.headers.origin || req.headers.referer || '';
+    if (origin.includes('workpal-beibei')) return 'workpal-beibei';
+    if (origin.includes('my-workpal')) return 'my-workpal';
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) return 'localhost';
+    return 'unknown';
+  }
+  ```
+- **6 callsite 加 `source: detectSourceFromRequest(req)` 字段**:
+  - `api/chat.ts:191, 620` (Vercel)
+  - `server/src/lib/llm.ts:479` + `webSearch.ts:60` + `routes/claudeChat.ts:736` + `routes/usage.ts:59` (Express dev)
+  - **Agent shared mirror sync** (per `feedback_agent_shared_mirror`): `agent/src/shared/routes/claudeChat.ts` + 相关 lib via `scripts/sync-agent-shared.sh`
+- **Historical backfill SQL** (impl apply via Supabase MCP):
+  ```sql
+  UPDATE usage_log SET source = 'workpal-beibei' 
+  WHERE source IS NULL AND ts >= '2026-04-28';
+  ```
+  2026-04-28 之前 row 保留 NULL (真不知道, UI copy 改 "Pre-tracking" 解释).
+- **UI copy in OverviewPage by_source render**: "Unknown / pre-2026-04-28" → "Pre-tracking" (or "Pre-tracking · before source field added"). 视觉清晰不暗示数据 bug.
+- **Vitest case** (per §28 Standard rule): pin `detectSourceFromRequest` hostname → source mapping (mirror `errorLogger.test.ts` pattern: 4 cases, workpal-beibei / my-workpal / localhost / unknown).
+
+**Non-goals**:
+- 重新 design source 概念 (e.g. 加 client_ip / user_agent 等更细 metadata) — over-engineer
+- Backfill pre-2026-04-28 row (真不知道, 让 "Pre-tracking" copy 解释)
+- 改 schema (字段 type / constraint 不动)
+- Voice endpoint behavior 改 (api/usage.ts 已 work, 不动)
+
+**Effort**: 1.5-2 hr.
+- `detectSourceFromRequest` helper × 3 mirror (15min)
+- 6 callsite 加 source (30min)
+- Agent shared mirror sync (10min)
+- Backfill SQL via MCP (5min, 1 SQL statement)
+- UI copy 改 (5min)
+- Vitest case (15min)
+
+**Risk classification**: medium — touches 3 mirror trees (api/_lib + server/src/lib + agent/src/shared/lib) + backfill historical data. 但 detectSourceFromRequest 是 read-only req.headers, 没副作用. Backfill SQL 仅 update NULL → 'workpal-beibei' (不破坏现 source row).
+
+**Test plan**:
+- Send chat from `workpal-beibei.vercel.app` → usage_log row source = 'workpal-beibei'
+- Send chat from `my-workpal.vercel.app` → row source = 'my-workpal' (但 IS_DEMO 短路应该 cloud chat 仍走, 验)
+- Send chat from `localhost:2006` → row source = 'localhost'
+- Backfill SQL apply 后, 4 月 28 后 null row 全 → 'workpal-beibei' (Supabase MCP verify)
+- Overview by_source 1d range → 不再显示 "Unknown / pre-2026-04-28" (那部分被 backfill 走了)
+- Overview by_source 30d range → 显示 "Pre-tracking" group (4-28 之前真 null row, copy 改)
+
+**Verify path**: cross-cutting:
+- Frontend UI copy → Vercel auto-deploy
+- Vercel serverless `api/chat.ts` → Vercel auto-deploy
+- Express server (`server/src/...`) + agent shared mirror → dmg ship verify (但 production user 走 Vercel 不走 agent, 所以 dmg verify 主要为 Beibei 本地 agent path correct)
+- Supabase backfill → MCP apply, 验证看 row source 字段 update
+
+---
+
 ## 50.2. `candidate` — Delete isDraft field entirely (cleanup)
 
 **Surfaced**: §50 + §50.1 ship 后, `isDraft` field 已被 display + sync 两层取消依赖. 真正彻底清理是删 field from `Chat` type / Supabase schema.
