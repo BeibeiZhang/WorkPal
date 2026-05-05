@@ -53,6 +53,25 @@ export default {
         overlay: {
           loading: 'var(--color-overlay-loading)',
         },
+        dataviz: {
+          // Categorical palette — for chart series, ordered for max
+          // perceptual distance. Aliases of accent-* / brand-grad-* so
+          // a chart series visually matches its StatusTag counterpart.
+          'cat-1': 'var(--dataviz-cat-1)',
+          'cat-2': 'var(--dataviz-cat-2)',
+          'cat-3': 'var(--dataviz-cat-3)',
+          'cat-4': 'var(--dataviz-cat-4)',
+          'cat-5': 'var(--dataviz-cat-5)',
+          'cat-6': 'var(--dataviz-cat-6)',
+          'cat-7': 'var(--dataviz-cat-7)',
+          'cat-8': 'var(--dataviz-cat-8)',
+          // Semantic — for values that mean something
+          // (positive delta, regression, threshold breach).
+          positive: 'var(--dataviz-positive)',
+          negative: 'var(--dataviz-negative)',
+          warning: 'var(--dataviz-warning)',
+          neutral: 'var(--dataviz-neutral)',
+        },
       },
       fontFamily: {
         sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro', 'Inter', 'sans-serif'],

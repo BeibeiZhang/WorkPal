@@ -384,7 +384,7 @@ export default function ConnectorsPage({ sidebarOpen, onToggleSidebar, onNewChat
                 <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41" />
               </svg>
             </div>
-            <p className="type-body text-text-primary">
+            <p className="type-h2 text-text-primary">
               No custom MCP added yet.
             </p>
             <SecondaryButton className="gap-2">

@@ -101,7 +101,7 @@ function WebSourceChips({ results }: { results: WebResult[] }) {
   }).slice(0, 6);
   if (unique.length === 0) return null;
   return (
-    <div className="mt-2 flex flex-wrap gap-1.5">
+    <div className="mt-4 flex flex-wrap gap-1.5">
       {unique.map((r) => {
         const host = hostFromUrl(r.url);
         return (
@@ -138,7 +138,7 @@ function ImageResultsGrid({ images }: { images: ImageResult[] }) {
   const shown = images.slice(0, 6);
   const cols = shown.length === 1 ? 'grid-cols-1 max-w-[420px]' : 'grid-cols-2 max-w-[520px]';
   return (
-    <div className={`mt-2 mb-1 grid gap-2 ${cols}`}>
+    <div className={`mt-4 grid gap-2 ${cols}`}>
       {shown.map((img, i) => (
         <a
           key={i}
@@ -172,7 +172,7 @@ function ImageResultsGrid({ images }: { images: ImageResult[] }) {
 function VideoResultsGrid({ videos }: { videos: VideoResult[] }) {
   const shown = videos.slice(0, 8);
   return (
-    <div className="mt-2 mb-1 flex flex-col gap-2 max-w-[560px]">
+    <div className="mt-4 flex flex-col gap-2 max-w-[560px]">
       {shown.map((v) => (
         <a
           key={v.videoId}
@@ -320,7 +320,7 @@ function FeedbackBar({ text }: { text: string }) {
   // screen readers announce the action. `title` keeps the visible browser
   // tooltip on mouse hover, but is unreliable as the sole accessible name.
   return (
-    <div className="flex items-center gap-1.5 md:gap-1 mt-2 text-text-primary" role="toolbar" aria-label="Message actions">
+    <div className="flex items-center gap-1.5 md:gap-1 mt-4 text-text-primary" role="toolbar" aria-label="Message actions">
       {/* TTS play/stop button */}
       <button
         title={isSpeaking ? 'Stop reading' : 'Read aloud'}
@@ -408,7 +408,7 @@ export default function ChatMessage({ message, isLastAssistant, onCardAction, on
     const hasAttachments = !!message.attachments && message.attachments.length > 0;
     const hasText = !!message.content;
     return (
-      <div className="flex flex-col items-end mb-4 message-appear">
+      <div className="flex flex-col items-end mb-6 message-appear">
         {hasAttachments && <MessageAttachments attachments={message.attachments!} />}
         {hasText && (
           <div className="max-w-[320px] rounded-lg bg-bg-hover px-4 py-3">
@@ -425,14 +425,14 @@ export default function ChatMessage({ message, isLastAssistant, onCardAction, on
     // request on a mobile viewport. Skips bubble chrome / feedback bar /
     // artifact rendering since the hint is the entire message.
     return (
-      <div className="mb-4 message-appear">
+      <div className="mb-6 message-appear">
         <AgentRequiredHint variant="card" />
       </div>
     );
   }
 
   return (
-    <div className={`mb-4 message-appear ${!isLastAssistant ? 'group/msg' : ''}`}>
+    <div className={`mb-6 message-appear ${!isLastAssistant ? 'group/msg' : ''}`}>
       {message.isLoading ? (
         <TypingIndicator />
       ) : (
@@ -473,7 +473,7 @@ export default function ChatMessage({ message, isLastAssistant, onCardAction, on
             const primary = pickPrimaryArtifact(message);
             if (!primary) return null;
             return (
-              <div className="mt-2 mb-1 flex flex-col gap-2">
+              <div className="mt-4 flex flex-col gap-2">
                 <GuardedArtifactCard
                   key={`${primary.path ?? primary.href ?? primary.name}`}
                   artifact={primary}

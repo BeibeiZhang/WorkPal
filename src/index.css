@@ -179,6 +179,69 @@ strong, b {
   --mode-btn-unselected-w: 54px;
   --toolbar-icon-size: 24px;
   --input-btn-size: 36px;
+
+  /* ── Motion tokens ────────────────────────────────────────────
+     Duration + easing for transitions and short entry/exit animations.
+     Long looping animations (loading-dot, voice-pulse, progressFill,
+     speaker-wave) keep their bespoke durations because the exact tempo
+     carries semantic meaning (1.4s "thinking" pulse vs 2.5s "filling"
+     bar are not interchangeable). Tokenize transitions, not loops.
+
+     - instant : 100ms — tight, almost-imperceptible feedback (checkbox check)
+     - fast    : 150ms — hover/active transitions, ring fades
+     - normal  : 200ms — message appear, micro-modal
+     - slow    : 300ms — scrollbar fade, panel reveal
+     ────────────────────────────────────────────────────────────── */
+  --motion-duration-instant: 100ms;
+  --motion-duration-fast: 150ms;
+  --motion-duration-normal: 200ms;
+  --motion-duration-slow: 300ms;
+
+  /* Easing — three named curves cover almost every UI motion need:
+     - standard   : balanced; default for transitions where the element
+                    starts and stops at rest (hover, color, opacity)
+     - decelerate : enters fast then settles; for elements appearing
+                    on screen (panels sliding in, message-appear)
+     - accelerate : starts slow then exits fast; for elements leaving
+                    the viewport (panels sliding out, dismissals) */
+  --motion-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --motion-ease-decelerate: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-ease-accelerate: cubic-bezier(0.4, 0, 0.7, 1);
+
+  /* ── Data visualization tokens ────────────────────────────────
+     For charts, graphs, breakdowns, and any quantitative surface.
+     Two palettes:
+
+     1. Categorical (8 hues) — for series with no inherent order
+        (categories, providers, dimensions). Reuses --color-accent-*
+        values so chart series visually match StatusTag pills, keeping
+        cross-surface consistency. Order chosen for max perceptual
+        distance: blue → purple → green → orange → violet → pink →
+        amber → neutral.
+
+     2. Semantic (4 hues) — for values with meaning attached
+        (positive/negative/warning/neutral). Aliases of accent-* and
+        --color-warning so a "+" delta and a success StatusTag use the
+        same green, etc. These should be used in sparkline deltas,
+        diff stats, threshold indicators.
+
+     Sequential / divergent palettes are intentionally omitted until
+     a real chart needs them — adding tokens nobody uses creates dead
+     surface area (subtract first principle, docs/principles.md).
+     ────────────────────────────────────────────────────────────── */
+  --dataviz-cat-1: var(--color-accent-blue);     /* #3171FF */
+  --dataviz-cat-2: var(--brand-grad-start);      /* #7652B9 */
+  --dataviz-cat-3: var(--color-accent-green);    /* #028901 */
+  --dataviz-cat-4: var(--color-accent-orange);   /* #B8541A */
+  --dataviz-cat-5: var(--color-accent-violet);   /* #6B54E6 */
+  --dataviz-cat-6: var(--brand-grad-mid);        /* #B46470 */
+  --dataviz-cat-7: var(--color-accent-amber);    /* #A87725 */
+  --dataviz-cat-8: var(--color-accent-neutral);  /* #6B7280 */
+
+  --dataviz-positive: var(--color-accent-green); /* #028901 */
+  --dataviz-negative: var(--color-accent-red);   /* #C93838 */
+  --dataviz-warning:  var(--color-warning);      /* #F79009 */
+  --dataviz-neutral:  var(--color-accent-neutral); /* #6B7280 */
 }
 
 .dark {
@@ -298,7 +361,7 @@ html, body, #root {
 }
 .scrollbar-autohide::-webkit-scrollbar-thumb {
   background: transparent;
-  transition: background 0.3s;
+  transition: background var(--motion-duration-slow) var(--motion-ease-standard);
 }
 .scrollbar-autohide:hover::-webkit-scrollbar-thumb,
 .scrollbar-autohide:active::-webkit-scrollbar-thumb {
@@ -349,7 +412,7 @@ html, body, #root {
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.12),
     0px 8px 11.7px 0px rgba(20, 39, 64, 0.17);
-  transition: box-shadow 0.15s ease;
+  transition: box-shadow var(--motion-duration-fast) var(--motion-ease-standard);
 }
 .gradient-btn:not(:disabled):hover {
   box-shadow:
@@ -367,7 +430,7 @@ html, body, #root {
 .inverted-btn {
   background: var(--color-text-primary);
   color: var(--color-bg-page);
-  transition: box-shadow 0.15s ease;
+  transition: box-shadow var(--motion-duration-fast) var(--motion-ease-standard);
 }
 .inverted-btn:not(:disabled):hover {
   box-shadow: 0px 8px 11.7px 0px rgba(20, 39, 64, 0.17);
@@ -411,7 +474,8 @@ html, body, #root {
 .spend-picker-item {
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.3);
-  transition: color 150ms ease, border-color 150ms ease;
+  transition: color var(--motion-duration-fast) var(--motion-ease-standard),
+              border-color var(--motion-duration-fast) var(--motion-ease-standard);
 }
 /* Scoped chain — beats .type-h1--emphasized (defined later in this file)
    so the picker numbers honour the Figma 20px line-height + -0.5px tracking. */
@@ -466,7 +530,7 @@ html, body, #root {
 }
 
 .message-appear {
-  animation: fadeInUp 0.2s ease-out;
+  animation: fadeInUp var(--motion-duration-normal) var(--motion-ease-decelerate);
 }
 
 @keyframes fadeInUp {
@@ -490,7 +554,7 @@ html, body, #root {
 @keyframes taskPanelPreview {
   0% {
     transform: translateX(100%);
-    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    animation-timing-function: var(--motion-ease-decelerate);
   }
   13% {
     transform: translateX(0%);
@@ -498,7 +562,7 @@ html, body, #root {
   }
   20% {
     transform: translateX(0%);
-    animation-timing-function: cubic-bezier(0.4, 0, 0.7, 1);
+    animation-timing-function: var(--motion-ease-accelerate);
   }
   100% {
     transform: translateX(100%);
@@ -719,7 +783,8 @@ html, body, #root {
   border-radius: 4px;
   background: transparent;
   position: relative;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color var(--motion-duration-fast) var(--motion-ease-standard),
+              background var(--motion-duration-fast) var(--motion-ease-standard);
 }
 .worktree-checkbox:checked {
   background: #3171FF;
@@ -866,7 +931,7 @@ html, body, #root {
 }
 .card-hover-shadow {
   position: relative;
-  transition: box-shadow 150ms ease;
+  transition: box-shadow var(--motion-duration-fast) var(--motion-ease-standard);
 }
 .card-hover-shadow::before {
   content: '';
@@ -885,7 +950,7 @@ html, body, #root {
   mask-composite: exclude;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 150ms ease;
+  transition: opacity var(--motion-duration-fast) var(--motion-ease-standard);
   z-index: 2;
 }
 .card-hover-shadow:hover {

@@ -37,18 +37,18 @@ Every CSS variable with its resolved light / dark value. If you need a token, fi
 --color-text-primary          #142740              / #FFFFFF
 --color-text-secondary        rgba(20,39,64,0.6)   / rgba(226,243,255,0.8)
 --color-text-tertiary         rgba(20,39,64,0.4)   / rgba(226,243,255,0.4)
---color-bg-page               #F7F7F8              / #001424
+--color-bg-page               #F3F4F5              / #001424
 --color-bg-message            rgba(20,39,64,0.05)  / rgba(226,243,255,0.1)
 --color-bg-hover              rgba(20,39,64,0.05)  / rgba(226,243,255,0.1)
 --color-card-panel-bg         #FFFFFF              / rgba(226,243,255,0.1)
---color-input-bg              var(--color-bg-page) / rgba(0,0,0,0.2)
+--color-input-bg              rgba(20,39,64,0.05)  / rgba(0,0,0,0.2)
 --color-input-bg-active       #FFFFFF              / rgba(0,0,0,0.2)
 --color-icon-primary          #142740              / #FFFFFF
---color-sidebar-bg            #F7F7F8              / #001424
+--color-sidebar-bg            #F3F4F5              / #001424
 --color-outer-bg              #F5F5F7              / #001424
 --color-outer-border          #F5F5F7              / #001424
---color-stroke-outline        #E8E8E8              / rgba(115,178,255,0.2)
---color-stroke-toggle         #E6E8EA              / rgba(115,178,255,0.2)
+--color-stroke-outline        rgba(20,39,64,0.1)   / rgba(115,178,255,0.2)
+--color-stroke-toggle         rgba(20,39,64,0.1)   / rgba(115,178,255,0.2)
 --color-selected-bg           rgba(49,113,255,0.1) / #3171FF
 --color-selected-text         #3171FF              / #FFFFFF
 --color-progress-bar          —                    / #3171FF
@@ -67,6 +67,12 @@ Every CSS variable with its resolved light / dark value. If you need a token, fi
 
 # Form / inline error red (distinct from --color-accent-red status indicator)
 --color-error                  #B42318              / #F97066
+
+# Form / inline warning amber (distinct from --color-accent-amber status pill)
+--color-warning                #F79009              / #FDB022
+
+# Keyboard focus ring (WCAG 2.4.7) — consumed by global *:focus-visible rule
+--color-focus-ring             #3171FF              / #73B2FF
 
 # Inverted tooltip surface (dark in both modes)
 --color-tooltip-bg             #1a1a1a
@@ -90,6 +96,7 @@ Every CSS variable with its resolved light / dark value. If you need a token, fi
 --font-h1-size/lh/weight/tracking          22px / normal / 700 / 0px
 --font-body-size/lh/weight/tracking        16px / 32px / 400 (emph 700) / 0px
 --font-h2-size/lh/weight/tracking          16px / 22px / 400 (emph 700) / 0px
+--font-h3-size/lh/weight/tracking          14px / 16px / 400 / 0px
 --font-detail-size/lh/weight/tracking      14px / 22px / 400 (emph 700) / 0
 --font-caption-size/lh/weight/tracking     12px / 16px / 400 / 0
 --font-footnote-size/lh/weight/tracking    11px / 1   / 400 / 0
@@ -105,6 +112,29 @@ Every CSS variable with its resolved light / dark value. If you need a token, fi
 --mode-btn-unselected-w       54px (<768) / 26px (≥768)   Width of unselected (icon-only) segment in ToolbarSegmented
 --toolbar-icon-size           24px (<768) / 16px (≥768)   Icon size inside toolbar buttons
 --input-btn-size              36px (<768) / 24px (≥768)   ChatInput send/tool button
+
+# Motion (transitions + short entry/exit animations only — long looping animations keep bespoke values)
+--motion-duration-instant     100ms                       Tight feedback (checkbox check)
+--motion-duration-fast        150ms                       Hover/active transitions, ring fades
+--motion-duration-normal      200ms                       Message appear, micro-modal
+--motion-duration-slow        300ms                       Scrollbar fade, panel reveal
+--motion-ease-standard        cubic-bezier(.4,0,.2,1)     Default — element starts and stops at rest
+--motion-ease-decelerate      cubic-bezier(.16,1,.3,1)    Element appearing on screen (panel sliding in)
+--motion-ease-accelerate      cubic-bezier(.4,0,.7,1)     Element leaving viewport (panel sliding out)
+
+# Data viz (chart series + semantic deltas; aliases of accent-* / brand-grad-* so chart visually matches StatusTag)
+--dataviz-cat-1               #3171FF                     Categorical 1 — alias of --color-accent-blue
+--dataviz-cat-2               #7652B9                     Categorical 2 — alias of --brand-grad-start
+--dataviz-cat-3               #028901                     Categorical 3 — alias of --color-accent-green
+--dataviz-cat-4               #B8541A                     Categorical 4 — alias of --color-accent-orange
+--dataviz-cat-5               #6B54E6                     Categorical 5 — alias of --color-accent-violet
+--dataviz-cat-6               #B46470                     Categorical 6 — alias of --brand-grad-mid
+--dataviz-cat-7               #A87725                     Categorical 7 — alias of --color-accent-amber
+--dataviz-cat-8               #6B7280                     Categorical 8 — alias of --color-accent-neutral
+--dataviz-positive            #028901                     Positive delta, success metric
+--dataviz-negative            #C93838                     Negative delta, regression
+--dataviz-warning             #F79009                     Threshold breach
+--dataviz-neutral             #6B7280                     No-change baseline
 ```
 
 **Rule:** never hardcode these values. If a value is missing, add a new var here first.
@@ -160,7 +190,7 @@ CSS vars: --brand-grad-start, --brand-grad-mid, --brand-grad-end
 
 **Never** use brand gradient for body text, icons, data viz, progress bars, or >1 button per view.
 
-### 1.3 Typography (12 styles, no more)
+### 1.3 Typography (13 styles, no more)
 
 | Class | Size / LH / Weight / Tracking | Use |
 |---|---|---|
@@ -172,6 +202,7 @@ CSS vars: --brand-grad-start, --brand-grad-mid, --brand-grad-end
 | `.type-body` | 16 / 32 / 400 / 0 | Long-form paragraph copy (loose leading for multi-line reading) |
 | `.type-h2-emphasized` | 16 / 22 / 700 / 0 | Default bold 16px title — card titles, SidePanel/SideCard titles, sidebar & page section headers, profile name |
 | `.type-h2` | 16 / 22 / 400 / 0 | Chat messages (user + assistant), dialog inputs + textareas, onboarding prompts, drop-zone headers, side-panel file/change rows — the default 16px copy style |
+| `.type-h3` | 14 / 16 / 400 / 0 | Compact 14px heading — same body size as Detail but with tighter 16px leading for short titles where 22px feels airy. Use for sub-section labels and dense card titles |
 | `.type-detail-emphasized` | 14 / 22 / 700 / 0 | Form labels, emphasized metadata, button labels |
 | `.type-detail` | 14 / 22 / 400 / 0 | Helper text, captions, chip labels |
 | `.type-caption` | 12 / 16 / 400 / 0 | Chart legends, mono code / command blocks (pair with `font-mono`), file path chips, diff stats |
@@ -216,6 +247,57 @@ Spec: Figma nodes `6518:26127` (light) / `6521:26530` (dark). Source of truth: `
 - `strokeWidth` default `2`.
 - Color via `currentColor` (inherits parent `text-*` class) or inline `style={{ color: 'var(--color-accent-X)' }}`.
 - Monochrome PNG assets (not SVG) use `.icon-theme` for dark-mode auto-inversion.
+
+### 1.7 Motion (4 durations, 3 easings — transitions only)
+
+Tokenize **transitions and short entry/exit animations**. Long looping animations (`loading-dot` 1.4s, `voice-pulse` 1.5–2.1s, `progressFill` 2.5s, `taskPanelPreview` 3s, `speaker-wave`) keep their bespoke durations because the exact tempo carries semantic meaning — a 1.4s "thinking" pulse and a 2.5s "filling" bar are not interchangeable.
+
+| Token | Value | Use |
+|---|---|---|
+| `--motion-duration-instant` | 100ms | Tight, almost-imperceptible feedback (checkbox check) |
+| `--motion-duration-fast` | 150ms | Hover/active transitions, ring fades, card-hover-shadow |
+| `--motion-duration-normal` | 200ms | Message appear, micro-modal |
+| `--motion-duration-slow` | 300ms | Scrollbar fade, panel reveal |
+| `--motion-ease-standard` | `cubic-bezier(.4,0,.2,1)` | Default — element starts and stops at rest (color/opacity/box-shadow) |
+| `--motion-ease-decelerate` | `cubic-bezier(.16,1,.3,1)` | Element appearing on screen (panel sliding in, message-appear) |
+| `--motion-ease-accelerate` | `cubic-bezier(.4,0,.7,1)` | Element leaving viewport (panel sliding out, dismissals) |
+
+**Reduced-motion respect (WCAG 2.3.3):** the global `@media (prefers-reduced-motion: reduce)` rule in `src/index.css` collapses all animations and transitions to ~0ms when the user has the OS-level "Reduce motion" preference set. **Always use these tokens** — never inline `0.15s ease` — so the rule consistently applies.
+
+Pattern:
+```css
+/* ✅ Use tokens */
+transition: box-shadow var(--motion-duration-fast) var(--motion-ease-standard);
+animation: fadeInUp var(--motion-duration-normal) var(--motion-ease-decelerate);
+
+/* ❌ Don't hardcode */
+transition: box-shadow 0.15s ease;
+```
+
+### 1.8 Data viz (categorical 8 + semantic 4 — chart tokens)
+
+For charts, breakdowns, sparklines, deltas. **Aliases of accent-* / brand-grad-***, so a chart series visually matches its StatusTag counterpart — cross-surface consistency without rebuilding the palette.
+
+| Token | Value (light & dark) | Use |
+|---|---|---|
+| `--dataviz-cat-1` | `#3171FF` (alias `--color-accent-blue`) | Categorical 1 — primary series, default first hue |
+| `--dataviz-cat-2` | `#7652B9` (alias `--brand-grad-start`) | Categorical 2 |
+| `--dataviz-cat-3` | `#028901` (alias `--color-accent-green`) | Categorical 3 |
+| `--dataviz-cat-4` | `#B8541A` (alias `--color-accent-orange`) | Categorical 4 |
+| `--dataviz-cat-5` | `#6B54E6` (alias `--color-accent-violet`) | Categorical 5 |
+| `--dataviz-cat-6` | `#B46470` (alias `--brand-grad-mid`) | Categorical 6 |
+| `--dataviz-cat-7` | `#A87725` (alias `--color-accent-amber`) | Categorical 7 |
+| `--dataviz-cat-8` | `#6B7280` (alias `--color-accent-neutral`) | Categorical 8 |
+| `--dataviz-positive` | `#028901` | Positive delta, success metric, +insertion |
+| `--dataviz-negative` | `#C93838` | Negative delta, regression, -deletion |
+| `--dataviz-warning`  | `#F79009` | Threshold breach, attention needed |
+| `--dataviz-neutral`  | `#6B7280` | No-change baseline, comparison reference |
+
+**Tailwind shortcuts:** `text-dataviz-cat-1` … `text-dataviz-cat-8`, `bg-dataviz-positive`, `border-dataviz-negative`, etc.
+
+**Series ordering rule:** when a chart has N series with no inherent order, use `cat-1` through `cat-N` in declaration order — never skip. Picking arbitrary hues (`cat-3` and `cat-7` for two series) destroys the consistency the categorical scale provides.
+
+**Sequential / divergent palettes** are intentionally omitted until a real chart needs them (subtract first — `docs/principles.md`). When a need arises, add `--dataviz-seq-1..N` or `--dataviz-div-+/-` here first.
 
 ---
 
@@ -369,11 +451,17 @@ All snap to `--toolbar-btn-h` so they line up vertically in one row.
 4. **1–2% gradient budget.** The brand gradient is a focal point, not decoration.
 5. **Callouts are blue (`#3171FF`), not gradient.** Selected chips, links, progress, focus.
 6. **StatusTag success green is unique.** Only `--color-accent-green` / `-green-bg`. Not used anywhere else.
-7. **12 text styles only.** `.type-display-xl` / `.type-display` / `.type-h1` / `.type-h1--emphasized` / `.type-body` / `.type-body-emphasized` / `.type-h2` / `.type-h2-emphasized` / `.type-detail` / `.type-detail-emphasized` / `.type-caption` / `.type-footnote`.
+7. **13 text styles only.** `.type-display-xl` / `.type-display` / `.type-h1` / `.type-h1--emphasized` / `.type-body` / `.type-body-emphasized` / `.type-h2` / `.type-h2-emphasized` / `.type-h3` / `.type-detail` / `.type-detail-emphasized` / `.type-caption` / `.type-footnote`.
 8. **Icons = lucide-react.** Never render letters or abbreviations as icon stand-ins. Never import other icon libraries.
 9. **Dark-mode automatic.** All colors come from CSS vars bound to `:root` / `.dark`. PNGs use `.icon-theme`. Lucide SVGs inherit `currentColor`.
 10. **Three-panel shell.** Every feature is a slot in NavPanel / ConversationPanel / InspectorPanel. No new top-level chrome.
 11. **Review queue for new components.** If a need truly can't be met by `shared.tsx`, build it, then register it under the Design System **Review Queue** tab for explicit approval. Approved → promote into `shared.tsx`. Rejected → revert to closest existing component.
+12. **Bg fill or border, not both.** A card / panel uses **either** a background fill (`bg-bg-hover`, `bg-bg-page`, `bg-card`, etc.) **or** a border (`border-stroke-outline`) — never both on the same surface. Pick whichever creates the right visual separation in the surrounding context. **Defaults:** inline mini-previews, intro cards, hover zones → bg fill. Free-standing cards on the page background → border-only. **Exception:** dashed borders (`border-dashed`) carry placeholder / skeleton / drop-zone semantics and may coexist with bg fills. **Why:** stacking bg-change + border produces a redundant double-frame — either signal alone is enough to lift an element from its surroundings; doubling competes with surrounding chrome and breaks the design's quiet hierarchy.
+13. **Tab structure — Pattern A or Pattern B.** Documentation tabs (DesignSystemPage and any future spec page) follow one of two structures.
+    - **Pattern A** — Intro card → **L2 SectionTitle (OUT of box)** → content **wrapped in a single border-only box** (`rounded-2xl border-stroke-outline p-5`). Used by Foundations, Components, Review, Layouts, AI Patterns. The box gives each section visual closure.
+    - **Pattern B** — Intro card → **flat list of cards (no L2 wrapper)** → each card has **IN-box L3 title (16px)**. Used by Principles, Agent Videos, Voice & Tone. Each card is a self-contained section that doesn't need a heading above the chrome.
+
+    **Same-level content must look identical across tabs.** A Pattern A section content box is always `rounded-2xl border-stroke-outline p-5` (no bg per Principle #12); a Pattern B card title is always 16px in-box `type-h2-emphasized` with the same card chrome. **Why:** without this rule, sections drift between in-box and out-of-box (App Shell vs Color Palette vs 8.X Pattern), and same-level content uses different sizes (Principles 16px vs Agent Videos 22px) — breaking the "scan one tab, recognize all" reading flow. The border-box wrap on Pattern A also gives a SectionTitle visual closure — a bare paragraph after the title reads as "loose copy", a wrapped block reads as "this is the section's content".
 
 ### 3.1 When in doubt — decision tree
 
@@ -432,7 +520,7 @@ Nothing fits? → build in shared.tsx, register in Review Queue.
 
 | Class | Effect |
 |---|---|
-| `.type-display-xl` / `.type-display` / `.type-h1` / `.type-h1--emphasized` / `.type-body` / `.type-body-emphasized` / `.type-h2` / `.type-h2-emphasized` / `.type-detail` / `.type-detail-emphasized` / `.type-caption` / `.type-footnote` | Type scale |
+| `.type-display-xl` / `.type-display` / `.type-h1` / `.type-h1--emphasized` / `.type-body` / `.type-body-emphasized` / `.type-h2` / `.type-h2-emphasized` / `.type-h3` / `.type-detail` / `.type-detail-emphasized` / `.type-caption` / `.type-footnote` | Type scale |
 | `.gradient-btn` | Primary CTA gradient fill + shadow |
 | `.gradient-text` | Brand gradient text |
 | `.chip-gradient-hover` | Unselected chip: gradient border on hover (masked `::before`, interior stays transparent) |
@@ -485,7 +573,7 @@ Items observed while syncing this doc on 2026-04-21 where the "right" answer isn
 
 ### 7.2 Hardcoded colors outside the token system
 
-5. **Chart series colors in `OverviewPage` bypass `--color-accent-*`** — `STRESS_SOURCES` uses `#EF4444`, `#F59E0B`, `#7652B9`, `#3171FF`; Weekly Trends stroke gradient uses `#DC2626 / #F59E0B / #16A34A`; Energy/Sleep/Stress series use `#3171FF / #8B5CF6 / #028901`. Should data-viz have its own palette tokens (`--dataviz-1..N`) or re-use `--color-accent-*` where values match?
+5. ~~**Chart series colors in `OverviewPage` bypass `--color-accent-*`**~~ — **Resolved 2026-05-05.** OverviewPage no longer contains chart hex (verified by grep). Forward-looking solution shipped as **§1.8 Data viz** — categorical 8 + semantic 4 tokens, all aliases of `--color-accent-*` / `--brand-grad-*`, so any future chart series visually matches its StatusTag counterpart.
 6. **`ConnectorCard` hardcodes a dark fill** — `dark:bg-[rgba(226,243,255,0.05)]` inline. Same literal appears in `OverviewPage.tsx` (stress-detail panel). Candidate for a `--color-surface-subtle` token in dark mode.
 
 ### 7.3 Text size escape hatches
@@ -500,3 +588,245 @@ Items observed while syncing this doc on 2026-04-21 where the "right" answer isn
 ### 7.5 Review Queue status
 
 10. **`Switch<T>` is documented as "Review Queue"** in its own JSDoc. The Review Queue tab in `DesignSystemPage.tsx` should confirm it's registered there with a preview and promotion criteria; otherwise it's floating between "shared primitive" and "pending".
+
+---
+
+## 8. AI Patterns
+
+> Where §2 documents *atomic UI primitives* (buttons, chips, cards), §8 documents *AI-specific interaction patterns* — composed flows for streaming output, citing sources, confirming agent actions, etc. These sit one level above components: a pattern says "for problem X, here's the canonical shape we converge on."
+>
+> Primary references: `src/components/ChatMessage.tsx`, `src/components/MessageCard.tsx`, `src/components/InsightCard.tsx`, `src/components/TaskProgressCard.tsx`. The 6 patterns below cover the AI-product surfaces an early-stage assistant must handle. Each pattern has **status**: ✅ shipped (raw material exists in components), 🟡 partial (some pieces exist, gaps remain), 🆕 placeholder (pattern reserved, no component yet).
+
+### 8.1 Conversation layout — Prompt / Reply / Grow  ✅
+
+**The macro pattern.** Every AI conversation unit follows a three-segment skeleton plus an action-chips area in the input. This is the *layout* spec — inline patterns below (§8.2–§8.7) are how each segment fills in.
+
+```
+Prompt    ── Text prompt                          (user message bubble, right-aligned)
+          ── --space-6 (24px) ────────────────────
+Reply     ── Analysis (loader)                     (only while streaming hasn't started)
+          ── --space-4 (16px)
+          ── Text answer                           (markdown body — required)
+          ── --space-4 (16px)
+          ── Card / Image / Video / Citation       (optional structured output)
+          ── --space-4 (16px)
+Grow      ── Text suggestion (markdown w/ **bold** options inline — NOT a button row)
+          ── --space-4 (16px)
+          ── Answer Toolbar                        (TTS · Copy · Share · 👍 · 👎 · 🔄 — always)
+          ── --space-6 (24px) ────────────────────
+                                                  ↓
+Input     ── Action chips (Message.chips → <Chip /> row above textarea)
+          ── ChatInput textarea
+```
+
+**Spacing rule:** every gap is a token from §1.4. Inter-segment gaps are `--space-6` (24px); intra-segment gaps are `--space-4` (16px). **Never hardcode** `mb-2` / `mt-2` for these gaps — those are intra-component overrides for tighter clusters (e.g. icon + label inside a chip).
+
+**Anatomy → component mapping**
+
+| Slot | Component | Required? |
+|---|---|---|
+| Prompt — Text prompt | `ChatMessage` (user variant) | yes |
+| Reply — Analysis | `TypingIndicator` (3-dot brand-gradient loader) | only while `message.isLoading` |
+| Reply — Text answer | `renderMarkdownBlocks(message.content)` inside `ChatMessage` | yes (markdown body) |
+| Reply — Card / Image / Video / Citation | `MessageCard` · `ArtifactCard` · `ImageResultsGrid` · `VideoResultsGrid` · `WebSourceChips` | optional |
+| Grow — Text suggestion | **Markdown text** in `message.content` with `**bold**` on the offered options. Not a separate component. Example: `"...let me know if you'd like me to **explore solutions** or **set up a meeting**."` | optional — write inline when the AI offers follow-up directions |
+| Grow — Answer Toolbar | `FeedbackBar` private to `ChatMessage.tsx` — TTS speaker (custom SVG) + Copy / Share / 👍 / 👎 / 🔄 (PNG via `../assets`: `iconCopy` / `iconShare` / `iconThumbsUp` / `iconRefresh`) | always on assistant messages |
+| Input — Action chips | `<ChatInput actionChips={message.chips} />` — renders existing `<Chip>` primitive in a row above the textarea, **automatically** when the assistant message has `chips: ActionChip[]` | optional — emit when AI is offering one-tap shortcuts |
+
+**Toolbar order (locked):** TTS speaker · Copy · Share · 👍 Good · 👎 Bad · 🔄 Retry. Adding a new action? Place to the right of Retry, never insert mid-row — muscle memory matters.
+
+**The "two halves" of an AI suggestion:**
+1. **Verbal half** lives in the message body — markdown text describing the options, with `**bold**` on the action verbs. Carries tone (Voice & Tone §9.3).
+2. **Tactile half** lives above the input — `Message.chips` array → ChatInput renders as `<Chip>` row. Lets users one-tap the suggestion without retyping it.
+
+These two halves are **complementary, not redundant.** Always emit both for AI follow-ups: text for context + chips for action.
+
+**Don't:**
+- ❌ Stack two `MessageCard`s in one Reply — pick the primary deliverable, surface the rest in DetailPanel or the Folder chip. (See `pickPrimaryArtifact` selection rule.)
+- ❌ Render follow-up *buttons* in the message body. The verbal suggestion stays as bold-styled text inline; clickable affordances belong in `Message.chips` → ChatInput's chips row. Mixing the two creates duplicate CTAs.
+- ❌ Skip the Toolbar on assistant messages, even short ones. Users rely on Retry as an "the model misread me" escape hatch.
+- ❌ Use lucide icons for the toolbar — it's PNG assets with `.icon-theme` for dark-mode auto-inversion. Lucide would break the inversion.
+
+**Why this layout exists:** before §8.1, ChatMessage gaps were ad-hoc — `mb-4` (16px) for inter-segment, `mt-2` (8px) for intra-segment, drifted from the Figma source by a factor of ~1.5×. The 2026-05-05 PR aligned every gap to `--space-4 / --space-6` per the Figma spec (node `2848:39001`).
+
+### 8.2 Streaming  ✅
+
+**Problem:** the model produces tokens incrementally (200ms–10s). Users need to (a) see progress immediately, (b) be able to stop generation, (c) trust that "no movement" means done, not stuck.
+
+**Pattern:**
+- Render tokens as they arrive (no buffer-then-flush) inside the `ChatMessage` assistant bubble.
+- Show a 3-dot loader (`.loading-dot`, brand-gradient) when the stream hasn't started yet (network round-trip).
+- A blinking caret or trailing pulse during active streaming is **not** required — token arrival itself signals liveness.
+- Show a **Stop** affordance (icon button, tooltip "Stop generating") in the composer area while streaming; collapses to **Send** when done.
+- Switch caret to "done" by removing the loader; do not flash a "complete" icon.
+- Animation entry uses `var(--motion-duration-normal) var(--motion-ease-decelerate)` — see `.message-appear`.
+
+**Don't:** buffer tokens to render whole sentences. Buffering looks frozen and breaks the trust loop.
+
+**Anatomy:** `ChatMessage` (assistant variant) + 3-dot loader + stop button in `ChatInput`.
+
+### 8.3 Citation  🟡
+
+**Problem:** model output makes claims that need to be traceable to source material (a doc, an email, a meeting transcript, a URL). Without citations, every AI claim has the same trust level — which means none.
+
+**Pattern:**
+- Inline citation: a `.type-footnote` chip with a leading source-type icon (`File`, `Mail`, `Calendar`, `Link`, etc.) sits at the end of the citing sentence/clause. Click → opens the source in `DetailPanel`.
+- Multiple citations: stack chips with `gap-1`, never wrap mid-sentence — push the entire group to end-of-paragraph if needed.
+- Source preview: hovering a citation chip surfaces a `Tooltip` (dark, `--color-tooltip-bg`) with the source title + 1-line excerpt.
+- Use `--color-accent-blue` for the citation chip text to mark it as a navigation affordance (consistent with link styling).
+
+**Status:** chip primitive exists (`.type-footnote` + `Tooltip`) but no dedicated `Citation` component. **Action:** promote to `shared.tsx` as `<Citation source={...} onOpen={...} />` when the second consumer appears.
+
+### 8.4 Confirmation  ✅
+
+**Problem:** the agent is about to take a side-effecting action (create ticket, send email, run script). Doing it silently breaks user agency; asking before *every* action breaks the autonomy promise.
+
+**Pattern:**
+- Side-effecting actions render a `MessageCard` variant (`ticket`, `schedule`, `meeting`) with a **preview of what will happen** + an explicit confirm/cancel pair.
+- Confirm button is `PrimaryButton` (gradient CTA — one per card); Cancel is `TertiaryButton`.
+- Reversible read-only actions (search, summarize, draft) **don't** require confirmation — they go directly to result.
+- After confirm, the card collapses to a `StatusTag` row showing the result (`success` green / `failed` red / `in-progress` blue).
+- A "Don't ask again for X" affordance is reserved for repeated identical actions in the same session — never persist across sessions without explicit consent.
+
+**Anatomy:** `MessageCard` + `PrimaryButton` + `TertiaryButton` + `StatusTag`.
+
+### 8.5 Undo  🆕 placeholder
+
+**Problem:** even with confirmation, the agent's action lands in the real world (ticket created in Linear, email drafted in Gmail). User needs a way to back out within seconds without going to the source system.
+
+**Pattern (proposed):**
+- After a side-effecting action lands, the resulting `MessageCard` shows an **Undo** affordance for **N seconds** (default 10s for low-stakes, 30s for irreversible-ish like sending email).
+- Undo countdown uses `.animate-progress-bar` (`var(--motion-duration-slow)` is too short — use bespoke 10s/30s as token-exempt loops, like `progressFill`).
+- Undo collapses the card to "Reverted" `StatusTag` (`neutral` variant).
+- After the window expires, the Undo affordance is replaced by a permanent link to the action source ("View ticket in Linear").
+
+**Status:** **placeholder.** No component yet. Spec reserved here so when an Undo flow ships, it converges on this shape rather than re-inventing.
+
+### 8.6 Confidence / Status  ✅
+
+**Problem:** not every AI output is a finished result — some are guesses, some are partial, some are awaiting user input. A flat list of messages hides this distinction; users default to either over-trusting or never trusting.
+
+**Pattern:**
+- Use `StatusTag` (8 variants: `pending · in-progress · submitted · in-review · success · failed · expired · neutral`) on every AI-produced artifact card to signal where it sits.
+- Map: model is *generating* → `in-progress` (blue). Model *finished, awaiting user review* → `in-review` (amber). User *approved* → `success` (green). User *rejected / model failed* → `failed` (red). Sent to external system, awaiting response → `submitted` (violet). Blocked on missing input → `pending` (orange).
+- **Never** use raw probability numbers ("87% confident") — they imply false precision. Use the categorical pills.
+- Insight-level content uses `InsightCard` ("Maya's insight") as a higher-confidence signal — reserved for synthesized observations, not raw output.
+
+**Anatomy:** `StatusTag` (semantic) + `InsightCard` (insight-grade).
+
+### 8.7 Tool transparency  🆕 placeholder
+
+**Problem:** the agent calls tools (search docs, query Calendar, run code). When something goes wrong — or even when it goes right — the user needs to know *what the agent did*, not just the final answer. Black-box agents collapse trust the moment they're wrong once.
+
+**Pattern (proposed):**
+- Every tool call emits a collapsed `TaskProgressCard`-like row inside the `ChatMessage` showing: **tool icon + tool name + 1-line input summary + status**.
+- Default state: collapsed. Expanded view shows full input + output (truncated to 200 lines, "View raw" link for the full payload).
+- Multiple tool calls in one turn stack vertically inside a single card with `StepIndicator` glyphs (done/in-progress/pending).
+- Failed tool calls are surfaced inline immediately (red `StatusTag`), not folded into the agent's natural-language response.
+- Use `var(--color-accent-violet)` for the agent's "calling tool X" header to distinguish from user-initiated actions.
+
+**Status:** **placeholder.** `TaskProgressCard` has the structural pieces (collapsible, step list); needs a tool-call-specific variant. Build when the first multi-tool agent flow ships.
+
+---
+
+## 9. Voice & Tone
+
+> The voice of WorkPal is **two layers**:
+>
+> 1. **System baseline** (this section) — the default voice the product ships with, before any user customization. *Calm, structured, empathetic.* These are the rails.
+> 2. **User personalization** — every user names their agent (`agentName` in `types.ts:70`) and selects 3 weighted personality traits during Onboarding (`src/components/Onboarding.tsx`). Their top-3 traits *modulate* the baseline; the remaining 9 traits still shape it at lower weight; a free-text description provides escape-hatch nuance.
+>
+> The system baseline is what cowork writes against when the user hasn't set traits yet, and what every output falls back to when no trait clearly dominates. The personalization layer is applied at generation time, not at design time.
+
+### 9.1 Brand Philosophy
+
+**Born from the best people you've worked with.**
+
+WorkPal is a **calm, structured, and empathetic** AI assistant — built not just to execute tasks, but to understand your pace, lighten your load, and always be there when you need support.
+
+### 9.2 Personalization Philosophy
+
+Personalization builds on the baseline — it **enhances**, but doesn't replace the core identity. Two psychological mechanisms drive the design:
+
+- **Parasocial bonding.** When users assign traits they admire to the assistant, they begin to project the **warmth** and **trust** they associate with real people. This deepens trust and fosters acceptance of the virtual character.
+- **Participation builds connection.** When users take part in shaping the assistant's tone, personality, or appearance, that sense of involvement strengthens emotional connection and creates **ownership** and **belonging**.
+
+**How this lands in code:** the Onboarding flow (`src/components/Onboarding.tsx`) presents 12 traits — *🛟 Stable · 🧠 Organized · 🤗 Kind · 🧘 Calm · 🌱 Open-minded · 🫶 People-first · 😊 Always smiling · 🎭 Has a sense of humor · ⚡ Energetic · ✨ Minimal · 👔 Formal · 🙈 Not sure yet*. The user drags 3 into an "important" zone (top-3 carry extra weight); the remaining 9 still shape the agent at lower weight. Plus an optional free-text description (`onComplete(important, [], description?)`).
+
+### 9.3 Tone — by situation
+
+The baseline tone shifts subtly with the emotional weight of the moment. **Never** drop the calm-structured floor; only flex the warmth dial.
+
+| Situation | Tone style | Example response |
+|---|---|---|
+| ✅ Task completed | Warm, affirming, lightly celebratory | "All done! You can relax now, I've got this 😊" |
+| ⚠️ User made a mistake | Gentle, non-judgmental, supportive | "Looks like we're missing a file — no worries, let's fix it together." |
+| ❓ Uncertainty or hesitation | Clear, helpful, reassuring | "I've got a few options. Want to take a look and choose what fits best?" |
+| 📈 Offering suggestions | Logical, structured, calm | "Here are three key insights: 1. Time usage, 2. Repetitive tasks, 3. Collaboration gaps." |
+
+### 9.4 Voice Personality Traits
+
+The five baseline traits below describe *how WorkPal speaks* before the user sets any personalization. They are the **floor**, not the ceiling.
+
+| Trait | Description |
+|---|---|
+| **Inclusive** | Welcomes users of all levels. Never rushes, never pressures. |
+| **Kind** | Speaks like a trusted colleague — professional yet human. |
+| **Structured** | Provides clarity with clean, step-by-step responses. |
+| **Reliable** | Remembers your progress, fills in gaps, never lets you do extra work. |
+| **Calm** | Stays steady during chaos, offering logic and composure. |
+
+### 9.5 Style Guide for Language
+
+- **Avoid cold or technical jargon.** "Error 404" → "Can't find the file, want to retry?"
+- **Friendly use of emojis (context-dependent):** 😊 👍. Used at most once per message; never in error/warning copy.
+- **Keep sentences short, smart, and clear.** One idea per sentence.
+- **Never cutesy or forced** — just steady, helpful, and warm.
+
+### 9.6 Sample Phrases (for UI / system surfaces)
+
+Default phrases for common transient states. These ship as the baseline; personalization may rewrite them at runtime.
+
+| Context | Phrase |
+|---|---|
+| Starting | "Ready when you are." |
+| Task done | "All done. What's next?" |
+| Processing | "I'm on it. Just a sec." |
+| Error hint | "Looks like we're missing a file." |
+
+### 9.7 UX Strategy Matrix — by task state
+
+What the **interaction surface** does in each state, not just what the *language* does. Pattern decisions ladder up to §8 AI Patterns.
+
+| Task state | UX interaction strategy |
+|---|---|
+| ✅ Task completed | 1. Proactive suggestion of next steps based on inferred intent (uses `MessageCard` follow-up chips) |
+| ❌ Task incomplete / failed | 1. Intent clarification & input reconstruction · 2. Alternative action suggestion · 3. Progressive disclosure (show error reason on demand, not by default) |
+
+### 9.8 Empty-state copy templates
+
+For `EmptyState` component — title is short and action-oriented, description optional.
+
+| Surface | Title | Description |
+|---|---|---|
+| No chats yet | "Ready when you are." | "Start a conversation — I'll keep track of where we left off." |
+| No projects | "Nothing here yet." | "Create a project to bring tasks, files, and conversations together." |
+| No search results | "Nothing matched." | "Try a different word, or browse recent items." |
+| Connector not connected | "Not connected yet." | "Connect to bring your data into WorkPal." |
+| No tasks pending | "All caught up. ✨" | "Nothing waiting on you. Take a moment." |
+| No notifications | "All quiet." | "I'll let you know when something needs your attention." |
+
+### 9.9 Error message templates
+
+For inline form/validation errors and full-page error states. Pattern: **identify the issue + offer the next step**, never just "Error" or a status code.
+
+| Situation | Avoid | Use |
+|---|---|---|
+| Required field empty | "This field is required." | "Add a name so we can save it." |
+| Network failure | "Network error." | "Couldn't reach the network. I'll retry — or you can." |
+| Permission denied | "403 Forbidden." | "I don't have access to that yet. Connect it on the **Connectors** page?" |
+| Model overloaded | "503 Service Unavailable." | "Servers are busy right now. Try again in a moment." |
+| Unsaved changes about to be lost | "You have unsaved changes." | "You have unsaved edits — save before leaving?" |
+| Unknown / catch-all | "Something went wrong." | "Something didn't go through. Want me to try again?" |
+
+**Rule:** never expose HTTP status codes, stack traces, or model names to the user.

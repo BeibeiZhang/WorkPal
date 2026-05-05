@@ -87,7 +87,7 @@ export default function ArtifactPage() {
       <div className="min-h-screen flex items-center justify-center bg-bg-page">
         <div className="text-center max-w-sm px-6">
           <h1 className="type-display text-text-primary mb-2">Not found</h1>
-          <p className="type-body text-text-secondary">
+          <p className="type-h2 text-text-secondary">
             This artifact doesn’t exist or isn’t ready yet.
           </p>
         </div>
@@ -134,7 +134,7 @@ export default function ArtifactPage() {
         <h1 className="type-display mb-4">
           {content.title}
         </h1>
-        <p className="type-body text-text-secondary max-w-[720px]">
+        <p className="type-h2 text-text-secondary max-w-[720px]">
           {content.summary}
         </p>
       </section>
@@ -160,7 +160,7 @@ function CategorySection({ category }: { category: CategoryShape }) {
   if (items.length === 0) return null;
   return (
     <section>
-      <h2 className="type-body-emphasized mb-6">{category.label || category.key}</h2>
+      <h2 className="type-h2-emphasized mb-6">{category.label || category.key}</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {items.map((item, i) => (
           <ArtifactItemCard key={`${category.key}-${i}`} item={item} />
