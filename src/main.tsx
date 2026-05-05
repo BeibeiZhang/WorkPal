@@ -6,6 +6,12 @@ import App from './App.tsx'
 import ArtifactPage from './components/ArtifactPage.tsx'
 import { AuthProvider } from './lib/useAuth'
 import AuthGate from './components/AuthGate'
+import { setupErrorLogger } from './lib/errorLogger'
+
+// §58 — attach window-level error + unhandledrejection listeners before any
+// React code runs, so we capture initial-render exceptions too. Self-gates
+// on IS_DEMO; safe to call unconditionally.
+setupErrorLogger();
 
 // /artifact/:slug is a standalone public page (candidate #3 — shareable URL,
 // no login, no WorkPal shell). Everything else flows through the AuthGate +

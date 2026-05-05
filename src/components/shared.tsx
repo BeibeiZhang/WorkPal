@@ -2026,6 +2026,7 @@ const REVIEW_TYPE_ICONS: Record<string, LucideIcon> = {
   Document: FileText,
   Tickets: Ticket,
   Email: Mail,
+  Error: AlertTriangle,
 };
 
 export function ReviewItemCard({
