@@ -390,7 +390,9 @@ Beibei post-merge production 真机验:
 
 ---
 
-## 62. `candidate` — Chat 丢失 bug: display layer filter or cloud sync silent fail
+## 62. `decided-next` — Chat 丢失 bug: chat creation race / display layer / cloud sync silent fail
+
+**Plan**: `~/.claude/plans/62-chat-creation-race-quiet-flicker.md` (含完整 impl prompt + planning hypothesis ranking + stale-preview reproduce caveat)
 
 **Surfaced**: 2026-05-05 §60 PR #201 verify 时 Beibei production preview (`workpal-beibei-git-claude-b197ba-...`) 输入 "testing 60" chat → AI 真回复 + logUsage 真写 row (`source='workpal-beibei'` 验证 §60 fix) → **但 sidebar Recents 看不到 chat + Supabase chats table 0 row 包含 'testing 60'** (any case variation grep).
 
