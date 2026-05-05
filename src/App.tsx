@@ -53,6 +53,7 @@ import {
   upsertChatOnServer,
   deleteChatOnServer,
   bulkUploadChats,
+  pinMyWorkPalToEnd,
   ChatAuthError,
   type ChatMetadataWire,
 } from './lib/chatStore';
@@ -2696,7 +2697,7 @@ export default function App() {
           messages: [],
           sessionFolder,
         };
-        setChats(prev => [newChat, ...prev.filter(c => c.id !== 'my-workpal'), prev.find(c => c.id === 'my-workpal')!]);
+        setChats(prev => pinMyWorkPalToEnd(prev, newChat));
         navigate(`/chat/${chatId}`);
       }
     }
