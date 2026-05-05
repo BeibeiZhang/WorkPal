@@ -1,4 +1,4 @@
-import { countCallsSince, logUsage } from './usageLog.js';
+import { countCallsSince, logUsage, type Source } from './usageLog.js';
 
 // Tavily's current pay-as-you-go rate for a basic search. Hardcoded because
 // Tavily doesn't echo a cost field back, and updating these two lines is the
@@ -31,7 +31,7 @@ export function isWebSearchConfigured(): boolean {
   return !!process.env.TAVILY_API_KEY;
 }
 
-export async function searchWeb(query: string, maxResults = 5): Promise<WebSearchResponse> {
+export async function searchWeb(query: string, maxResults = 5, source?: Source): Promise<WebSearchResponse> {
   const key = process.env.TAVILY_API_KEY;
   if (!key) return { results: [], images: [] };
   const capped = Math.max(1, Math.min(maxResults, 8));
@@ -67,6 +67,7 @@ export async function searchWeb(query: string, maxResults = 5): Promise<WebSearc
       input_tokens: 0,
       output_tokens: 0,
       cost_usd: cost,
+      source,
     });
     const data = (await res.json()) as {
       results?: Array<{ title?: string; url?: string; content?: string; score?: number }>;

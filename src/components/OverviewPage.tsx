@@ -750,7 +750,9 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                 {/* By source — which deployment recorded each row. Drives
                     the "is workpal-beibei traffic from someone other than me?"
                     diagnostic. Pre-migration rows have null source and bucket
-                    as 'unknown'. Hidden if no rows have source data at all. */}
+                    as 'unknown' alongside any post-migration row whose origin
+                    didn't match a known host (legitimate fallback). Hidden if
+                    no rows have source data at all. */}
                 {spend && spend.by_source.length > 0 && (
                   <>
                     <div className="h-px dashed-border-b my-5" />
@@ -761,7 +763,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                           s.source === 'localhost' ? 'Local dev (your computer)'
                           : s.source === 'workpal-beibei' ? 'workpal-beibei.vercel.app (your prod)'
                           : s.source === 'my-workpal' ? 'my-workpal.vercel.app (demo)'
-                          : 'Unknown / pre-2026-04-28';
+                          : 'Pre-tracking';
                         return (
                           <div
                             key={s.source}

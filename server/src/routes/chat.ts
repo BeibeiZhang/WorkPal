@@ -4,6 +4,7 @@ import type { ChatMessage } from '../lib/llm.js';
 import { searchImages } from '../lib/imageSearch.js';
 import { searchVideos } from '../lib/youtubeSearch.js';
 import { searchWeb } from '../lib/webSearch.js';
+import { detectSourceFromRequest } from '../lib/usageLog.js';
 
 const router = Router();
 
@@ -33,7 +34,8 @@ router.post('/chat', async (req, res) => {
   res.flushHeaders();
 
   try {
-    for await (const chunk of streamChat(messages, model, chatMode)) {
+    const source = detectSourceFromRequest(req);
+    for await (const chunk of streamChat(messages, model, chatMode, source)) {
       res.write(`data: ${JSON.stringify(chunk)}\n\n`);
     }
   } catch {
@@ -130,7 +132,8 @@ router.post('/search-web', async (req, res) => {
     res.status(400).json({ error: 'query is required' });
     return;
   }
-  const resp = await searchWeb(query, typeof max_results === 'number' ? max_results : 5);
+  const source = detectSourceFromRequest(req);
+  const resp = await searchWeb(query, typeof max_results === 'number' ? max_results : 5, source);
   res.json({ results: resp.results, images: resp.images });
 });
 

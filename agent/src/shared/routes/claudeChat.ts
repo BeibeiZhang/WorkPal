@@ -17,7 +17,7 @@ import { initProjectIfNeeded, listProjectMainDeliverables, resolveProjectFolder 
 import { WORKPAL_ROOT } from '../lib/paths.js';
 import { validateReferenceDirectories } from '../lib/referenceDirs.js';
 import { REFERENCE_FOLDERS_PROMPT } from '../lib/referencePrompt.js';
-import { logUsage } from '../lib/usageLog.js';
+import { detectSourceFromRequest, logUsage } from '../lib/usageLog.js';
 
 const router = Router();
 
@@ -746,6 +746,7 @@ router.post('/claude-chat', async (req, res) => {
               cache_read_tokens: r.usage.cache_read_input_tokens,
               cache_write_tokens: r.usage.cache_creation_input_tokens,
               cost_usd: cost,
+              source: detectSourceFromRequest(req),
             });
           }
           send({ type: 'claude_done', usage: r.usage, cost: r.total_cost_usd });

@@ -24,6 +24,25 @@ export type Capability = 'chat' | 'voice' | 'web_query' | 'agent' | 'other';
 // Pre-migration rows have null source and bucket as 'unknown' on read.
 export type Source = 'localhost' | 'workpal-beibei' | 'my-workpal' | 'unknown';
 
+/** Server-side sibling of `src/lib/usage.ts:detectSource()`. The frontend
+ *  helper reads `window.location.hostname`; this one reads the request's
+ *  Origin / Referer headers. Same enum, same buckets. Used by every Express
+ *  / Vercel logUsage callsite that doesn't already get `source` shipped in
+ *  the request body (the voice endpoint at api/usage.ts already does — chat
+ *  endpoints don't, so we infer here). Pure: no I/O, just header inspection. */
+export function detectSourceFromRequest(
+  req: { headers: { origin?: string; referer?: string } },
+): Source {
+  // Origin is missing on same-origin GETs (browsers omit it); Referer is the
+  // backstop. Both missing → 'unknown', which is also the bucket pre-migration
+  // null rows fall into, so the cost dashboard at least clusters them sanely.
+  const origin = req.headers.origin || req.headers.referer || '';
+  if (origin.includes('workpal-beibei')) return 'workpal-beibei';
+  if (origin.includes('my-workpal')) return 'my-workpal';
+  if (origin.includes('localhost') || origin.includes('127.0.0.1')) return 'localhost';
+  return 'unknown';
+}
+
 export interface UsageEntry {
   ts: string;
   provider: Provider;

@@ -4,7 +4,7 @@ import { searchImages, isImageSearchConfigured, type ImageResult } from './image
 import { searchVideos, isVideoSearchConfigured, type VideoResult } from './youtubeSearch.js';
 import { searchWeb, isWebSearchConfigured, type WebResult } from './webSearch.js';
 import { listConnectors } from './connectorStore.js';
-import { logUsage, priceFor } from './usageLog.js';
+import { logUsage, priceFor, type Source } from './usageLog.js';
 import {
   searchGmail,
   sendEmail,
@@ -227,6 +227,7 @@ export async function* streamChat(
   messages: ChatMessage[],
   model = 'gpt-4o-mini',
   mode: ChatMode = 'Chat',
+  source?: Source,
 ): AsyncGenerator<StreamChunk> {
   const toolList: ChatCompletionTool[] = [];
   if (isImageSearchConfigured()) toolList.push(IMAGE_SEARCH_TOOL);
@@ -339,7 +340,7 @@ export async function* streamChat(
         const videos = await searchVideos((args.query as string) || '', (args.count as number) || 5);
         if (videos.length > 0) yield { type: 'videos', videos };
       } else if (name === 'web_search') {
-        const resp = await searchWeb((args.query as string) || '', (args.max_results as number) || 5);
+        const resp = await searchWeb((args.query as string) || '', (args.max_results as number) || 5, source);
         if (resp.results.length > 0) yield { type: 'web_results', results: resp.results };
         webCalls.push({
           id: tc.id,
@@ -484,6 +485,7 @@ export async function* streamChat(
         output_tokens: totalOutputTokens,
         images_count: imagesCount,
         cost_usd: priceFor(model, totalInputTokens, totalOutputTokens),
+        source,
       });
     }
 

@@ -12,7 +12,7 @@ import {
   type CardJson,
   type ToolResult,
 } from './_lib/google-tools.js';
-import { logUsage, priceFor, countCallsSince } from './_lib/usage-store.js';
+import { logUsage, priceFor, countCallsSince, detectSourceFromRequest, type Source } from './_lib/usage-store.js';
 
 // Tavily's basic-search rate + free-tier cap. Mirrors server/src/lib/webSearch
 // .ts — update in both places if pricing changes. Free tier covers 1,000
@@ -162,7 +162,7 @@ async function searchVideos(query: string, count: number): Promise<VideoResult[]
   }
 }
 
-async function searchWeb(query: string, maxResults: number): Promise<{ results: WebResult[]; images: string[] }> {
+async function searchWeb(query: string, maxResults: number, source: Source): Promise<{ results: WebResult[]; images: string[] }> {
   const key = process.env.TAVILY_API_KEY;
   if (!key) return { results: [], images: [] };
   const capped = Math.max(3, Math.min(maxResults, 8));
@@ -195,6 +195,7 @@ async function searchWeb(query: string, maxResults: number): Promise<{ results: 
       input_tokens: 0,
       output_tokens: 0,
       cost_usd: cost,
+      source,
     });
     const data = (await res.json()) as {
       results?: Array<{ title?: string; url?: string; content?: string; score?: number }>;
@@ -385,6 +386,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+  // Tag every usage row this turn writes (web_search side-effect + main turn)
+  // with the deployment that fired the request, so the Overview by_source
+  // breakdown can split workpal-beibei prod vs my-workpal demo vs localhost.
+  const source = detectSourceFromRequest(req);
+
   const tools: ChatCompletionTool[] = [];
   if (process.env.UNSPLASH_ACCESS_KEY) tools.push(IMAGE_SEARCH_TOOL);
   if (process.env.YOUTUBE_API_KEY) tools.push(VIDEO_SEARCH_TOOL);
@@ -486,7 +492,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const videos = await searchVideos((args.query as string) || '', (args.count as number) || 5);
         if (videos.length > 0) write({ type: 'videos', videos });
       } else if (name === 'web_search') {
-        const resp = await searchWeb((args.query as string) || '', (args.max_results as number) || 5);
+        const resp = await searchWeb((args.query as string) || '', (args.max_results as number) || 5, source);
         if (resp.results.length > 0) write({ type: 'web_results', results: resp.results });
         webCalls.push({
           id: tc.id,
@@ -625,6 +631,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         output_tokens: totalOutputTokens,
         images_count: imagesCount,
         cost_usd: priceFor(model, totalInputTokens, totalOutputTokens),
+        source,
       });
     }
 
