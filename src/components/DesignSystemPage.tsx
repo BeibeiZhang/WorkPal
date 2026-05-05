@@ -2355,7 +2355,7 @@ function ComponentsTab() {
     {
       name: 'ProgressBar',
       description: 'Determinate progress bar. States: with/without label.',
-      usedIn: ['TaskProgressCard', 'MessageCard'],
+      usedIn: ['MessageCard'],
       preview: (
         <div className="flex flex-col gap-3">
           <ProgressBar value={62} showLabel />
@@ -2415,10 +2415,10 @@ function ComponentsTab() {
     },
     {
       name: 'TaskProgressCard',
-      description: 'Clickable card with progress bar. Expands to show step list.',
+      description: 'Clickable card showing the current step + elapsed time. Expands to show full step list.',
       usedIn: ['Overview "Agents at Work" section'],
       preview: (
-        <TaskProgressCard title="Analyzing Q2 metrics" progress={62} steps={['Pulling data from Sheets', 'Building charts', 'Formatting']} expanded />
+        <TaskProgressCard title="Analyzing Q2 metrics" elapsed="3m 24s" steps={['Pulling data from Sheets', 'Building charts', 'Formatting']} expanded />
       ),
     },
     {
