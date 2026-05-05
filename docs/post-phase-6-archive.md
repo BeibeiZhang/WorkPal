@@ -1008,3 +1008,70 @@ Prompt 文字关键: "Glob and Read the matching file in your working directory 
 
 ---
 
+
+## 61. `shipped` — OG link preview + iOS home-screen icon + PWA manifest
+
+**Shipped**: 2026-05-05 (PR [#203](https://github.com/BeibeiZhang/WorkPal/pull/203), commit `eb85731`, frontend-only Vercel auto-deploy). 41+/0- in 6 files.
+
+**Surfaced**: 2026-05-05 conversation. 分享 `https://workpal-beibei.vercel.app` 到 iMessage / LinkedIn / Slack 抓到 bare "WorkPal" 文本无图; iOS Safari "Add to Home Screen" 没 W logo. `index.html` 完全无 OG / Twitter Card metadata, `public/` 无 og-image / apple-touch-icon asset.
+
+**Implemented**:
+- **5 个 output asset to `public/`** (macOS native `sips` conversion, no ImageMagick):
+  - `og-image.jpg` 1200×630 113KB — center-crop from `~/github/beibeizhang.github.io/workpal-hero.jpg` 3840×2160 (上下各 72px → 3840×2016 → resize 1200×630)
+  - `apple-touch-icon.png` 180×180 — `sips -Z 512` 一次 + downsample from `~/Library/.../WorkPal/Logo/Property 1=110.pdf`
+  - `icon-192.png` 192×192 / `icon-512.png` 512×512 (PWA Android Chrome / 高 DPI)
+  - `manifest.json` 469B (name / start_url:/ / display:standalone / theme_color:#7652B9 / icons[])
+- **`index.html` +27 行 meta block** 在 `<title>` 下方插入: `<meta name="description">` + OG (og:type/url/title/description/image with width/height/type) + Twitter Card (summary_large_image) + `<link rel="apple-touch-icon">` + 3 个 apple-mobile-web-app-* + `<link rel="manifest">`.
+- **OG copy**: Title "WorkPal — your AI workplace assistant" + Description "Chat + tasks in the same project, voice-enabled rich input, selective knowledge output."
+- **Source asset 只读复制副本**: `workpal-hero.jpg` + `Property 1=110.pdf` 原位不动 (Beibei portfolio 资产管理纪律, planning spec 明文 不可 mv / 改名).
+
+**Plan-quality 高分**:
+- Planning Spotlight `mdfind` 反查 chat-pasted image 真 disk path — process learning: "chat-paste 没 disk path" 半对, 原文件在 disk 仍能 reverse-find. 节省 Beibei 转 file 一步.
+- Substantive flag (planning self-found pre-prompt-finalize): `og:image` 必须 absolute URL 指 production, PR preview opengraph.xyz 假阴性陷阱 (preview HTML og:image 指 production, merge 前 production 没 .jpg → 404 → 空 banner). Verify 拆 cowork merge-前 (curl + grep dist/) / Beibei merge-后 (opengraph.xyz on production).
+
+**Plan-quality 偏离 (accept)**:
+- Cowork skip `/engineering:code-review` self-run, 用 manual self-review 替代. Reasoning sound: 100% 静态 metadata + JSON manifest + image binary, plugin 主要价值面 (security/perf/defensive 代码 gap) 全无 surface. Equivalent manual self-review 已写 PR body 覆盖 security / perf / defensive 三面. Planning accept. **教训**: 静态 asset only PR 该有 fast-lane exception, future spec 可加.
+- 初始 PR title 误用 §60 (与 paste prompt 顶 typo 一致), planning review catch 后 `gh pr edit` 改 §61.
+
+**0 文件 overlap with §62 (parallel ship demonstrated)**: §61 改 `index.html` + `public/`; §62 改 `App.tsx` + `chatStore.ts` + `chatStore.test.ts`. Phase 6 worktree 隔离设计实战验证, 两个 cowork session 同时跑互不 block.
+
+**Ship verify (post-deploy)**: iMessage 给自己发 vercel.app URL → preview 显 banner thumbnail; iOS Safari → 添加到主屏幕 → W logo + standalone mode; opengraph.xyz on production → 完整 banner render.
+
+---
+
+## 62. `shipped` — Chat 丢失 bug: my-workpal non-null assertion 谎言 → chats array 含 undefined → useEffect crash
+
+**Shipped**: 2026-05-05 (PR [#204](https://github.com/BeibeiZhang/WorkPal/pull/204), commit `f25b2c0`, frontend-only Vercel auto-deploy). 85+/1- in 3 files.
+
+**Surfaced**: 2026-05-05 §60 PR #201 verify 时 Beibei 在 production preview 输入 "testing 60" → AI 真回复 + logUsage 真写 row (`source='workpal-beibei'` 验证 §60 fix) → **但 sidebar Recents 看不到 + Supabase chats table 0 row + 同时段其他 chats visibilitychange flush 正常**. Triple symptom 暗示 chat 没成功进 state.chats array.
+
+**Root cause** (pre-fix `App.tsx:2699`):
+```ts
+setChats(prev => [newChat, ...prev.filter(c => c.id !== 'my-workpal'), prev.find(c => c.id === 'my-workpal')!]);
+```
+非空断言 (`!`) 在可能返 `undefined` 的 `prev.find(...)` — TS 谎言 (运行时不检查), undefined 真被 spread 进 array. **触发条件**: cloud-only hydrate (DEMO_CHAT_IDS 不 round-trip Supabase) prev 不含 my-workpal → fresh-chat branch (line 2688 else) → undefined 塞 array.
+
+**Crash 链** (triple symptom 完美 align):
+1. `App.tsx:991` dirty useEffect: `new Map(chats.map((c) => [c.id, c]))` → `undefined.id` → `TypeError`
+2. useEffect throw → React 跳过 commit → state.chats 没真正 commit → sidebar 看不到 ✓
+3. `dirtyChatsRef` 没 add → `scheduleChatFlush` 没触发 → cloud 没 PUT row ✓
+4. 但 `dispatchSendForChat` 已 fire-and-forget 走 streamFromAPI → backend 真处理 + 真写 usage_log ✓
+
+**Implemented**:
+- **`chatStore.ts:149-160` 新 helper `pinMyWorkPalToEnd(prev, newChat)`** — pure function with ternary guard (`myWorkPal ? [...] : [...]`). JSDoc 解释 returning user / cloud-only / DEMO_CHAT_IDS rationale.
+- **`App.tsx:2697` callsite swap** 1 行替换 inline non-null spread.
+- **`chatStore.test.ts` 4 vitest cases**: (1) prev 不含 my-workpal `not.toContain(undefined)` 钉死 triple-symptom 退化; (2) prev 含 my-workpal 顺序对; (3) empty prev fresh user; (4) ordering 跨 branch 完整 sanity.
+- **`App.tsx:3167` 干净** `setChats(prev => [newChat, ...prev])` — `handleCreateChatInProject` 不动, bug 限 line 2699 single site (planning self-grep verify before approval).
+
+**Plan-quality 链式协作模板** (cowork ↔ planning 三阶段都加分):
+- **Cowork Step 1 grep verify catch planning spec drift**: plan 写 `App.tsx:1846-2086` handleSend, 实际 1846-2086 是 `streamFromAPI` (不创建 chat), `handleSend` 真位置 `2627-2729`, chat 创建 setChats 在 2699 + 3167. Plan 文件 `## Spec deltas` 暂停等 review.
+- **Cowork hypothesis 2.1 narrow** (beyond spec-restatement): `prev.find(...)!` non-null 谎言导致 undefined leak → useEffect 991 crash, 用 triple-symptom + crash chain 结构性 prove.
+- **Planning approval roundtrip**: Read `App.tsx:2699 + 991 + 3167` confirm 真有 bug + line 3167 干净 (bug single site) → plan 文件 append `## Planning approval` section: 同意 hypothesis + fix proposal (ternary guard) + 3 vitest cases.
+- **Cowork helper extraction beyond spec**: planning approval 提 inline ternary in handleSend, cowork 自决 extract 到 pure function in `chatStore.ts` — vitest 不需 React mounting + App.tsx 改动更小 + cohesion 更好. Planning accept (reasoning sound).
+- **Browser reproduce impractical 改 vitest deterministic**: bug 触发条件 (returning user + cloud-only hydrate, localStorage 不含 my-workpal) 浏览器手工模拟代价高; cowork 用 vitest case 1 `not.toContain(undefined)` 作 deterministic 复现 (pre-fix fail / post-fix pass). Hypothesis 2.1 chain 结构性 proof + code-level regression test 已经覆盖 — accept.
+
+**Ship verify (post-deploy)**: 退出登录再 login → fresh hydrate 不含 my-workpal → 输入 "testing fix 62" → sidebar 立即显 + reload 还在 + Supabase chats 有新 row.
+
+**Process learning sealed**: §62 是 **plan-quality 链路三阶段最强体现** — cowork (grep verify drift + hypothesis narrow + helper extraction beyond spec) 跟 planning (read code confirm + fix proposal + accept impl deviations) 形成可复用的 bug-fix 协作模板. 跟 §59 (planning catch RLS UPDATE policy missing) 配对成 plan-quality 双向网, 各自一头守 spec drift.
+
+---

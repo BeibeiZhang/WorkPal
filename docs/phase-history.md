@@ -237,7 +237,7 @@ Phase 5 一路踩下的坑和形成的宗旨，**沉淀在 `docs/principles.md`*
 | v0.1.12 | 2026-05-01 | §52 file path multi-candidate resolve chain |
 | v0.1.13 | 2026-05-02 | §53 button reactive + backend graceful for reaped branch |
 
-Plus frontend-only (Vercel auto, 不需 dmg)：§29 ChatInput multi-Enter race · §31/§32 Output legacy backfill · §50 chat isDraft display · §50.1 cross-device sync · §51 sidebar 双 highlight · **§28 Test infra vitest Phase 1 (PR #182, 2026-05-03)** · **§55 Subscription Health Check 锁 30d (PR #194, 2026-05-04)** · **§56 Suppress duplicate focus ring on chat textarea (PR #197, 2026-05-04)** · **§58 Production error logging → Overview NYE (PR #198, 2026-05-04)** · **§59 NYE error entry polish: divider + Mark reviewed (PR #199, 2026-05-04)** · `docs/demo-checklist.md` doc-only 演示前 sanity (commit `bf603f7`) · 多个 fast-lane UI polish PRs。
+Plus frontend-only (Vercel auto, 不需 dmg)：§29 ChatInput multi-Enter race · §31/§32 Output legacy backfill · §50 chat isDraft display · §50.1 cross-device sync · §51 sidebar 双 highlight · **§28 Test infra vitest Phase 1 (PR #182, 2026-05-03)** · **§55 Subscription Health Check 锁 30d (PR #194, 2026-05-04)** · **§56 Suppress duplicate focus ring on chat textarea (PR #197, 2026-05-04)** · **§58 Production error logging → Overview NYE (PR #198, 2026-05-04)** · **§59 NYE error entry polish: divider + Mark reviewed (PR #199, 2026-05-04)** · **§60 usage_log.source 6 callsite backfill (PR #201, 2026-05-05)** · **§61 OG link preview + iOS home-screen icon + PWA manifest (PR #203, 2026-05-05)** · **§62 Chat 丢失 bug fix — my-workpal non-null assertion guard (PR #204, 2026-05-05)** · `docs/demo-checklist.md` doc-only 演示前 sanity (commit `bf603f7`) · 多个 fast-lane UI polish PRs。
 
 **最近 batch ships**（compressed，详见 `docs/post-phase-6-archive.md` § entries — pending 见 `post-phase-6-candidates.md`）：
 
@@ -252,13 +252,22 @@ Plus frontend-only (Vercel auto, 不需 dmg)：§29 ChatInput multi-Enter race �
 - **§52** file path fallback chain (PR #175) — `read-file` 加 fallbackPaths。**第二次 catch agent mirror 缺失**（memory pattern 起作用）
 - **§53** Save to Knowledge reactive + backend graceful (PR #178) — Revert §43.2 simpler approach; `git rev-parse --verify refs/heads/<branch>` pre-flight 防 ambiguous argument error
 
-**当前 backlog 状态**（59 candidate · ~50 shipped · 9 pending）：
+**当前 backlog 状态**（62 candidate · ~53 shipped · 9 pending）：
 - **#3** Artifact 生成（decided-next，5-7 天，**最大产品扩面**，下一阶段重点）
 - **#54** Overview real-data + IS_DEMO 分流 (decided-next, Beibei thinking 中)
 - **#57** Audit a11y focus indicator gap (Type A 9 inputs + Type B 2 toolbar buttons, post-§56 follow-up)
 - **#6** CN→EN translate fix · **#13C** Apple Developer 签名 · **#24** Progress 面板路由透出 · **#25** Debug overlay（all candidate）
 - **#4** Bilingual scaffold（parked，principle #8 翻转后过期）
 - **§50.2** delete isDraft field（cleanup defer）
+
+**Process learning 2026-05-05 cycle (§60 + §61 + §62 batch ship, 同日 3 PR merged)**:
+- **3 ship 一天**, 全 frontend / Vercel auto-deploy (no dmg). §60 cross-cutting (`api/` + `server/` + `agent/shared` mirror + Supabase historical backfill) 走 **dual planning panel architecture** (panel A 主 §60, panel B 主 §61 + §62) — 跟 Phase 6 worktree 隔离设计配套, 多个 planning + cowork session 同时跑 via 文件共享 IPC (`~/.claude/plans/`).
+- **§61 + §62 0 文件 overlap parallel ship**: §61 改 `index.html` + `public/` static asset; §62 改 `App.tsx` + `chatStore.ts`. 两 cowork session 同时 push PR 互不 block. Phase 6 worktree 设计实战验证.
+- **Cowork ↔ planning IPC pattern formalized**: Plan 文件 (`~/.claude/plans/<§-N>-<topic>-<random>.md`) 作 shared whiteboard, Beibei trigger 3-line short prompt 让 cowork 自己 read plan 文件 execute, cowork 完成回写 `## Status` section. 4-step trigger flow (launch / drift signal / PR pushed / merge). Memory `feedback_impl_prompt_copy_boundary` 沉淀: planning 永远不在 chat 贴完整 prompt, 不让 Beibei 找 line range / strip code fence.
+- **§62 plan-quality 三阶段最强体现**: cowork (grep verify spec drift catch planning's `App.tsx:1846-2086` 错位 + hypothesis 2.1 narrow `prev.find(...)!` non-null 谎言 + helper extraction beyond spec) 跟 planning (read code confirm bug + line 3167 single-site verify + fix proposal + accept impl deviations) 形成可复用的 bug-fix 协作模板. 跟 §59 (planning catch RLS UPDATE policy missing) 配对成 plan-quality 双向网.
+- **§61 fast-lane exception precedent**: 100% 静态 asset PR (image binary + JSON manifest + HTML metadata) 无代码 surface, cowork manual self-review 替代 `/engineering:code-review` plugin reasoning sound — accept. Future spec 可加 fast-lane 准则.
+- **Planning self-found `og:image` PR-preview opengraph.xyz 假阴性陷阱** (§61 substantive flag): `og:image` 必须 absolute URL 指 production, preview 抓 og:image → 404. Verify 拆 cowork merge-前 (curl + grep dist/) / Beibei merge-后 (opengraph.xyz on production). 防假阴性测试设计.
+- **§62 root cause** (代码教训): TS `!` non-null assertion 加在 `prev.find()` 后是 **谎言** — 运行时不检查, undefined 真被 spread 进 array. 下游 `chats.map(c => [c.id, c])` 类 array iteration 必 throw. 教训通用 generic JS/TS engineering principle, 不是 WorkPal-specific (但 WorkPal 撞到了).
 
 **Process learning 2026-05-04 cycle (§58 + §59)**:
 - **6 + 8 spec drift catches** by impl grep verify — `feedback_verify_before_deferring` pattern 体现极佳, planning spec 多处错 (file 名 / migration number / source labels / RLS UPDATE policy 漏 / etc) 全 surface 而非默默走错路
