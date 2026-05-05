@@ -1,0 +1,14 @@
+{
+  "name": "WorkPal",
+  "short_name": "WorkPal",
+  "description": "Your AI workplace assistant",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F3F4F5",
+  "theme_color": "#7652B9",
+  "icons": [
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
