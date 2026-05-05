@@ -227,6 +227,47 @@ Hidden in `IS_DEMO` builds (no debug for HR audience).
 
 ---
 
+## 56. `decided-next` — Suppress duplicate focus ring on chat textarea
+
+**Surfaced**: 2026-05-04 Beibei 发现 ChatInput 输入框 focus 时画**蓝色 2px outline rectangle** 围着 plus button + textarea 整个 row. 紫粉 gradient (input-gradient-border 自身 active state visual) **跟蓝色 outline 双重指示**, 视觉冗余. 关 Grammarly + 换浏览器后仍存在 → 排除外部插件, 是 WorkPal 自己 CSS 行为.
+
+**Root cause**: `src/index.css:227-228` 全局 a11y rule:
+
+```css
+*:focus-visible {
+  outline: 2px solid var(--color-focus-ring);  /* #3171FF light / #73B2FF dark */
+  outline-offset: 2px;
+}
+```
+
+WCAG 2.4.7 (Focus Visible) 要求 keyboard navigation 视觉指示. textarea focus 时同时触发该 global rule + wrapper isActive=true 紫粉 gradient → 双重视觉指示.
+
+**Goal**: ChatInput textarea **单独** override `focus-visible:outline-none`, **不动** global rule (其他 button / link / sidebar items 等保留蓝色 focus ring 满足键盘 a11y). Wrapper 紫粉 gradient + cursor blinking + bg 颜色变化已三层 serve focus indicator, WCAG 合规.
+
+**Scope (locked 2026-05-04)**:
+
+- `src/components/ChatInput.tsx:478` textarea className 加 `focus-visible:outline-none` Tailwind class (精确 local override)
+- 不动 `src/index.css:227-228` global rule
+- 不动其他元素 focus styling
+
+**Non-goals**:
+- Grammarly 扩展注入视觉 (Beibei 2026-05-04 明确搁置)
+- Global a11y rule 重构
+- 其他 input / button focus styling 调整 (如未来 surface 类似双重指示, 单独 § 候选)
+
+**Effort**: 5-15 min.
+
+**Risk classification**: low — 1 行 className 改动, Tailwind utility class, 精确 target chat-textarea selector, 不影响其他元素 a11y.
+
+**Test plan**:
+- Mouse click textarea: 蓝色 outline 消失, 紫粉 gradient 仍 serve active state
+- Keyboard Tab 进入 textarea: 同上 (:focus-visible 触发路径, 三层 indicator 仍可见)
+- Light + dark mode 都过 (前者 #3171FF, 后者 #73B2FF, override 都 cover)
+- 回归 verify: Tab 到 plus button / send button / sidebar / Save to Knowledge 等元素 → 仍有蓝色 focus ring (global rule 一字不动)
+- Manual verify only — vitest config (`include: ['src/**/*.test.ts']`) 不含 .tsx, component test infra 未设, 强行加 jsdom 跟 5-15min 工时不成比例
+
+---
+
 ## 50.2. `candidate` — Delete isDraft field entirely (cleanup)
 
 **Surfaced**: §50 + §50.1 ship 后, `isDraft` field 已被 display + sync 两层取消依赖. 真正彻底清理是删 field from `Chat` type / Supabase schema.
