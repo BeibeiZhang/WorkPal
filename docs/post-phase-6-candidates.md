@@ -390,6 +390,42 @@ Beibei post-merge production 真机验:
 
 ---
 
+## 62. `candidate` — Chat 丢失 bug: display layer filter or cloud sync silent fail
+
+**Surfaced**: 2026-05-05 §60 PR #201 verify 时 Beibei production preview (`workpal-beibei-git-claude-b197ba-...`) 输入 "testing 60" chat → AI 真回复 + logUsage 真写 row (`source='workpal-beibei'` 验证 §60 fix) → **但 sidebar Recents 看不到 chat + Supabase chats table 0 row 包含 'testing 60'** (any case variation grep).
+
+**Evidence**:
+- usage_log row 2026-05-05 19:25:59 UTC source='workpal-beibei' gpt-4o-mini ← chat backend 真处理
+- chats table query `WHERE messages::text ILIKE '%testing 60%'` returned 0 rows
+- All other chats batch-updated 19:28:04 (visibilitychange flush) but no testing 60 entry
+- Beibei reports: sidebar Recents 看不到 (= display layer filter bug 不是仅 sync 问题)
+
+**Hypothesis (待 cowork dig)**:
+1. **Display layer filter bug** (类似 §50 isDraft 卡 true): chat 创建 in localStorage 但 sidebar filter (e.g. `!c.isDraft && c.messages.length > 0`) 隐藏. §50 已修 messages.length>0 invariant — 可能 production preview branch 跟 main 有 race / commit gap
+2. **Chat creation race**: chat 没 add 到 `chats` state array (PUT cloud + sidebar render 都依赖)
+3. **Cloud sync silent fail**: PUT /api/chats/:id 401 / fail-quiet → cloud 没 row → reload 后丢 (但 sidebar 当 session 应仍能看到 — Beibei 报告"已看不到"暗示 display 层也 fail)
+
+**Repro path (cowork session 启动时复现)**:
+- Open `workpal-beibei-git-claude-b197ba-...` (production preview, login 状态)
+- Type plain text chat (e.g. "testing 62") + Enter
+- Watch sidebar Recents during AI streaming + after AI 回复完成
+- Network panel watch `PUT /api/chats/:id` request status
+- Console watch sync errors / 401
+- 之后 query Supabase `chats` table check row 是否存在
+
+**Goal (TBD by next planning session)**:
+- Reproduce + 定位 layer (display vs sync)
+- 修复 chat 不丢失 + sidebar 立即显示
+- 加 vitest case 钉住 invariant (per §28 Standard rule)
+
+**Effort**: TBD pending repro (1-3 hr 预估)
+
+**Risk classification**: medium — touches chats sync + sidebar render + isDraft logic family (§50 + §50.1 复杂区域, 改错容易 regression).
+
+**Test plan**: TBD
+
+---
+
 ## 50.2. `candidate` — Delete isDraft field entirely (cleanup)
 
 **Surfaced**: §50 + §50.1 ship 后, `isDraft` field 已被 display + sync 两层取消依赖. 真正彻底清理是删 field from `Chat` type / Supabase schema.
