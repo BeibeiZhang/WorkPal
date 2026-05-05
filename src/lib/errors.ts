@@ -39,3 +39,29 @@ export async function fetchErrorSummary(password: string | null): Promise<ErrorS
     return [];
   }
 }
+
+/** §59 — mark a NYE error entry reviewed (whole msg-group). Returns true on
+ *  HTTP 200 regardless of `marked` count: marked=0 collapses stale sample_id
+ *  and multi-tab race ("already marked elsewhere") into the same UX (entry
+ *  is gone in DB either way, so optimistic-filter-on-click is correct).
+ *  Returns false only on network failure or non-2xx (incl. 401 password
+ *  fail) so the caller can revert the optimistic filter. */
+export async function markErrorReviewed(sampleId: string, password: string | null): Promise<boolean> {
+  if (IS_DEMO) return false;
+  if (!password) return false;
+  try {
+    const res = await fetch('/api/errors', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-memory-password': password },
+      body: JSON.stringify({ sample_id: sampleId }),
+    });
+    if (!res.ok) return false;
+    const json = (await res.json()) as { marked?: number };
+    if (json.marked === 0) {
+      console.warn('[§59] markErrorReviewed: 0 rows marked (stale sample_id or multi-tab race)', sampleId);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}

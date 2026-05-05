@@ -6,7 +6,7 @@ import {
   CalendarClock, Globe, Download,
   Rocket, MessageCircle,
   Dice5, Baby, Gamepad2, BookOpen, Footprints,
-  Copy, Check,
+  Copy, Check, CheckCircle,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -19,7 +19,7 @@ import { fetchUnreadArtifacts, markArtifactViewed, artifactItemCount, type Artif
 import { fetchUsage, formatUsd, type UsageSummary } from '../lib/usage';
 import { computeHealth } from '../lib/health';
 import { IS_DEMO } from '../lib/demoMode';
-import { fetchErrorSummary, type ErrorSummaryItem } from '../lib/errors';
+import { fetchErrorSummary, markErrorReviewed, type ErrorSummaryItem } from '../lib/errors';
 import { timeAgo } from '../lib/timeAgo';
 import { useAuth } from '../lib/useAuth';
 
@@ -186,6 +186,28 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
     }
   }, []);
 
+  // §59 — explicit dismiss for error entries (other NYE types have natural
+  // dismiss actions; errors don't, so they need a button). Optimistic filter
+  // + revert on fail so a 401/network blip doesn't lie to the user. Snapshot
+  // the list pre-filter rather than re-fetching, since useEffect is mount-once.
+  const [markingErrorId, setMarkingErrorId] = useState<string | null>(null);
+  const handleMarkReviewed = useCallback(async (err: ErrorSummaryItem, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (markingErrorId === err.sample_id) return;
+    setMarkingErrorId(err.sample_id);
+    let snapshot: ErrorSummaryItem[] = [];
+    setUnreviewedErrors(prev => {
+      snapshot = prev;
+      return prev.filter(x => x.sample_id !== err.sample_id);
+    });
+    const ok = await markErrorReviewed(err.sample_id, getCachedPassword());
+    if (!ok) {
+      console.warn('[§59] mark reviewed failed, restoring entry', err.sample_id);
+      setUnreviewedErrors(snapshot);
+    }
+    setMarkingErrorId(null);
+  }, [markingErrorId, getCachedPassword]);
+
   // API Spend — live OpenAI + Anthropic + Tavily usage logged to Supabase
   // after every call. Re-fetches on range change (with loading state) and
   // also polls every 60s in the background so the card stays roughly live
@@ -310,7 +332,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                       />
                     </button>
                     {isExpanded && (
-                      <div className="px-5 pb-4 -mt-1 flex flex-col gap-2">
+                      <div className="px-5 pb-4 pt-4 border-t border-stroke-outline flex flex-col gap-4">
                         {err.stack ? (
                           <pre className="type-footnote text-text-secondary bg-bg-message rounded-lg p-3 overflow-x-auto whitespace-pre-wrap break-words max-h-64">
                             {err.stack}
@@ -327,6 +349,16 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                           >
                             {isCopied ? <Check size={14} /> : <Copy size={14} />}
                             {isCopied ? 'Copied' : 'Copy stack'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => handleMarkReviewed(err, e)}
+                            disabled={markingErrorId === err.sample_id}
+                            aria-label="Mark error as reviewed"
+                            className="inline-flex items-center gap-1.5 type-footnote text-text-primary hover:text-text-primary disabled:text-text-tertiary disabled:cursor-not-allowed"
+                          >
+                            <CheckCircle size={14} />
+                            Mark reviewed
                           </button>
                           {err.url && (
                             <span className="type-footnote text-text-secondary truncate">at {err.url}</span>

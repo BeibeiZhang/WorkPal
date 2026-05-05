@@ -18,6 +18,7 @@
     { "source": "/api/search-web",           "destination": "/api/search?kind=web" },
     { "source": "/api/log-error",            "destination": "/api/usage?endpoint=log-error" },
     { "source": "/api/error-summary",        "destination": "/api/usage?endpoint=error-summary" },
+    { "source": "/api/errors",               "destination": "/api/usage?endpoint=mark-error-reviewed" },
     { "source": "/((?!api).*)", "destination": "/index.html" }
   ],
   "crons": [

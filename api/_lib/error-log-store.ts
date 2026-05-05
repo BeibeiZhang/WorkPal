@@ -130,6 +130,36 @@ export async function summarizeUnreviewed(): Promise<ErrorSummaryItem[]> {
     .slice(0, 20);
 }
 
+/** §59 — mark a whole msg-group reviewed. Two-step:
+ *    1) SELECT msg by sample_id (single row)
+ *    2) UPDATE all rows with that msg AND reviewed=false → reviewed=true
+ *  Whole-group is intentional: GET /api/error-summary dedups by msg, so the
+ *  NYE entry represents N occurrences. Marking the entire group keeps that
+ *  semantics (one click dismisses the visible entry; a recurrence after
+ *  the deploy fix re-fires a fresh row that will surface again).
+ *
+ *  Returns { marked } so anomalies surface without the route having to
+ *  branch on 404: stale sample_id, multi-tab race ("already marked"), and
+ *  RLS-denied UPDATE all collapse to marked=0 — the helper logs, the UI
+ *  treats as success (entry is gone in DB either way). */
+export async function markReviewedByMsg(sampleId: string): Promise<{ marked: number }> {
+  const c = client();
+  const { data: row, error: selErr } = await c
+    .from(TABLE)
+    .select('msg')
+    .eq('id', sampleId)
+    .maybeSingle();
+  if (selErr) throw selErr;
+  if (!row) return { marked: 0 };
+  const { count, error: updErr } = await c
+    .from(TABLE)
+    .update({ reviewed: true }, { count: 'exact' })
+    .eq('msg', row.msg)
+    .eq('reviewed', false);
+  if (updErr) throw updErr;
+  return { marked: count ?? 0 };
+}
+
 export class ValidationError extends Error {
   constructor(msg: string) {
     super(msg);
