@@ -375,7 +375,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                 return (
                   <button
                     key={a.slug}
-                    onClick={() => openArtifact(a)}
+                    onClick={() => { if (IS_DEMO) return; openArtifact(a); }}
                     className="text-left dashed-border-b last:bg-none hover:bg-bg-hover transition-colors"
                   >
                     <ReviewItemCard
@@ -389,8 +389,12 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                 );
               })}
               {REVIEW_ITEMS.map((item, i) => {
+                // Demo viewers (HR/recruiter) get hover affordance + cursor — feels live —
+                // but the click is a no-op so they don't land on a chat that can't show the
+                // promised artifact. Keeping openFrom truthy preserves the enabled-button styling.
                 const openFrom = item.from
                   ? () => {
+                      if (IS_DEMO) return;
                       if (item.from!.kind === 'project') onOpenProject?.(item.from!.id);
                       else onOpenChat?.(item.from!.id);
                     }
@@ -423,8 +427,10 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
 
             <div className="flex flex-col">
               {IN_PROGRESS.map((task, i) => {
+                // Demo viewers: same hover-yes / nav-no rule as REVIEW_ITEMS above.
                 const openFrom = task.from
                   ? () => {
+                      if (IS_DEMO) return;
                       if (task.from!.kind === 'project') onOpenProject?.(task.from!.id);
                       else onOpenChat?.(task.from!.id);
                     }
@@ -448,8 +454,10 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
             <SectionTitle emoji="" title="Scheduled" count={SCHEDULED.length} size={20} />
             <div className="flex flex-col">
               {SCHEDULED.map(job => {
+                // Demo viewers: same hover-yes / nav-no rule as REVIEW_ITEMS / IN_PROGRESS above.
                 const openFrom = job.from
                   ? () => {
+                      if (IS_DEMO) return;
                       if (job.from!.kind === 'project') onOpenProject?.(job.from!.id);
                       else onOpenChat?.(job.from!.id);
                     }
