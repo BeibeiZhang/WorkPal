@@ -948,3 +948,63 @@ Prompt 文字关键: "Glob and Read the matching file in your working directory 
 
 ---
 
+## 58. `shipped` — Production error logging → Overview "Needs Your Eyes"
+
+**Shipped**: 2026-05-04 (PR [#198](https://github.com/BeibeiZhang/WorkPal/pull/198), commit `dad54e4`, Vercel auto-deploy + Supabase migration `0008_error_log.sql` applied via MCP). 723+/22- in 13 files.
+
+**Surfaced**: 2026-05-04 conversation. Beibei 撞 bug (chat 丢失 / 文字错位 等) 时只能靠 daily use 自己撞到 surface. 数据类 bug (chat 丢 / fetch 失败 / JS exception) 可以**自动 catch + 推到 Overview NYE**, 不用切 tool. 视觉 bug 类 (字超框 / 错位) 用 `docs/demo-checklist.md` (同一 batch ship `bf603f7` part A) 演示前手动过.
+
+**Implemented**:
+- **Frontend `src/lib/errorLogger.ts`**: window-level `error` + `unhandledrejection` listeners → POST `/api/log-error`. IS_DEMO 短路, mount before createRoot 抓 initial render error
+- **Vercel serverless** `api/usage.ts` (combined endpoint per Hobby-plan 12-fn cap): POST `/api/log-error` (anonymous, validation + clamp + source whitelist + fail-quiet) + GET `/api/error-summary` (password-gated, 7-day window, dedup by msg, top 20)
+- **`api/_lib/error-log-store.ts`**: insertError + summarizeUnreviewed + Supabase singleton + KNOWN_SOURCES whitelist
+- **Supabase `error_log` table**: id / msg / stack / url / ua / source / ts / reviewed. RLS open + 2 indexes (ts desc + unreviewed partial)
+- **Frontend `src/lib/errors.ts`**: fetchErrorSummary helper, IS_DEMO double-gate, password header
+- **`src/lib/timeAgo.ts` extracted from ChatMessage.tsx** (§55 spec-original 漏 ship, §58 顺手 catch up — principle #4 reuse)
+- **OverviewPage NYE 加 unreviewedErrors 数据源** + cancellation-flag mount-once fetch (mirror §55 spend30d) + click expand inline + Copy stack button
+- **`shared.tsx`** `'Error': AlertTriangle` 进 REVIEW_TYPE_ICONS map
+
+**Plan-quality 高分**:
+- Impl session **6 个 spec drift catches** via grep verify (Migration number 0006→0008 / Source labels production→workpal-beibei / Source by frontend not server / timeAgo extraction / api/usage.ts not api/errors.ts file name / RLS UPDATE policy missing)
+- Architecture: combined `api/usage.ts` 避 Vercel 12-function 限制 (per §63 chat-store ship 教训)
+- PII guard 三层: 客户端只读 4 字段 + 8KB stack truncate + 服务端 double-truncate + source whitelist
+- Fail-quiet pattern 完整: errorLogger fetch `.catch()` / api insert 返 200 console.warn / fetchErrorSummary try-catch 返 `[]`
+- Mount 时机超 spec: setupErrorLogger 在 createRoot 之前 = 抓 initial React render 错
+- 5 follow-up §s self-proposed
+
+**Planning v1 review pushes**: 2 个全接住 — password 真 wire (useAuth.getCachedPassword) 不 placeholder + click expand 用 inline (Option A) 不 alert(stack) fallback
+
+**Ship verify (post-deploy)**: Beibei DevTools console `setTimeout(() => throw new Error('test §58'), 0)` → Supabase row + NYE entry 显示. IS_DEMO branch (my-workpal) 验过 0 fetch.
+
+---
+
+## 59. `shipped` — NYE error entry polish (divider + Mark reviewed button)
+
+**Shipped**: 2026-05-04 (PR [#199](https://github.com/BeibeiZhang/WorkPal/pull/199), commit `d1b5082`, Vercel auto-deploy + Supabase migration `0009_error_log_update_policy.sql` applied via MCP by planning). 225+/6- in 7 files.
+
+**Surfaced**: 2026-05-04 §58 PR #198 verify 后 Beibei 反馈两件:
+1. **视觉**: expand 状态下 entry header 跟 stack `<pre>` 视觉粘一起, 没分隔线
+2. **Workflow**: 复制 stack 给 planning 处理后无法主动 dismiss, entry 留 7 天才消失
+
+**Key product call**: 仅 error type 加 "Mark reviewed" button. 其他 NYE 类型 (unreadArtifacts / REVIEW_ITEMS mock / 未来 §54 hasUnsavedChanges) 不动 — 它们各自有自然 dismiss action (打开 artifact = viewed / toggle done / save chat).
+
+**Implemented**:
+- **Visual divider**: `OverviewPage.tsx:335` wrapper className 改 `pt-2 border-t border-stroke-outline` (替换原 `-mt-1`). Border 加 wrapper 不加 `<pre>` (因 `<pre>` 自带 bg-bg-message #F2F3F4, vs border-stroke-outline #E8E8E8 对比度 1.05:1 几乎不可见 — impl visual contrast catch 救命)
+- **PATCH `/api/errors`** (`api/usage.ts` combined file 加新 method handler): body `{ sample_id }`, password gate, 调 `markReviewedByMsg` helper. Method-agnostic vercel.json rewrite `/api/errors → /api/usage?endpoint=mark-error-reviewed`
+- **`markReviewedByMsg` data helper** (`api/_lib/error-log-store.ts`): SELECT msg by sample_id (maybeSingle) → UPDATE all rows WHERE msg=? AND reviewed=false. 一次 mark 整 group (跟 GET dedup-by-msg 语义一致). `marked: 0` 收口 stale id / multi-tab race / RLS-denied 三种失败
+- **Frontend `markErrorReviewed(sampleId, password)` helper** (`src/lib/errors.ts`): IS_DEMO 短路 + try/catch 返 boolean ok/fail
+- **OverviewPage Mark reviewed button** in error entry expanded state, 跟 Copy stack 并排 flex row. Optimistic filter + functional updater closure 拿 snapshot + 失败 revert (no UX lying on 401 / network blip)
+- **Supabase migration `0009_error_log_update_policy.sql`**: `0008` 只 SELECT+INSERT policies, 漏 UPDATE — 不加 PATCH 静默返 0 rows, frontend 假装 work 实际 Supabase 不动. Critical catch by impl plan grep verify
+
+**Plan-quality 极高**:
+- Impl plan **8 个 spec correction**: api/errors.ts→api/usage.ts file name / handler 直写 SQL→layered helper / vercel.json rewrite 漏 / button primitive→bare-button / `gap-2`→已有 gap-3 / `password` variable→useAuth.getCachedPassword / "self-healing via refresh"→optimistic-revert needed / **🚨 RLS UPDATE policy 漏 = silent fail catch (would have shipped假装能用)**
+- Visual contrast catch (border vs `<pre>` bg ~1.05:1 invisible)
+- 7 vitest cases 覆盖 IS_DEMO / 200 / 401 / network throw / marked=0 / network race
+- `marked: 0` 三态收口 (stale + race + RLS-denied → 都返 success, UI 该消失就消失)
+
+**Planning role applied migration 0009 via MCP** (跟 §17 / §58 spec "impl runs migration" precedent 不同 — 这次 impl 把 migration apply 留给 Beibei 手动, Beibei 让 planning 用 MCP 直接 apply 兜底). 验过 3 policies (`error_log_read_all` SELECT / `error_log_write_all` INSERT / `error_log_update_all` UPDATE) 都在.
+
+**Ship verify (post-deploy)**: Beibei 测试 `throw new Error('test §59')` 10× → NYE 显示单条 `Uncaught Error: test §59 · 10×`. Click Mark reviewed → entry 消失 + reload 不回来 (verify migration 真 apply, RLS UPDATE 真 work). 旧 §58 测试残留 `test §58` 56m ago 也 click Mark reviewed 清掉 — NYE 干净.
+
+---
+
