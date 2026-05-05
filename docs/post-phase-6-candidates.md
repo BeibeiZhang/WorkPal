@@ -251,7 +251,7 @@ Hidden in `IS_DEMO` builds (no debug for HR audience).
 **Scope (locked 2026-05-04)**:
 
 - **Frontend `src/lib/errorLogger.ts` (new)** — ~60-80 行. listen `window.error` + `window.unhandledrejection` → POST `/api/log-error`. 在 `src/main.tsx` mount 时 setup. **`IS_DEMO=true` 短路** (demo URL 不 log production error).
-- **Vercel serverless `api/log-error.ts` (new)** — POST endpoint. body validate (msg 必填, stack 截断 8KB, url + ua 可选, source 自动从 hostname 推 'workpal-beibei' / 'my-workpal' / 'localhost'). 写 Supabase `error_log` table.
+- **Vercel serverless `api/log-error.ts` (new)** — POST endpoint. body validate (msg 必填, stack 截断 8KB, url + ua 可选, source 自动从 hostname 推 `workpal-beibei` / `my-workpal` / `localhost` / `unknown` — **复用现有 `src/lib/usage.ts` 的 `detectSource()` helper**, 跟 `usage_log` table source 标签一致, 未来 dashboard 能 join 跨表). 写 Supabase `error_log` table.
 - **Vercel serverless `api/error-summary.ts` (new)** — GET endpoint. Query Supabase 过去 7 天 unreviewed error, dedup by msg, return top 20.
 - **Supabase migration**: new `error_log` table `{ id uuid pk, msg text, stack text, url text, ua text, source text, ts timestamptz default now(), reviewed boolean default false }`. RLS open (API gate by password 同 chat-store pattern).
 - **Overview NYE wiring**: `OverviewPage.tsx` 现 NYE section 加新数据源 — `unreadArtifacts` (existing) + **`unreviewedErrors` (本 §58 新加)** + chats with hasUnsavedChanges (§54 待 ship 后再加). fetch `/api/error-summary` mount 时 + 切 page 时. NYE entry 渲染: error.msg + 短 timestamp + click expand 显示 stack. **`IS_DEMO=true` 短路** (demo URL 不显示 error).
