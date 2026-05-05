@@ -268,6 +268,42 @@ WCAG 2.4.7 (Focus Visible) 要求 keyboard navigation 视觉指示. textarea foc
 
 ---
 
+## 57. `candidate` — Audit other input/textarea elements for duplicate focus-ring fix
+
+**Surfaced**: 2026-05-04 §56 cowork impl plan grep verification. 修 §56 时 cowork 发现 repo 里还有 **9 处** input/textarea 用了 `outline-none` 但**没**配套 `focus-visible:outline-none`:
+
+- `NewProjectDialog.tsx:103, 120, 138` — 3 inputs
+- `shared.tsx:337, 374, 1414` — 3 shared input primitives
+- `MemoryPage.tsx:78, 98, 108` — 3 inputs
+
+**Key caveat**: 这 9 处不能一刀切加 `focus-visible:outline-none`. 必须**逐一 audit** — wrapper 是否有自己的视觉 focus indicator (像 ChatInput 的 input-gradient-border)?
+
+- 如果有 → 加 `focus-visible:outline-none` (跟 §56 同 pattern, 消除双重指示)
+- 如果无 → **保留蓝色 ring** (global rule 是这元素唯一 WCAG 2.4.7 focus indicator, 删掉 = 破坏 a11y)
+
+特别注意 `shared.tsx:337/374/1414` 的 3 个 shared primitives — 它们被多处 import, audit 决定一处影响全局.
+
+**Goal**: 决定每处该不该 opt out, 然后 in same PR 把要 opt out 的全加上.
+
+**Effort**: 1-2 hr (主要 audit + 决策, 实际改动很少).
+
+**Risk**: medium — 错误关掉某处 a11y ring = WCAG 退化, 视障用户键盘 navigation 看不见 focus. 必须 per-element 视觉验证 wrapper 是否自带 focus state visual.
+
+**Test plan**:
+- 每处 audit:
+  1. 找 wrapper element (parent div / form-card)
+  2. Check wrapper 有没有 `:focus-within` 样式或者 conditional gradient/border on focus
+  3. 决定 keep blue ring (no wrapper visual) vs override (has wrapper visual)
+- Audit 表写进 PR description (3 列: 路径 / wrapper 自带 visual? / 决定)
+- 改完 manual verify keyboard Tab 走 9 处, 确认每处至少有一种可见 focus indicator (蓝色 ring **或** wrapper 自身 visual)
+- Light + dark 都过
+
+**Why not bundle into §56**: §56 PR 1 行改动 strictly local, 风险低. §57 audit 涉及 9 处 + WCAG 退化风险, 决策每处不同. Bundle = §56 review 复杂度爆炸, §57 决策被埋. 分开 PR 让每个 review boundary 清晰.
+
+**Trigger**: §56 ship 后立即, 趁 cowork session 对 §56 模式 / a11y 链路记忆新鲜. Defer 越久越容易上下文丢.
+
+---
+
 ## 50.2. `candidate` — Delete isDraft field entirely (cleanup)
 
 **Surfaced**: §50 + §50.1 ship 后, `isDraft` field 已被 display + sync 两层取消依赖. 真正彻底清理是删 field from `Chat` type / Supabase schema.
