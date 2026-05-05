@@ -270,32 +270,45 @@ WCAG 2.4.7 (Focus Visible) 要求 keyboard navigation 视觉指示. textarea foc
 
 ## 57. `candidate` — Audit other input/textarea elements for duplicate focus-ring fix
 
-**Surfaced**: 2026-05-04 §56 cowork impl plan grep verification. 修 §56 时 cowork 发现 repo 里还有 **9 处** input/textarea 用了 `outline-none` 但**没**配套 `focus-visible:outline-none`:
+**Surfaced**: 2026-05-04 §56 cowork impl plan grep verification + PR #197 真测发现. 两类 a11y focus indicator gap:
 
+**Type A — input/textarea 用 `outline-none` 但没配套 `focus-visible:outline-none` (§56 模式潜在重复)**：
 - `NewProjectDialog.tsx:103, 120, 138` — 3 inputs
 - `shared.tsx:337, 374, 1414` — 3 shared input primitives
 - `MemoryPage.tsx:78, 98, 108` — 3 inputs
 
-**Key caveat**: 这 9 处不能一刀切加 `focus-visible:outline-none`. 必须**逐一 audit** — wrapper 是否有自己的视觉 focus indicator (像 ChatInput 的 input-gradient-border)?
+**Type B — toolbar buttons `outline-width: 0px` (pre-existing, **比 Type A 更严重 — 完全无 focus ring**)**:
+- `ChatInput.tsx` Attach (plus 按钮) — keyboard Tab 到看不见 focus
+- `ChatInput.tsx` Send button — 同上
+- (PR #197 §56 verify 时 computed-style 真测自抓)
+
+**Key caveat**: Type A 不能一刀切加 `focus-visible:outline-none`. 必须**逐一 audit** — wrapper 是否有自己的视觉 focus indicator (像 ChatInput 的 input-gradient-border)?
 
 - 如果有 → 加 `focus-visible:outline-none` (跟 §56 同 pattern, 消除双重指示)
 - 如果无 → **保留蓝色 ring** (global rule 是这元素唯一 WCAG 2.4.7 focus indicator, 删掉 = 破坏 a11y)
 
 特别注意 `shared.tsx:337/374/1414` 的 3 个 shared primitives — 它们被多处 import, audit 决定一处影响全局.
 
-**Goal**: 决定每处该不该 opt out, 然后 in same PR 把要 opt out 的全加上.
+**Type B handling** (Attach / Send buttons — 完全无 focus ring): 必须**加上** focus indicator (反方向). 现在 keyboard 用户看不见 focus. 加法选项:
+- 给 toolbar buttons remove `outline: 0` 让 global rule 接管 (蓝色 ring)
+- 或加自定义 focus-visible 样式 (e.g. ring-2 ring-accent-blue) 跟 design system 统一
 
-**Effort**: 1-2 hr (主要 audit + 决策, 实际改动很少).
+**Goal**: 决定 Type A 每处该不该 opt out + Type B 给 toolbar buttons 加 focus indicator. Same PR 全 ship.
 
-**Risk**: medium — 错误关掉某处 a11y ring = WCAG 退化, 视障用户键盘 navigation 看不见 focus. 必须 per-element 视觉验证 wrapper 是否自带 focus state visual.
+**Effort**: 2-3 hr (Type A audit 1-2hr + Type B fix 30min-1hr).
+
+**Risk**: medium-high — 错误关 Type A = WCAG 退化; Type B 加 focus 视觉如果跟现有 button hover/active state 冲突会视觉 noisy. 必须 per-element 视觉验证.
 
 **Test plan**:
-- 每处 audit:
+- Type A 每处 audit:
   1. 找 wrapper element (parent div / form-card)
   2. Check wrapper 有没有 `:focus-within` 样式或者 conditional gradient/border on focus
   3. 决定 keep blue ring (no wrapper visual) vs override (has wrapper visual)
-- Audit 表写进 PR description (3 列: 路径 / wrapper 自带 visual? / 决定)
-- 改完 manual verify keyboard Tab 走 9 处, 确认每处至少有一种可见 focus indicator (蓝色 ring **或** wrapper 自身 visual)
+- Type A audit 表写进 PR description (3 列: 路径 / wrapper 自带 visual? / 决定)
+- Type B fix:
+  1. ChatInput Attach + Send 按钮 keyboard Tab 真测 — 现在看不见 focus, 改后看得见
+  2. 鼠标 hover 状态视觉不被破坏
+- 改完 manual verify keyboard Tab 走 11 处 (9 Type A + 2 Type B), 每处至少一种可见 focus indicator (蓝色 ring **或** wrapper 自身 visual)
 - Light + dark 都过
 
 **Why not bundle into §56**: §56 PR 1 行改动 strictly local, 风险低. §57 audit 涉及 9 处 + WCAG 退化风险, 决策每处不同. Bundle = §56 review 复杂度爆炸, §57 决策被埋. 分开 PR 让每个 review boundary 清晰.
