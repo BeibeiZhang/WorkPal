@@ -1922,15 +1922,15 @@ export function AreaChart({
 /* ─── 13. TaskProgressCard ─── */
 export function TaskProgressCard({
   title,
-  progress,
   steps,
+  elapsed,
   icon: IconComp,
   expanded = false,
   onClick,
 }: {
   title: string;
-  progress: number;
   steps: string[];
+  elapsed: string;
   icon?: LucideIcon;
   expanded?: boolean;
   onClick?: () => void;
@@ -1947,9 +1947,10 @@ export function TaskProgressCard({
         <div className="flex items-center gap-3.5">
           <div className="flex-1 min-w-0 type-detail-emphasized text-text-primary">{title}</div>
         </div>
-        <div className="flex items-center gap-3 mt-1.5">
-          <div className="flex-1"><ProgressBar value={progress} height={6} /></div>
-          <span className="type-detail text-text-primary shrink-0">{progress}%</span>
+        <div className="flex items-center gap-1.5 mt-1.5 type-detail text-text-primary min-w-0">
+          <span className="truncate">{steps[steps.length - 1]}</span>
+          <span aria-hidden="true" className="shrink-0">·</span>
+          <span className="shrink-0">{elapsed}</span>
         </div>
       </div>
       <ChevronRight size={16} className="text-text-primary shrink-0" />

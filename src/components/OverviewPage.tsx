@@ -48,9 +48,9 @@ const REVIEW_ITEMS: Array<{ title: string; source: string; type: string; time: s
   { title: 'Weekly stakeholder email draft', source: 'Gmail', type: 'Email', time: 'Ready 2h ago', urgent: false, from: { kind: 'project', id: 'proj-1', label: 'Agent Design' } },
 ];
 
-const IN_PROGRESS: Array<{ title: string; progress: number; steps: string; icon: LucideIcon; from?: Source }> = [
-  { title: 'Analyzing Q2 design metrics report', progress: 62, steps: 'Pulling data from Sheets → Building charts → Formatting', icon: BarChart3, from: { kind: 'project', id: 'proj-1', label: 'Agent Design' } },
-  { title: 'Researching competitor onboarding flows', progress: 35, steps: 'Scanning 4 competitor apps → Extracting screenshots → Compiling', icon: Search, from: { kind: 'chat', id: 'alcohol-delivery', label: 'Alcohol Delivery Issues' } },
+const IN_PROGRESS: Array<{ title: string; elapsed: string; steps: string; icon: LucideIcon; from?: Source }> = [
+  { title: 'Analyzing Q2 design metrics report', elapsed: '3m 24s', steps: 'Pulled data from Sheets → Cleaned outliers → Building summary charts', icon: BarChart3, from: { kind: 'project', id: 'proj-1', label: 'Agent Design' } },
+  { title: 'Researching competitor onboarding flows', elapsed: '1m 12s', steps: 'Scanned 4 competitor apps → Extracted screenshots → Comparing onboarding flows', icon: Search, from: { kind: 'chat', id: 'alcohol-delivery', label: 'Alcohol Delivery Issues' } },
 ];
 
 /** Mock scheduled automations. Not persisted, not real cron — the dashboard
@@ -439,7 +439,7 @@ export default function OverviewPage({ sidebarOpen, onToggleSidebar, onNewChat, 
                   <TaskProgressCard
                     key={i}
                     title={task.title}
-                    progress={task.progress}
+                    elapsed={task.elapsed}
                     steps={task.steps.split(' → ')}
                     icon={task.icon}
                     onClick={openFrom}
