@@ -293,7 +293,10 @@ type ColorToken = {
    *  Rendered in the Swatch under the primary cssVar so duplicates collapse
    *  into a single entry without hiding that the extra token exists. */
   aliases?: string[];
-  usage: string;
+  /** Where this token gets used in the UI. Optional because some tokens
+   *  (e.g. brand gradient stops) carry their meaning through their group
+   *  context and don't need a per-stop usage description. */
+  usage?: string;
 };
 
 const SURFACE_TOKENS: ColorToken[] = [
@@ -361,34 +364,43 @@ const SURFACE_TOKENS: ColorToken[] = [
   {
     name: 'Selected · Fill',
     cssVar: '--color-selected-bg',
+    tailwind: 'bg-selected-bg',
     usage: 'Active/selected state fill — active FilterChip, ToolbarSegmented selected tab, focus-ring backgrounds. 10% blue in light, solid blue in dark',
   },
   {
     name: 'Selected · Text',
     cssVar: '--color-selected-text',
+    tailwind: 'text-selected-text',
     usage: 'Text & icon color on Selected · Fill — blue on the 10% light fill, white on the solid dark fill (maintains contrast in both modes)',
   },
 ];
 
 const ACCENT_TOKENS: ColorToken[] = [
-  { name: 'Blue · Callout',    cssVar: '--color-accent-blue',    usage: 'Selection, links, focus highlights' },
-  { name: 'Green · Success',   cssVar: '--color-accent-green',   usage: 'StatusTag success text' },
-  { name: 'Red · Error',       cssVar: '--color-accent-red',     usage: 'Error state, destructive action' },
-  { name: 'Amber',             cssVar: '--color-accent-amber',   usage: 'Warning / pending states' },
-  { name: 'Orange',            cssVar: '--color-accent-orange',  usage: 'Accent badges' },
-  { name: 'Violet',            cssVar: '--color-accent-violet',  usage: 'Accent badges' },
-  { name: 'Neutral',           cssVar: '--color-accent-neutral', usage: 'Muted / inactive badges' },
+  { name: 'Blue · Callout',    cssVar: '--color-accent-blue',    tailwind: 'bg-accent-blue',    usage: 'Selection, links, focus highlights' },
+  { name: 'Green · Success',   cssVar: '--color-accent-green',   tailwind: 'bg-accent-green',   usage: 'StatusTag success text' },
+  { name: 'Red · Error',       cssVar: '--color-accent-red',     tailwind: 'bg-accent-red',     usage: 'Error state, destructive action' },
+  { name: 'Amber',             cssVar: '--color-accent-amber',   tailwind: 'bg-accent-amber',   usage: 'Warning / pending states' },
+  { name: 'Orange',            cssVar: '--color-accent-orange',  tailwind: 'bg-accent-orange',  usage: 'Accent badges' },
+  { name: 'Violet',            cssVar: '--color-accent-violet',  tailwind: 'bg-accent-violet',  usage: 'Accent badges' },
+  { name: 'Neutral',           cssVar: '--color-accent-neutral', tailwind: 'bg-accent-neutral', usage: 'Muted / inactive badges' },
 ];
 
-const BRAND_STOPS: { stop: string; cssVar: string }[] = [
-  { stop: 'Start',  cssVar: '--brand-grad-start' },
-  { stop: 'Middle', cssVar: '--brand-grad-mid' },
-  { stop: 'End',    cssVar: '--brand-grad-end' },
+const BRAND_STOPS: ColorToken[] = [
+  { name: 'Start',  cssVar: '--brand-grad-start' },
+  { name: 'Middle', cssVar: '--brand-grad-mid' },
+  { name: 'End',    cssVar: '--brand-grad-end' },
 ];
 
-/** Parse a computed color string (hex or rgb[a]) into `{ hex, opacity }`.
- *  Browsers' `getComputedStyle` normalizes to `rgb()` / `rgba()` — we still
- *  accept hex so the helper round-trips if we ever read the raw source. */
+/** Parse a computed color string into `{ hex, opacity }`. Handles every form
+ *  modern browsers may emit from `getComputedStyle`:
+ *  - `#hex` (3/4/6/8 digits) — direct token literals
+ *  - `rgb(...)` / `rgba(...)` — legacy normalized form
+ *  - `color(srgb r g b [/ a])` — CSS Color L4 form, returned by Chromium ≥116
+ *    (and others) when the source went through `color-mix()` or other CSS
+ *    color functions. Components in the new Tier 2 alias layer use
+ *    `color-mix(in srgb, var(--X) N%, transparent)`, so this branch is what
+ *    keeps every Surface & Text swatch label accurate after the three-tier
+ *    refactor. Channels are 0..1 floats here (multiply by 255 for hex). */
 function parseColorToHexOpacity(raw: string): { hex: string; opacity: number } | null {
   const value = raw.trim();
   if (!value) return null;
@@ -414,23 +426,45 @@ function parseColorToHexOpacity(raw: string): { hex: string; opacity: number } |
     return { hex, opacity: a };
   }
 
+  const colorSrgbMatch = value.match(/^color\(\s*srgb\s+([0-9.]+)\s+([0-9.]+)\s+([0-9.]+)(?:\s*\/\s*([0-9.]+))?\s*\)$/);
+  if (colorSrgbMatch) {
+    const r = Math.round(parseFloat(colorSrgbMatch[1]) * 255);
+    const g = Math.round(parseFloat(colorSrgbMatch[2]) * 255);
+    const b = Math.round(parseFloat(colorSrgbMatch[3]) * 255);
+    const a = colorSrgbMatch[4] !== undefined ? parseFloat(colorSrgbMatch[4]) : 1;
+    const hex = '#' + [r, g, b].map(n => n.toString(16).padStart(2, '0').toUpperCase()).join('');
+    return { hex, opacity: a };
+  }
+
   return null;
 }
 
 /** Resolve a CSS variable to its current `{ hex, opacity }`, re-reading
  *  whenever `.dark` toggles on `<html>` so the swatch labels stay accurate
- *  in both themes. */
+ *  in both themes. Uses a hidden probe element so the browser fully computes
+ *  any nested `var()` / `color-mix()` / future CSS color functions before we
+ *  parse — reading the raw `getPropertyValue` only resolves `var()` one level
+ *  and leaves `color-mix(...)` as a string the parser can't normalize. */
 function useResolvedColor(cssVar: string) {
   const [resolved, setResolved] = useState<{ hex: string; opacity: number } | null>(null);
   useEffect(() => {
+    const probe = document.createElement('div');
+    probe.style.position = 'absolute';
+    probe.style.visibility = 'hidden';
+    probe.style.pointerEvents = 'none';
+    probe.style.color = `var(${cssVar})`;
+    document.body.appendChild(probe);
     const read = () => {
-      const val = getComputedStyle(document.documentElement).getPropertyValue(cssVar);
-      setResolved(parseColorToHexOpacity(val));
+      const computed = getComputedStyle(probe).color;
+      setResolved(parseColorToHexOpacity(computed));
     };
     read();
     const mo = new MutationObserver(read);
     mo.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    return () => mo.disconnect();
+    return () => {
+      mo.disconnect();
+      probe.remove();
+    };
   }, [cssVar]);
   return resolved;
 }
@@ -456,14 +490,22 @@ function Swatch({ token, withBorder = true }: { token: ColorToken; withBorder?: 
             <code className="type-caption font-mono text-text-secondary">{opacityPct}%</code>
           </div>
         )}
-        <code className="block mt-1 type-caption font-mono text-text-secondary break-all">{token.cssVar}</code>
+        {/* CSS var line. Shown when (a) no Tailwind shortcut exists (it's
+            the primary consume path), or (b) the token has aliases — the
+            `↳ --color-X` rows need a parent anchor to reference. When the
+            Tailwind class exists AND no aliases, the cssVar collapses by
+            naming convention (`bg-X-Y` ↔ `--color-X-Y`) and the blue line
+            carries the same info without the visual duplication. */}
+        {(!token.tailwind || token.aliases?.length) && (
+          <code className="block mt-1 type-caption font-mono text-text-secondary break-all">{token.cssVar}</code>
+        )}
         {token.aliases?.map(a => (
           <code key={a} className="block type-caption font-mono text-text-tertiary break-all">↳ {a}</code>
         ))}
         {token.tailwind && (
-          <code className="block mt-0.5 type-caption font-mono" style={{ color: 'var(--color-accent-blue)' }}>{token.tailwind}</code>
+          <code className="block mt-1 type-caption font-mono" style={{ color: 'var(--color-accent-blue)' }}>{token.tailwind}</code>
         )}
-        <p className="mt-1 type-caption text-text-secondary">{token.usage}</p>
+        {token.usage && <p className="mt-1 type-caption text-text-secondary">{token.usage}</p>}
       </div>
     </div>
   );
@@ -767,12 +809,12 @@ const SPACING_SCALE: { token: string; css: string; tailwind: string; usage: stri
   { token: '--space-10', css: '40px', tailwind: 'pb-10',               usage: 'Page bottom padding' },
 ];
 
-const RADIUS_SCALE: { token: string; css: string; usage: string }[] = [
-  { token: '--radius-sm',    css: '8px',    usage: 'Small tags, internal chips' },
-  { token: '--radius-md',    css: '12px',   usage: 'Buttons, input fields' },
-  { token: '--radius-lg',    css: '16px',   usage: 'Cards, message bubbles' },
-  { token: '--radius-pill',  css: '9999px', usage: 'Chips, pills, toggles' },
-  { token: '--radius-shell', css: '40px',   usage: 'Outer app shell' },
+const RADIUS_SCALE: { token: string; css: string; tailwind: string; usage: string }[] = [
+  { token: '--radius-sm',    css: '8px',    tailwind: 'rounded-lg',     usage: 'Small tags, internal chips' },
+  { token: '--radius-md',    css: '12px',   tailwind: 'rounded-xl',     usage: 'Buttons, input fields' },
+  { token: '--radius-lg',    css: '16px',   tailwind: 'rounded-2xl',    usage: 'Cards, message bubbles' },
+  { token: '--radius-pill',  css: '9999px', tailwind: 'rounded-full',   usage: 'Chips, pills, toggles' },
+  { token: '--radius-shell', css: '40px',   tailwind: 'rounded-[40px]', usage: 'Outer app shell' },
 ];
 
 // Icon Library — real lucide-react components, grouped by semantic purpose.
@@ -1324,7 +1366,7 @@ function FoundationsTab() {
 
       <div className="mb-5 rounded-2xl border border-stroke-outline p-5">
         <div className="type-h2-emphasized text-text-primary mb-3">Surface & Text — bound to <code className="type-caption font-mono">--color-*</code>, mode-aware (light/dark)</div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           {SURFACE_TOKENS.map(t => <Swatch key={t.cssVar} token={t} />)}
         </div>
       </div>
@@ -1332,7 +1374,7 @@ function FoundationsTab() {
       <div className="mb-5 rounded-2xl border border-stroke-outline p-5">
         <div className="type-h2-emphasized text-text-primary mb-3">Accent / Status — semantic callouts</div>
         <p className="type-detail text-text-secondary mb-3">Use for tags, badges, and single-purpose callouts. Do NOT use for headlines or primary actions.</p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           {ACCENT_TOKENS.map(t => <Swatch key={t.cssVar} token={t} />)}
         </div>
       </div>
@@ -1347,15 +1389,7 @@ function FoundationsTab() {
           style={{ background: 'linear-gradient(74deg, var(--brand-grad-start) 0%, var(--brand-grad-mid) 52%, var(--brand-grad-end) 100%)' }}
         />
         <div className="grid grid-cols-3 gap-3">
-          {BRAND_STOPS.map(s => (
-            <div key={s.cssVar} className="rounded-xl border border-stroke-outline overflow-hidden flex">
-              <div className="w-20 shrink-0 self-stretch border-r border-stroke-outline" style={{ background: `var(${s.cssVar})` }} />
-              <div className="p-2 flex-1 min-w-0">
-                <div className="type-detail-emphasized text-text-primary">{s.stop}</div>
-                <code className="block type-caption font-mono text-text-secondary break-all">{s.cssVar}</code>
-              </div>
-            </div>
-          ))}
+          {BRAND_STOPS.map(t => <Swatch key={t.cssVar} token={t} />)}
         </div>
       </div>
 
@@ -1400,7 +1434,7 @@ function FoundationsTab() {
             <div key={i} className="py-4 first:pt-0 last:pb-0 grid grid-cols-1 md:grid-cols-[240px_1fr] gap-3 md:gap-6 items-start">
               <div>
                 <div className="type-detail-emphasized text-text-primary">{row.label}</div>
-                <code className="block mt-1 type-caption font-mono leading-[16px]" style={{ color: 'var(--color-accent-blue)' }}>{row.classes}</code>
+                <code className="block mt-1 type-caption font-mono" style={{ color: 'var(--color-accent-blue)' }}>{row.classes}</code>
                 <div className="mt-1 type-caption font-mono text-text-secondary">
                   Maps to <code>{row.maps}</code>
                 </div>
@@ -1429,12 +1463,9 @@ function FoundationsTab() {
             const px = parseInt(s.css, 10);
             return (
               <div key={s.token} className="grid grid-cols-[120px_1fr_140px] md:grid-cols-[140px_1fr_180px_1fr] gap-3 items-center">
-                <div>
-                  <code className="type-caption font-mono text-text-primary">{s.token}</code>
-                  <div className="type-caption font-mono text-text-secondary">{s.css}</div>
-                </div>
-                <div className="h-4 rounded" style={{ width: px, background: 'var(--color-accent-blue)' }} aria-hidden />
-                <code className="type-caption font-mono text-text-secondary">{s.tailwind}</code>
+                <div className="type-caption font-mono text-text-primary">{s.css}</div>
+                <div className="h-4 rounded bg-accent-blue" style={{ width: px }} aria-hidden />
+                <code className="type-caption font-mono text-accent-blue">{s.tailwind}</code>
                 <p className="hidden md:block type-caption text-text-secondary">{s.usage}</p>
               </div>
             );
@@ -1450,11 +1481,11 @@ function FoundationsTab() {
           {RADIUS_SCALE.map(r => (
             <div key={r.token} className="flex flex-col items-start">
               <div
-                className="w-full h-20 border border-stroke-outline mb-2"
-                style={{ background: 'var(--color-bg-hover)', borderRadius: `var(${r.token})` }}
+                className="w-full h-20 border border-stroke-outline mb-2 bg-bg-hover"
+                style={{ borderRadius: `var(${r.token})` }}
                 aria-hidden
               />
-              <code className="type-caption font-mono text-text-primary">{r.token}</code>
+              <code className="type-caption font-mono text-accent-blue">{r.tailwind}</code>
               <div className="type-caption font-mono text-text-secondary">{r.css}</div>
               <p className="mt-1 type-caption text-text-secondary">{r.usage}</p>
             </div>
@@ -1502,29 +1533,29 @@ function FoundationsTab() {
         </p>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {[
-            { label: 'Primary',   token: '--color-text-primary',   Icon: Search,        cssVar: '--color-text-primary' },
-            { label: 'Secondary', token: '--color-text-secondary', Icon: Search,        cssVar: '--color-text-secondary' },
-            { label: 'Success',   token: '--color-accent-green',   Icon: BadgeCheck,    cssVar: '--color-accent-green' },
-            { label: 'Warning',   token: '--color-accent-amber',   Icon: AlertTriangle, cssVar: '--color-accent-amber' },
-            { label: 'Danger',    token: '--color-accent-red',     Icon: XCircle,       cssVar: '--color-accent-red' },
-            { label: 'Info',      token: '--color-accent-blue',    Icon: Clock,         cssVar: '--color-accent-blue' },
-            { label: 'Violet',    token: '--color-accent-violet',  Icon: Sparkles,      cssVar: '--color-accent-violet' },
-            { label: 'Orange',    token: '--color-accent-orange',  Icon: Clock,         cssVar: '--color-accent-orange' },
-            { label: 'Neutral',   token: '--color-accent-neutral', Icon: Clock,         cssVar: '--color-accent-neutral' },
-            { label: 'Tertiary',  token: '--color-text-tertiary',  Icon: Clock,         cssVar: '--color-text-tertiary' },
+            { label: 'Primary',   cssVar: '--color-text-primary',   tailwind: 'text-text-primary',   Icon: Search },
+            { label: 'Secondary', cssVar: '--color-text-secondary', tailwind: 'text-text-secondary', Icon: Search },
+            { label: 'Success',   cssVar: '--color-accent-green',   tailwind: 'text-accent-green',   Icon: BadgeCheck },
+            { label: 'Warning',   cssVar: '--color-accent-amber',   tailwind: 'text-accent-amber',   Icon: AlertTriangle },
+            { label: 'Danger',    cssVar: '--color-accent-red',     tailwind: 'text-accent-red',     Icon: XCircle },
+            { label: 'Info',      cssVar: '--color-accent-blue',    tailwind: 'text-accent-blue',    Icon: Clock },
+            { label: 'Violet',    cssVar: '--color-accent-violet',  tailwind: 'text-accent-violet',  Icon: Sparkles },
+            { label: 'Orange',    cssVar: '--color-accent-orange',  tailwind: 'text-accent-orange',  Icon: Clock },
+            { label: 'Neutral',   cssVar: '--color-accent-neutral', tailwind: 'text-accent-neutral', Icon: Clock },
+            { label: 'Tertiary',  cssVar: '--color-text-tertiary',  tailwind: 'text-text-tertiary',  Icon: Clock },
           ].map(r => {
             const Ico = r.Icon;
             return (
               <div key={r.label} className="flex items-center gap-3 rounded-xl border border-stroke-outline px-3 py-2.5">
                 <div
-                  className="flex items-center justify-center rounded-lg shrink-0"
-                  style={{ width: 40, height: 40, background: 'var(--color-bg-hover)', color: `var(${r.cssVar})` }}
+                  className="flex items-center justify-center rounded-lg shrink-0 bg-bg-hover"
+                  style={{ width: 40, height: 40, color: `var(${r.cssVar})` }}
                 >
                   <Ico size={20} />
                 </div>
                 <div className="min-w-0">
                   <div className="type-detail-emphasized text-text-primary truncate">{r.label}</div>
-                  <code className="block type-caption font-mono text-text-secondary truncate">{r.token}</code>
+                  <code className="block type-caption font-mono text-accent-blue truncate">{r.tailwind}</code>
                 </div>
               </div>
             );
@@ -1627,7 +1658,7 @@ function FoundationsTab() {
                       <div className="min-w-0">
                         <code className="block type-caption font-mono text-text-primary truncate">{ic.name}</code>
                         <p className="type-caption text-text-secondary truncate">{ic.purpose}</p>
-                        <p className="text-[10px] text-text-tertiary leading-[13px] truncate">{ic.usedIn}</p>
+                        <p className="type-footnote text-text-tertiary truncate">{ic.usedIn}</p>
                       </div>
                     </div>
                   );

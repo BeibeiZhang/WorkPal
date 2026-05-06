@@ -139,6 +139,62 @@ Every CSS variable with its resolved light / dark value. If you need a token, fi
 
 **Rule:** never hardcode these values. If a value is missing, add a new var here first.
 
+### 1.0a Token tiers (three-tier model)
+
+Tokens are layered so a brand swap or theme variant doesn't touch component code.
+
+```
+Tier 1 — Primitives  →  raw color/size, no semantics       (--navy, --blue-500)
+Tier 2 — Aliases     →  semantic, mode-aware                (--color-text-primary, --color-bg-page)
+Tier 3 — Component   →  surface-specific                    (--toolbar-btn-h, --shadow-card-hover)
+```
+
+Components consume **Tier 2** (e.g. `text-text-primary`, `bg-bg-page`). Tier 2 consumes Tier 1 via `var()` or `color-mix(in srgb, var(--X) N%, transparent)` for alpha. Tier 3 may consume either, depending on whether the value is brand-driven or mode-driven.
+
+**Rules**
+- Add a Tier 1 primitive **before** writing an alias that needs it — never inline a hex into a Tier 2 declaration.
+- Components import Tier 2 (`text-text-secondary`), never Tier 1. Exception: brand gradient stops (`var(--brand-grad-start)`) are consumed directly by gradient utilities — they're brand-axis primitives, not part of a hue scale.
+- Mode-flip happens in Tier 2 only — `:root` and `.dark` redefine aliases. Primitives have a single value across modes (which is why `--error-700` and `--error-300` are separate primitives, not one alias swapping value).
+
+**Tier 1 primitives (current set, in `src/index.css`):**
+
+```
+# Surface bases
+--white          #FFFFFF       Pure white
+--black          #000000       Pure black
+--navy           #142740       Light-mode foreground tint base (alpha-mixed)
+--navy-deep      #001424       Dark-mode page surface
+--ice            #E2F3FF       Dark-mode foreground tint base (alpha-mixed)
+--gray-50        #F5F5F7       Light outer shell
+--gray-100       #F3F4F5       Light page / sidebar
+--gray-500       #6B7280       Neutral text/accent
+--neutral-900    #1A1A1A       Tooltip surface
+
+# Accent hues (status & emphasis)
+--blue-500       #3171FF       Selected, links, focus (light), primary accent
+--blue-300       #73B2FF       Dark focus ring, dark stroke tint base
+--green-500      #028901       Status success
+--red-500        #C93838       Status failed
+--amber-500      #A87725       Status in-review
+--orange-500     #B8541A       Status pending
+--violet-500     #6B54E6       Status submitted, insight
+
+# Form / inline validation (distinct from status accents above)
+--error-700      #B42318       Light: deep crimson
+--error-300      #F97066       Dark: softer red
+--warning-500    #F79009       Light
+--warning-300    #FDB022       Dark
+
+# Brand gradient stops (axis, not hue scale)
+--brand-grad-start  #7652B9
+--brand-grad-mid    #B46470
+--brand-grad-end    #CA9D8C
+```
+
+**Why `color-mix` over `rgba()` for alpha aliases?** A primitive shift (e.g. swapping `--navy` to a different brand foreground) propagates automatically to every alpha-derived alias. With `rgba()` literals each rung had to be re-computed by hand. The visual result is byte-identical to the `rgba()` form (`color-mix(in srgb, #142740 60%, transparent)` ≡ `rgba(20,39,64,0.6)`). Browser support: Chrome 111+, Firefox 113+, Safari 16.2+.
+
+**Anti-pattern reminder (still applies):** Tailwind alpha modifiers like `text-text-primary/60` continue to fail silently — aliases now resolve to `color-mix()` or `var(--solid)` outputs, neither of which is the RGB triplet Tailwind's modifier expects. Always pick the closest existing alias (`text-text-secondary` ≡ navy at 60%) or add a new explicit Tier 2 token.
+
 ### 1.1 Color tokens (CSS variables, mode-aware)
 
 | Token | Light | Dark | Use |
@@ -169,7 +225,7 @@ Every CSS variable with its resolved light / dark value. If you need a token, fi
 | `--color-overlay-loading` | `rgba(0,0,0,0.4)` | `rgba(255,255,255,0.4)` | Translucent dim over media previews while loading |
 | `--color-fixed-dark-text` | `#142740` | — | Force dark text on always-light overlays (Library peach, ComingSoon pink) |
 
-**Tailwind shortcuts:** `text-text-primary`, `text-text-secondary`, `text-text-tertiary`, `text-text-fixed-dark`, `bg-bg-page`, `bg-bg-hover`, `border-stroke-outline`, `text-error`, `bg-error`, `border-error`, `text-accent-blue`, `bg-accent-blue`, `bg-accent-blue-faint`, `bg-accent-blue-faint-hover`, `text-accent-green`, `bg-tooltip`, `bg-overlay-loading`.
+**Tailwind shortcuts:** `text-text-primary`, `text-text-secondary`, `text-text-tertiary`, `text-text-fixed-dark`, `bg-bg-page`, `bg-bg-hover`, `border-stroke-outline`, `bg-selected-bg`, `text-selected-text`, `text-error`, `bg-error`, `border-error`, `text-accent-blue`, `bg-accent-blue`, `bg-accent-blue-faint`, `bg-accent-blue-faint-hover`, `text-accent-green`, `bg-accent-green`, `text-accent-red`, `bg-accent-red`, `text-accent-amber`, `bg-accent-amber`, `text-accent-orange`, `bg-accent-orange`, `text-accent-violet`, `bg-accent-violet`, `text-accent-neutral`, `bg-accent-neutral`, `bg-tooltip`, `bg-overlay-loading`.
 
 **Anti-pattern — silent failure:** Tailwind alpha modifiers on these CSS-var-backed color classes (e.g. `text-text-primary/60`, `bg-bg-hover/40`) **silently fail** because the underlying tokens are stored as `rgba(...)` literals (or hex), not RGB triplets — Tailwind emits no rule and the element falls back to inherit. Always pick the closest existing token (`text-text-secondary` rgba .6 / `text-text-tertiary` rgba .4) or add a new explicit token.
 
@@ -595,7 +651,7 @@ Items observed while syncing this doc on 2026-04-21 where the "right" answer isn
 
 > Where §2 documents *atomic UI primitives* (buttons, chips, cards), §8 documents *AI-specific interaction patterns* — composed flows for streaming output, citing sources, confirming agent actions, etc. These sit one level above components: a pattern says "for problem X, here's the canonical shape we converge on."
 >
-> Primary references: `src/components/ChatMessage.tsx`, `src/components/MessageCard.tsx`, `src/components/InsightCard.tsx`, `src/components/TaskProgressCard.tsx`. The 6 patterns below cover the AI-product surfaces an early-stage assistant must handle. Each pattern has **status**: ✅ shipped (raw material exists in components), 🟡 partial (some pieces exist, gaps remain), 🆕 placeholder (pattern reserved, no component yet).
+> Primary references: `src/components/ChatMessage.tsx`, `src/components/MessageCard.tsx`, `src/components/InsightCard.tsx`, `src/components/TaskProgressCard.tsx`, `src/components/MemoryPage.tsx`. The 11 patterns below cover the AI-product surfaces an early-stage assistant must handle. Each pattern has **status**: ✅ shipped (raw material exists in components), 🟡 partial (some pieces exist, gaps remain), 🆕 placeholder (pattern reserved, no component yet).
 
 ### 8.1 Conversation layout — Prompt / Reply / Grow  ✅
 
@@ -726,6 +782,75 @@ These two halves are **complementary, not redundant.** Always emit both for AI f
 - Use `var(--color-accent-violet)` for the agent's "calling tool X" header to distinguish from user-initiated actions.
 
 **Status:** **placeholder.** `TaskProgressCard` has the structural pieces (collapsible, step list); needs a tool-call-specific variant. Build when the first multi-tool agent flow ships.
+
+### 8.8 Hallucination / Uncertainty disclosure  🆕 placeholder
+
+**Problem:** the model produces confident-sounding output even when its source coverage is thin or it's interpolating. A flat assistant bubble makes "confident facts" and "best guesses" look identical — users either over-trust everything or learn to under-trust everything.
+
+**Pattern (proposed):**
+- **Three uncertainty grades, three visual signals:**
+  - *Cited fact* — claim has a `<Citation>` chip per §8.3. Default trust level.
+  - *Synthesis* — model's interpretation of cited material (no chip needed). Standard body text.
+  - *Inference / guess* — model has no source and is interpolating. Render in `text-text-tertiary` with an inline marker chip (`StatusTag` `neutral` variant + `?` icon) immediately preceding the inferred sentence/clause.
+- **"I don't know" mode**: when the model can't answer with reasonable confidence, the assistant message is a single short paragraph naming the gap and offering a path forward (e.g. "I don't have access to that calendar yet — connect it on **Connectors** to ask again."). Voice from §9.5; ladders into §8.11 Refusal & safety.
+- **Never** show probability numbers ("87% confident"); they imply false precision. Categorical pills only — same rule as §8.6.
+- **Anti-pattern:** rendering inferred content in standard body text without any marker. Better to under-disclose and break user immersion than over-trust into a hallucination loop.
+
+**Anatomy:** `StatusTag neutral` (uncertain marker) + `text-text-tertiary` (inferred segment) + Citation chips (§8.3) for cited segments + standard `ChatMessage` body for synthesis.
+
+**Status:** **placeholder.** No component yet. The pieces (`StatusTag`, citation chip prototype, tertiary text token) all exist; spec reserved here so the first hallucination-aware flow converges on this shape rather than re-inventing.
+
+### 8.9 Memory surface  ✅
+
+**Problem:** an assistant that "remembers you" is hostile if the memory is invisible. Users can't verify what's stored, can't correct stale facts, can't remove sensitive entries — and silently-applied memory feels manipulative even when it's working.
+
+**Pattern:**
+- **Dedicated MemoryPage** (`src/components/MemoryPage.tsx`) lists every stored memory grouped by kind. Three kinds:
+  - *Core* — always-on user facts (role, language, locale).
+  - *Preference* — how-to-collaborate guidance ("reply in Chinese", "skip the summary").
+  - *Project* — facts scoped to a specific project.
+- **CRUD must be inline + immediate.** Add via inline `MemoryForm`, edit/delete on each row, no modal indirection. Memory writes that need protection pop a `PasswordModal`; never silent.
+- **In-conversation reference**: when the assistant uses a memory in its reply, surface the trigger inline as a citation-style chip (same pattern as §8.3) so users can click → MemoryPage → verify or edit. (Not yet shipped — see Status below.)
+- **Filter chip row**: `FilterChip` for All / Core / Preference / Project lets users browse what's stored without a search. Empty state per §9.8.
+- **Anti-pattern:** silent memory writes ("I'll remember that for next time") with no visible record. Always confirm or surface what's being saved within the same turn.
+
+**Anatomy:** `MemoryPage.tsx` (CRUD shell) + `FilterChip` (kind filter) + inline `MemoryForm` w/ `FilterChip` for kind selector + `PasswordModal` (write gate).
+
+**Status:** shipped — see `src/components/MemoryPage.tsx`. The in-conversation memory citation chip is the next gap; promote alongside §8.3 Citation when the second consumer of the chip primitive appears.
+
+### 8.10 Retry / Regenerate / Fork  🟡
+
+**Problem:** the model's first attempt isn't always right — wrong tone, missed constraint, hallucinated detail. Users need a low-friction escape to "try again" without re-typing the prompt or losing the original.
+
+**Pattern:**
+- **Retry button** sits on the assistant message toolbar (`FeedbackBar` in `ChatMessage.tsx`, far right after 👎 Bad). Clicking re-runs the same prompt with fresh sampling. **Always present** on assistant messages — see §8.1's locked toolbar order.
+- **Regenerate-with-mode** (proposed): a small caret next to Retry expands a popover with single-tap mode shifts — *more concise* / *more detail* / *change tone* / *try a different angle*. Each prepends a system instruction to the regen call. Closing the popover defaults to plain Retry.
+- **Fork, not replace**: a regenerated reply lands as a **sibling** of the original assistant message, with both reachable through a `1/2 ▸ 2/2` navigator at the top of the bubble. Never destroy the prior reply — users often want it back after seeing a worse regeneration.
+- **Regen counter cap**: after 5 sibling regens for the same prompt, surface a hint to refine the prompt instead. Prevents low-value churn.
+- **Anti-pattern:** in-place replacement that destroys the rejected reply. Loses the user's anchor for "I didn't like the part where you said X."
+
+**Anatomy:** `FeedbackBar` 🔄 Retry button (existing in `ChatMessage.tsx:317`) + (proposed) sibling-thread navigator + (proposed) regen-mode popover.
+
+**Status:** **partial.** Toolbar Retry button is rendered but no regenerate handler is wired up; click is a no-op today. Promote when the first regen flow ships.
+
+### 8.11 Refusal & safety  🆕 placeholder
+
+**Problem:** sometimes the assistant can't or won't help — out-of-scope task, missing connector, destructive action, sensitive content. A flat "I can't help with that" feels dismissive and severs the conversation. Refusals are part of the trust loop, not error states.
+
+**Pattern (proposed):**
+- **Refusal copy follows §9 Voice & Tone — name the gap, offer the next step.** Categories:
+  - *Capability gap* (no tool): "I can't run shell commands yet — let me know what you're trying to do and I'll suggest the steps."
+  - *Permission gap* (need user to connect): "I don't have access to your calendar yet. Connect it on **Connectors** to ask again."
+  - *Policy refusal* (destructive / irreversible): "I can't move money for you, but I can draft the steps if you'd like."
+  - *Safety refusal* (could harm user): handled with the same calm-structured tone — never lecturing, never moralizing.
+- **Visually a normal assistant message**, no special chrome. Refusals are part of the conversation, not error states. Do **not** wrap in a red error card — that conflates "I refused" with "system broke."
+- **Optional `StatusTag neutral`** with label "Out of scope" if a downstream surface needs to filter refusal turns later (e.g. analytics dashboard).
+- **Never expose**: stack traces, policy names, model IDs, or "as an AI language model…" preambles. The user needs the gap and the path forward, nothing else.
+- **Anti-pattern:** terse "I can't help with that" with no reason and no path forward. Drops the user into a dead end and breaks the §9.1 brand promise of *empathetic + structured*.
+
+**Anatomy:** standard `ChatMessage` (assistant variant) + voice templates pinned in §9. Optional `StatusTag neutral` for surface-level classification.
+
+**Status:** **placeholder.** No component-level affordance needed (it's a copy/voice pattern). Voice templates pinned here; promote to a dedicated §9.10 ("Refusal copy templates") when a second refusal surface appears.
 
 ---
 

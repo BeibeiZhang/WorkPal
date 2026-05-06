@@ -18,81 +18,121 @@ strong, b {
 }
 
 :root {
-  --color-text-primary: #142740;
-  --color-text-secondary: rgba(20,39,64,0.6);
-  --color-text-tertiary: rgba(20,39,64,0.4);
-  --color-bg-page: #F3F4F5;
-  --color-bg-message: rgba(20, 39, 64, 0.05);
-  --color-bg-hover: rgba(20, 39, 64, 0.05);
-  --color-stroke-outline: rgba(20, 39, 64, 0.1);
-  --color-stroke-toggle: rgba(20, 39, 64, 0.1);
-  --color-icon-primary: #142740;
-  --color-sidebar-bg: #F3F4F5;
-  --color-outer-bg: #f5f5f7;
-  --color-outer-border: #f5f5f7;
-  --color-selected-bg: rgba(49,113,255,0.1);
-  --color-selected-text: #3171ff;
+  /* ═══════════════════════════════════════════════════════════
+     Tier 1 — Primitives. Raw color values with no semantics.
+     Aliases (Tier 2, below) consume these via var() or
+     color-mix(in srgb, var(--X) N%, transparent) for alpha.
+     Edit a primitive to swap the brand or neutralize a hue
+     across every alias that references it. Add a primitive
+     here BEFORE adding an alias that needs it — never bypass
+     the layer with an inline hex.
+     ═══════════════════════════════════════════════════════════ */
 
-  /* Card panel background — light mode: solid #FFFFFF.
-     Dark mode override below uses #001424 at 10% so the shell gradient reads through. */
-  --color-card-panel-bg: #FFFFFF;
+  /* Surface bases — solids and tint anchors for color-mix() */
+  --white: #FFFFFF;
+  --black: #000000;
+  --navy: #142740;            /* light-mode foreground tint base */
+  --navy-deep: #001424;       /* dark-mode page surface */
+  --ice: #E2F3FF;             /* dark-mode foreground tint base (alpha-mixed) */
+  --gray-50: #F5F5F7;         /* light outer shell */
+  --gray-100: #F3F4F5;        /* light page / sidebar */
+  --gray-500: #6B7280;        /* neutral text/accent */
+  --neutral-900: #1A1A1A;     /* tooltip surface; near-black, distinct from --navy */
 
-  /* Chat input inner fill — light mode: #142740 at 5% (same overlay as bg-hover).
-     Dark mode override below uses #000000 at 30% so the shell gradient reads through. */
-  --color-input-bg: rgba(20, 39, 64, 0.05);
+  /* Accent hues — single rung each. Add 100/300/700 only when consumed. */
+  --blue-500: #3171FF;
+  --blue-300: #73B2FF;        /* dark focus ring + stroke tint base */
+  --green-500: #028901;
+  --red-500: #C93838;
+  --amber-500: #A87725;
+  --orange-500: #B8541A;
+  --violet-500: #6B54E6;
+
+  /* Form / inline validation (distinct from status accents above) */
+  --error-700: #B42318;       /* light: deep crimson for inline errors */
+  --error-300: #F97066;       /* dark: softer red for legibility on dark */
+  --warning-500: #F79009;
+  --warning-300: #FDB022;
+
+  /* Brand gradient stops — primitives by character (gradient axis, not hue scale) */
+  --brand-grad-start: #7652B9;
+  --brand-grad-mid:   #B46470;
+  --brand-grad-end:   #CA9D8C;
+
+  /* ═══════════════════════════════════════════════════════════
+     Tier 2 — Aliases. Semantic, mode-aware. Components consume
+     these (never primitives directly) so a theme flip swaps
+     surface meaning without touching component code.
+     ═══════════════════════════════════════════════════════════ */
+
+  --color-text-primary: var(--navy);
+  --color-text-secondary: color-mix(in srgb, var(--navy) 60%, transparent);
+  --color-text-tertiary: color-mix(in srgb, var(--navy) 40%, transparent);
+  --color-bg-page: var(--gray-100);
+  --color-bg-message: color-mix(in srgb, var(--navy) 5%, transparent);
+  --color-bg-hover: color-mix(in srgb, var(--navy) 5%, transparent);
+  --color-stroke-outline: color-mix(in srgb, var(--navy) 10%, transparent);
+  --color-stroke-toggle: color-mix(in srgb, var(--navy) 10%, transparent);
+  --color-icon-primary: var(--navy);
+  --color-sidebar-bg: var(--gray-100);
+  --color-outer-bg: var(--gray-50);
+  --color-outer-border: var(--gray-50);
+  --color-selected-bg: color-mix(in srgb, var(--blue-500) 10%, transparent);
+  --color-selected-text: var(--blue-500);
+
+  /* Card panel background — light mode: solid white.
+     Dark mode override below uses ice at 10% so the shell gradient reads through. */
+  --color-card-panel-bg: var(--white);
+
+  /* Chat input inner fill — light mode: navy at 5% (same overlay as bg-hover).
+     Dark mode override below uses black at 20% so the shell gradient reads through. */
+  --color-input-bg: color-mix(in srgb, var(--navy) 5%, transparent);
   /* Chat input ACTIVE inner fill — light mode: pure white so the gradient
      border reads as a clean composer surface. Dark mode override below keeps
      the same darkened overlay as the idle state. */
-  --color-input-bg-active: #FFFFFF;
+  --color-input-bg-active: var(--white);
 
   /* Status / semantic accents — used for tags, badges, callouts */
-  --color-accent-blue: #3171ff;
-  --color-accent-blue-faint: rgba(49,113,255,0.1);
-  --color-accent-blue-faint-hover: rgba(49,113,255,0.15);
-  --color-accent-green: #028901;
-  --color-accent-green-bg: rgba(2,137,1,0.1);
-  --color-accent-red: #C93838;
-  --color-accent-amber: #A87725;
-  --color-accent-orange: #B8541A;
-  --color-accent-violet: #6B54E6;
-  --color-accent-neutral: #6B7280;
+  --color-accent-blue: var(--blue-500);
+  --color-accent-blue-faint: color-mix(in srgb, var(--blue-500) 10%, transparent);
+  --color-accent-blue-faint-hover: color-mix(in srgb, var(--blue-500) 15%, transparent);
+  --color-accent-green: var(--green-500);
+  --color-accent-green-bg: color-mix(in srgb, var(--green-500) 10%, transparent);
+  --color-accent-red: var(--red-500);
+  --color-accent-amber: var(--amber-500);
+  --color-accent-orange: var(--orange-500);
+  --color-accent-violet: var(--violet-500);
+  --color-accent-neutral: var(--gray-500);
 
-  --color-warning: #F79009;
+  --color-warning: var(--warning-500);
 
   /* Form validation / inline error red. Distinct from --color-accent-red
-     (#C93838, status indicator) — error red is deeper crimson tuned for
-     inline validation messages and small icons against light fills. */
-  --color-error: #B42318;
+     (status indicator) — error red is deeper crimson tuned for inline
+     validation messages and small icons against light fills. */
+  --color-error: var(--error-700);
 
   /* Inverted tooltip surface — dark in both modes so the floating tooltip
      reads as a high-contrast layer regardless of theme. */
-  --color-tooltip-bg: #1a1a1a;
+  --color-tooltip-bg: var(--neutral-900);
 
-  /* Keyboard focus ring (WCAG 2.4.7). Light mode uses the brand's
-     `--color-accent-blue` blue (#3171FF) which gives ~4.5:1 against the
-     light page surface; dark mode override below uses a lighter blue
-     (#73B2FF) for ≥10:1 against #001424. The global `*:focus-visible`
-     rule near the bottom of this file consumes this token so every
-     interactive element gets a consistent ring without per-component
-     classNames. */
-  --color-focus-ring: #3171FF;
+  /* Keyboard focus ring (WCAG 2.4.7). Light mode uses --blue-500 (~4.5:1
+     against the light page surface); dark mode override below uses --blue-300
+     (≥10:1 against --navy-deep). The global `*:focus-visible` rule near the
+     bottom of this file consumes this token so every interactive element gets
+     a consistent ring without per-component classNames. */
+  --color-focus-ring: var(--blue-500);
 
   /* Translucent loading overlay used over media previews while content
      fetches. Light mode: dim toward black; dark override below uses
      light-toward-white for the same dim effect on the dark canvas. */
-  --color-overlay-loading: rgba(0,0,0,0.4);
+  --color-overlay-loading: color-mix(in srgb, var(--black) 40%, transparent);
 
   /* Foreground locked to the light-mode primary regardless of theme. Used
      on colored cover surfaces (Library tile peach, ComingSoon pink) where
      the bg stays light in both modes — letting the theme-aware
      `text-text-primary` flip to white would render white-on-peach
      unreadable. Same value in light + dark. */
-  --color-fixed-dark-text: #142740;
-
-  /* Brand gradient stops — single source of truth */
-  --brand-grad-start: #7652B9;
-  --brand-grad-mid:   #B46470;
-  --brand-grad-end:   #CA9D8C;
+  --color-fixed-dark-text: var(--navy);
 
   /* Typography scale — 12 canonical styles. Edit here to update app-wide. */
   --font-display-xl-size: 60px;
@@ -245,40 +285,40 @@ strong, b {
 }
 
 .dark {
-  --color-text-primary: #FFFFFF;
-  --color-text-secondary: rgba(226,243,255,0.8);
-  --color-text-tertiary: rgba(226,243,255,0.4);
-  --color-bg-page: #001424;
-  --color-bg-message: rgba(226,243,255,0.1);
-  --color-bg-hover: rgba(226,243,255,0.1);
-  --color-stroke-outline: rgba(115,178,255,0.2);
-  --color-stroke-toggle: rgba(115,178,255,0.2);
-  --color-icon-primary: #FFFFFF;
-  --color-sidebar-bg: #001424;
-  --color-outer-bg: #001424;
-  --color-outer-border: #001424;
-  --color-selected-bg: #3171ff;
-  --color-selected-text: #ffffff;
+  --color-text-primary: var(--white);
+  --color-text-secondary: color-mix(in srgb, var(--ice) 80%, transparent);
+  --color-text-tertiary: color-mix(in srgb, var(--ice) 40%, transparent);
+  --color-bg-page: var(--navy-deep);
+  --color-bg-message: color-mix(in srgb, var(--ice) 10%, transparent);
+  --color-bg-hover: color-mix(in srgb, var(--ice) 10%, transparent);
+  --color-stroke-outline: color-mix(in srgb, var(--blue-300) 20%, transparent);
+  --color-stroke-toggle: color-mix(in srgb, var(--blue-300) 20%, transparent);
+  --color-icon-primary: var(--white);
+  --color-sidebar-bg: var(--navy-deep);
+  --color-outer-bg: var(--navy-deep);
+  --color-outer-border: var(--navy-deep);
+  --color-selected-bg: var(--blue-500);
+  --color-selected-text: var(--white);
   /* Dark mode card panel: matches --color-bg-hover. */
-  --color-card-panel-bg: rgba(226, 243, 255, 0.1);
+  --color-card-panel-bg: color-mix(in srgb, var(--ice) 10%, transparent);
   /* Dark mode chat input inner fill: 20% black. */
-  --color-input-bg: rgba(0, 0, 0, 0.2);
+  --color-input-bg: color-mix(in srgb, var(--black) 20%, transparent);
   /* Dark mode active fill matches idle — pure white reads as glare on the
      dark shell. */
-  --color-input-bg-active: rgba(0, 0, 0, 0.2);
-  --color-progress-bar: #3171ff;
+  --color-input-bg-active: color-mix(in srgb, var(--black) 20%, transparent);
+  --color-progress-bar: var(--blue-500);
 
-  --color-warning: #FDB022;
+  --color-warning: var(--warning-300);
 
-  /* Lighter red for dark canvas — Tailwind red-400 family. The light-mode
-     #B42318 is too dark against #001424 (~4:1, borderline for body text). */
-  --color-error: #F97066;
+  /* Lighter red for dark canvas — the light-mode --error-700 is too dark
+     against --navy-deep (~4:1, borderline for body text). */
+  --color-error: var(--error-300);
 
   /* Invert overlay direction for dark mode — dim toward white. */
-  --color-overlay-loading: rgba(255,255,255,0.4);
+  --color-overlay-loading: color-mix(in srgb, var(--white) 40%, transparent);
 
-  /* Lighter focus ring on dark canvas — gives ≥10:1 contrast vs #001424. */
-  --color-focus-ring: #73B2FF;
+  /* Lighter focus ring on dark canvas — gives ≥10:1 contrast vs --navy-deep. */
+  --color-focus-ring: var(--blue-300);
 }
 
 /* ═══════════════════════════════════════════════════
