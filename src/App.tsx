@@ -3369,12 +3369,6 @@ export default function App() {
   // The handlers resolve to a boolean so the calling form can stay open on
   // failure and close on success.
   const handleAddMemory = useCallback(async (draft: { kind: MemoryKind; title: string; content: string; projectId?: string }): Promise<boolean> => {
-    let password: string;
-    try {
-      password = await ensurePassword();
-    } catch {
-      return false;
-    }
     const now = new Date().toISOString();
     const entry: MemoryEntry = {
       id: nextMemoryId(),
@@ -3385,6 +3379,18 @@ export default function App() {
       createdAt: now,
       updatedAt: now,
     };
+    // Demo: edits stay in React state only — no backend, no password gate. A
+    // page refresh re-runs the seed so the visitor's tinkering doesn't stick.
+    if (IS_DEMO) {
+      setMemories(prev => [entry, ...prev]);
+      return true;
+    }
+    let password: string;
+    try {
+      password = await ensurePassword();
+    } catch {
+      return false;
+    }
     try {
       const saved = await createMemoryOnServer(entry, password);
       setMemories(prev => [saved, ...prev]);
@@ -3397,6 +3403,11 @@ export default function App() {
   }, [ensurePassword, signOut]);
 
   const handleUpdateMemory = useCallback(async (id: string, patch: { kind: MemoryKind; title: string; content: string; projectId?: string }): Promise<boolean> => {
+    if (IS_DEMO) {
+      const now = new Date().toISOString();
+      setMemories(prev => prev.map(m => m.id === id ? { ...m, ...patch, updatedAt: now } : m));
+      return true;
+    }
     let password: string;
     try {
       password = await ensurePassword();

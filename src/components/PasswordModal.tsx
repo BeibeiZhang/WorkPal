@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Lock, X } from 'lucide-react';
 import { PrimaryButton, TertiaryButton, TextField } from './shared';
+import { IS_DEMO } from '../lib/demoMode';
 
 interface PasswordModalProps {
   open: boolean;
@@ -70,6 +71,12 @@ export default function PasswordModal({ open, error, busy, message, onSubmit, on
             </p>
           </div>
         </div>
+
+        {IS_DEMO && (
+          <p className="type-footnote text-text-secondary mb-2">
+            Demo build — there's no real password. Edits stay local; deletes can't be confirmed.
+          </p>
+        )}
 
         <TextField
           type="password"
