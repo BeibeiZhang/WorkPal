@@ -8,11 +8,6 @@ export default {
   theme: {
     extend: {
       colors: {
-        brand: {
-          purple: '#7652B9',
-          pink: '#B46470',
-          peach: '#CA9D8C',
-        },
         text: {
           primary: 'var(--color-text-primary)',
           secondary: 'var(--color-text-secondary)',
@@ -29,6 +24,10 @@ export default {
         input: {
           bg: 'var(--color-input-bg)',
           'bg-active': 'var(--color-input-bg-active)',
+        },
+        selected: {
+          bg: 'var(--color-selected-bg)',
+          text: 'var(--color-selected-text)',
         },
         stroke: {
           outline: 'var(--color-stroke-outline)',
