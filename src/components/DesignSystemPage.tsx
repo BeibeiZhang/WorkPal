@@ -1091,7 +1091,7 @@ const SEARCH_INDEX: SearchEntry[] = [
   ...BRAND_STOPS.map<SearchEntry>(s => ({
     tab: 'foundations',
     section: 'Foundations · Color · Brand Gradient',
-    name: `Brand · ${s.stop}`,
+    name: `Brand · ${s.name}`,
     description: s.cssVar,
   })),
   // Foundations — Typography
