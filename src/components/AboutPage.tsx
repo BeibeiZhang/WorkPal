@@ -34,7 +34,7 @@ export default function AboutPage({ sidebarOpen, onToggleSidebar, onNewChat }: A
             </div>
           )}
           <img
-            src="https://beibeizhang.github.io/workpal-hero.jpg"
+            src="/og-image.jpg"
             alt="WorkPal 2.0 — Chat + Tasks in the Same Project, Voice-Enabled Rich Input, Selective Knowledge Output, Overview page."
             loading="lazy"
             className="w-full aspect-video md:aspect-auto md:h-[50vh] object-cover object-center rounded-[16px] shadow-[0_16px_50px_rgba(118,82,185,0.18),0_4px_12px_rgba(20,39,64,0.08)]"
