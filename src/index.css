@@ -515,6 +515,12 @@ html, body, #root {
 
 .dark .app-shell-bg {
   background:
+    /* Top-edge fade-to-base — kills the seam between the browser status/title bar
+       (painted from <meta name="theme-color">, single solid #001424) and the upper
+       blue radial glow that lifts the actual top-edge color off pure #001424. The
+       linear is opaque #001424 at y=0 so it matches the toolbar pixel-perfect, and
+       fully transparent by y=108px so the glows continue uninterrupted below. */
+    linear-gradient(180deg, #001424 0%, transparent 108px),
     /* Light/Purple #616cff @ 25% — right side vertical glow (Figma mask 861×832, container right 67%) */
     radial-gradient(ellipse 45% 110% at 100% 55%, rgba(97, 108, 255, 0.25) 0%, transparent 75%),
     /* Light/Orange #f47001 @ 25% — bottom-left warm glow (Figma mask 1280×832, container left 77%) */
