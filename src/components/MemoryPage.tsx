@@ -3,7 +3,6 @@ import { Brain, Plus, Trash2, Pencil, X } from 'lucide-react';
 import { FilterChip, GhostPillButton, HeaderIconButton, PageLayout, PrimaryButton, TertiaryButton } from './shared';
 import type { MemoryEntry, MemoryKind } from '../types';
 import { KIND_LABEL } from '../lib/memory';
-import { IS_DEMO } from '../lib/demoMode';
 
 interface MemoryPageProps {
   memories: MemoryEntry[];
@@ -124,15 +123,11 @@ function MemoryRow({
   projectName,
   onEdit,
   onDelete,
-  readOnly = false,
 }: {
   entry: MemoryEntry;
   projectName?: string;
   onEdit: () => void;
   onDelete: () => void;
-  /** Demo mode: hide the Edit / Delete hover buttons so visitors can't mutate
-   *  the seed state. The seed isn't backed by a real server anyway. */
-  readOnly?: boolean;
 }) {
   return (
     <div
@@ -158,24 +153,22 @@ function MemoryRow({
         </div>
         <p className="type-detail text-text-secondary leading-relaxed whitespace-pre-wrap">{entry.content}</p>
       </div>
-      {!readOnly && (
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-          <button
-            onClick={onEdit}
-            aria-label={`Edit ${entry.title}`}
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-bg-hover transition-colors text-text-secondary hover:text-text-primary"
-          >
-            <Pencil size={14} />
-          </button>
-          <button
-            onClick={onDelete}
-            aria-label={`Delete ${entry.title}`}
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-bg-hover transition-colors text-text-secondary hover:text-text-primary"
-          >
-            <Trash2 size={14} />
-          </button>
-        </div>
-      )}
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+        <button
+          onClick={onEdit}
+          aria-label={`Edit ${entry.title}`}
+          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-bg-hover transition-colors text-text-secondary hover:text-text-primary"
+        >
+          <Pencil size={14} />
+        </button>
+        <button
+          onClick={onDelete}
+          aria-label={`Delete ${entry.title}`}
+          className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-bg-hover transition-colors text-text-secondary hover:text-text-primary"
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
     </div>
   );
 }
@@ -219,7 +212,7 @@ export default function MemoryPage({
       onToggleSidebar={onToggleSidebar}
       onNewChat={onNewChat}
       rightSlot={
-        IS_DEMO ? undefined : !adding ? (
+        !adding ? (
           <GhostPillButton
             onClick={() => { setAdding(true); setEditingId(null); }}
             ariaLabel="Add memory"
@@ -250,8 +243,8 @@ export default function MemoryPage({
       }
     >
       <div className="flex flex-col gap-4">
-        {/* Explainer — shown when no memories yet (real mode only). */}
-        {!IS_DEMO && memories.length === 0 && !adding && (
+        {/* Explainer — shown when no memories yet. */}
+        {memories.length === 0 && !adding && (
           <div
             className="p-8 rounded-xl flex flex-col items-center gap-3 text-center"
             style={{ border: '1px dashed var(--color-stroke-outline)' }}
@@ -268,8 +261,8 @@ export default function MemoryPage({
           </div>
         )}
 
-        {/* Inline add form — never shown in demo mode. */}
-        {!IS_DEMO && adding && (
+        {/* Inline add form. */}
+        {adding && (
           <MemoryForm
             projects={projects}
             onCancel={() => setAdding(false)}
@@ -287,7 +280,7 @@ export default function MemoryPage({
 
         {/* List */}
         <div className="flex flex-col gap-2">
-          {filtered.map(m => !IS_DEMO && editingId === m.id ? (
+          {filtered.map(m => editingId === m.id ? (
             <MemoryForm
               key={m.id}
               initial={m}
@@ -302,7 +295,6 @@ export default function MemoryPage({
               projectName={m.projectId ? projectsById[m.projectId] : undefined}
               onEdit={() => { setEditingId(m.id); setAdding(false); }}
               onDelete={() => onDelete(m.id)}
-              readOnly={IS_DEMO}
             />
           ))}
         </div>
