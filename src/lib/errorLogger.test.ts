@@ -127,6 +127,42 @@ describe('setupErrorLogger — window.unhandledrejection path', () => {
   });
 });
 
+describe('setupErrorLogger — §63 cross-origin "Script error." filter', () => {
+  it('cross-origin masked event (message="Script error." + error=null) → fetch NOT called', () => {
+    setupErrorLogger();
+    handlers.get('error')!({ message: 'Script error.', error: null });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('app-thrown new Error("Script error.") (truthy error) → fetch IS called (filter not greedy)', () => {
+    setupErrorLogger();
+    const err = new Error('Script error.');
+    err.stack = 'at app.ts:42';
+    handlers.get('error')!({ message: 'Script error.', error: err });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.msg).toBe('Script error.');
+    expect(body.stack).toContain('app.ts:42');
+  });
+
+  it('normal error message (e.g. ReferenceError) → fetch called (regression)', () => {
+    setupErrorLogger();
+    const err = new ReferenceError('foo is not defined');
+    handlers.get('error')!({ message: 'ReferenceError: foo is not defined', error: err });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.msg).toBe('ReferenceError: foo is not defined');
+  });
+
+  it('unhandledrejection with normal reason → fetch called (filter does not affect unhandledrejection)', () => {
+    setupErrorLogger();
+    handlers.get('unhandledrejection')!({ reason: new Error('async-fail') });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.msg).toBe('async-fail');
+  });
+});
+
 describe('setupErrorLogger — fail-quiet', () => {
   it('fetch rejection does not propagate out of the handler', async () => {
     fetchMock.mockRejectedValueOnce(new Error('network-down'));
