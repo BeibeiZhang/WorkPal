@@ -59,6 +59,15 @@ export function setupErrorLogger(): void {
   const source = detectSource();
 
   window.addEventListener('error', (e: ErrorEvent) => {
+    // §63 — Same-Origin Policy masks cross-origin script errors as
+    // `message === 'Script error.'` with `error === null`. Most often from
+    // browser extension content scripts (Grammarly / 1Password / translation
+    // tools) running in isolated worlds — unfixable from app code, no stack
+    // means nothing actionable. Skip to keep NYE signal high. The double
+    // condition avoids over-filtering: a real `new Error('Script error.')`
+    // thrown by app code carries a non-null `error` and still logs.
+    if (e.message === 'Script error.' && !e.error) return;
+
     send({
       msg: e.message ?? 'Unknown error',
       stack: e.error?.stack?.slice(0, STACK_LIMIT),
