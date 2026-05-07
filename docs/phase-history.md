@@ -237,7 +237,7 @@ Phase 5 一路踩下的坑和形成的宗旨，**沉淀在 `docs/principles.md`*
 | v0.1.12 | 2026-05-01 | §52 file path multi-candidate resolve chain |
 | v0.1.13 | 2026-05-02 | §53 button reactive + backend graceful for reaped branch |
 
-Plus frontend-only (Vercel auto, 不需 dmg)：§29 ChatInput multi-Enter race · §31/§32 Output legacy backfill · §50 chat isDraft display · §50.1 cross-device sync · §51 sidebar 双 highlight · **§28 Test infra vitest Phase 1 (PR #182, 2026-05-03)** · **§55 Subscription Health Check 锁 30d (PR #194, 2026-05-04)** · **§56 Suppress duplicate focus ring on chat textarea (PR #197, 2026-05-04)** · **§58 Production error logging → Overview NYE (PR #198, 2026-05-04)** · **§59 NYE error entry polish: divider + Mark reviewed (PR #199, 2026-05-04)** · **§60 usage_log.source 6 callsite backfill (PR #201, 2026-05-05)** · **§61 OG link preview + iOS home-screen icon + PWA manifest (PR #203, 2026-05-05)** · **§62 Chat 丢失 bug fix — my-workpal non-null assertion guard (PR #204, 2026-05-05)** · `docs/demo-checklist.md` doc-only 演示前 sanity (commit `bf603f7`) · 多个 fast-lane UI polish PRs。
+Plus frontend-only (Vercel auto, 不需 dmg)：§29 ChatInput multi-Enter race · §31/§32 Output legacy backfill · §50 chat isDraft display · §50.1 cross-device sync · §51 sidebar 双 highlight · **§28 Test infra vitest Phase 1 (PR #182, 2026-05-03)** · **§55 Subscription Health Check 锁 30d (PR #194, 2026-05-04)** · **§56 Suppress duplicate focus ring on chat textarea (PR #197, 2026-05-04)** · **§58 Production error logging → Overview NYE (PR #198, 2026-05-04)** · **§59 NYE error entry polish: divider + Mark reviewed (PR #199, 2026-05-04)** · **§60 usage_log.source 6 callsite backfill (PR #201, 2026-05-05)** · **§61 OG link preview + iOS home-screen icon + PWA manifest (PR #203, 2026-05-05)** · **§62 Chat 丢失 bug fix — my-workpal non-null assertion guard (PR #204, 2026-05-05)** · **§63 errorLogger filter cross-origin "Script error." noise (PR #210, 2026-05-07)** · `docs/demo-checklist.md` doc-only 演示前 sanity (commit `bf603f7`) · 多个 fast-lane UI polish PRs。
 
 **最近 batch ships**（compressed，详见 `docs/post-phase-6-archive.md` § entries — pending 见 `post-phase-6-candidates.md`）：
 
@@ -252,7 +252,7 @@ Plus frontend-only (Vercel auto, 不需 dmg)：§29 ChatInput multi-Enter race �
 - **§52** file path fallback chain (PR #175) — `read-file` 加 fallbackPaths。**第二次 catch agent mirror 缺失**（memory pattern 起作用）
 - **§53** Save to Knowledge reactive + backend graceful (PR #178) — Revert §43.2 simpler approach; `git rev-parse --verify refs/heads/<branch>` pre-flight 防 ambiguous argument error
 
-**当前 backlog 状态**（62 candidate · ~53 shipped · 9 pending）：
+**当前 backlog 状态**（63 candidate · ~54 shipped · 9 pending）：
 - **#3** Artifact 生成（decided-next，5-7 天，**最大产品扩面**，下一阶段重点）
 - **#54** Overview real-data + IS_DEMO 分流 (decided-next, Beibei thinking 中)
 - **#57** Audit a11y focus indicator gap (Type A 9 inputs + Type B 2 toolbar buttons, post-§56 follow-up)

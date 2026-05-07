@@ -1075,3 +1075,33 @@ setChats(prev => [newChat, ...prev.filter(c => c.id !== 'my-workpal'), prev.find
 **Process learning sealed**: §62 是 **plan-quality 链路三阶段最强体现** — cowork (grep verify drift + hypothesis narrow + helper extraction beyond spec) 跟 planning (read code confirm + fix proposal + accept impl deviations) 形成可复用的 bug-fix 协作模板. 跟 §59 (planning catch RLS UPDATE policy missing) 配对成 plan-quality 双向网, 各自一头守 spec drift.
 
 ---
+
+## 63. `shipped` — errorLogger filter cross-origin "Script error." noise (extension content script protection)
+
+**Shipped**: 2026-05-07 (PR [#210](https://github.com/BeibeiZhang/WorkPal/pull/210), commit `f5fa120`, frontend-only Vercel auto-deploy). 45+/0- in 2 files.
+
+**Surfaced**: 2026-05-06 NYE 显 1d-old "Script error. · No stack available · /chat/chat-1776973503002" entry. Mark reviewed dismiss 后起 §63 防未来 NYE 被 extension noise 持续淹.
+
+**Root cause** (browser security mechanism, NOT WorkPal code bug): 浏览器 Same-Origin Policy 屏蔽 cross-origin script 真 message + stack — `e.message === 'Script error.'`, `e.error === null`, `e.filename === ''`, `e.lineno === 0`. 最常见来源: 浏览器 extension content scripts (Grammarly / 1Password / ChatGPT Atlas / 翻译插件 / dev tools) 注入到页面的 JS 抛错. Extension 跑 isolated world = 跨 origin = browser mask. 不可控, 无 stack 不可 dig.
+
+**Implemented**:
+- **`src/lib/errorLogger.ts:62`** 'error' handler 顶部加 `if (e.message === 'Script error.' && !e.error) return;` (双条件: message + !error). §63 comment 解释 browser mechanism + double-condition rationale + extension example.
+- **`src/lib/errorLogger.test.ts`** 新 `describe('§63 ...')` block + 4 vitest cases:
+  - cross-origin masked (message="Script error." + error=null) → fetch NOT called
+  - app-thrown new Error("Script error.") (truthy error) → fetch IS called + 验 stack 真传 (filter not greedy)
+  - normal ReferenceError → fetch called as before (regression)
+  - unhandledrejection with normal reason → fetch called (filter unaffected)
+- **`!e.error` truthy check** 而不是 `=== null` strict — 接受 null + undefined, 防 browser/jsdom edge variants. App-thrown `new Error(...)` 总有 truthy `.error`, 无 false negatives.
+- **unhandledrejection handler 未动** — async rejections 不被 cross-origin masked, 现有 logic ok.
+
+**Plan-quality 加分**:
+- Plugin self-run (engineering:code-review): 0 critical, 2 minor accepted (filter `!e.error` vs `===null` 已 spec 写法; case 4 unhandledrejection overlap 跟现有 test 但 cowork 在 §63 describe block 显式 tag, 防 future maintainer "simplify" handler 误删 invariant)
+- Test 2 加 bonus assertion `expect(body.stack).toContain('app.ts:42')` — 验 stack payload 真传, 不只 fetch 调用. Filter not greedy + payload correct 双重 check.
+- §59 设计哲学一致: NYE 只显示 actionable error, 给 unknowable 类一个 fast lane (implicit dismiss 不进 NYE), 不需 explicit Mark reviewed.
+- 0 spec deviation: spec 执行 verbatim, cowork 正面 transparency 列了"理论上的 deviation" 但都跟 spec 一致.
+
+**Ship verify**: 自然发生 — 浏览器 extension 几乎每天都抛 cross-origin script error, 1d 后 NYE 看不再有 Script error. 类条目 = 验证 done.
+
+**Process learning sealed**: §59 implicit dismiss vs explicit dismiss 设计哲学 + §63 unknowable error 类 fast-lane filter 配对 — NYE 设计真正 actionable-only. 错误处理三层结构: filter (unknowable) → log (actionable, 可 Mark reviewed) → toast (real-time critical, future).
+
+---
