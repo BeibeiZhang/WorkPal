@@ -554,13 +554,18 @@ html, body, #root {
 }
 
 .dark .app-shell-bg {
+  /* Top-edge fade-to-base — kills the seam between the mobile browser
+     status/URL bar (painted from <meta name="theme-color">, single solid
+     #001424) and the upper blue radial glow that lifts the actual top-edge
+     color off pure #001424. Only mobile browsers paint chrome with
+     theme-color, so on desktop the fade is transparent (no-op) and the
+     glows reach the very top edge. The mobile override below (matching
+     MOBILE_BREAKPOINT in src/lib/useIsMobile.ts) flips the start color to
+     opaque #001424 so it matches the toolbar pixel-perfect, fading fully
+     transparent by y=108px so the glows continue uninterrupted below. */
+  --top-edge-fade: transparent;
   background:
-    /* Top-edge fade-to-base — kills the seam between the browser status/title bar
-       (painted from <meta name="theme-color">, single solid #001424) and the upper
-       blue radial glow that lifts the actual top-edge color off pure #001424. The
-       linear is opaque #001424 at y=0 so it matches the toolbar pixel-perfect, and
-       fully transparent by y=108px so the glows continue uninterrupted below. */
-    linear-gradient(180deg, #001424 0%, transparent 108px),
+    linear-gradient(180deg, var(--top-edge-fade) 0%, transparent 108px),
     /* Light/Purple #616cff @ 25% — right side vertical glow (Figma mask 861×832, container right 67%) */
     radial-gradient(ellipse 45% 110% at 100% 55%, rgba(97, 108, 255, 0.25) 0%, transparent 75%),
     /* Light/Orange #f47001 @ 25% — bottom-left warm glow (Figma mask 1280×832, container left 77%) */
@@ -568,6 +573,10 @@ html, body, #root {
     /* Light/Blue #2fa5ff @ 20% — upper-left cool glow (Figma mask 788×657, container left 62% top 79%) */
     radial-gradient(ellipse 70% 55% at 25% 5%, rgba(47, 165, 255, 0.20) 0%, transparent 75%),
     #001424;
+}
+
+@media (max-width: 483px) {
+  .dark .app-shell-bg { --top-edge-fade: #001424; }
 }
 
 /* In dark mode, let the shell's gradient show through. */
