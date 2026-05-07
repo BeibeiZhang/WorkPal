@@ -323,6 +323,35 @@ Beibei 主用 chat (api/chat.ts) → null → bucket "unknown". Voice 偶尔用 
 
 ---
 
+## 63. `decided-next` — errorLogger filter cross-origin "Script error." noise (extension content script protection)
+
+**Plan**: `~/.claude/plans/63-script-error-filter-silent-wren.md`
+
+**Surfaced**: 2026-05-06 NYE 显示 1d-old "Script error. · No stack available · at /chat/chat-1776973503002" entry. Mark reviewed dismiss 后起 §63 防未来 NYE 被 extension noise 持续淹.
+
+**Root cause** (browser security mechanism, NOT WorkPal code bug):
+- 跨 origin script 抛 error 时 ErrorEvent 被 mask: `e.message === 'Script error.'`, `e.error === null`, `e.filename === ''`, `e.lineno === 0`. Same-Origin Policy 防 content leak.
+- 最常见来源: 浏览器 extension content scripts (Grammarly / 1Password / 翻译插件 / 各种 dev tools). Extension 跑 isolated world = 跨 origin = browser mask. 不可控.
+- 没 stack 没真 message → **无法 dig** = NYE 永远显 "No stack available" + Mark reviewed 它没意义 = 噪音.
+
+**Goal**: `src/lib/errorLogger.ts:61-69` 'error' handler 顶部加 filter:
+
+```ts
+if (e.message === 'Script error.' && !e.error) return;
+```
+
+双条件收敛 (message + !error) 不误杀合法 `new Error('Script error.')`. 不动 unhandledrejection (separate concern).
+
+**Effort**: ~30 min.
+
+**Risk classification**: low — 1 个 if-return guard 加 callback 顶部, 不动 send / setupErrorLogger 整体 wiring. Vitest 钉死 invariant.
+
+**Test plan**: 4 vitest cases (filter triggered / filter not greedy / regression normal error / unhandledrejection unaffected).
+
+**Verify path**: frontend-only Vercel auto-deploy (no dmg, no agent mirror, no Supabase).
+
+---
+
 ## 50.2. `candidate` — Delete isDraft field entirely (cleanup)
 
 **Surfaced**: §50 + §50.1 ship 后, `isDraft` field 已被 display + sync 两层取消依赖. 真正彻底清理是删 field from `Chat` type / Supabase schema.
