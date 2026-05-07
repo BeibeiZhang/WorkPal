@@ -323,6 +323,35 @@ Beibei 主用 chat (api/chat.ts) → null → bucket "unknown". Voice 偶尔用 
 
 ---
 
+## 64. `decided-next` — WorkPal monorepo migration (Phase 1.5 of cross-product design system architecture)
+
+**Plan**: `~/.claude/plans/64-workpal-monorepo-migration-swift-river.md`
+
+**Surfaced**: 2026-05-07 — Phase 1.5 of cross-product design system architecture (per `~/.claude/plans/design-system-cross-product-architecture-clear-river.md` Decision section). Wingman Phase 1 fully shipped (PR #210 + Step 6b cutover, monorepo `~/Code/beibei-apps/`). Phase 1.5 = WorkPal migrate into same monorepo as `apps/workpal/` + consume `@beibei/design-system` workspace package.
+
+**Goal**: WorkPal becomes equal consumer of `@beibei/design-system` alongside Wingman. Single SOT design system across Beibei's products.
+
+**Scope**:
+- git subtree migrate `~/Library/.../WorkPal/Code/` → `~/Code/beibei-apps/apps/workpal/` (preserve commit history)
+- Stack upgrades to match Wingman: React 18→19, Vite 6→8, TS 5.6→6.0, Tailwind 3.4.16→3.4.19
+- Workspace wiring: `apps/workpal/package.json` add `"@beibei/design-system": "workspace:*"`, refactor 36+5 primitive imports
+- WorkPal-specific: agent paths (`agent/release.yml` CI), sync-agent-shared script, Vercel monorepo build config
+- WorkPal CLAUDE.md update (design system source = monorepo, not WorkPal repo)
+- Skill sync hook disable WorkPal-side (post-migration source = monorepo)
+- Vercel preview deploy verify (production cutover by Beibei in dashboard)
+
+**Cost**: 5-9h cowork (Round 6 verified estimate based on Wingman Phase 1 actual cost + WorkPal stack jump deltas).
+
+**Risk classification**: medium-high — production URL Beibei daily use, agent dual-deploy complexity, React 19 / Vite 8 major jumps.
+
+**Mitigation**: Wingman canary done verifies monorepo pattern; preview deploy e2e before production cutover; original WorkPal repo untouched until cutover (rollback path = revert Vercel project root, ~1 min).
+
+**Verify path**: cross-cutting (frontend + agent + Vercel build + Supabase). Preview deploy verify, production cutover by Beibei post-merge.
+
+**Out of impl scope**: Vercel production cutover (Beibei dashboard), DMG release (Beibei tag-push), PR merge (Beibei), agent build runtime verify (DMG CI post-merge).
+
+---
+
 ## 50.2. `candidate` — Delete isDraft field entirely (cleanup)
 
 **Surfaced**: §50 + §50.1 ship 后, `isDraft` field 已被 display + sync 两层取消依赖. 真正彻底清理是删 field from `Chat` type / Supabase schema.
